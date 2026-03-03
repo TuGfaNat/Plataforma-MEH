@@ -7,13 +7,24 @@ export const mlsaBrand = {
   130: "#F5DFFF", 140: "#F9EFFF", 150: "#FCF8FF", 160: "#FFFFFF" 
 };
 
-export const mlsaDarkTheme = createDarkTheme(mlsaBrand);
+export const mlsaDarkTheme = {
+  ...createDarkTheme(mlsaBrand),
+  colorNeutralBackground1: "#06020D",
+  colorNeutralBackground2: "#110820",
+  colorNeutralBackground3: "#1A0B2E",
+};
+
 export const mlsaLightTheme = {
   ...createLightTheme(mlsaBrand),
-  colorNeutralBackground1: "#E9ECEF", // Plomo Suave
-  colorNeutralBackground2: "#F1F3F5",
-  colorNeutralForeground1: "#343A40",
-  colorBrandForeground1: "#4F238F",
+  colorNeutralBackground1: "#212529", // Carbono más profundo
+  colorNeutralBackground2: "#343A40", // Cards
+  colorNeutralBackground3: "#495057", // Dropdowns
+  colorNeutralForeground1: "#F8F9FA", // Texto casi blanco para máxima lectura
+  colorNeutralForeground2: "#E9ECEF",
+  colorNeutralForeground3: "#DEE2E6",
+  // Cambiamos el morado a uno mucho más claro (Lila) para que resalte
+  colorBrandForeground1: "#D2A8F3",   
+  colorBrandBackground: "#743CC7",
 };
 
 export const designTokens = {

@@ -12,3 +12,14 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* Forzar que los menús desplegables de Fluent UI no usen fondo blanco en modo oscuro */
+.fui-Dropdown__listbox, .fui-PopoverSurface {
+  background-color: var(--colorNeutralBackground3) !important;
+  color: var(--colorNeutralForeground1) !important;
+  border: 1px solid var(--colorNeutralStroke1) !important;
+}
+
+.fui-Option:hover {
+  background-color: var(--colorSubtleBackgroundHover) !important;
+}

@@ -36,11 +36,11 @@ import authService from '../services/authService';
 const useStyles = makeStyles({
   sidebar: {
     width: '280px',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)', // Fondo más oscuro para el sidebar
     backdropFilter: 'blur(20px)',
     display: 'flex',
     flexDirection: 'column',
-    ...shorthands.borderRight('1px', 'solid', 'rgba(255, 255, 255, 0.05)'),
+    ...shorthands.borderRight('1px', 'solid', tokens.colorNeutralBackground3),
     padding: '32px 16px',
     height: '100vh',
     position: 'sticky',
@@ -54,17 +54,30 @@ const useStyles = makeStyles({
   logoImg: { width: '42px' },
   navSection: { display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1 },
   navItem: {
-    display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px',
-    ...shorthands.borderRadius('12px'), textDecorationLine: 'none',
-    color: tokens.colorNeutralForeground3, transition: 'all 0.2s', cursor: 'pointer',
-    ':hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)', color: tokens.colorNeutralForeground1 }
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '14px 16px',
+    ...shorthands.borderRadius('12px'),
+    textDecorationLine: 'none',
+    color: tokens.colorNeutralForeground2, // Usamos un texto más suave por defecto
+    transition: 'all 0.2s',
+    cursor: 'pointer',
+    ':hover': { 
+      backgroundColor: 'rgba(255, 255, 255, 0.05)', 
+      color: tokens.colorNeutralForeground1 
+    }
   },
   navText: { fontSize: '0.95rem' },
-  navActive: { backgroundColor: 'rgba(127, 19, 236, 0.15)', color: tokens.colorBrandForeground1 },
+  navActive: { 
+    backgroundColor: 'rgba(127, 19, 236, 0.2)', 
+    color: tokens.colorBrandForeground1, // El lila claro que definimos
+    fontWeight: 'bold'
+  },
   footer: { 
     marginTop: 'auto', 
     paddingTop: '24px', 
-    ...shorthands.borderTop('1px', 'solid', 'rgba(255, 255, 255, 0.05)'),
+    ...shorthands.borderTop('1.5px', 'solid', tokens.colorNeutralBackground3),
     display: 'flex',
     flexDirection: 'column',
     gap: '12px'
@@ -76,6 +89,7 @@ const useStyles = makeStyles({
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     ...shorthands.padding('8px', '12px'),
     ...shorthands.borderRadius('12px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
   }
 });
 
@@ -112,7 +126,7 @@ const Sidebar = () => {
     <aside className={styles.sidebar}>
       <Link to="/" className={styles.logoContainer}>
         <img src={designTokens.logo} alt="logo" className={styles.logoImg} />
-        <Body1 style={{ fontWeight: tokens.fontWeightBlack }}>MEH</Body1>
+        <Body1 style={{ fontWeight: tokens.fontWeightBlack, color: tokens.colorNeutralForeground1 }}>MEH</Body1>
       </Link>
 
       <nav className={styles.navSection}>
@@ -121,7 +135,7 @@ const Sidebar = () => {
         <NavItem to="/finanzas" icon={Payment24Regular} activeIcon={Payment24Filled} label={t('finances') || "Finanzas"} />
         <NavItem to="/learning" icon={Library24Regular} activeIcon={Library24Filled} label={t('learning_hub') || "Learning Hub"} />
         <NavItem to="/comunidad" icon={People24Regular} activeIcon={People24Filled} label={t('community') || "Comunidad"} />
-        <NavItem to="/auditoria" icon={ShieldLock24Regular} activeIcon={ShieldLock24Filled} label="Auditoría" />
+        <NavItem to="/auditoria" icon={ShieldLock24Regular} activeIcon={ShieldLock24Filled} label={t('audit') || "Auditoría"} />
       </nav>
 
       <div className={styles.footer}>
@@ -131,6 +145,7 @@ const Sidebar = () => {
             size="small" 
             icon={<LocalLanguage24Regular />}
             onClick={toggleLanguage}
+            style={{ color: tokens.colorNeutralForeground1 }}
            >
             {i18n.language === 'es' ? 'ES' : 'EN'}
            </Button>
@@ -140,8 +155,9 @@ const Sidebar = () => {
             size="small" 
             icon={isDarkMode ? <WeatherSunny24Regular /> : <WeatherMoon24Regular />}
             onClick={toggleTheme}
+            style={{ color: tokens.colorNeutralForeground1 }}
            >
-            {isDarkMode ? "Light" : "Dark"}
+            {isDarkMode ? "Light" : "Carbon"}
            </Button>
         </div>
 

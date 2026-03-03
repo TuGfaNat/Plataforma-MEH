@@ -11,7 +11,9 @@ import {
   TableCell,
   Input,
   Label,
-  Spinner
+  Spinner,
+  Dropdown,
+  Option
 } from '@fluentui/react-components';
 import { 
   Money24Regular, 
@@ -79,7 +81,7 @@ const Finanzas = () => {
   const [success, setSuccess] = useState(false);
 
   // Formulario de carga
-  const [selectedInscripcion, setSelectedInscripcion] = useState('');
+  const [selectedInscripcion, setSelectedInscripcion] = useState(null);
   const [monto, setMonto] = useState('');
   const [file, setFile] = useState(null);
 
@@ -122,7 +124,7 @@ const Finanzas = () => {
     formData.append('id_referencia', selectedInscripcion);
     formData.append('tipo_referencia', 'EVENTO');
     formData.append('monto', monto);
-    formData.append('metodo_pago', 'TRANSFERENCIA'); // Por ahora fijo
+    formData.append('metodo_pago', 'TRANSFERENCIA');
     formData.append('file', file);
 
     try {
@@ -130,8 +132,8 @@ const Finanzas = () => {
       setSuccess(true);
       setFile(null);
       setMonto('');
-      setSelectedInscripcion('');
-      fetchData(); // Recargar tabla
+      setSelectedInscripcion(null);
+      fetchData(); 
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       console.error("Error al subir comprobante:", err);
@@ -156,7 +158,6 @@ const Finanzas = () => {
 
         <div className={styles.grid}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* Historial */}
             <MEHCard>
               <MEHTypography variant="h3" style={{ marginBottom: '16px', display: 'block' }}>Historial de Transacciones</MEHTypography>
               <div style={{ overflowX: 'auto' }}>
@@ -205,7 +206,6 @@ const Finanzas = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* Estado de Cuenta */}
             <MEHCard style={{ background: 'linear-gradient(135deg, rgba(127, 19, 236, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%)' }}>
               <MEHTypography variant="caption" style={{ opacity: 0.8 }}>ESTADO DE CUENTA</MEHTypography>
               <MEHTypography variant="h1" style={{ margin: '8px 0', color: tokens.colorBrandForeground1 }}>
@@ -216,28 +216,25 @@ const Finanzas = () => {
               </MEHTypography>
             </MEHCard>
 
-            {/* Carga de Comprobante Real */}
             <MEHCard>
               <MEHTypography variant="h3" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Receipt24Regular /> Subir Comprobante
               </MEHTypography>
               
-              <div style={{ marginBottom: '16px' }}>
-                <Label htmlFor="evento-select">Seleccionar Inscripción Pendiente</Label>
-                <select 
-                  id="evento-select" 
-                  value={selectedInscripcion}
-                  onChange={(e) => setSelectedInscripcion(e.target.value)}
-                  style={{ 
-                    width: '100%', padding: '8px', marginTop: '4px', borderRadius: '4px', 
-                    background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' 
-                  }}
+              <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <Label htmlFor="evento-select">Seleccionar Inscripción</Label>
+                <Dropdown 
+                  id="evento-select"
+                  placeholder="Selecciona un evento"
+                  onOptionSelect={(e, data) => setSelectedInscripcion(data.optionValue)}
+                  style={{ width: '100%' }}
                 >
-                  <option value="">-- Selecciona un evento --</option>
                   {inscripciones.map(ins => (
-                    <option key={ins.id_inscripcion} value={ins.id_evento}>Evento #{ins.id_evento}</option>
+                    <Option key={ins.id_inscripcion} value={ins.id_evento.toString()}>
+                      Evento #{ins.id_evento}
+                    </Option>
                   ))}
-                </select>
+                </Dropdown>
               </div>
 
               <div style={{ marginBottom: '16px' }}>

@@ -21,7 +21,8 @@ import {
 
 const useStyles = makeStyles({
   footer: {
-    ...shorthands.borderTop('1px', 'solid', 'rgba(255, 255, 255, 0.05)'),
+    // Usamos el token del sistema para que se vea bien en plomo
+    ...shorthands.borderTop('1.5px', 'solid', tokens.colorNeutralBackground3),
     ...shorthands.padding('60px', '24px', '40px', '24px'),
     display: 'flex',
     flexDirection: 'column',
@@ -35,12 +36,10 @@ const useStyles = makeStyles({
   glassDark: {
     background: 'rgba(255, 255, 255, 0.03)',
     backdropFilter: 'blur(10px)',
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   glassLight: {
     background: 'rgba(255, 255, 255, 0.85)',
     backdropFilter: 'blur(12px)',
-    borderTopColor: 'rgba(0, 0, 0, 0.08)',
     boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.02)',
   },
   glow: {
@@ -119,7 +118,7 @@ const useStyles = makeStyles({
     }
   },
   bottomSection: {
-    ...shorthands.borderTop('1px', 'solid', 'rgba(255, 255, 255, 0.05)'),
+    ...shorthands.borderTop('1.5px', 'solid', tokens.colorNeutralBackground3),
     paddingTop: '32px',
     display: 'flex',
     justifyContent: 'space-between',

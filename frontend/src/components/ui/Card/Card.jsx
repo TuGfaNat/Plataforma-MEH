@@ -9,10 +9,11 @@ const useStyles = makeStyles({
     border: '1px solid rgba(255, 255, 255, 0.1)',
   },
   glassLight: {
-    background: 'rgba(255, 255, 255, 0.85)',
-    backdropFilter: 'blur(12px)',
-    border: '1px solid rgba(0, 0, 0, 0.08)',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+    // Modo Carbono: Las tarjetas son grises muy oscuros pero con brillo sutil
+    background: 'rgba(33, 37, 41, 0.8)', 
+    backdropFilter: 'blur(15px)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
   }
 });
 

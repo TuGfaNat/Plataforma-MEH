@@ -31,7 +31,8 @@ const resources = {
       "locked": "LOCKED",
       "current_progress": "Current Progress",
       "enter_portal": "Enter Portal",
-      "logout": "Logout"
+      "logout": "Logout",
+      "audit": "Audit"
     }
   },
   es: {
@@ -62,7 +63,8 @@ const resources = {
       "locked": "BLOQUEADO",
       "current_progress": "Progreso Actual",
       "enter_portal": "Entrar al Portal",
-      "logout": "Cerrar Sesión"
+      "logout": "Cerrar Sesión",
+      "audit": "Auditoría"
     }
   }
 };
