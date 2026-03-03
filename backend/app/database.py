@@ -6,20 +6,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Intentar obtener la URL, si hay caracteres extraños en el password, esto ayuda
-SQLALCHEMY_DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
-    "postgresql://postgres:postgres@localhost/plataforma_meh"
-)
+# Obtener la URL de la base de datos de la variable de entorno
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Configuración ultra-compatible para Windows
+# Si no hay variable (local), usamos el default
+if not SQLALCHEMY_DATABASE_URL:
+    SQLALCHEMY_DATABASE_URL = "postgresql://postgres:postgres@localhost/plataforma_meh"
+
+# Configuración optimizada para nube (Neon/Render) y local
+# Eliminamos connect_args específicos de Windows para evitar conflictos en Linux/Cloud
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    connect_args={
-        "options": "-c client_encoding=utf8"
-    },
     pool_pre_ping=True
 )
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
