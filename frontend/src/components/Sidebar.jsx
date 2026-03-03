@@ -3,140 +3,134 @@ import {
   makeStyles, 
   shorthands, 
   tokens, 
-  Body1, 
-  Caption1, 
-  Card, 
-  Button 
+  Body1,
+  Button,
+  mergeClasses
 } from '@fluentui/react-components';
 import { 
-  Apps24Filled, 
   Trophy24Regular, 
+  Trophy24Filled,
   Library24Regular, 
-  People24Regular,
-  Payment24Regular,
+  Library24Filled,
   Settings24Regular,
+  Settings24Filled,
+  Payment24Regular,
+  Payment24Filled,
+  People24Regular,
+  People24Filled,
+  ShieldLock24Regular,
+  ShieldLock24Filled,
+  Home24Regular,
+  Home24Filled,
+  SignOut24Regular,
   LocalLanguage24Regular,
   WeatherMoon24Regular,
   WeatherSunny24Regular
 } from '@fluentui/react-icons';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { mlsaBrand } from '../theme/theme';
-import { useTheme } from '../App';
+import { designTokens } from '../theme/theme';
+import { useAuth, useTheme } from '../App';
+import authService from '../services/authService';
 
 const useStyles = makeStyles({
   sidebar: {
     width: '280px',
-    backgroundColor: tokens.colorNeutralBackground1, // Se adapta al tema
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    backdropFilter: 'blur(20px)',
     display: 'flex',
     flexDirection: 'column',
-    ...shorthands.borderRight('1px', 'solid', tokens.colorNeutralStroke1),
-    padding: '24px',
+    ...shorthands.borderRight('1px', 'solid', 'rgba(255, 255, 255, 0.05)'),
+    padding: '32px 16px',
     height: '100vh',
     position: 'sticky',
     top: 0,
+    zIndex: 100,
   },
   logoContainer: {
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: '12px', 
-    marginBottom: '40px'
+    display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px',
+    paddingLeft: '12px', textDecorationLine: 'none', color: 'inherit'
   },
-  logoIcon: {
-    width: '40px', 
-    height: '40px', 
-    background: mlsaBrand[60], 
-    borderRadius: '8px', 
-    display: 'flex', 
-    alignItems: 'center', 
-    justifyContent: 'center'
-  },
+  logoImg: { width: '42px' },
+  navSection: { display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1 },
   navItem: {
-    display: 'flex',
-    alignItems: 'center',
-    ...shorthands.gap('12px'),
-    padding: '12px 16px',
-    ...shorthands.borderRadius(tokens.borderRadiusLarge),
-    textDecorationLine: 'none',
-    color: tokens.colorNeutralForeground2,
-    transition: 'all 0.2s ease',
-    ':hover': {
-      backgroundColor: tokens.colorNeutralBackground1Hover,
-      color: mlsaBrand[100],
-    }
+    display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px',
+    ...shorthands.borderRadius('12px'), textDecorationLine: 'none',
+    color: tokens.colorNeutralForeground3, transition: 'all 0.2s', cursor: 'pointer',
+    ':hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)', color: tokens.colorNeutralForeground1 }
   },
-  navActive: {
-    backgroundColor: mlsaBrand[60],
-    color: 'white',
-    fontWeight: 'bold',
-    ':hover': {
-      backgroundColor: mlsaBrand[50],
-      color: 'white',
-    }
-  },
-  footer: {
-    marginTop: 'auto',
+  navText: { fontSize: '0.95rem' },
+  navActive: { backgroundColor: 'rgba(127, 19, 236, 0.15)', color: tokens.colorBrandForeground1 },
+  footer: { 
+    marginTop: 'auto', 
+    paddingTop: '24px', 
+    ...shorthands.borderTop('1px', 'solid', 'rgba(255, 255, 255, 0.05)'),
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px'
+    gap: '12px'
   },
-  quickAction: {
-    marginTop: '8px', 
-    backgroundColor: tokens.colorNeutralBackground2, 
-    border: '1px solid ' + mlsaBrand[40],
-    padding: '12px',
-  },
-  controlsRow: {
+  themeToggle: {
     display: 'flex',
-    gap: '8px',
-    padding: '0 8px',
-    marginBottom: '8px'
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    ...shorthands.padding('8px', '12px'),
+    ...shorthands.borderRadius('12px'),
   }
 });
 
 const Sidebar = () => {
   const styles = useStyles();
   const location = useLocation();
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { isDarkMode, toggleTheme } = useTheme();
+  const { setUser } = useAuth();
 
-  const isPath = (path) => location.pathname === path;
+  const handleLogout = () => {
+    authService.logout();
+    setUser(null);
+    navigate('/login');
+  };
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'es' ? 'en' : 'es';
     i18n.changeLanguage(newLang);
   };
 
+  const NavItem = ({ to, icon: IconRegular, activeIcon: IconFilled, label }) => {
+    const active = location.pathname === to;
+    return (
+      <Link to={to} className={mergeClasses(styles.navItem, active && styles.navActive)}>
+        {active ? <IconFilled /> : <IconRegular />}
+        <span className={styles.navText}>{label}</span>
+      </Link>
+    );
+  };
+
   return (
     <aside className={styles.sidebar}>
-      <div className={styles.logoContainer}>
-        <div className={styles.logoIcon}>
-          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKJQaXOsKGxxY6IwD5ItPOLwwpdHg4yBkvAPoERkSvClYp9-MzHoDkMz1av3-N7-TRKJBpWPRfvoPUpdyW83amOw_ZMYiH37j3WpBIoW1AfWvKx4m3fwLqT4qByzBoKHHTkrg3UK5r8c5PbrqDVHr_eYRb-FGdyRkmo7YTWOyhCvd8IR4Fj6Vydcsbbp5H_CqhDBAf_hiJ7xDo5qGg2RMCtijfqmrpdolfdClsOR8A3xYnfbBigZXRzm0bd_f1d9GIiktLVwCcWZc" alt="logo" style={{ width: '30px' }} />
-        </div>
-        <div>
-          <Body1 style={{ fontWeight: 'bold' }}>MEH Portal</Body1>
-          <Caption1 style={{ color: mlsaBrand[100], letterSpacing: '1px' }}>MICROSOFT EDUCATION</Caption1>
-        </div>
-      </div>
+      <Link to="/" className={styles.logoContainer}>
+        <img src={designTokens.logo} alt="logo" className={styles.logoImg} />
+        <Body1 style={{ fontWeight: tokens.fontWeightBlack }}>MEH</Body1>
+      </Link>
 
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <Link to="/dashboard" className={`${styles.navItem} ${isPath('/dashboard') ? styles.navActive : ''}`}>
-          <Apps24Filled /> <span>{t('dashboard')}</span>
-        </Link>
-        <Link to="#" className={styles.navItem}><Payment24Regular /> <span>{t('finances')}</span></Link>
-        <Link to="#" className={styles.navItem}><Trophy24Regular /> <span>{t('badges')}</span></Link>
-        <Link to="#" className={styles.navItem}><Library24Regular /> <span>{t('learning_hub')}</span></Link>
-        <Link to="#" className={styles.navItem}><People24Regular /> <span>{t('community')}</span></Link>
+      <nav className={styles.navSection}>
+        <NavItem to="/dashboard" icon={Home24Regular} activeIcon={Home24Filled} label={t('dashboard') || "Dashboard"} />
+        <NavItem to="/insignias" icon={Trophy24Regular} activeIcon={Trophy24Filled} label={t('badges') || "Insignias"} />
+        <NavItem to="/finanzas" icon={Payment24Regular} activeIcon={Payment24Filled} label={t('finances') || "Finanzas"} />
+        <NavItem to="/learning" icon={Library24Regular} activeIcon={Library24Filled} label={t('learning_hub') || "Learning Hub"} />
+        <NavItem to="/comunidad" icon={People24Regular} activeIcon={People24Filled} label={t('community') || "Comunidad"} />
+        <NavItem to="/auditoria" icon={ShieldLock24Regular} activeIcon={ShieldLock24Filled} label="Auditoría" />
       </nav>
 
       <div className={styles.footer}>
-        <div className={styles.controlsRow}>
+        <div className={styles.themeToggle}>
            <Button 
             appearance="subtle" 
             size="small" 
             icon={<LocalLanguage24Regular />}
             onClick={toggleLanguage}
-            title="Cambiar Idioma"
            >
             {i18n.language === 'es' ? 'ES' : 'EN'}
            </Button>
@@ -146,18 +140,17 @@ const Sidebar = () => {
             size="small" 
             icon={isDarkMode ? <WeatherSunny24Regular /> : <WeatherMoon24Regular />}
             onClick={toggleTheme}
-            title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
            >
             {isDarkMode ? "Light" : "Dark"}
            </Button>
         </div>
 
-        <Link to="#" className={styles.navItem}><Settings24Regular /> <span>{t('settings')}</span></Link>
+        <NavItem to="/configuracion" icon={Settings24Regular} activeIcon={Settings24Filled} label={t('settings') || "Configuración"} />
         
-        <Card className={styles.quickAction}>
-          <Caption1 style={{ color: mlsaBrand[80], fontWeight: 'bold' }}>{t('quick_action')}</Caption1>
-          <Button appearance="primary" style={{ width: '100%', marginTop: '8px' }}>{t('upload_receipt')}</Button>
-        </Card>
+        <div className={styles.navItem} onClick={handleLogout} style={{ color: tokens.colorPaletteRedForeground1 }}>
+          <SignOut24Regular />
+          <span className={styles.navText}>{t('logout') || "Cerrar Sesión"}</span>
+        </div>
       </div>
     </aside>
   );

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import auth
+from app.api import auth, eventos, cursos, inscripciones, logs, pagos, comunidad
 
 app = FastAPI(title="Plataforma MEH API")
 
@@ -15,6 +15,12 @@ app.add_middleware(
 
 # Incluir routers
 app.include_router(auth.router)
+app.include_router(eventos.router)
+app.include_router(cursos.router)
+app.include_router(inscripciones.router)
+app.include_router(logs.router)
+app.include_router(pagos.router)
+app.include_router(comunidad.router)
 
 @app.get("/")
 async def root():

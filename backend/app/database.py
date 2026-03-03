@@ -4,18 +4,21 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 
-# Carga las variables desde el archivo .env
 load_dotenv()
 
-# Configuración para PostgreSQL local
+# Intentar obtener la URL, si hay caracteres extraños en el password, esto ayuda
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL", 
     "postgresql://postgres:postgres@localhost/plataforma_meh"
 )
 
+# Configuración ultra-compatible para Windows
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    client_encoding='utf8'
+    connect_args={
+        "options": "-c client_encoding=utf8"
+    },
+    pool_pre_ping=True
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

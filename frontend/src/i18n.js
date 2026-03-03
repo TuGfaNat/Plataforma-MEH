@@ -15,7 +15,7 @@ const resources = {
       "quick_action": "QUICK ACTION",
       "upload_receipt": "Upload Receipt",
       "hero_title": "Microsoft Education Hub",
-      "hero_subtitle": "Empowering the next generation of tech leaders.",
+      "hero_subtitle": "Innovating the future, together",
       "explore_events": "Explore Events",
       "learn_more": "Learn More",
       "exclusive_events": "Exclusive Events",
@@ -30,7 +30,8 @@ const resources = {
       "badge_showcase": "Badge Showcase",
       "locked": "LOCKED",
       "current_progress": "Current Progress",
-      "enter_portal": "Enter Portal"
+      "enter_portal": "Enter Portal",
+      "logout": "Logout"
     }
   },
   es: {
@@ -45,7 +46,7 @@ const resources = {
       "quick_action": "ACCIÓN RÁPIDA",
       "upload_receipt": "Subir Recibo",
       "hero_title": "Microsoft Education Hub",
-      "hero_subtitle": "Empoderando a la próxima generación de líderes tecnológicos.",
+      "hero_subtitle": "Innovating the future, together",
       "explore_events": "Explorar Eventos",
       "learn_more": "Saber más",
       "exclusive_events": "Eventos Exclusivos",
@@ -60,7 +61,8 @@ const resources = {
       "badge_showcase": "Galería de Insignias",
       "locked": "BLOQUEADO",
       "current_progress": "Progreso Actual",
-      "enter_portal": "Entrar al Portal"
+      "enter_portal": "Entrar al Portal",
+      "logout": "Cerrar Sesión"
     }
   }
 };

@@ -1,69 +1,82 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { 
-  FluentProvider, 
-  makeStyles
-} from '@fluentui/react-components';
+import { FluentProvider } from '@fluentui/react-components';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { mlsaDarkTheme, mlsaLightTheme } from './theme/theme';
+import authService from './services/authService';
+
+// Páginas
 import Landing from './pages/Landing.jsx';
 import Dashboard from './pages/Dashboard.jsx';
-import Sidebar from './components/Sidebar.jsx';
+import Login from './pages/Login.jsx';
+import Auditoria from './pages/Auditoria.jsx';
+import Insignias from './pages/Insignias.jsx';
+import Finanzas from './pages/Finanzas.jsx';
+import LearningHub from './pages/LearningHub.jsx';
+import Comunidad from './pages/Comunidad.jsx';
+import Configuracion from './pages/Configuracion.jsx';
 
-// Contexto para el tema para poder cambiarlo desde cualquier componente
+const AuthContext = createContext();
+export const useAuth = () => useContext(AuthContext);
+
 const ThemeContext = createContext();
 export const useTheme = () => useContext(ThemeContext);
 
-const useStyles = makeStyles({
-  dashboardLayout: {
-    display: 'flex',
-    minHeight: '100vh',
-  },
-});
-
-const MainLayout = ({ children }) => {
-  const styles = useStyles();
-  return (
-    <div className={styles.dashboardLayout}>
-      <Sidebar />
-      {children}
-    </div>
-  );
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  if (!token) return <Navigate to="/login" replace />;
+  return children;
 };
 
 function App() {
-  // Estado inicial desde localStorage o por defecto 'dark'
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    return saved ? saved === 'dark' : true;
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
-  const toggleTheme = () => {
-    setIsDarkMode(prev => {
-      const next = !prev;
-      localStorage.setItem('theme', next ? 'dark' : 'light');
-      return next;
-    });
+  const checkAuth = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const userData = await authService.getMe();
+        setUser(userData);
+      } else {
+        setUser(null);
+      }
+    } catch (err) {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
+
+  if (loading) return null;
+
   return (
-    <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
-      <FluentProvider theme={isDarkMode ? mlsaDarkTheme : mlsaLightTheme}>
-        <Router>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route 
-              path="/dashboard" 
-              element={
-                <MainLayout>
-                  <Dashboard />
-                </MainLayout>
-              } 
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
-      </FluentProvider>
-    </ThemeContext.Provider>
+    <AuthContext.Provider value={{ user, setUser, checkAuth }}>
+      <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
+        <FluentProvider theme={isDarkMode ? mlsaDarkTheme : mlsaLightTheme}>
+          <Router>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/insignias" element={<ProtectedRoute><Insignias /></ProtectedRoute>} />
+              <Route path="/finanzas" element={<ProtectedRoute><Finanzas /></ProtectedRoute>} />
+              <Route path="/learning" element={<ProtectedRoute><LearningHub /></ProtectedRoute>} />
+              <Route path="/comunidad" element={<ProtectedRoute><Comunidad /></ProtectedRoute>} />
+              <Route path="/configuracion" element={<ProtectedRoute><Configuracion /></ProtectedRoute>} />
+              <Route path="/auditoria" element={<ProtectedRoute><Auditoria /></ProtectedRoute>} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Router>
+        </FluentProvider>
+      </ThemeContext.Provider>
+    </AuthContext.Provider>
   );
 }
 

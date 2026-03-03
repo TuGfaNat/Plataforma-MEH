@@ -1,150 +1,287 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Avatar,
-  Card,
-  CardHeader,
   ProgressBar,
-  Body1,
-  Caption1,
-  Subtitle1,
-  Title2,
   makeStyles,
   shorthands,
   tokens,
-  Button
+  Spinner,
+  mergeClasses
 } from '@fluentui/react-components';
 import { 
   Alert24Regular,
-  Search24Regular
+  CalendarStar24Filled,
+  Reward24Filled,
+  Mail24Filled,
+  ChevronRight24Regular
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
-import { mlsaBrand } from '../theme/theme';
+import { useNavigate } from 'react-router-dom';
+import { designTokens } from '../theme/theme';
+import { useAuth } from '../App';
+import MainLayout from '../components/layout/MainLayout';
+import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
+import eventoService from '../services/eventoService';
 
 const useStyles = makeStyles({
-  container: {
+  dashboardContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '32px',
+    animationName: {
+      from: { opacity: 0, transform: 'translateY(10px)' },
+      to: { opacity: 1, transform: 'translateY(0)' },
+    },
+    animationDuration: '0.5s',
+  },
+  welcomeHeader: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: '24px',
+    ...shorthands.padding('40px'),
+    position: 'relative',
+    overflow: 'hidden',
+    background: 'linear-gradient(135deg, rgba(127, 19, 236, 0.1) 0%, rgba(255, 255, 255, 0.03) 100%)',
+    [designTokens.breakpoints.md]: {
+      flexDirection: 'column',
+      textAlign: 'center',
+    }
+  },
+  welcomeText: {
     flexGrow: 1,
-    padding: '32px',
-    backgroundColor: '#191022',
-    minHeight: '100vh',
-    overflowY: 'auto',
   },
-  header: {
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginBottom: '32px'
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+    ...shorthands.gap('24px'),
   },
-  glassCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    backdropFilter: 'blur(10px)',
-    ...shorthands.border('1px', 'solid', 'rgba(127, 19, 236, 0.1)'),
-    ...shorthands.padding('24px'),
+  sectionTitle: {
+    marginBottom: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  eventItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    ...shorthands.padding('16px'),
+    ...shorthands.borderRadius('12px'),
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    transition: 'all 0.2s ease',
+    ...shorthands.border('1px', 'solid', 'rgba(255, 255, 255, 0.05)'),
+    ':hover': {
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      transform: 'translateX(4px)',
+    }
+  },
+  dateBox: {
+    backgroundColor: tokens.colorBrandBackground2,
+    ...shorthands.padding('8px'),
+    ...shorthands.borderRadius('10px'),
+    textAlign: 'center',
+    minWidth: '55px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shorthands.border('1px', 'solid', 'rgba(127, 19, 236, 0.2)'),
+  },
+  progressInfo: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '8px',
   },
   badgeGlow: {
-    filter: 'drop-shadow(0 0 8px rgba(127, 19, 236, 0.4))',
-  },
-  statGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    ...shorthands.gap('24px'),
-    marginBottom: '32px',
-  },
-  mainGrid: {
-    display: 'grid', 
-    gridTemplateColumns: '2fr 1fr', 
-    gap: '32px',
-    '@media (max-width: 1024px)': {
-      gridTemplateColumns: '1fr',
-    }
+    filter: 'drop-shadow(0 0 15px rgba(127, 19, 236, 0.6))',
   }
 });
 
 const Dashboard = () => {
   const styles = useStyles();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   
+  const [eventos, setEventos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEventos = async () => {
+      try {
+        const data = await eventoService.getEventos();
+        // Filtrar solo los programados y tomar los 3 primeros
+        const proximos = data
+          .filter(e => e.estado === 'PROGRAMADO')
+          .sort((a, b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio))
+          .slice(0, 3);
+        setEventos(proximos);
+      } catch (err) {
+        console.error("Error fetching eventos:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEventos();
+  }, []);
+
+  if (!user) return <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}><Spinner label="Cargando perfil..." /></div>;
+
+  const fullName = `${user.nombres} ${user.apellidos}`;
+
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    const months = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+    return {
+      day: date.getDate(),
+      month: months[date.getMonth()]
+    };
+  };
+
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <Title2>{t('dashboard')}</Title2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <Button icon={<Search24Regular />} appearance="subtle" />
-          <Button icon={<Alert24Regular />} appearance="subtle" />
-          <div style={{ textAlign: 'right' }}>
-            <Body1 block style={{ fontWeight: 'bold' }}>Alex Rivera</Body1>
-            <Caption1 style={{ color: mlsaBrand[100] }}>{t('milestone_gold')}</Caption1>
-          </div>
-          <Avatar name="Alex Rivera" badge="active" color="colorful" />
-        </div>
-      </div>
-
-      <div className={styles.statGrid}>
-        <Card className={styles.glassCard} style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'row', gap: '24px', alignItems: 'center' }}>
+    <MainLayout>
+      <div className={styles.dashboardContainer}>
+        {/* 1. Bienvenida Personalizada (Glassmorphism con relieve) */}
+        <MEHCard className={styles.welcomeHeader}>
           <div style={{ position: 'relative' }}>
-            <Avatar size={96} name="Alex Rivera" />
-            <div style={{ position: 'absolute', bottom: '-10px', right: '-10px', width: '40px' }}>
-               <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm8Id6Q7IQAc8zIFd_EAaBtwwHy2cpnRgt9QWXHouwYHMsHVWf-HTXY2OwMV1brokFpQm5onbPJEMW2WAaDowylSAh3UbXzgjFCKhP1lXTOJEj8HRmxWBpVqaq82fdHufRnWQ8nmgulV4nDp5mv5D3HaCfEVcU5TJqqQO73JgS6piqGTQbVxtfPA-BxfkyZjoxVCiTAR9p5XE6QLNhQsXB5ClUYH1OBczhrYYouwN5jwedn_-hXnfa6EjCMxuUfVnxCpGeWDqqP7Y" alt="badge" className={styles.badgeGlow} style={{ width: '100%' }} />
+            <Avatar size={128} name={fullName} color="colorful" />
+            <div style={{ position: 'absolute', bottom: '0', right: '0', width: '45px', height: '45px' }}>
+              <img 
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBm8Id6Q7IQAc8zIFd_EAaBtwwHy2cpnRgt9QWXHouwYHMsHVWf-HTXY2OwMV1brokFpQm5onbPJEMW2WAaDowylSAh3UbXzgjFCKhP1lXTOJEj8HRmxWBpVqaq82fdHufRnWQ8nmgulV4nDp5mv5D3HaCfEVcU5TJqqQO73JgS6piqGTQbVxtfPA-BxfkyZjoxVCiTAR9p5XE6QLNhQsXB5ClUYH1OBczhrYYouwN5jwedn_-hXnfa6EjCMxuUfVnxCpGeWDqqP7Y" 
+                alt="badge" 
+                className={styles.badgeGlow} 
+                style={{ width: '100%' }} 
+              />
             </div>
           </div>
-          <div>
-            <Title2>{t('welcome', { name: 'Alex' })}</Title2>
-            <Body1 block style={{ marginTop: '8px', opacity: 0.7 }}>
-              Estás a solo 150 puntos de alcanzar el Hito de Platino. ¡Sigue con el excelente trabajo!
-            </Body1>
+          <div className={styles.welcomeText}>
+            <MEHTypography variant="h1">{t('welcome', { name: user.nombres })}</MEHTypography>
+            <MEHTypography variant="body" style={{ opacity: 0.7, marginTop: '8px', display: 'block' }}>
+              Tienes el rol de <span style={{ color: tokens.colorBrandForeground1, fontWeight: 'bold' }}>{user.rol}</span>. 
+              Hoy es un gran día para aprender algo nuevo en Azure o IA.
+            </MEHTypography>
+            <div style={{ marginTop: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <MEHButton size="large" icon={<Reward24Filled />} onClick={() => navigate('/insignias')}>Ver mis logros</MEHButton>
+              <MEHButton appearance="outline" size="large">Completar Perfil</MEHButton>
+            </div>
           </div>
-        </Card>
+        </MEHCard>
 
-        <Card style={{ backgroundColor: mlsaBrand[50], color: 'white', padding: '24px' }}>
-           <Caption1 style={{ opacity: 0.8, fontWeight: 'bold' }}>{t('points_activity')}</Caption1>
-           <h1 style={{ fontSize: '48px', margin: '8px 0', fontWeight: '900' }}>14,250</h1>
-           <div style={{ marginTop: 'auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <Caption1 style={{ fontWeight: 'bold' }}>{t('next_milestone')}</Caption1>
-                <Caption1 style={{ fontWeight: 'bold' }}>85%</Caption1>
-              </div>
-              <ProgressBar value={0.85} color="success" />
-           </div>
-        </Card>
-      </div>
-
-      <div className={styles.mainGrid}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        <div className={styles.grid}>
+          {/* 2. Próximos Eventos (Conectado a la API) */}
           <section>
-            <Subtitle1 block style={{ marginBottom: '16px' }}>{t('badge_showcase')}</Subtitle1>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(60px, 1fr))', gap: '16px' }}>
-              {[1,2,3,4,5,6].map(i => (
-                <div key={i} style={{ textAlign: 'center' }}>
-                  <div style={{ width: '60px', height: '60px', backgroundColor: 'rgba(127, 19, 236, 0.05)', borderRadius: '50%', margin: '0 auto 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-6XooRD1s0I7oEdf32BgSYwKPEFnbi8Cfje3mpXyOnSsd1R0uIE1JJbiRQ4sg_gWnF4A-7hnH0l-pmxgs1y7a7C5hWV0awsfEOQkBUf1k8XsQAK9tU5oIcCEA8rPYXed8qqs8SvNAxrAUxNdh-A-Fvsxebn8mVEt7DVYZcRGLd4XxatfxJAuutWyoOrIPrpyZQMPHr-6y9tnnOt-_d-YtfOhPbX_xya3RonGS2ajsF7L7vO2Jj9IrwWTWevKYRkYD6P71toXjx5g" alt="badge" style={{ width: '40px' }} className={i > 3 ? '' : styles.badgeGlow} />
-                  </div>
-                  <Caption1 style={{ opacity: 0.5 }}>{i > 3 ? t('locked') : t('badges')}</Caption1>
-                </div>
-              ))}
+            <div className={styles.sectionTitle}>
+              <CalendarStar24Filled style={{ color: tokens.colorBrandForeground1 }} />
+              <MEHTypography variant="h3">Eventos para ti</MEHTypography>
             </div>
+            <MEHCard style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {loading ? (
+                <Spinner size="small" label="Buscando talleres..." />
+              ) : eventos.length > 0 ? (
+                eventos.map(evento => {
+                  const { day, month } = formatDate(evento.fecha_inicio);
+                  return (
+                    <div key={evento.id_evento} className={styles.eventItem}>
+                      <div className={styles.dateBox}>
+                        <MEHTypography variant="caption" style={{ display: 'block', fontWeight: 'bold', color: tokens.colorBrandForeground1 }}>{month}</MEHTypography>
+                        <MEHTypography variant="h3">{day}</MEHTypography>
+                      </div>
+                      <div style={{ flexGrow: 1 }}>
+                        <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>{evento.titulo}</MEHTypography>
+                        <MEHTypography variant="caption" style={{ opacity: 0.6, display: 'block' }}>{evento.modalidad} • {new Date(evento.fecha_inicio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</MEHTypography>
+                      </div>
+                      <MEHButton appearance="subtle" icon={<ChevronRight24Regular />} onClick={() => navigate(`/learning`)} />
+                    </div>
+                  );
+                })
+              ) : (
+                <MEHTypography variant="caption" style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>No hay eventos programados por ahora.</MEHTypography>
+              )}
+              
+              <MEHButton appearance="outline" style={{ marginTop: '8px' }} onClick={() => navigate('/learning')}>Explorar Learning Hub</MEHButton>
+            </MEHCard>
           </section>
 
-          <Card className={styles.glassCard}>
-            <CardHeader header={<Subtitle1>{t('finances')}</Subtitle1>} action={<Button appearance="primary" size="small">{t('upload_receipt')}</Button>} />
-            <div style={{ marginTop: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                <Body1>Catering del Meetup de la Comunidad</Body1>
-                <Body1 style={{ fontWeight: 'bold' }}>$450.00</Body1>
-              </div>
+          {/* 3. Resumen de Progreso e Insignias */}
+          <section>
+            <div className={styles.sectionTitle}>
+              <Reward24Filled style={{ color: tokens.colorBrandForeground1 }} />
+              <MEHTypography variant="h3">Tu Progreso</MEHTypography>
             </div>
-          </Card>
-        </div>
+            <MEHCard>
+              <div className={styles.progressInfo}>
+                <MEHTypography variant="body">Gold Milestone</MEHTypography>
+                <MEHTypography variant="caption" style={{ fontWeight: 'bold' }}>75%</MEHTypography>
+              </div>
+              <ProgressBar value={0.75} color="success" style={{ marginBottom: '24px', height: '8px' }} />
+              
+              <MEHTypography variant="caption" style={{ marginBottom: '16px', display: 'block', opacity: 0.7, fontWeight: 'bold' }}>LOGROS DESTACADOS</MEHTypography>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                {[1, 2, 3].map(i => (
+                  <div key={i} style={{ 
+                    width: '60px', 
+                    height: '60px', 
+                    backgroundColor: 'rgba(127, 19, 236, 0.05)', 
+                    ...shorthands.borderRadius('50%'), 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    ...shorthands.border('1px', 'solid', 'rgba(127, 19, 236, 0.2)'),
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  }}>
+                    <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-6XooRD1s0I7oEdf32BgSYwKPEFnbi8Cfje3mpXyOnSsd1R0uIE1JJbiRQ4sg_gWnF4A-7hnH0l-pmxgs1y7a7C5hWV0awsfEOQkBUf1k8XsQAK9tU5oIcCEA8rPYXed8qqs8SvNAxrAUxNdh-A-Fvsxebn8mVEt7DVYZcRGLd4XxatfxJAuutWyoOrIPrpyZQMPHr-6y9tnnOt-_d-YtfOhPbX_xya3RonGS2ajsF7L7vO2Jj9IrwWTWevKYRkYD6P71toXjx5g" alt="badge" style={{ width: '35px' }} />
+                  </div>
+                ))}
+                <div style={{ 
+                  width: '60px', 
+                  height: '60px', 
+                  border: '2px dashed rgba(255,255,255,0.1)', 
+                  ...shorthands.borderRadius('50%'), 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }} onClick={() => navigate('/insignias')}>
+                  <MEHTypography variant="caption" style={{ opacity: 0.5 }}>+5</MEHTypography>
+                </div>
+              </div>
+            </MEHCard>
+          </section>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-           <section>
-              <Subtitle1 block style={{ marginBottom: '16px' }}>{t('current_progress')}</Subtitle1>
-              <Card className={styles.glassCard} style={{ marginBottom: '16px' }}>
-                <Body1 style={{ fontWeight: 'bold' }}>Fundamentos de Azure Cloud</Body1>
-                <ProgressBar value={0.72} style={{ marginTop: '12px' }} />
-              </Card>
-           </section>
+          {/* 4. Notificaciones y Alertas */}
+          <section>
+            <div className={styles.sectionTitle}>
+              <Alert24Regular style={{ color: tokens.colorBrandForeground1 }} />
+              <MEHTypography variant="h3">Centro de Avisos</MEHTypography>
+            </div>
+            <MEHCard style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                <div style={{ ...shorthands.padding('10px'), backgroundColor: 'rgba(127, 19, 236, 0.1)', ...shorthands.borderRadius('12px') }}>
+                  <Mail24Filled style={{ fontSize: '20px', color: tokens.colorBrandForeground1 }} />
+                </div>
+                <div>
+                  <MEHTypography variant="body" style={{ fontWeight: 'bold', display: 'block' }}>Nuevo certificado</MEHTypography>
+                  <MEHTypography variant="caption" style={{ opacity: 0.6, lineHeight: '1.4' }}>Has completado Azure AI Fundamentals. Tu certificado está listo para descargar.</MEHTypography>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                <div style={{ ...shorthands.padding('10px'), backgroundColor: 'rgba(255, 215, 0, 0.1)', ...shorthands.borderRadius('12px') }}>
+                  <Reward24Filled style={{ fontSize: '20px', color: '#FFD700' }} />
+                </div>
+                <div>
+                  <MEHTypography variant="body" style={{ fontWeight: 'bold', display: 'block' }}>Hito alcanzado</MEHTypography>
+                  <MEHTypography variant="caption" style={{ opacity: 0.6, lineHeight: '1.4' }}>¡Bienvenido a la comunidad Gold! Has desbloqueado beneficios exclusivos.</MEHTypography>
+                </div>
+              </div>
+
+              <MEHButton appearance="subtle" size="small" style={{ alignSelf: 'center' }}>Ver todo el historial</MEHButton>
+            </MEHCard>
+          </section>
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 };
 
