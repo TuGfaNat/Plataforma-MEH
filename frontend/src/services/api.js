@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  // Cambiamos localhost por la URL real de Render
+  baseURL: 'https://api-meh.onrender.com',
 });
 
 // Interceptor para añadir el token JWT a todas las peticiones
