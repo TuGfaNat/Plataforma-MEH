@@ -11,4 +11,5 @@ python-multipart
 python-dotenv
 email-validator
 gunicorn
-uvicorn
+google-auth
+requests
