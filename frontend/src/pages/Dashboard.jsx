@@ -145,14 +145,14 @@ const Dashboard = () => {
           <div style={{ position: 'relative' }}>
             <Avatar size={128} name={fullName} color="colorful" />
             <div style={{ position: 'absolute', bottom: '0', right: '0', width: '45px', height: '45px' }}>
-              <Reward24Filled className={styles.badgeGlow} style={{ color: '#FFD700', fontSize: '40px' }} />
+              <Reward24Filled className={styles.badgeGlow} style={{ color: user.rol === 'EMBAJADOR' ? '#FFD700' : '#CD7F32', fontSize: '40px' }} />
             </div>
           </div>
           <div className={styles.welcomeText}>
-            <MEHTypography variant="h1">¡Hola de nuevo, {user.nombres}!</MEHTypography>
+            <MEHTypography variant="h1">{t('welcome', { name: user.nombres })}</MEHTypography>
             <MEHTypography variant="body" style={{ opacity: 0.7, marginTop: '8px', display: 'block' }}>
-              Eres miembro nivel <span style={{ color: tokens.colorBrandForeground1, fontWeight: 'bold' }}>{user.rol}</span>. 
-              Tienes 3 talleres nuevos esperándote esta semana.
+              {t('current_progress')}: <span style={{ color: tokens.colorBrandForeground1, fontWeight: 'bold' }}>{t(`role_${user.rol.toLowerCase()}`)}</span>. 
+              {user.rol === 'MIEMBRO' && " ¡Estás a un paso de la grandeza!"}
             </MEHTypography>
             <div style={{ marginTop: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <MEHButton size="large" icon={<Reward24Filled />} onClick={() => navigate('/insignias')}>Ver mis logros</MEHButton>
@@ -160,6 +160,33 @@ const Dashboard = () => {
             </div>
           </div>
         </MEHCard>
+
+        {/* 1.5 Banner de Upgrade para Miembros */}
+        {user.rol === 'MIEMBRO' && (
+          <MEHCard style={{ 
+            background: 'linear-gradient(90deg, #7f13ec 0%, #3a0078 100%)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            ...shorthands.padding('20px', '32px'),
+            color: 'white'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', ...shorthands.padding('12px'), ...shorthands.borderRadius('50%') }}>
+                <Trophy24Filled style={{ fontSize: '32px' }} />
+              </div>
+              <div>
+                <MEHTypography variant="h3" style={{ color: 'white' }}>¿Quieres ser Embajador?</MEHTypography>
+                <MEHTypography variant="body" style={{ color: 'rgba(255,255,255,0.8)', display: 'block' }}>
+                  {t('upgrade_msg')}
+                </MEHTypography>
+              </div>
+            </div>
+            <MEHButton appearance="primary" style={{ backgroundColor: 'white', color: '#7f13ec' }} onClick={() => navigate('/finanzas')}>
+              Saber más
+            </MEHButton>
+          </MEHCard>
+        )}
 
         <div className={styles.grid}>
           {/* 2. Próximos Eventos Reales */}

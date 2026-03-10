@@ -77,6 +77,15 @@ const useStyles = makeStyles({
       backgroundColor: 'rgba(255,255,255,0.06)',
       transform: 'translateX(4px)',
     }
+  },
+  bottomGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '24px',
+    marginTop: '16px',
+    [designTokens.breakpoints.md]: {
+      gridTemplateColumns: '1fr',
+    }
   }
 });
 
@@ -169,7 +178,7 @@ const LearningHub = () => {
         </section>
 
         {/* Recursos y Certificados */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '16px', [designTokens.breakpoints.md]: { gridTemplateColumns: '1fr' } }}>
+        <div className={styles.bottomGrid}>
           
           <MEHCard>
             <MEHTypography variant="h3" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>

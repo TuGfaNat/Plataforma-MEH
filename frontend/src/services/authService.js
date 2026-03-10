@@ -9,6 +9,14 @@ const authService = {
     return response.data;
   },
 
+  loginWithGoogle: async (googleToken) => {
+    const response = await api.post('/auth/google', { token: googleToken });
+    if (response.data.access_token) {
+      localStorage.setItem('token', response.data.access_token);
+    }
+    return response.data;
+  },
+
   register: async (userData) => {
     const response = await api.post('/auth/register', userData);
     return response.data;

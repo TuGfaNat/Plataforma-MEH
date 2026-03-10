@@ -53,6 +53,14 @@ const useStyles = makeStyles({
       backgroundColor: 'rgba(255,255,255,0.05)',
     }
   },
+  mainGrid: {
+    display: 'grid',
+    gridTemplateColumns: '2fr 1fr',
+    gap: '32px',
+    '@media(max-width: 900px)': {
+      gridTemplateColumns: '1fr',
+    }
+  },
   channelItem: {
     display: 'flex',
     alignItems: 'center',
@@ -110,7 +118,7 @@ const Comunidad = () => {
           </MEHTypography>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px', '@media(max-width: 900px)': { gridTemplateColumns: '1fr' } }}>
+        <div className={styles.mainGrid}>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             {/* Canales */}

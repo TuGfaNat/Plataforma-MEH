@@ -1,18 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   makeStyles, 
   shorthands, 
-  tokens
+  tokens,
+  Input,
+  Spinner,
+  Badge
 } from '@fluentui/react-components';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { designTokens } from '../theme/theme';
 import { MEHButton, MEHCard, MEHTypography } from '../components/ui';
+import eventoService from '../services/eventoService';
 
 import { 
   CalendarStar24Regular,
   Certificate24Regular,
-  Globe24Regular
+  Globe24Regular,
+  ShieldCheckmark24Filled,
+  Search24Regular,
+  CalendarClock24Regular,
+  Location24Regular,
+  Video24Regular
 } from '@fluentui/react-icons';
 
 import { MEHFooter } from '../components/layout/MEHFooter';
@@ -130,64 +139,101 @@ const useStyles = makeStyles({
       backgroundColor: 'rgba(255, 255, 255, 0.05)',
     }
   },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    ...shorthands.gap('40px'),
+  section: {
     ...shorthands.padding('100px', '24px'),
     maxWidth: '1200px',
     margin: '0 auto',
     width: '100%',
     boxSizing: 'border-box',
   },
-  featureCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    ...shorthands.padding('48px'),
-    ...shorthands.borderRadius('4px'),
-    ...shorthands.border('1px', 'solid', 'rgba(255, 255, 255, 0.1)'),
-    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-    position: 'relative',
+  eventsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+    ...shorthands.gap('24px'),
+    marginTop: '40px',
+  },
+  eventCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    ...shorthands.padding('24px'),
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    transition: 'all 0.3s ease',
+    ':hover': {
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      ...shorthands.border('1px', 'solid', tokens.colorBrandStroke1),
+      transform: 'translateY(-5px)',
+    }
+  },
+  dateBadge: {
+    backgroundColor: tokens.colorBrandBackground2,
+    ...shorthands.padding('12px'),
+    ...shorthands.borderRadius('12px'),
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    width: '60px',
+    color: tokens.colorBrandForeground1,
+    fontWeight: 'bold',
+  },
+  validatorSection: {
+    backgroundColor: 'rgba(127, 19, 236, 0.05)',
+    ...shorthands.padding('80px', '24px'),
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     textAlign: 'center',
-    gap: '20px',
-    transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
-    cursor: 'default',
-    // Forzamos que nada dentro de la tarjeta permita seleccionar texto ni cambie el cursor
-    userSelect: 'none',
-    '& *': {
-      cursor: 'default',
-      userSelect: 'none',
-      pointerEvents: 'none', 
-    },
-    zIndex: 1,
-    ':hover': {
-      transform: 'translateY(-30px) scale(1.05)',
-      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-      ...shorthands.border('3px', 'solid', tokens.colorBrandStroke1),
-      boxShadow: `0 50px 100px -20px rgba(0, 0, 0, 0.8), 0 0 40px -10px ${tokens.colorBrandBackground2}`,
-      zIndex: 10,
-    }
+    gap: '24px',
+    ...shorthands.borderTop('1px', 'solid', 'rgba(255,255,255,0.05)'),
+    ...shorthands.borderBottom('1px', 'solid', 'rgba(255,255,255,0.05)'),
   },
-  iconContainer: {
-    width: '72px',
-    height: '72px',
+  validatorBox: {
+    width: '100%',
+    maxWidth: '500px',
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shorthands.borderRadius('20px'),
-    background: `linear-gradient(135deg, ${tokens.colorBrandBackground} 0%, ${tokens.colorBrandBackground2} 100%)`,
-    color: 'white',
-    marginBottom: '16px',
-    boxShadow: `0 8px 16px -4px ${tokens.colorBrandBackground2}`,
-    transition: 'transform 0.4s ease',
+    gap: '12px',
+    marginTop: '16px',
+    [designTokens.breakpoints.sm]: {
+      flexDirection: 'column',
+    }
   }
 });
 
 const Landing = () => {
   const styles = useStyles();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  
+  const [eventos, setEventos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [certCode, setCertCode] = useState('');
+
+  useEffect(() => {
+    const fetchEventos = async () => {
+      try {
+        const data = await eventoService.getEventos();
+        // Solo mostrar eventos futuros o programados
+        setEventos(data.filter(e => e.estado === 'PROGRAMADO').slice(0, 6));
+      } catch (err) {
+        console.error("Error cargando eventos:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEventos();
+  }, []);
+
+  const handleVerify = () => {
+    if (certCode.trim()) {
+      navigate(`/verificar/${certCode.trim()}`);
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr);
+    const months = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+    return { day: d.getDate(), month: months[d.getMonth()] };
+  };
 
   return (
     <div className={styles.container}>
@@ -211,37 +257,90 @@ const Landing = () => {
             {t('hero_subtitle')}
           </MEHTypography>
           <div className={styles.buttonGroup}>
-            <MEHButton className={styles.primaryButton}>{t('explore_events')}</MEHButton>
-            <MEHButton className={styles.secondaryButton} appearance="outline">{t('learn_more')}</MEHButton>
+            <MEHButton className={styles.primaryButton} onClick={() => document.getElementById('calendario').scrollIntoView({ behavior: 'smooth' })}>
+              {t('explore_events')}
+            </MEHButton>
+            <MEHButton className={styles.secondaryButton} appearance="outline" onClick={() => navigate('/login')}>
+              {t('enter_portal')}
+            </MEHButton>
           </div>
         </div>
       </section>
 
-      <div className={styles.grid}>
-        <MEHCard className={styles.featureCard}>
-          <div className={styles.iconContainer}>
-            <CalendarStar24Regular style={{ fontSize: '32px' }} />
+      {/* Nueva Sección: Calendario de Eventos */}
+      <section id="calendario" className={styles.section}>
+        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+          <MEHTypography variant="h1" style={{ display: 'block', marginBottom: '12px' }}>Próximos Talleres</MEHTypography>
+          <MEHTypography variant="body" style={{ opacity: 0.6 }}>
+            Únete a nuestras sesiones en vivo sobre Azure, Inteligencia Artificial y Desarrollo.
+          </MEHTypography>
+        </div>
+
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><Spinner label="Cargando eventos de la comunidad..." /></div>
+        ) : (
+          <div className={styles.eventsGrid}>
+            {eventos.map(evento => {
+              const { day, month } = formatDate(evento.fecha_inicio);
+              return (
+                <MEHCard key={evento.id_evento} className={styles.eventCard}>
+                  <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+                    <div className={styles.dateBadge}>
+                      <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>{month}</span>
+                      <span style={{ fontSize: '1.5rem' }}>{day}</span>
+                    </div>
+                    <div style={{ flexGrow: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <Badge appearance="tint" color="brand">{evento.modalidad}</Badge>
+                      </div>
+                      <MEHTypography variant="h3" style={{ display: 'block', marginBottom: '8px' }}>{evento.titulo}</MEHTypography>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: 0.6, fontSize: '0.9rem' }}>
+                        {evento.modalidad === 'VIRTUAL' ? <Video24Regular style={{ fontSize: '16px' }} /> : <Location24Regular style={{ fontSize: '16px' }} />}
+                        {evento.ubicacion || 'Sesión en línea'}
+                      </div>
+                    </div>
+                  </div>
+                  <MEHTypography variant="caption" style={{ opacity: 0.7, minHeight: '40px', display: 'block' }}>
+                    {evento.descripcion ? (evento.descripcion.substring(0, 100) + '...') : 'Aprende las últimas tecnologías de Microsoft con expertos de la industria.'}
+                  </MEHTypography>
+                  <MEHButton appearance="primary" icon={<CalendarClock24Regular />} onClick={() => navigate('/login')}>
+                    Asegurar mi lugar
+                  </MEHButton>
+                </MEHCard>
+              );
+            })}
+            {eventos.length === 0 && (
+              <MEHTypography variant="body" style={{ gridColumn: '1 / -1', textAlign: 'center', opacity: 0.5, padding: '40px' }}>
+                Estamos programando nuevos talleres. ¡Vuelve pronto!
+              </MEHTypography>
+            )}
           </div>
-          <MEHTypography variant="h3">{t('exclusive_events')}</MEHTypography>
-          <MEHTypography style={{ opacity: 0.7 }}>{t('exclusive_events_desc')}</MEHTypography>
-        </MEHCard>
+        )}
+      </section>
+
+      {/* Validador de Certificados */}
+      <section id="validator" className={styles.validatorSection}>
+        <ShieldCheckmark24Filled style={{ fontSize: '48px', color: tokens.colorBrandForeground1 }} />
+        <MEHTypography variant="h2">Validador de Talento</MEHTypography>
+        <MEHTypography variant="body" style={{ maxWidth: '600px', opacity: 0.7 }}>
+          ¿Deseas verificar la autenticidad de una credencial emitida por MEH? Ingresa el código único del certificado a continuación.
+        </MEHTypography>
         
-        <MEHCard className={styles.featureCard}>
-          <div className={styles.iconContainer}>
-            <Certificate24Regular style={{ fontSize: '32px' }} />
-          </div>
-          <MEHTypography variant="h3">{t('official_certs')}</MEHTypography>
-          <MEHTypography style={{ opacity: 0.7 }}>{t('official_certs_desc')}</MEHTypography>
-        </MEHCard>
-        
-        <MEHCard className={styles.featureCard}>
-          <div className={styles.iconContainer}>
-            <Globe24Regular style={{ fontSize: '32px' }} />
-          </div>
-          <MEHTypography variant="h3">{t('global_networking')}</MEHTypography>
-          <MEHTypography style={{ opacity: 0.7 }}>{t('global_networking_desc')}</MEHTypography>
-        </MEHCard>
-      </div>
+        <div className={styles.validatorBox}>
+          <Input 
+            size="large" 
+            placeholder="Ej: 550e8400-e29b..." 
+            style={{ flexGrow: 1 }}
+            contentBefore={<Search24Regular />}
+            value={certCode}
+            onChange={(e, data) => setCertCode(data.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
+          />
+          <MEHButton appearance="primary" size="large" onClick={handleVerify}>
+            Verificar ahora
+          </MEHButton>
+        </div>
+      </section>
 
       <MEHFooter />
     </div>

@@ -25,7 +25,17 @@ import {
   SignOut24Regular,
   LocalLanguage24Regular,
   WeatherMoon24Regular,
-  WeatherSunny24Regular
+  WeatherSunny24Regular,
+  ShieldSettings24Regular,
+  ShieldSettings24Filled,
+  ReceiptMoney24Regular,
+  ReceiptMoney24Filled,
+  QrCode24Regular,
+  QrCode24Filled,
+  MegaphoneLoud24Regular,
+  MegaphoneLoud24Filled,
+  BookToolbox24Regular,
+  BookToolbox24Filled
 } from '@fluentui/react-icons';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -46,6 +56,7 @@ const useStyles = makeStyles({
     position: 'sticky',
     top: 0,
     zIndex: 100,
+    overflowY: 'auto'
   },
   logoContainer: {
     display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px',
@@ -53,6 +64,14 @@ const useStyles = makeStyles({
   },
   logoImg: { width: '42px' },
   navSection: { display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1 },
+  sectionTitle: {
+    fontSize: '0.75rem',
+    fontWeight: tokens.fontWeightBold,
+    color: tokens.colorNeutralForeground4,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    padding: '16px 16px 8px 16px',
+  },
   navItem: {
     display: 'flex',
     alignItems: 'center',
@@ -99,7 +118,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { isDarkMode, toggleTheme } = useTheme();
-  const { setUser } = useAuth();
+  const { user, setUser } = useAuth();
 
   const handleLogout = () => {
     authService.logout();
@@ -122,6 +141,10 @@ const Sidebar = () => {
     );
   };
 
+  const isAdmin = user?.rol === 'ADMIN';
+  const isOrganizador = user?.rol === 'ORGANIZADOR' || isAdmin;
+  const isAmbassador = user?.rol === 'EMBAJADOR' || isOrganizador;
+
   return (
     <aside className={styles.sidebar}>
       <Link to="/" className={styles.logoContainer}>
@@ -130,12 +153,36 @@ const Sidebar = () => {
       </Link>
 
       <nav className={styles.navSection}>
-        <NavItem to="/dashboard" icon={Home24Regular} activeIcon={Home24Filled} label={t('dashboard') || "Dashboard"} />
+        <div className={styles.sectionTitle}>{t('menu_personal') || "Mi Espacio"}</div>
+        <NavItem to="/dashboard" icon={Home24Regular} activeIcon={Home24Filled} label={t('dashboard') || "Panel de Control"} />
         <NavItem to="/insignias" icon={Trophy24Regular} activeIcon={Trophy24Filled} label={t('badges') || "Insignias"} />
-        <NavItem to="/finanzas" icon={Payment24Regular} activeIcon={Payment24Filled} label={t('finances') || "Finanzas"} />
-        <NavItem to="/learning" icon={Library24Regular} activeIcon={Library24Filled} label={t('learning_hub') || "Learning Hub"} />
+        <NavItem to="/finanzas" icon={Payment24Regular} activeIcon={Payment24Filled} label={t('finances') || "Mis Pagos"} />
+        <NavItem to="/learning" icon={Library24Regular} activeIcon={Library24Filled} label={t('learning_hub') || "Centro de Aprendizaje"} />
         <NavItem to="/comunidad" icon={People24Regular} activeIcon={People24Filled} label={t('community') || "Comunidad"} />
-        <NavItem to="/auditoria" icon={ShieldLock24Regular} activeIcon={ShieldLock24Filled} label={t('audit') || "Auditoría"} />
+
+        {isAmbassador && (
+          <>
+            <div className={styles.sectionTitle}>{t('menu_liderazgo') || "Liderazgo"}</div>
+            <NavItem to="/recursos-vip" icon={BookToolbox24Regular} activeIcon={BookToolbox24Filled} label={t('ambassador_resources') || "Recursos VIP"} />
+            <NavItem to="/speaker-kit" icon={MegaphoneLoud24Regular} activeIcon={MegaphoneLoud24Filled} label={t('speaker_kit') || "Speaker Kit"} />
+          </>
+        )}
+
+        {isOrganizador && (
+          <>
+            <div className={styles.sectionTitle}>{t('menu_gestion') || "Gestión"}</div>
+            <NavItem to="/admin" icon={ShieldSettings24Regular} activeIcon={ShieldSettings24Filled} label={t('admin_panel') || "Panel Maestro"} />
+            <NavItem to="/gestion-pagos" icon={ReceiptMoney24Regular} activeIcon={ReceiptMoney24Filled} label={t('manage_payments') || "Validar Pagos"} />
+            <NavItem to="/escaneo-qr" icon={QrCode24Regular} activeIcon={QrCode24Filled} label={t('qr_scan') || "Escaneo QR"} />
+          </>
+        )}
+
+        {isAdmin && (
+          <>
+            <div className={styles.sectionTitle}>{t('menu_admin') || "Sistema"}</div>
+            <NavItem to="/auditoria" icon={ShieldLock24Regular} activeIcon={ShieldLock24Filled} label={t('audit') || "Auditoría de Logs"} />
+          </>
+        )}
       </nav>
 
       <div className={styles.footer}>

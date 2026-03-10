@@ -81,6 +81,14 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: '20px',
   },
+  milestoneGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '20px',
+    [designTokens.breakpoints.sm]: {
+      gridTemplateColumns: '1fr',
+    }
+  },
   milestoneStep: {
     display: 'flex',
     alignItems: 'center',
@@ -171,7 +179,7 @@ const Insignias = () => {
         {/* Requisitos de Nivel */}
         <section className={styles.milestoneSection}>
           <MEHTypography variant="h3">¿Cómo subir de nivel?</MEHTypography>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', [designTokens.breakpoints.sm]: { gridTemplateColumns: '1fr' } }}>
+          <div className={styles.milestoneGrid}>
             <div className={styles.milestoneStep}>
               <CheckmarkCircle24Filled style={{ color: tokens.colorPaletteGreenForeground1 }} />
               <div>

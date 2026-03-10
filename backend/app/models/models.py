@@ -1,198 +1,186 @@
 from sqlalchemy import Column, Integer, String, TEXT, DateTime, ForeignKey, Boolean, Date, Numeric, CheckConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
+import uuid
 from ..database import Base
 
 class Usuario(Base):
     __tablename__ = "usuarios"
-    
+
     id_usuario = Column(Integer, primary_key=True, index=True)
-    nombres = Column(String(100), nullable=False)
-    apellidos = Column(String(100), nullable=False)
-    correo = Column(String(150), unique=True, nullable=False, index=True)
-    password_hash = Column(TEXT, nullable=False)
-    rol = Column(String(20), nullable=False) # ADMIN, ORGANIZADOR, MIEMBRO
+    nombres = Column(String)
+    apellidos = Column(String)
+    correo = Column(String, unique=True, index=True)
+    password_hash = Column(TEXT)
+    rol = Column(String, default="MIEMBRO") # ADMIN, ORGANIZADOR, EMBAJADOR, MIEMBRO
     fecha_registro = Column(DateTime, default=datetime.utcnow)
-    bio = Column(TEXT)
-    linkedin_url = Column(String(255))
-    github_url = Column(String(255))
+    bio = Column(TEXT, nullable=True)
+    linkedin_url = Column(String, nullable=True)
+    github_url = Column(String, nullable=True)
     perfil_publico = Column(Boolean, default=True)
     
-    # Auditoría
-    creado_por = Column(Integer, ForeignKey("usuarios.id_usuario"))
+    # Campos de Auditoría
+    creado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
-    modificado_por = Column(Integer, ForeignKey("usuarios.id_usuario"))
-    fecha_modificacion = Column(DateTime, onupdate=datetime.utcnow)
+    modificado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
+    fecha_modificacion = Column(DateTime, nullable=True)
 
     # Relaciones
-    inscripciones_eventos = relationship("InscripcionEvento", back_populates="usuario", foreign_keys="InscripcionEvento.id_usuario")
-    inscripciones_cursos = relationship("InscripcionCurso", back_populates="usuario", foreign_keys="InscripcionCurso.id_usuario")
-    usuarios_badges = relationship("UsuarioBadge", back_populates="usuario")
+    inscripciones_eventos = relationship("InscripcionEvento", back_populates="usuario")
+    inscripciones_cursos = relationship("InscripcionCurso", back_populates="usuario")
+    pagos = relationship("Pago", back_populates="usuario", foreign_keys="[Pago.id_usuario]")
+    logs = relationship("LogSistema", back_populates="admin", foreign_keys="LogSistema.id_admin")
     certificados = relationship("Certificado", back_populates="usuario")
-    pagos = relationship("Pago", back_populates="usuario", foreign_keys="Pago.id_usuario")
-    asistencias = relationship("AsistenciaDetalle", back_populates="usuario")
-    pedidos = relationship("Pedido", back_populates="usuario")
-    
+
     # Restricción de Check para rol
     __table_args__ = (
-        CheckConstraint("rol IN ('ADMIN', 'ORGANIZADOR', 'MIEMBRO')", name="usuarios_rol_check"),
+        CheckConstraint("rol IN ('ADMIN', 'ORGANIZADOR', 'EMBAJADOR', 'MIEMBRO')", name="usuarios_rol_check"),
     )
 
 class Evento(Base):
     __tablename__ = "eventos"
-    
+
     id_evento = Column(Integer, primary_key=True, index=True)
-    titulo = Column(String(200), nullable=False)
-    descripcion = Column(TEXT)
-    fecha_inicio = Column(DateTime, nullable=False)
-    modalidad = Column(String(20)) # PRESENCIAL, VIRTUAL
-    token_qr = Column(String(255), unique=True)
-    capacidad_max = Column(Integer, nullable=False)
-    estado = Column(String(20), default="PROGRAMADO")
+    titulo = Column(String)
+    descripcion = Column(TEXT, nullable=True)
+    fecha_inicio = Column(DateTime)
+    fecha_fin = Column(DateTime, nullable=True)
+    modalidad = Column(String) # VIRTUAL, PRESENCIAL, HIBRIDO
+    ubicacion = Column(String, nullable=True)
+    capacidad_max = Column(Integer)
+    estado = Column(String, default="PROGRAMADO") # PROGRAMADO, EN_CURSO, FINALIZADO, CANCELADO
+    imagen_url = Column(String, nullable=True)
+    token_qr = Column(String, nullable=True)
+    id_organizador = Column(Integer, ForeignKey("usuarios.id_usuario"))
 
     # Auditoría
-    creado_por = Column(Integer, ForeignKey("usuarios.id_usuario"))
+    creado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
-    modificado_por = Column(Integer, ForeignKey("usuarios.id_usuario"))
-    fecha_modificacion = Column(DateTime, onupdate=datetime.utcnow)
+    modificado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
+    fecha_modificacion = Column(DateTime, nullable=True)
 
-    # Relaciones
     inscripciones = relationship("InscripcionEvento", back_populates="evento")
     checkpoints = relationship("Checkpoint", back_populates="evento")
-    badges = relationship("Badge", back_populates="evento")
-    
-    __table_args__ = (
-        CheckConstraint("modalidad IN ('PRESENCIAL', 'VIRTUAL')", name="eventos_modalidad_check"),
-    )
-
-class Curso(Base):
-    __tablename__ = "cursos"
-    
-    id_curso = Column(Integer, primary_key=True, index=True)
-    nombre_curso = Column(String(200), nullable=False)
-    descripcion = Column(TEXT)
-    horas_academicas = Column(Integer, nullable=False)
-    id_instructor = Column(Integer, ForeignKey("usuarios.id_usuario"))
-    estado = Column(String(20), default="ACTIVO")
-
-    # Auditoría
-    modificado_por = Column(Integer, ForeignKey("usuarios.id_usuario"))
-    fecha_modificacion = Column(DateTime, onupdate=datetime.utcnow)
-
-    # Relaciones
-    inscripciones = relationship("InscripcionCurso", back_populates="curso")
-    badges = relationship("Badge", back_populates="curso")
 
 class InscripcionEvento(Base):
     __tablename__ = "inscripciones_eventos"
-    
+
     id_inscripcion = Column(Integer, primary_key=True, index=True)
-    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"))
-    id_evento = Column(Integer, ForeignKey("eventos.id_evento", ondelete="CASCADE"))
+    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario"))
+    id_evento = Column(Integer, ForeignKey("eventos.id_evento"))
     fecha_inscripcion = Column(DateTime, default=datetime.utcnow)
+    estado_inscripcion = Column(String, default="PENDIENTE") # PENDIENTE, PAGADO, CANCELADO, ASISTIO
+    codigo_qr = Column(String, unique=True, nullable=True)
     asistio = Column(Boolean, default=False)
-    fecha_validacion = Column(DateTime)
+    fecha_validacion = Column(DateTime, nullable=True)
     id_pago = Column(Integer, ForeignKey("pagos.id_pago"), nullable=True)
-    estado_inscripcion = Column(String(20), default="PENDIENTE")
-    
-    # Auditoría
-    modificado_por = Column(Integer, ForeignKey("usuarios.id_usuario"))
-    fecha_modificacion = Column(DateTime, onupdate=datetime.utcnow)
 
-    usuario = relationship("Usuario", back_populates="inscripciones_eventos", foreign_keys=[id_usuario])
+    usuario = relationship("Usuario", back_populates="inscripciones_eventos")
     evento = relationship("Evento", back_populates="inscripciones")
-    pago = relationship("Pago")
-
-    __table_args__ = (
-        CheckConstraint("estado_inscripcion IN ('PENDIENTE', 'CONFIRMADA', 'CANCELADA')", name="inscripciones_eventos_estado_check"),
-    )
-
-class InscripcionCurso(Base):
-    __tablename__ = "inscripciones_cursos"
-    
-    id_inscripcion = Column(Integer, primary_key=True, index=True)
-    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"))
-    id_curso = Column(Integer, ForeignKey("cursos.id_curso", ondelete="CASCADE"))
-    progreso_porcentaje = Column(Integer, default=0)
-    finalizado = Column(Boolean, default=False)
-    id_pago = Column(Integer, ForeignKey("pagos.id_pago"), nullable=True)
-    estado_inscripcion = Column(String(20), default="PENDIENTE")
-    
-    # Auditoría
-    modificado_por = Column(Integer, ForeignKey("usuarios.id_usuario"))
-    fecha_modificacion = Column(DateTime, onupdate=datetime.utcnow)
-
-    usuario = relationship("Usuario", back_populates="inscripciones_cursos", foreign_keys=[id_usuario])
-    curso = relationship("Curso", back_populates="inscripciones")
-    pago = relationship("Pago")
-
-    __table_args__ = (
-        CheckConstraint("estado_inscripcion IN ('PENDIENTE', 'CONFIRMADA', 'CANCELADA')", name="inscripciones_cursos_estado_check"),
-    )
+    asistencia = relationship("AsistenciaDetalle", back_populates="inscripcion", uselist=False)
 
 class Checkpoint(Base):
     __tablename__ = "checkpoints"
-    
+
     id_checkpoint = Column(Integer, primary_key=True, index=True)
-    id_evento = Column(Integer, ForeignKey("eventos.id_evento", ondelete="CASCADE"))
-    nombre_checkpoint = Column(String(100), nullable=False)
-    hora_apertura = Column(DateTime)
-    hora_cierre = Column(DateTime)
-    tipo_checkpoint = Column(String(20)) # ACCESO, COMIDA, AVANCE_CURSO, ENTREGA_KIT
+    id_evento = Column(Integer, ForeignKey("eventos.id_evento"))
+    nombre_checkpoint = Column(String) # Entrada, Taller 1, Salida, etc.
+    orden = Column(Integer)
+    activo = Column(Boolean, default=True)
 
     evento = relationship("Evento", back_populates="checkpoints")
     asistencias = relationship("AsistenciaDetalle", back_populates="checkpoint")
 
-    __table_args__ = (
-        CheckConstraint("tipo_checkpoint IN ('ACCESO', 'COMIDA', 'AVANCE_CURSO', 'ENTREGA_KIT')", name="checkpoints_tipo_check"),
-    )
-
 class AsistenciaDetalle(Base):
-    __tablename__ = "asistencias_detalle"
-    
-    id_asistencia_det = Column(Integer, primary_key=True, index=True)
-    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario"))
+    __tablename__ = "asistencia_detalles"
+
+    id_asistencia = Column(Integer, primary_key=True, index=True)
+    id_inscripcion = Column(Integer, ForeignKey("inscripciones_eventos.id_inscripcion"))
     id_checkpoint = Column(Integer, ForeignKey("checkpoints.id_checkpoint"))
     fecha_escaneo = Column(DateTime, default=datetime.utcnow)
+    escanedao_por = Column(Integer, ForeignKey("usuarios.id_usuario"))
 
-    usuario = relationship("Usuario", back_populates="asistencias")
+    inscripcion = relationship("InscripcionEvento", back_populates="asistencia")
     checkpoint = relationship("Checkpoint", back_populates="asistencias")
 
-class Badge(Base):
-    __tablename__ = "badges"
-    
-    id_badge = Column(Integer, primary_key=True, index=True)
-    nombre_badge = Column(String(100), nullable=False)
+class Curso(Base):
+    __tablename__ = "cursos"
+
+    id_curso = Column(Integer, primary_key=True, index=True)
+    nombre_curso = Column(String)
     descripcion = Column(TEXT)
-    imagen_url = Column(String(255), nullable=False)
-    id_evento_origen = Column(Integer, ForeignKey("eventos.id_evento"))
-    id_curso_origen = Column(Integer, ForeignKey("cursos.id_curso"))
+    horas_academicas = Column(Integer)
+    estado = Column(String, default="ACTIVO") # ACTIVO, INACTIVO
+    imagen_url = Column(String, nullable=True)
 
-    evento = relationship("Evento", back_populates="badges")
-    curso = relationship("Curso", back_populates="badges")
-    usuarios_badges = relationship("UsuarioBadge", back_populates="badge")
+    inscripciones = relationship("InscripcionCurso", back_populates="curso")
 
-class UsuarioBadge(Base):
-    __tablename__ = "usuarios_badges"
+class InscripcionCurso(Base):
+    __tablename__ = "inscripciones_cursos"
+
+    id_inscripcion_curso = Column(Integer, primary_key=True, index=True)
+    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario"))
+    id_curso = Column(Integer, ForeignKey("cursos.id_curso"))
+    fecha_inscripcion = Column(DateTime, default=datetime.utcnow)
+    progreso = Column(Numeric(5, 2), default=0) # 0.00 a 100.00
+    completado = Column(Boolean, default=False)
+    fecha_completado = Column(DateTime, nullable=True)
+
+    usuario = relationship("Usuario", back_populates="inscripciones_cursos")
+    curso = relationship("Curso", back_populates="inscripciones")
+
+class Pago(Base):
+    __tablename__ = "pagos"
+
+    id_pago = Column(Integer, primary_key=True, index=True)
+    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario"))
+    monto = Column(Numeric(10, 2))
+    fecha_pago = Column(DateTime, default=datetime.utcnow)
+    metodo_pago = Column(String) # TRANSFERENCIA, EFECTIVO, QR_SIMPLE
+    estado_pago = Column(String, default="PENDIENTE") # PENDIENTE, APROBADO, RECHAZADO
+    url_comprobante = Column(String, nullable=True)
+    id_referencia = Column(Integer) # ID de Evento o Producto
+    tipo_referencia = Column(String) # EVENTO, MEMBRESIA, CURSO
     
-    id_usuario_badge = Column(Integer, primary_key=True, index=True)
-    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"))
-    id_badge = Column(Integer, ForeignKey("badges.id_badge", ondelete="CASCADE"))
-    fecha_obtencion = Column(DateTime, default=datetime.utcnow)
+    # Auditoría de Pago
+    validado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
+    fecha_validacion = Column(DateTime, nullable=True)
+    notas_admin = Column(TEXT, nullable=True)
 
-    usuario = relationship("Usuario", back_populates="usuarios_badges")
-    badge = relationship("Badge", back_populates="usuarios_badges")
+    # Relación principal con el usuario que paga
+    usuario = relationship("Usuario", back_populates="pagos", foreign_keys=[id_usuario])
+    # Relación opcional con el admin que valida
+    validador = relationship("Usuario", foreign_keys=[validado_por])
+
+class LogSistema(Base):
+    __tablename__ = "logs_sistema"
+
+    id_log = Column(Integer, primary_key=True, index=True)
+    id_admin = Column(Integer, ForeignKey("usuarios.id_usuario"))
+    accion = Column(String) # INICIO_SESION, CREAR_EVENTO, APROBAR_PAGO, etc.
+    tabla_afectada = Column(String)
+    id_registro_afectado = Column(Integer)
+    valor_anterior = Column(TEXT, nullable=True)
+    valor_nuevo = Column(TEXT, nullable=True)
+    fecha_hora = Column(DateTime, default=datetime.utcnow)
+    ip_direccion = Column(String, nullable=True)
+
+    admin = relationship("Usuario", back_populates="logs", foreign_keys=[id_admin])
 
 class Certificado(Base):
     __tablename__ = "certificados"
-    
+
     id_certificado = Column(Integer, primary_key=True, index=True)
-    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"))
-    codigo_verificacion = Column(String(50), unique=True, nullable=False)
-    url_pdf = Column(TEXT, nullable=False)
-    fecha_emision = Column(Date, default=datetime.utcnow)
-    formato = Column(String(20)) # DIGITAL, FISICO, AMBOS
-    entregado_fisico = Column(Boolean, default=False)
+    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario"))
+    id_curso = Column(Integer, ForeignKey("cursos.id_curso"), nullable=True)
+    id_evento = Column(Integer, ForeignKey("eventos.id_evento"), nullable=True)
+    uuid_verificacion = Column(String, default=lambda: str(uuid.uuid4()), unique=True)
+    codigo_verificacion = Column(String, unique=True)
+    fecha_emision = Column(DateTime, default=datetime.utcnow)
+    url_pdf = Column(String)
+    formato = Column(String, default="DIGITAL") # DIGITAL, FISICO, AMBOS
+    es_ruta_linkedin = Column(Boolean, default=False)
+    metadata_adicional = Column(TEXT, nullable=True)
 
     usuario = relationship("Usuario", back_populates="certificados")
 
@@ -200,86 +188,13 @@ class Certificado(Base):
         CheckConstraint("formato IN ('DIGITAL', 'FISICO', 'AMBOS')", name="certificados_formato_check"),
     )
 
-class Pago(Base):
-    __tablename__ = "pagos"
-    
-    id_pago = Column(Integer, primary_key=True, index=True)
-    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario"))
-    id_referencia = Column(Integer)
-    tipo_referencia = Column(String(20)) # EVENTO, CURSO
-    monto = Column(Numeric(10, 2), nullable=False)
-    metodo_pago = Column(String(50))
-    estado_pago = Column(String(20), default="PENDIENTE")
-    comprobante_url = Column(TEXT)
-    fecha_pago = Column(DateTime, default=datetime.utcnow)
-    validado_por = Column(Integer, ForeignKey("usuarios.id_usuario"))
-
-    usuario = relationship("Usuario", back_populates="pagos", foreign_keys=[id_usuario])
-    validador = relationship("Usuario", foreign_keys=[validado_por])
-
-    __table_args__ = (
-        CheckConstraint("tipo_referencia IN ('EVENTO', 'CURSO')", name="pagos_tipo_referencia_check"),
-    )
-
-class Producto(Base):
-    __tablename__ = "productos"
-    
-    id_producto = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String(100), nullable=False)
-    descripcion = Column(TEXT)
-    precio = Column(Numeric(10, 2), default=0)
-    stock = Column(Integer, default=0)
-    es_kit_evento = Column(Boolean, default=False)
-    imagen_url = Column(TEXT)
-    
-    # Auditoría
-    modificado_por = Column(Integer, ForeignKey("usuarios.id_usuario"))
-    fecha_modificacion = Column(DateTime, onupdate=datetime.utcnow)
-
-class Pedido(Base):
-    __tablename__ = "pedidos"
-    
-    id_pedido = Column(Integer, primary_key=True, index=True)
-    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario"))
-    id_pago = Column(Integer, ForeignKey("pagos.id_pago"))
-    estado_entrega = Column(String(20), default="PENDIENTE")
-    fecha_pedido = Column(DateTime, default=datetime.utcnow)
-
-    usuario = relationship("Usuario", back_populates="pedidos")
-    pago = relationship("Pago")
-    detalles = relationship("PedidoDetalle", back_populates="pedido")
-
-class PedidoDetalle(Base):
-    __tablename__ = "pedidos_detalle"
-    
-    id_detalle = Column(Integer, primary_key=True, index=True)
-    id_pedido = Column(Integer, ForeignKey("pedidos.id_pedido"))
-    id_producto = Column(Integer, ForeignKey("productos.id_producto"))
-    cantidad = Column(Integer, default=1)
-
-    pedido = relationship("Pedido", back_populates="detalles")
-    producto = relationship("Producto")
-
-class LogSistema(Base):
-    __tablename__ = "logs_sistema"
-    
-    id_log = Column(Integer, primary_key=True, index=True)
-    id_admin = Column(Integer, ForeignKey("usuarios.id_usuario"))
-    accion = Column(TEXT, nullable=False)
-    fecha = Column(DateTime, default=datetime.utcnow)
-    tabla_afectada = Column(String(50))
-    id_registro_afectado = Column(Integer)
-    valor_anterior = Column(TEXT)
-    valor_nuevo = Column(TEXT)
-    ip_direccion = Column(String(45))
-
 class Anuncio(Base):
     __tablename__ = "anuncios"
-    
+
     id_anuncio = Column(Integer, primary_key=True, index=True)
-    titulo = Column(String(200), nullable=False)
-    contenido = Column(TEXT, nullable=False)
-    tipo = Column(String(20), default="INFO") # INFO, NUEVO, ALERTA
+    titulo = Column(String)
+    contenido = Column(TEXT)
+    tipo = Column(String, default="INFO") # INFO, NUEVO, ALERTA
     fecha_publicacion = Column(DateTime, default=datetime.utcnow)
     id_autor = Column(Integer, ForeignKey("usuarios.id_usuario"))
     activo = Column(Boolean, default=True)

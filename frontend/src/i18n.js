@@ -7,11 +7,22 @@ const resources = {
     translation: {
       "welcome": "Welcome back, {{name}}!",
       "dashboard": "Dashboard",
-      "finances": "Finances",
+      "finances": "My Payments",
       "badges": "Badges",
       "learning_hub": "Learning Hub",
       "community": "Community",
       "settings": "Settings",
+      "menu_personal": "My Space",
+      "menu_gestion": "Management",
+      "menu_admin": "System",
+      "admin_panel": "Master Panel",
+      "manage_payments": "Validate Payments",
+      "qr_scan": "QR Scanning",
+      "role_member": "Member",
+      "role_ambassador": "Ambassador",
+      "role_organizer": "Organizer",
+      "role_admin": "Super Admin",
+      "upgrade_msg": "Upgrade to Ambassador to unlock premium courses and official certificates!",
       "quick_action": "QUICK ACTION",
       "upload_receipt": "Upload Receipt",
       "hero_title": "Microsoft Education Hub",
@@ -32,18 +43,33 @@ const resources = {
       "current_progress": "Current Progress",
       "enter_portal": "Enter Portal",
       "logout": "Logout",
-      "audit": "Audit"
+      "audit": "Audit Logs"
     }
   },
   es: {
     translation: {
       "welcome": "¡Bienvenido de nuevo, {{name}}!",
       "dashboard": "Panel de Control",
-      "finances": "Finanzas",
+      "finances": "Mis Pagos",
       "badges": "Insignias",
       "learning_hub": "Centro de Aprendizaje",
       "community": "Comunidad",
       "settings": "Configuración",
+      "menu_personal": "Mi Espacio",
+      "menu_gestion": "Gestión",
+      "menu_admin": "Sistema",
+      "admin_panel": "Panel Maestro",
+      "manage_payments": "Validar Pagos",
+      "qr_scan": "Escaneo QR",
+      "menu_liderazgo": "Liderazgo",
+      "ambassador_resources": "Recursos VIP",
+      "speaker_kit": "Speaker Kit",
+      "support_request": "Solicitud de Apoyo",
+      "role_member": "Miembro",
+      "role_ambassador": "Embajador",
+      "role_organizer": "Organizador",
+      "role_admin": "Super Admin",
+      "upgrade_msg": "¡Sube a Embajador para desbloquear cursos premium y certificados oficiales!",
       "quick_action": "ACCIÓN RÁPIDA",
       "upload_receipt": "Subir Recibo",
       "hero_title": "Microsoft Education Hub",
@@ -64,7 +90,7 @@ const resources = {
       "current_progress": "Progreso Actual",
       "enter_portal": "Entrar al Portal",
       "logout": "Cerrar Sesión",
-      "audit": "Auditoría"
+      "audit": "Auditoría de Logs"
     }
   }
 };

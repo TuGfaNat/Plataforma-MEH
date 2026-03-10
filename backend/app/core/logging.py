@@ -24,7 +24,7 @@ def registrar_log(
         valor_anterior=json.dumps(valor_anterior) if valor_anterior else None,
         valor_nuevo=json.dumps(valor_nuevo) if valor_nuevo else None,
         ip_direccion=ip_direccion,
-        fecha=datetime.utcnow()
+        fecha_hora=datetime.utcnow()
     )
     db.add(nuevo_log)
     db.commit()

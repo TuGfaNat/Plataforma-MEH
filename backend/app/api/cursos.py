@@ -24,6 +24,33 @@ def get_mis_certificados(
 ):
     return db.query(models.Certificado).filter(models.Certificado.id_usuario == current_user.id_usuario).all()
 
+@router.get("/verificar/{uuid_cert}", response_model=certificado_schema.CertificadoPublicResponse)
+def verificar_certificado(uuid_cert: str, db: Session = Depends(get_db)):
+    cert = db.query(models.Certificado).filter(models.Certificado.uuid_verificacion == uuid_cert).first()
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificado no encontrado o inválido")
+    
+    # Obtener nombre del curso o evento
+    nombre_entidad = "Evento/Curso Desconocido"
+    if cert.id_curso:
+        curso = db.query(models.Curso).filter(models.Curso.id_curso == cert.id_curso).first()
+        if curso: nombre_entidad = curso.nombre_curso
+    elif cert.id_evento:
+        evento = db.query(models.Evento).filter(models.Evento.id_evento == cert.id_evento).first()
+        if evento: nombre_entidad = evento.titulo
+
+    usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == cert.id_usuario).first()
+    nombre_completo = f"{usuario.nombres} {usuario.apellidos}" if usuario else "Usuario Desconocido"
+
+    return {
+        "codigo_verificacion": cert.codigo_verificacion,
+        "nombre_usuario": nombre_completo,
+        "nombre_curso_evento": nombre_entidad,
+        "fecha_emision": cert.fecha_emision,
+        "formato": cert.formato,
+        "es_valido": True
+    }
+
 @router.post("/", response_model=curso_schema.CursoResponse)
 def create_curso(
     request: Request,

@@ -9,6 +9,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   LockClosed24Filled, 
   Mail24Filled,
+  Person24Filled,
   ArrowRight24Regular
 } from '@fluentui/react-icons';
 import authService from '../services/authService';
@@ -23,7 +24,7 @@ const useStyles = makeStyles({
     alignItems: 'center',
     minHeight: '100vh',
     backgroundColor: tokens.colorNeutralBackground4,
-    background: `radial-gradient(circle at top right, ${tokens.colorBrandBackground2} 0%, ${tokens.colorNeutralBackground4} 60%)`,
+    background: `radial-gradient(circle at bottom left, ${tokens.colorBrandBackground2} 0%, ${tokens.colorNeutralBackground4} 60%)`,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -34,15 +35,15 @@ const useStyles = makeStyles({
     background: tokens.colorBrandBackground2,
     filter: 'blur(150px)',
     ...shorthands.borderRadius('50%'),
-    opacity: 0.2,
+    opacity: 0.15,
     zIndex: 0,
-    bottom: '-200px',
-    left: '-200px',
+    top: '-200px',
+    right: '-200px',
   },
-  loginCard: {
-    width: '450px',
+  registerCard: {
+    width: '500px',
     zIndex: 1,
-    ...shorthands.padding('48px'),
+    ...shorthands.padding('40px'),
     display: 'flex',
     flexDirection: 'column',
     gap: '24px',
@@ -51,50 +52,44 @@ const useStyles = makeStyles({
       to: { opacity: 1, transform: 'translateY(0)' },
     },
     animationDuration: '0.8s',
-    '@media (max-width: 480px)': {
+    '@media (max-width: 550px)': {
       width: '90%',
       ...shorthands.padding('32px', '20px'),
     }
   },
-  logoContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '12px',
-    marginBottom: '8px',
-  },
   logo: {
-    width: '64px',
-    filter: 'drop-shadow(0 0 20px rgba(127, 19, 236, 0.4))',
+    width: '48px',
+    filter: 'drop-shadow(0 0 15px rgba(127, 19, 236, 0.4))',
+    marginBottom: '12px'
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: '16px',
+  },
+  row: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px',
+    '@media (max-width: 400px)': {
+      gridTemplateColumns: '1fr',
+    }
   },
   link: {
     color: tokens.colorBrandForeground1,
     textDecorationLine: 'none',
     fontWeight: 'bold',
-    transition: 'opacity 0.2s ease',
-    ':hover': {
-      textDecorationLine: 'underline',
-      opacity: 0.8,
-    },
-  },
-  footer: {
-    marginTop: '16px',
-    textAlign: 'center',
-    borderTop: `1px solid rgba(255, 255, 255, 0.05)`,
-    paddingTop: '24px',
+    ':hover': { textDecorationLine: 'underline' },
   }
 });
 
-const Login = () => {
+const Register = () => {
   const styles = useStyles();
   const navigate = useNavigate();
   const { checkAuth } = useAuth();
-  const [formData, setFormData] = useState({ correo: '', password: '' });
+  const [formData, setFormData] = useState({ 
+    nombres: '', apellidos: '', correo: '', password: '' 
+  });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -104,16 +99,16 @@ const Login = () => {
     setLoading(true);
     
     try {
+      await authService.register({
+        ...formData,
+        rol: 'MIEMBRO'
+      });
       await authService.login(formData.correo, formData.password);
       if (checkAuth) await checkAuth(); 
       navigate('/dashboard');
     } catch (err) {
+      setError(err.response?.data?.detail || 'Error al crear la cuenta. Verifica tus datos.');
       setLoading(false);
-      if (!err.response) {
-        setError('No se pudo conectar con el servidor. Verifica tu conexión.');
-      } else {
-        setError(err.response.data.detail || 'Credenciales incorrectas');
-      }
     }
   };
 
@@ -121,37 +116,51 @@ const Login = () => {
     <div className={styles.container}>
       <div className={styles.glow}></div>
       
-      <MEHCard className={styles.loginCard}>
-        <div className={styles.logoContainer}>
+      <MEHCard className={styles.registerCard}>
+        <div style={{ textAlign: 'center' }}>
           <img src={designTokens.logo} alt="MEH Logo" className={styles.logo} />
-          <MEHTypography variant="h1" style={{ fontSize: '1.8rem', fontWeight: tokens.fontWeightBlack, textAlign: 'center', lineHeight: '1.2' }}>
-            Microsoft Education <span style={{ color: tokens.colorBrandForeground1 }}>Hub</span>
-          </MEHTypography>
-          <MEHTypography variant="body" style={{ opacity: 0.6, textAlign: 'center' }}>
-            Accede a tu centro de aprendizaje y comunidad global.
+          <MEHTypography variant="h2">Crea tu cuenta</MEHTypography>
+          <MEHTypography variant="body" style={{ opacity: 0.6 }}>
+            Únete a la mayor comunidad de aprendizaje tecnológico.
           </MEHTypography>
         </div>
 
         {error && <MessageBar intent="error">{error}</MessageBar>}
 
         <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.row}>
+            <MEHInput 
+              label="Nombres"
+              contentBefore={<Person24Filled style={{ opacity: 0.5 }} />}
+              value={formData.nombres}
+              onChange={(e, data) => setFormData({...formData, nombres: data.value})}
+              required 
+            />
+            <MEHInput 
+              label="Apellidos"
+              value={formData.apellidos}
+              onChange={(e, data) => setFormData({...formData, apellidos: data.value})}
+              required 
+            />
+          </div>
+
           <MEHInput 
             label="Correo Electrónico"
             type="email"
             contentBefore={<Mail24Filled style={{ opacity: 0.5 }} />}
             value={formData.correo}
             onChange={(e, data) => setFormData({...formData, correo: data.value})}
-            placeholder="ejemplo@email.com"
+            placeholder="correo@ejemplo.com"
             required 
           />
 
           <MEHInput 
-            label="Contraseña"
+            label="Contraseña segura"
             type="password"
             contentBefore={<LockClosed24Filled style={{ opacity: 0.5 }} />}
             value={formData.password}
             onChange={(e, data) => setFormData({...formData, password: data.value})}
-            placeholder="••••••••"
+            placeholder="Mínimo 8 caracteres"
             required 
           />
 
@@ -160,15 +169,15 @@ const Login = () => {
             type="submit" 
             loading={loading}
             icon={<ArrowRight24Regular />}
-            style={{ height: '52px', marginTop: '12px' }}
+            style={{ height: '48px', marginTop: '10px' }}
           >
-            Ingresar al Portal
+            Comenzar mi viaje
           </MEHButton>
         </form>
 
-        <div className={styles.footer}>
+        <div style={{ textAlign: 'center', marginTop: '16px' }}>
           <MEHTypography variant="body" style={{ opacity: 0.7 }}>
-            ¿Eres un nuevo miembro? <Link to="/register" className={styles.link}>Únete aquí</Link>
+            ¿Ya tienes cuenta? <Link to="/login" className={styles.link}>Inicia sesión</Link>
           </MEHTypography>
         </div>
       </MEHCard>
@@ -176,4 +185,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;

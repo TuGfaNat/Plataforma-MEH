@@ -1,18 +1,24 @@
+import os
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
 from ..database import get_db
 from ..models import models
 from ..schemas import user as user_schema
 from ..core import auth as auth_core
 from ..core.logging import registrar_log
-from datetime import datetime, timedelta
 
 router = APIRouter(
     prefix="/auth",
     tags=["autenticacion"]
 )
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
@@ -47,7 +53,8 @@ def register(user: user_schema.UserCreate, db: Session = Depends(get_db)):
         apellidos=user.apellidos,
         correo=user.correo,
         password_hash=hashed_password,
-        rol=user.rol
+        rol=user.rol,
+        fecha_registro=datetime.utcnow()
     )
     db.add(new_user)
     db.commit()
@@ -69,6 +76,52 @@ def login(request: Request, user_credentials: user_schema.UserLogin, db: Session
         tabla_afectada="usuarios", id_registro_afectado=user.id_usuario, ip_direccion=request.client.host
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/google", response_model=user_schema.Token)
+def google_login(request: Request, token_data: dict, db: Session = Depends(get_db)):
+    try:
+        # Verificar el token recibido de Google
+        idinfo = id_token.verify_oauth2_token(token_data["token"], google_requests.Request(), GOOGLE_CLIENT_ID)
+
+        email = idinfo['email']
+        name = idinfo.get('name', '')
+        given_name = idinfo.get('given_name', name)
+        family_name = idinfo.get('family_name', '')
+
+        user = db.query(models.Usuario).filter(models.Usuario.correo == email).first()
+
+        if not user:
+            user = models.Usuario(
+                nombres=given_name,
+                apellidos=family_name,
+                correo=email,
+                password_hash="google_oauth_no_password",
+                rol="MIEMBRO",
+                fecha_registro=datetime.utcnow()
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+            registrar_log(
+                db=db, id_admin=user.id_usuario, accion="REGISTRO_GOOGLE",
+                tabla_afectada="usuarios", id_registro_afectado=user.id_usuario, ip_direccion=request.client.host
+            )
+
+        access_token = auth_core.create_access_token(data={"sub": user.correo, "rol": user.rol})
+
+        registrar_log(
+            db=db, id_admin=user.id_usuario, accion="LOGIN_GOOGLE",
+            tabla_afectada="usuarios", id_registro_afectado=user.id_usuario, ip_direccion=request.client.host
+        )
+
+        return {"access_token": access_token, "token_type": "bearer"}
+
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Token de Google inválido")
+    except Exception as e:
+        print(f"Error en Google Login: {e}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 @router.get("/me", response_model=user_schema.UserResponse)
 def read_users_me(current_user: models.Usuario = Depends(get_current_user)):
