@@ -36,6 +36,8 @@ jobs:
           # Variables ficticias para el entorno de pruebas en CI
           export SECRET_KEY="test_secret_for_ci_2026"
           export DATABASE_URL="sqlite:///./test.db"
+          # Asegura que Python reconozca la carpeta actual para encontrar el módulo 'app'
+          export PYTHONPATH=$PYTHONPATH:.
           pytest tests/test_master_suite.py
 
   frontend-quality:
