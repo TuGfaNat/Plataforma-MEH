@@ -10,9 +10,14 @@ import {
 import { 
   Alert24Regular,
   CalendarStar24Filled,
+  Trophy24Filled,
   Reward24Filled,
   Mail24Filled,
-  ChevronRight24Regular
+  ChevronRight24Regular,
+  ReceiptMoney24Filled,
+  People24Filled,
+  ShieldLock24Filled,
+  CalendarStar24Regular
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +26,7 @@ import { useAuth } from '../App';
 import MainLayout from '../components/layout/MainLayout';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import eventoService from '../services/eventoService';
+import dashboardService from '../services/dashboardService';
 
 const useStyles = makeStyles({
   dashboardContainer: {
@@ -65,7 +71,7 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     gap: '16px',
-    ...shorthands.padding('16px'),
+    ...shorthands.padding('12px'),
     ...shorthands.borderRadius('12px'),
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
     transition: 'all 0.2s ease',
@@ -75,12 +81,19 @@ const useStyles = makeStyles({
       transform: 'translateX(4px)',
     }
   },
+  eventMiniature: {
+    width: '60px',
+    height: '60px',
+    objectFit: 'cover',
+    ...shorthands.borderRadius('8px'),
+    backgroundColor: tokens.colorNeutralBackground3,
+  },
   dateBox: {
     backgroundColor: tokens.colorBrandBackground2,
-    ...shorthands.padding('8px'),
-    ...shorthands.borderRadius('10px'),
+    ...shorthands.padding('4px', '8px'),
+    ...shorthands.borderRadius('8px'),
     textAlign: 'center',
-    minWidth: '55px',
+    minWidth: '45px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -94,6 +107,25 @@ const useStyles = makeStyles({
   },
   badgeGlow: {
     filter: 'drop-shadow(0 0 15px rgba(127, 19, 236, 0.6))',
+  },
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '20px',
+    marginBottom: '8px'
+  },
+  statCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '20px',
+    textAlign: 'center',
+    cursor: 'pointer',
+    transition: 'transform 0.2s',
+    ':hover': {
+        transform: 'scale(1.02)'
+    }
   }
 });
 
@@ -104,24 +136,31 @@ const Dashboard = () => {
   const navigate = useNavigate();
   
   const [eventos, setEventos] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchEventos = async () => {
+    const fetchData = async () => {
       try {
-        const data = await eventoService.getEventos();
-        const proximos = data
+        const [eventosData, statsData] = await Promise.all([
+          eventoService.getEventos(),
+          dashboardService.getStats()
+        ]);
+        
+        const proximos = eventosData
           .filter(e => e.estado === 'PROGRAMADO')
           .sort((a, b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio))
           .slice(0, 3);
+          
         setEventos(proximos);
+        setStats(statsData);
       } catch (err) {
-        console.error("Error fetching eventos:", err);
+        console.error("Error fetching dashboard data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchEventos();
+    fetchData();
   }, []);
 
   if (!user) return <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}><Spinner label="Cargando perfil..." /></div>;
@@ -137,10 +176,22 @@ const Dashboard = () => {
     };
   };
 
+  const getIcon = (iconName) => {
+    switch(iconName) {
+      case 'ReceiptMoney': return <ReceiptMoney24Filled style={{ color: tokens.colorBrandForeground1, fontSize: '32px' }} />;
+      case 'People': return <People24Filled style={{ color: tokens.colorBrandForeground1, fontSize: '32px' }} />;
+      case 'ShieldLock': return <ShieldLock24Filled style={{ color: tokens.colorBrandForeground1, fontSize: '32px' }} />;
+      case 'CalendarStar': return <CalendarStar24Filled style={{ color: tokens.colorBrandForeground1, fontSize: '32px' }} />;
+      default: return <Alert24Regular />;
+    }
+  };
+
+  const DEFAULT_EVENT_IMG = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop";
+
   return (
     <MainLayout>
       <div className={styles.dashboardContainer}>
-        {/* 1. Bienvenida con degradado y Avatar */}
+        {/* 1. Bienvenida */}
         <MEHCard className={styles.welcomeHeader}>
           <div style={{ position: 'relative' }}>
             <Avatar size={128} name={fullName} color="colorful" />
@@ -152,7 +203,6 @@ const Dashboard = () => {
             <MEHTypography variant="h1">{t('welcome', { name: user.nombres })}</MEHTypography>
             <MEHTypography variant="body" style={{ opacity: 0.7, marginTop: '8px', display: 'block' }}>
               {t('current_progress')}: <span style={{ color: tokens.colorBrandForeground1, fontWeight: 'bold' }}>{t(`role_${user.rol.toLowerCase()}`)}</span>. 
-              {user.rol === 'MIEMBRO' && " ¡Estás a un paso de la grandeza!"}
             </MEHTypography>
             <div style={{ marginTop: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <MEHButton size="large" icon={<Reward24Filled />} onClick={() => navigate('/insignias')}>Ver mis logros</MEHButton>
@@ -161,7 +211,26 @@ const Dashboard = () => {
           </div>
         </MEHCard>
 
-        {/* 1.5 Banner de Upgrade para Miembros */}
+        {/* 1.5 WIDGETS DINÁMICOS */}
+        {stats?.widgets?.length > 0 && (
+          <section>
+            <div className={styles.sectionTitle}>
+              <ShieldLock24Filled style={{ color: tokens.colorBrandForeground1 }} />
+              <MEHTypography variant="h3">Resumen de Gestión</MEHTypography>
+            </div>
+            <div className={styles.statsGrid}>
+              {stats.widgets.map(widget => (
+                <MEHCard key={widget.id} className={styles.statCard} onClick={() => navigate(widget.link)}>
+                  {getIcon(widget.icon)}
+                  <MEHTypography variant="h1" style={{ margin: '8px 0' }}>{widget.value}</MEHTypography>
+                  <MEHTypography variant="caption" style={{ fontWeight: 'bold', opacity: 0.7 }}>{widget.title.toUpperCase()}</MEHTypography>
+                </MEHCard>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 1.6 Banner de Upgrade para Miembros */}
         {user.rol === 'MIEMBRO' && (
           <MEHCard style={{ 
             background: 'linear-gradient(90deg, #7f13ec 0%, #3a0078 100%)', 
@@ -189,7 +258,7 @@ const Dashboard = () => {
         )}
 
         <div className={styles.grid}>
-          {/* 2. Próximos Eventos Reales */}
+          {/* 2. Próximos Eventos con Miniaturas */}
           <section>
             <div className={styles.sectionTitle}>
               <CalendarStar24Filled style={{ color: tokens.colorBrandForeground1 }} />
@@ -203,27 +272,28 @@ const Dashboard = () => {
                   const { day, month } = formatDate(evento.fecha_inicio);
                   return (
                     <div key={evento.id_evento} className={styles.eventItem}>
+                      <img src={evento.imagen_url || DEFAULT_EVENT_IMG} className={styles.eventMiniature} alt="event" />
                       <div className={styles.dateBox}>
-                        <MEHTypography variant="caption" style={{ display: 'block', fontWeight: 'bold', color: tokens.colorBrandForeground1 }}>{month}</MEHTypography>
-                        <MEHTypography variant="h3">{day}</MEHTypography>
+                        <MEHTypography variant="caption" style={{ display: 'block', fontWeight: 'bold', color: tokens.colorBrandForeground1, fontSize: '10px' }}>{month}</MEHTypography>
+                        <MEHTypography variant="h3" style={{ fontSize: '16px' }}>{day}</MEHTypography>
                       </div>
                       <div style={{ flexGrow: 1 }}>
-                        <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>{evento.titulo}</MEHTypography>
-                        <MEHTypography variant="caption" style={{ opacity: 0.6, display: 'block' }}>{evento.modalidad}</MEHTypography>
+                        <MEHTypography variant="body" style={{ fontWeight: 'bold', fontSize: '14px' }}>{evento.titulo}</MEHTypography>
+                        <MEHTypography variant="caption" style={{ opacity: 0.6, display: 'block', fontSize: '12px' }}>{evento.modalidad}</MEHTypography>
                       </div>
                       <MEHButton appearance="subtle" icon={<ChevronRight24Regular />} />
                     </div>
                   );
                 })
               ) : (
-                <MEHTypography variant="caption" style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>No hay eventos programados por ahora.</MEHTypography>
+                <MEHTypography variant="caption" style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>No hay eventos programados.</MEHTypography>
               )}
               
               <MEHButton appearance="outline" style={{ marginTop: '8px' }} onClick={() => navigate('/learning')}>Explorar Learning Hub</MEHButton>
             </MEHCard>
           </section>
 
-          {/* 3. Progreso */}
+          {/* 3. Mi Progreso */}
           <section>
             <div className={styles.sectionTitle}>
               <Reward24Filled style={{ color: tokens.colorBrandForeground1 }} />
@@ -231,38 +301,55 @@ const Dashboard = () => {
             </div>
             <MEHCard>
               <div className={styles.progressInfo}>
-                <MEHTypography variant="body">Gold Milestone</MEHTypography>
-                <MEHTypography variant="caption" style={{ fontWeight: 'bold' }}>75%</MEHTypography>
+                <MEHTypography variant="body">Progreso en Cursos</MEHTypography>
+                <MEHTypography variant="caption" style={{ fontWeight: 'bold' }}>
+                  {stats?.personal_stats?.progreso_promedio?.toFixed(0) || 0}%
+                </MEHTypography>
               </div>
-              <ProgressBar value={0.75} color="success" style={{ marginBottom: '24px', height: '8px' }} />
+              <ProgressBar 
+                value={(stats?.personal_stats?.progreso_promedio || 0) / 100} 
+                color="success" 
+                style={{ marginBottom: '24px', height: '8px' }} 
+              />
               
-              <MEHTypography variant="caption" style={{ marginBottom: '16px', display: 'block', opacity: 0.7, fontWeight: 'bold' }}>LOGROS RECIENTES</MEHTypography>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ width: '50px', height: '50px', backgroundColor: 'rgba(127, 19, 236, 0.1)', ...shorthands.borderRadius('50%'), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Reward24Filled style={{ color: '#FFD700' }} />
+              <div style={{ display: 'flex', gap: '20px' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ width: '50px', height: '50px', backgroundColor: 'rgba(127, 19, 236, 0.1)', ...shorthands.borderRadius('50%'), display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
+                    <CalendarStar24Regular style={{ color: tokens.colorBrandForeground1 }} />
+                  </div>
+                  <MEHTypography variant="h3">{stats?.personal_stats?.eventos_inscritos || 0}</MEHTypography>
+                  <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.6 }}>Eventos</MEHTypography>
                 </div>
-                <div style={{ width: '50px', height: '50px', backgroundColor: 'rgba(127, 19, 236, 0.1)', ...shorthands.borderRadius('50%'), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Alert24Regular style={{ color: '#0078D4' }} />
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ width: '50px', height: '50px', backgroundColor: 'rgba(127, 19, 236, 0.1)', ...shorthands.borderRadius('50%'), display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
+                    <Trophy24Filled style={{ color: '#FFD700' }} />
+                  </div>
+                  <MEHTypography variant="h3">{stats?.personal_stats?.certificados_obtenidos || 0}</MEHTypography>
+                  <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.6 }}>Diplomas</MEHTypography>
                 </div>
               </div>
             </MEHCard>
           </section>
 
-          {/* 4. Centro de Avisos */}
+          {/* 4. Notificaciones */}
           <section>
             <div className={styles.sectionTitle}>
               <Mail24Filled style={{ color: tokens.colorBrandForeground1 }} />
               <MEHTypography variant="h3">Notificaciones</MEHTypography>
             </div>
             <MEHCard style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <Mail24Filled style={{ color: tokens.colorBrandForeground1 }} />
-                <div>
-                  <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Nuevo certificado</MEHTypography>
-                  <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.6 }}>Has completado Azure Fundamentals.</MEHTypography>
+               {stats?.personal_stats?.certificados_obtenidos > 0 ? (
+                 <div style={{ display: 'flex', gap: '12px' }}>
+                  <Mail24Filled style={{ color: tokens.colorBrandForeground1 }} />
+                  <div>
+                    <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Certificados listos</MEHTypography>
+                    <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.6 }}>Tienes {stats.personal_stats.certificados_obtenidos} certificado(s) disponible(s).</MEHTypography>
+                  </div>
                 </div>
-              </div>
-              <MEHButton appearance="subtle" size="small">Ver todo el historial</MEHButton>
+               ) : (
+                <MEHTypography variant="caption" style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>No tienes avisos nuevos.</MEHTypography>
+               )}
+              <MEHButton appearance="subtle" size="small">Ver historial</MEHButton>
             </MEHCard>
           </section>
         </div>

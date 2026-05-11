@@ -1,15 +1,17 @@
 from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
+from typing import Optional
 
 class EventoBase(BaseModel):
     titulo: str
     descripcion: Optional[str] = None
     fecha_inicio: datetime
-    modalidad: str # PRESENCIAL, VIRTUAL
-    token_qr: Optional[str] = None
+    fecha_fin: Optional[datetime] = None
+    modalidad: str
+    ubicacion: Optional[str] = None
     capacidad_max: int
-    estado: str = "PROGRAMADO"
+    imagen_url: Optional[str] = None
+    plantilla_certificado_url: Optional[str] = None
 
 class EventoCreate(EventoBase):
     pass
@@ -18,36 +20,21 @@ class EventoUpdate(BaseModel):
     titulo: Optional[str] = None
     descripcion: Optional[str] = None
     fecha_inicio: Optional[datetime] = None
-    modalidad: Optional[str] = None
-    token_qr: Optional[str] = None
-    capacidad_max: Optional[int] = None
     estado: Optional[str] = None
-    modificado_por: Optional[int] = None
+    capacidad_max: Optional[int] = None
+    imagen_url: Optional[str] = None
+    plantilla_certificado_url: Optional[str] = None
 
 class EventoResponse(EventoBase):
     id_evento: int
+    estado: str
+    token_qr: Optional[str] = None
+    id_organizador: Optional[int] = None
+    # AUDITORIA
     creado_por: Optional[int] = None
-    fecha_creacion: datetime
+    fecha_creacion: Optional[datetime] = None
     modificado_por: Optional[int] = None
     fecha_modificacion: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
-
-class InscripcionEventoBase(BaseModel):
-    id_evento: int
-
-class InscripcionEventoCreate(InscripcionEventoBase):
-    id_usuario: int
-
-class InscripcionEventoResponse(InscripcionEventoBase):
-    id_inscripcion: int
-    id_usuario: int
-    fecha_inscripcion: datetime
-    asistio: bool
-    fecha_validacion: Optional[datetime] = None
-    id_pago: Optional[int] = None
-    estado_inscripcion: str
 
     class Config:
         from_attributes = True

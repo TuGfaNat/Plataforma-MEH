@@ -1,13 +1,26 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import auth, eventos, cursos, inscripciones, logs, pagos, comunidad
-from app.database import engine, Base
 import time
+from app.api import auth, eventos, cursos, inscripciones, logs, pagos, comunidad, dashboard, recursos, asistencia
+from app.database import engine, Base
+from app.core.exceptions import global_exception_handler
+from app.core.email_config import SMTPConfig
 
 # Crear tablas en la base de datos si no existen
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Plataforma MEH API")
+# Validar configuración de SMTP al iniciar
+is_valid, message = SMTPConfig.validate()
+if is_valid:
+    print(f"✅ {message}")
+else:
+    print(f"⚠️ {message}")
+    print("⚠️ Los correos electrónicos NO se enviarán hasta que se configure SMTP")
+
+app = FastAPI(title="Plataforma MEH API", version="1.0.0")
+
+# Registrar manejador global de errores
+app.add_exception_handler(Exception, global_exception_handler)
 
 # Configuración de CORS - Permitir todo para desarrollo local
 app.add_middleware(
@@ -36,10 +49,22 @@ app.include_router(inscripciones.router)
 app.include_router(logs.router)
 app.include_router(pagos.router)
 app.include_router(comunidad.router)
+app.include_router(dashboard.router)
+app.include_router(recursos.router)
+app.include_router(asistencia.router)
 
 @app.get("/")
 async def root():
     return {"status": "online", "message": "API de Plataforma MEH funcionando correctamente"}
+
+@app.get("/health")
+async def health():
+    """Endpoint para verificar salud de la aplicación"""
+    return {
+        "status": "ok",
+        "smtp_configured": SMTPConfig.is_configured(),
+        "message": "Plataforma MEH API está funcionando"
+    }
 
 if __name__ == "__main__":
     import uvicorn

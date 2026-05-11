@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { designTokens } from '../theme/theme';
 import { MEHButton, MEHCard, MEHTypography } from '../components/ui';
 import eventoService from '../services/eventoService';
+import cursoService from '../services/cursoService';
 
 import { 
   CalendarStar24Regular,
@@ -21,7 +22,9 @@ import {
   Search24Regular,
   CalendarClock24Regular,
   Location24Regular,
-  Video24Regular
+  Video24Regular,
+  Library24Regular,
+  Book24Regular
 } from '@fluentui/react-icons';
 
 import { MEHFooter } from '../components/layout/MEHFooter';
@@ -140,30 +143,44 @@ const useStyles = makeStyles({
     }
   },
   section: {
-    ...shorthands.padding('100px', '24px'),
+    ...shorthands.padding('80px', '24px'),
     maxWidth: '1200px',
     margin: '0 auto',
     width: '100%',
     boxSizing: 'border-box',
   },
-  eventsGrid: {
+  grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
     ...shorthands.gap('24px'),
     marginTop: '40px',
   },
-  eventCard: {
+  card: {
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    ...shorthands.padding('24px'),
+    ...shorthands.padding(0), // Quitamos padding para que la imagen llegue al borde
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px',
     transition: 'all 0.3s ease',
+    ...shorthands.border('1px', 'solid', 'rgba(255,255,255,0.05)'),
+    ...shorthands.borderRadius('16px'),
+    overflow: 'hidden',
     ':hover': {
       backgroundColor: 'rgba(255, 255, 255, 0.05)',
       ...shorthands.border('1px', 'solid', tokens.colorBrandStroke1),
       transform: 'translateY(-5px)',
     }
+  },
+  cardContent: {
+    ...shorthands.padding('24px'),
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+  },
+  cardImage: {
+    width: '100%',
+    height: '160px',
+    objectFit: 'cover',
+    backgroundColor: tokens.colorNeutralBackground3,
   },
   dateBadge: {
     backgroundColor: tokens.colorBrandBackground2,
@@ -205,22 +222,26 @@ const Landing = () => {
   const navigate = useNavigate();
   
   const [eventos, setEventos] = useState([]);
+  const [cursos, setCursos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [certCode, setCertCode] = useState('');
 
   useEffect(() => {
-    const fetchEventos = async () => {
+    const fetchData = async () => {
       try {
-        const data = await eventoService.getEventos();
-        // Solo mostrar eventos futuros o programados
-        setEventos(data.filter(e => e.estado === 'PROGRAMADO').slice(0, 6));
+        const [eventosData, cursosData] = await Promise.all([
+          eventoService.getEventos(),
+          cursoService.getCursos()
+        ]);
+        setEventos(eventosData.filter(e => e.estado === 'PROGRAMADO').slice(0, 3));
+        setCursos(cursosData.filter(c => c.estado === 'ACTIVO').slice(0, 3));
       } catch (err) {
-        console.error("Error cargando eventos:", err);
+        console.error("Error cargando datos públicos:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchEventos();
+    fetchData();
   }, []);
 
   const handleVerify = () => {
@@ -234,6 +255,9 @@ const Landing = () => {
     const months = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
     return { day: d.getDate(), month: months[d.getMonth()] };
   };
+
+  const DEFAULT_EVENT_IMG = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop";
+  const DEFAULT_COURSE_IMG = "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop";
 
   return (
     <div className={styles.container}>
@@ -267,7 +291,7 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Nueva Sección: Calendario de Eventos */}
+      {/* Sección: Calendario de Eventos */}
       <section id="calendario" className={styles.section}>
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <MEHTypography variant="h1" style={{ display: 'block', marginBottom: '12px' }}>Próximos Talleres</MEHTypography>
@@ -277,43 +301,80 @@ const Landing = () => {
         </div>
 
         {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><Spinner label="Cargando eventos de la comunidad..." /></div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><Spinner label="Cargando eventos..." /></div>
         ) : (
-          <div className={styles.eventsGrid}>
+          <div className={styles.grid}>
             {eventos.map(evento => {
               const { day, month } = formatDate(evento.fecha_inicio);
               return (
-                <MEHCard key={evento.id_evento} className={styles.eventCard}>
-                  <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-                    <div className={styles.dateBadge}>
-                      <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>{month}</span>
-                      <span style={{ fontSize: '1.5rem' }}>{day}</span>
+                <MEHCard key={evento.id_evento} className={styles.card}>
+                  <img src={evento.imagen_url || DEFAULT_EVENT_IMG} alt="banner" className={styles.cardImage} />
+                  <div className={styles.cardContent}>
+                    <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+                        <div className={styles.dateBadge}>
+                        <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>{month}</span>
+                        <span style={{ fontSize: '1.5rem' }}>{day}</span>
+                        </div>
+                        <div style={{ flexGrow: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <Badge appearance="tint" color="brand">{evento.modalidad}</Badge>
+                        </div>
+                        <MEHTypography variant="h3" style={{ display: 'block', marginBottom: '8px' }}>{evento.titulo}</MEHTypography>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: 0.6, fontSize: '0.9rem' }}>
+                            {evento.modalidad === 'VIRTUAL' ? <Video24Regular style={{ fontSize: '16px' }} /> : <Location24Regular style={{ fontSize: '16px' }} />}
+                            {evento.ubicacion || 'Sesión en línea'}
+                        </div>
+                        </div>
                     </div>
-                    <div style={{ flexGrow: 1 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <Badge appearance="tint" color="brand">{evento.modalidad}</Badge>
-                      </div>
-                      <MEHTypography variant="h3" style={{ display: 'block', marginBottom: '8px' }}>{evento.titulo}</MEHTypography>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: 0.6, fontSize: '0.9rem' }}>
-                        {evento.modalidad === 'VIRTUAL' ? <Video24Regular style={{ fontSize: '16px' }} /> : <Location24Regular style={{ fontSize: '16px' }} />}
-                        {evento.ubicacion || 'Sesión en línea'}
-                      </div>
-                    </div>
+                    <MEHTypography variant="caption" style={{ opacity: 0.7, minHeight: '40px', display: 'block' }}>
+                        {evento.descripcion ? (evento.descripcion.substring(0, 100) + '...') : 'Aprende las últimas tecnologías de Microsoft con expertos.'}
+                    </MEHTypography>
+                    <MEHButton appearance="primary" icon={<CalendarClock24Regular />} onClick={() => navigate('/login')}>
+                        Asegurar mi lugar
+                    </MEHButton>
                   </div>
-                  <MEHTypography variant="caption" style={{ opacity: 0.7, minHeight: '40px', display: 'block' }}>
-                    {evento.descripcion ? (evento.descripcion.substring(0, 100) + '...') : 'Aprende las últimas tecnologías de Microsoft con expertos de la industria.'}
-                  </MEHTypography>
-                  <MEHButton appearance="primary" icon={<CalendarClock24Regular />} onClick={() => navigate('/login')}>
-                    Asegurar mi lugar
-                  </MEHButton>
                 </MEHCard>
               );
             })}
-            {eventos.length === 0 && (
-              <MEHTypography variant="body" style={{ gridColumn: '1 / -1', textAlign: 'center', opacity: 0.5, padding: '40px' }}>
-                Estamos programando nuevos talleres. ¡Vuelve pronto!
-              </MEHTypography>
-            )}
+          </div>
+        )}
+      </section>
+
+      {/* Nueva Sección: Cursos Disponibles */}
+      <section id="cursos" className={styles.section} style={{ paddingTop: 0 }}>
+        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+          <MEHTypography variant="h1" style={{ display: 'block', marginBottom: '12px' }}>Rutas de Aprendizaje</MEHTypography>
+          <MEHTypography variant="body" style={{ opacity: 0.6 }}>
+            Cursos diseñados para llevar tu carrera al siguiente nivel tecnológico.
+          </MEHTypography>
+        </div>
+
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><Spinner label="Cargando rutas..." /></div>
+        ) : (
+          <div className={styles.grid}>
+            {cursos.map(curso => (
+              <MEHCard key={curso.id_curso} className={styles.card}>
+                <img src={curso.imagen_url || DEFAULT_COURSE_IMG} alt="banner" className={styles.cardImage} />
+                <div className={styles.cardContent}>
+                    <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                    <div style={{ backgroundColor: 'rgba(127, 19, 236, 0.1)', padding: '10px', borderRadius: '12px' }}>
+                        <Library24Regular style={{ fontSize: '24px', color: tokens.colorBrandForeground1 }} />
+                    </div>
+                    <div style={{ flexGrow: 1 }}>
+                        <MEHTypography variant="h3" style={{ display: 'block' }}>{curso.nombre_curso}</MEHTypography>
+                        <MEHTypography variant="caption" style={{ opacity: 0.6 }}>{curso.horas_academicas} horas académicas</MEHTypography>
+                    </div>
+                    </div>
+                    <MEHTypography variant="caption" style={{ opacity: 0.7, minHeight: '40px', display: 'block' }}>
+                    {curso.descripcion ? (curso.descripcion.substring(0, 100) + '...') : 'Domina herramientas y conceptos clave para el mercado laboral actual.'}
+                    </MEHTypography>
+                    <MEHButton appearance="outline" icon={<Book24Regular />} onClick={() => navigate('/login')}>
+                    Ver detalles
+                    </MEHButton>
+                </div>
+              </MEHCard>
+            ))}
           </div>
         )}
       </section>
@@ -348,3 +409,4 @@ const Landing = () => {
 };
 
 export default Landing;
+;

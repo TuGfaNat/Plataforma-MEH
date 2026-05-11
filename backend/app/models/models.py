@@ -4,40 +4,46 @@ from datetime import datetime
 import uuid
 from ..database import Base
 
-class Usuario(Base):
-    __tablename__ = "usuarios"
-
-    id_usuario = Column(Integer, primary_key=True, index=True)
-    nombres = Column(String)
-    apellidos = Column(String)
-    correo = Column(String, unique=True, index=True)
-    password_hash = Column(TEXT)
-    rol = Column(String, default="MIEMBRO") # ADMIN, ORGANIZADOR, EMBAJADOR, MIEMBRO
-    fecha_registro = Column(DateTime, default=datetime.utcnow)
-    bio = Column(TEXT, nullable=True)
-    linkedin_url = Column(String, nullable=True)
-    github_url = Column(String, nullable=True)
-    perfil_publico = Column(Boolean, default=True)
-    
-    # Campos de Auditoría
+class AuditMixin:
     creado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
     modificado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
     fecha_modificacion = Column(DateTime, nullable=True)
 
+class Usuario(Base, AuditMixin):
+    __tablename__ = "usuarios"
+
+    id_usuario = Column(Integer, primary_key=True, index=True)
+    nombres = Column(String)
+    apellidos = Column(String)
+    alias = Column(String, nullable=True) # Nombre público
+    foto_url = Column(String, nullable=True) # Foto de perfil
+    preferencia_tema = Column(String, default="dark") # dark o light
+    correo = Column(String, unique=True, index=True)
+    password_hash = Column(TEXT)
+    rol = Column(String, default="MIEMBRO") # ADMIN, ORGANIZADOR, MODERADOR, SOPORTE, EMBAJADOR, MIEMBRO
+    fecha_registro = Column(DateTime, default=datetime.utcnow)
+    bio = Column(TEXT, nullable=True)
+    linkedin_url = Column(String, nullable=True)
+    github_url = Column(String, nullable=True)
+    perfil_publico = Column(Boolean, default=True)
+
     # Relaciones
-    inscripciones_eventos = relationship("InscripcionEvento", back_populates="usuario")
-    inscripciones_cursos = relationship("InscripcionCurso", back_populates="usuario")
+    inscripciones_eventos = relationship("InscripcionEvento", back_populates="usuario", foreign_keys="[InscripcionEvento.id_usuario]")
+    inscripciones_cursos = relationship("InscripcionCurso", back_populates="usuario", foreign_keys="[InscripcionCurso.id_usuario]")
     pagos = relationship("Pago", back_populates="usuario", foreign_keys="[Pago.id_usuario]")
     logs = relationship("LogSistema", back_populates="admin", foreign_keys="LogSistema.id_admin")
-    certificados = relationship("Certificado", back_populates="usuario")
+    certificados = relationship("Certificado", back_populates="usuario", foreign_keys="[Certificado.id_usuario]")
 
     # Restricción de Check para rol
     __table_args__ = (
-        CheckConstraint("rol IN ('ADMIN', 'ORGANIZADOR', 'EMBAJADOR', 'MIEMBRO')", name="usuarios_rol_check"),
+        CheckConstraint(
+            "rol IN ('ADMIN', 'ORGANIZADOR', 'MODERADOR', 'SOPORTE', 'EMBAJADOR', 'MIEMBRO')",
+            name="usuarios_rol_check"
+        ),
     )
 
-class Evento(Base):
+class Evento(Base, AuditMixin):
     __tablename__ = "eventos"
 
     id_evento = Column(Integer, primary_key=True, index=True)
@@ -53,16 +59,11 @@ class Evento(Base):
     token_qr = Column(String, nullable=True)
     id_organizador = Column(Integer, ForeignKey("usuarios.id_usuario"))
 
-    # Auditoría
-    creado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
-    fecha_creacion = Column(DateTime, default=datetime.utcnow)
-    modificado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
-    fecha_modificacion = Column(DateTime, nullable=True)
-
     inscripciones = relationship("InscripcionEvento", back_populates="evento")
     checkpoints = relationship("Checkpoint", back_populates="evento")
+    organizador = relationship("Usuario", foreign_keys="[Evento.id_organizador]")
 
-class InscripcionEvento(Base):
+class InscripcionEvento(Base, AuditMixin):
     __tablename__ = "inscripciones_eventos"
 
     id_inscripcion = Column(Integer, primary_key=True, index=True)
@@ -75,11 +76,11 @@ class InscripcionEvento(Base):
     fecha_validacion = Column(DateTime, nullable=True)
     id_pago = Column(Integer, ForeignKey("pagos.id_pago"), nullable=True)
 
-    usuario = relationship("Usuario", back_populates="inscripciones_eventos")
+    usuario = relationship("Usuario", back_populates="inscripciones_eventos", foreign_keys="[InscripcionEvento.id_usuario]")
     evento = relationship("Evento", back_populates="inscripciones")
     asistencia = relationship("AsistenciaDetalle", back_populates="inscripcion", uselist=False)
 
-class Checkpoint(Base):
+class Checkpoint(Base, AuditMixin):
     __tablename__ = "checkpoints"
 
     id_checkpoint = Column(Integer, primary_key=True, index=True)
@@ -91,7 +92,7 @@ class Checkpoint(Base):
     evento = relationship("Evento", back_populates="checkpoints")
     asistencias = relationship("AsistenciaDetalle", back_populates="checkpoint")
 
-class AsistenciaDetalle(Base):
+class AsistenciaDetalle(Base, AuditMixin):
     __tablename__ = "asistencia_detalles"
 
     id_asistencia = Column(Integer, primary_key=True, index=True)
@@ -102,8 +103,9 @@ class AsistenciaDetalle(Base):
 
     inscripcion = relationship("InscripcionEvento", back_populates="asistencia")
     checkpoint = relationship("Checkpoint", back_populates="asistencias")
+    escaneador = relationship("Usuario", foreign_keys="[AsistenciaDetalle.escanedao_por]")
 
-class Curso(Base):
+class Curso(Base, AuditMixin):
     __tablename__ = "cursos"
 
     id_curso = Column(Integer, primary_key=True, index=True)
@@ -112,10 +114,12 @@ class Curso(Base):
     horas_academicas = Column(Integer)
     estado = Column(String, default="ACTIVO") # ACTIVO, INACTIVO
     imagen_url = Column(String, nullable=True)
+    id_instructor = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
 
     inscripciones = relationship("InscripcionCurso", back_populates="curso")
+    instructor = relationship("Usuario", foreign_keys="[Curso.id_instructor]")
 
-class InscripcionCurso(Base):
+class InscripcionCurso(Base, AuditMixin):
     __tablename__ = "inscripciones_cursos"
 
     id_inscripcion_curso = Column(Integer, primary_key=True, index=True)
@@ -123,13 +127,14 @@ class InscripcionCurso(Base):
     id_curso = Column(Integer, ForeignKey("cursos.id_curso"))
     fecha_inscripcion = Column(DateTime, default=datetime.utcnow)
     progreso = Column(Numeric(5, 2), default=0) # 0.00 a 100.00
+    nota_final = Column(Numeric(5, 2), nullable=True)
     completado = Column(Boolean, default=False)
     fecha_completado = Column(DateTime, nullable=True)
 
-    usuario = relationship("Usuario", back_populates="inscripciones_cursos")
+    usuario = relationship("Usuario", back_populates="inscripciones_cursos", foreign_keys="[InscripcionCurso.id_usuario]")
     curso = relationship("Curso", back_populates="inscripciones")
 
-class Pago(Base):
+class Pago(Base, AuditMixin):
     __tablename__ = "pagos"
 
     id_pago = Column(Integer, primary_key=True, index=True)
@@ -142,17 +147,17 @@ class Pago(Base):
     id_referencia = Column(Integer) # ID de Evento o Producto
     tipo_referencia = Column(String) # EVENTO, MEMBRESIA, CURSO
     
-    # Auditoría de Pago
+    # Auditoría de Pago Específica (ya existía parte, ahora se integra con Mixin)
     validado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
     fecha_validacion = Column(DateTime, nullable=True)
     notas_admin = Column(TEXT, nullable=True)
 
     # Relación principal con el usuario que paga
-    usuario = relationship("Usuario", back_populates="pagos", foreign_keys=[id_usuario])
+    usuario = relationship("Usuario", back_populates="pagos", foreign_keys="[Pago.id_usuario]")
     # Relación opcional con el admin que valida
-    validador = relationship("Usuario", foreign_keys=[validado_por])
+    validador = relationship("Usuario", foreign_keys="[Pago.validado_por]")
 
-class LogSistema(Base):
+class LogSistema(Base): # Esta es LA tabla de auditoría, no necesita mixin de sí misma
     __tablename__ = "logs_sistema"
 
     id_log = Column(Integer, primary_key=True, index=True)
@@ -165,9 +170,9 @@ class LogSistema(Base):
     fecha_hora = Column(DateTime, default=datetime.utcnow)
     ip_direccion = Column(String, nullable=True)
 
-    admin = relationship("Usuario", back_populates="logs", foreign_keys=[id_admin])
+    admin = relationship("Usuario", back_populates="logs", foreign_keys="[LogSistema.id_admin]")
 
-class Certificado(Base):
+class Certificado(Base, AuditMixin):
     __tablename__ = "certificados"
 
     id_certificado = Column(Integer, primary_key=True, index=True)
@@ -182,13 +187,26 @@ class Certificado(Base):
     es_ruta_linkedin = Column(Boolean, default=False)
     metadata_adicional = Column(TEXT, nullable=True)
 
-    usuario = relationship("Usuario", back_populates="certificados")
+    usuario = relationship("Usuario", back_populates="certificados", foreign_keys="[Certificado.id_usuario]")
 
     __table_args__ = (
         CheckConstraint("formato IN ('DIGITAL', 'FISICO', 'AMBOS')", name="certificados_formato_check"),
     )
 
-class Anuncio(Base):
+class Recurso(Base, AuditMixin):
+    __tablename__ = "recursos"
+
+    id_recurso = Column(Integer, primary_key=True, index=True)
+    titulo = Column(String)
+    descripcion = Column(TEXT)
+    url_descarga = Column(String)
+    tipo_archivo = Column(String) # PDF, ZIP, VIDEO, DOCX, etc.
+    categoria = Column(String) # VIP, SPEAKER, GENERAL
+
+    # Relación explícita con el creador (del Mixin)
+    autor = relationship("Usuario", foreign_keys="[Recurso.creado_por]")
+
+class Anuncio(Base, AuditMixin):
     __tablename__ = "anuncios"
 
     id_anuncio = Column(Integer, primary_key=True, index=True)
@@ -196,7 +214,7 @@ class Anuncio(Base):
     contenido = Column(TEXT)
     tipo = Column(String, default="INFO") # INFO, NUEVO, ALERTA
     fecha_publicacion = Column(DateTime, default=datetime.utcnow)
-    id_autor = Column(Integer, ForeignKey("usuarios.id_usuario"))
     activo = Column(Boolean, default=True)
 
-    autor = relationship("Usuario")
+    # Ya no necesitamos id_autor, usamos creado_por del Mixin
+    autor = relationship("Usuario", foreign_keys="[Anuncio.creado_por]")

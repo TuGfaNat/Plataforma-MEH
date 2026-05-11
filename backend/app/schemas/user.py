@@ -7,6 +7,9 @@ class UserBase(BaseModel):
     apellidos: str
     correo: EmailStr
     rol: str = "MIEMBRO"
+    alias: Optional[str] = None
+    foto_url: Optional[str] = None
+    preferencia_tema: Optional[str] = "dark"
     bio: Optional[str] = None
     linkedin_url: Optional[str] = None
     github_url: Optional[str] = None
@@ -18,6 +21,9 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     nombres: Optional[str] = None
     apellidos: Optional[str] = None
+    alias: Optional[str] = None
+    foto_url: Optional[str] = None
+    preferencia_tema: Optional[str] = None
     bio: Optional[str] = None
     linkedin_url: Optional[str] = None
     github_url: Optional[str] = None

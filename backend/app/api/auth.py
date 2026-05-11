@@ -1,24 +1,19 @@
-import os
-from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from typing import List
 from jose import JWTError, jwt
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
 
 from ..database import get_db
 from ..models import models
 from ..schemas import user as user_schema
 from ..core import auth as auth_core
-from ..core.logging import registrar_log
+from ..services import auth_service
 
 router = APIRouter(
     prefix="/auth",
     tags=["autenticacion"]
 )
-
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
@@ -44,84 +39,17 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 @router.post("/register", response_model=user_schema.UserResponse)
 def register(user: user_schema.UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(models.Usuario).filter(models.Usuario.correo == user.correo).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="El correo ya está registrado")
-    hashed_password = auth_core.get_password_hash(user.password)
-    new_user = models.Usuario(
-        nombres=user.nombres,
-        apellidos=user.apellidos,
-        correo=user.correo,
-        password_hash=hashed_password,
-        rol=user.rol,
-        fecha_registro=datetime.utcnow()
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+    return auth_service.register_user(db, user)
 
 @router.post("/login", response_model=user_schema.Token)
 def login(request: Request, user_credentials: user_schema.UserLogin, db: Session = Depends(get_db)):
-    user = db.query(models.Usuario).filter(models.Usuario.correo == user_credentials.correo).first()
-    if not user or not auth_core.verify_password(user_credentials.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales incorrectas",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token = auth_core.create_access_token(data={"sub": user.correo, "rol": user.rol})
-    registrar_log(
-        db=db, id_admin=user.id_usuario, accion="INICIO_SESION",
-        tabla_afectada="usuarios", id_registro_afectado=user.id_usuario, ip_direccion=request.client.host
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+    ip_address = request.client.host if request.client else None
+    return auth_service.login_user(db, user_credentials, ip_address)
 
 @router.post("/google", response_model=user_schema.Token)
 def google_login(request: Request, token_data: dict, db: Session = Depends(get_db)):
-    try:
-        # Verificar el token recibido de Google
-        idinfo = id_token.verify_oauth2_token(token_data["token"], google_requests.Request(), GOOGLE_CLIENT_ID)
-
-        email = idinfo['email']
-        name = idinfo.get('name', '')
-        given_name = idinfo.get('given_name', name)
-        family_name = idinfo.get('family_name', '')
-
-        user = db.query(models.Usuario).filter(models.Usuario.correo == email).first()
-
-        if not user:
-            user = models.Usuario(
-                nombres=given_name,
-                apellidos=family_name,
-                correo=email,
-                password_hash="google_oauth_no_password",
-                rol="MIEMBRO",
-                fecha_registro=datetime.utcnow()
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-
-            registrar_log(
-                db=db, id_admin=user.id_usuario, accion="REGISTRO_GOOGLE",
-                tabla_afectada="usuarios", id_registro_afectado=user.id_usuario, ip_direccion=request.client.host
-            )
-
-        access_token = auth_core.create_access_token(data={"sub": user.correo, "rol": user.rol})
-
-        registrar_log(
-            db=db, id_admin=user.id_usuario, accion="LOGIN_GOOGLE",
-            tabla_afectada="usuarios", id_registro_afectado=user.id_usuario, ip_direccion=request.client.host
-        )
-
-        return {"access_token": access_token, "token_type": "bearer"}
-
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Token de Google inválido")
-    except Exception as e:
-        print(f"Error en Google Login: {e}")
-        raise HTTPException(status_code=500, detail="Error interno del servidor")
+    ip_address = request.client.host if request.client else None
+    return auth_service.login_with_google(db, token_data["token"], ip_address)
 
 @router.get("/me", response_model=user_schema.UserResponse)
 def read_users_me(current_user: models.Usuario = Depends(get_current_user)):
@@ -134,15 +62,28 @@ def update_user_me(
     db: Session = Depends(get_db), 
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    update_data = user_update.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(current_user, key, value)
-    current_user.fecha_modificacion = datetime.utcnow()
-    db.commit()
-    db.refresh(current_user)
-    registrar_log(
-        db=db, id_admin=current_user.id_usuario, accion="ACTUALIZAR_PERFIL",
-        tabla_afectada="usuarios", id_registro_afectado=current_user.id_usuario,
-        valor_nuevo=update_data, ip_direccion=request.client.host
-    )
-    return current_user
+    ip_address = request.client.host if request.client else None
+    return auth_service.update_profile(db, current_user, user_update, ip_address)
+
+
+@router.get("/usuarios", response_model=List[user_schema.UserResponse])
+def get_usuarios(
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    from ..core.permissions import ensure_admin
+    ensure_admin(current_user.rol)
+    return auth_service.list_users(db, current_user)
+
+@router.put("/usuarios/{id_usuario}/rol")
+def update_user_role(
+    id_usuario: int,
+    nuevo_rol: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    from ..core.permissions import ensure_admin
+    ensure_admin(current_user.rol)
+    ip_address = request.client.host if request.client else None
+    return auth_service.update_user_role(db, current_user, id_usuario, nuevo_rol, ip_address)

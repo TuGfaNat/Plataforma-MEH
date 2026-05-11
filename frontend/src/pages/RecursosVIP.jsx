@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   makeStyles, 
   shorthands, 
   tokens, 
   Button,
-  Body1,
+  Spinner,
   Caption1
 } from '@fluentui/react-components';
 import { 
@@ -12,16 +12,23 @@ import {
   ArrowDownload24Regular,
   VideoClip24Regular,
   DocumentPdf24Regular,
-  Presenter24Regular
+  Presenter24Regular,
+  Archive24Regular
 } from '@fluentui/react-icons';
 import MainLayout from '../components/layout/MainLayout';
 import { MEHCard, MEHTypography } from '../components/ui';
+import recursoService from '../services/recursoService';
 
 const useStyles = makeStyles({
   container: {
     display: 'flex',
     flexDirection: 'column',
     gap: '32px',
+    animationName: {
+        from: { opacity: 0, transform: 'translateY(10px)' },
+        to: { opacity: 1, transform: 'translateY(0)' },
+    },
+    animationDuration: '0.5s',
   },
   resourceGrid: {
     display: 'grid',
@@ -33,6 +40,7 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: '16px',
     ...shorthands.padding('24px'),
+    height: '100%'
   },
   iconContainer: {
     width: '48px',
@@ -48,33 +56,31 @@ const useStyles = makeStyles({
 
 const RecursosVIP = () => {
   const styles = useStyles();
+  const [recursos, setRecursos] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const recursos = [
-    {
-      title: "Guía de Marca MEH 2026",
-      desc: "Logos oficiales, paleta de colores y tipografías para tus presentaciones.",
-      icon: <Presenter24Regular />,
-      type: "PDF"
-    },
-    {
-      title: "Azure Workshop Kit",
-      desc: "Slides y código base para dictar el taller 'Azure Fundamentals'.",
-      icon: <BookToolbox24Filled />,
-      type: "ZIP"
-    },
-    {
-      title: "Técnicas de Oratoria Tech",
-      desc: "Video exclusivo sobre cómo dar charlas de impacto en comunidades.",
-      icon: <VideoClip24Regular />,
-      type: "Video"
-    },
-    {
-      title: "Plantilla de Certificados",
-      desc: "Formato editable para reconocimientos locales de tu comunidad.",
-      icon: <DocumentPdf24Regular />,
-      type: "DOCX"
+  useEffect(() => {
+    const fetchVIP = async () => {
+      try {
+        const data = await recursoService.getRecursos('VIP');
+        setRecursos(data);
+      } catch (err) {
+        console.error("Error cargando recursos VIP:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVIP();
+  }, []);
+
+  const getIcon = (type) => {
+    switch(type) {
+      case 'PDF': return <DocumentPdf24Regular />;
+      case 'VIDEO': return <VideoClip24Regular />;
+      case 'ZIP': return <Archive24Regular />;
+      default: return <BookToolbox24Filled />;
     }
-  ];
+  };
 
   return (
     <MainLayout>
@@ -85,37 +91,51 @@ const RecursosVIP = () => {
         </div>
 
         <MEHTypography variant="body" style={{ opacity: 0.6 }}>
-          Como Embajador MEH, tienes acceso a materiales exclusivos para liderar tu comunidad local y potenciar tu marca personal.
+          Como Embajador MEH, tienes acceso a materiales exclusivos gestionados por el equipo nacional para potenciar tu liderazgo.
         </MEHTypography>
 
-        <div className={styles.resourceGrid}>
-          {recursos.map((rec, index) => (
-            <MEHCard key={index} className={styles.resourceItem}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div className={styles.iconContainer}>
-                  {rec.icon}
-                </div>
-                <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', ...shorthands.padding('4px', '12px'), ...shorthands.borderRadius('20px') }}>
-                  <Caption1 style={{ fontWeight: 'bold' }}>{rec.type}</Caption1>
-                </div>
-              </div>
-              
-              <div>
-                <MEHTypography variant="h3" style={{ marginBottom: '8px', display: 'block' }}>{rec.title}</MEHTypography>
-                <MEHTypography variant="caption" style={{ opacity: 0.7 }}>{rec.desc}</MEHTypography>
-              </div>
+        {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><Spinner label="Accediendo a la biblioteca VIP..." /></div>
+        ) : (
+            <div className={styles.resourceGrid}>
+                {recursos.map((rec) => (
+                    <MEHCard key={rec.id_recurso} className={styles.resourceItem}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div className={styles.iconContainer}>
+                            {getIcon(rec.tipo_archivo)}
+                        </div>
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', ...shorthands.padding('4px', '12px'), ...shorthands.borderRadius('20px') }}>
+                            <Caption1 style={{ fontWeight: 'bold' }}>{rec.tipo_archivo}</Caption1>
+                        </div>
+                    </div>
+                    
+                    <div style={{ flexGrow: 1 }}>
+                        <MEHTypography variant="h3" style={{ marginBottom: '8px', display: 'block' }}>{rec.titulo}</MEHTypography>
+                        <MEHTypography variant="caption" style={{ opacity: 0.7 }}>{rec.descripcion}</MEHTypography>
+                    </div>
 
-              <Button icon={<ArrowDownload24Regular />} appearance="outline" style={{ marginTop: 'auto' }}>
-                Descargar recurso
-              </Button>
-            </MEHCard>
-          ))}
-        </div>
+                    <Button 
+                        icon={<ArrowDownload24Regular />} 
+                        appearance="outline" 
+                        style={{ marginTop: '16px' }}
+                        onClick={() => window.open(rec.url_descarga, '_blank')}
+                    >
+                        Descargar recurso
+                    </Button>
+                    </MEHCard>
+                ))}
+                {recursos.length === 0 && (
+                    <MEHTypography variant="body" style={{ opacity: 0.5, gridColumn: '1/-1', textAlign: 'center', padding: '40px' }}>
+                        Aún no se han publicado recursos exclusivos en esta categoría.
+                    </MEHTypography>
+                )}
+            </div>
+        )}
 
         <MEHCard style={{ backgroundColor: 'rgba(127, 19, 236, 0.05)', textAlign: 'center', ...shorthands.padding('40px') }}>
           <MEHTypography variant="h3">¿Necesitas apoyo para un evento?</MEHTypography>
           <MEHTypography variant="body" style={{ display: 'block', margin: '16px 0', opacity: 0.8 }}>
-            Si estás organizando un taller en tu universidad o ciudad, podemos apoyarte con swag, licencias de Azure o difusión.
+            Si estás organizando un taller oficial, solicita apoyo (swag, licencias o difusión) directamente con el equipo de soporte.
           </MEHTypography>
           <Button appearance="primary" size="large">Solicitar Apoyo Oficial</Button>
         </MEHCard>

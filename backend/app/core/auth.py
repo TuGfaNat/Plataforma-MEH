@@ -7,7 +7,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuración de seguridad desde .env
-SECRET_KEY = os.getenv("SECRET_KEY", "tu_clave_secreta_por_defecto")
+# Obtiene la clave del entorno
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+# VALIDACIÓN CRÍTICA
+if not SECRET_KEY:
+    # En desarrollo esto te avisará que olvidaste el .env
+    # En producción (Render/Vercel) evitará que el sistema sea inseguro
+    raise ValueError("CRÍTICO: No se encontró la variable SECRET_KEY. El sistema no puede iniciar por seguridad.")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 

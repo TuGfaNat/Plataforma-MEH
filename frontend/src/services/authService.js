@@ -37,6 +37,11 @@ const authService = {
     return response.data;
   },
 
+  updateUserRole: async (idUsuario, nuevoRol) => {
+    const response = await api.put(`/auth/usuarios/${idUsuario}/rol?nuevo_rol=${nuevoRol}`);
+    return response.data;
+  },
+
   logout: () => {
     localStorage.removeItem('token');
   }

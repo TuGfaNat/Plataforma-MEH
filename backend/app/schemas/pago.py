@@ -8,7 +8,7 @@ class PagoBase(BaseModel):
     tipo_referencia: str # EVENTO, CURSO
     monto: Decimal
     metodo_pago: Optional[str] = None
-    comprobante_url: Optional[str] = None
+    url_comprobante: Optional[str] = None
 
 class PagoCreate(PagoBase):
     id_usuario: int

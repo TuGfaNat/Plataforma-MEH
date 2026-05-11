@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   makeStyles, 
   shorthands, 
   tokens, 
   ProgressBar,
-  Tooltip
+  Spinner
 } from '@fluentui/react-components';
 import { 
   Trophy24Filled, 
@@ -17,6 +17,8 @@ import { useTranslation } from 'react-i18next';
 import MainLayout from '../components/layout/MainLayout';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import { designTokens } from '../theme/theme';
+import dashboardService from '../services/dashboardService';
+import { useAuth } from '../App';
 
 const useStyles = makeStyles({
   container: {
@@ -100,21 +102,70 @@ const useStyles = makeStyles({
   }
 });
 
-const BADGE_DATA = [
-  { id: 1, name: 'Primeros Pasos', desc: 'Completaste tu registro y primer taller.', earned: true, img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBm8Id6Q7IQAc8zIFd_EAaBtwwHy2cpnRgt9QWXHouwYHMsHVWf-HTXY2OwMV1brokFpQm5onbPJEMW2WAaDowylSAh3UbXzgjFCKhP1lXTOJEj8HRmxWBpVqaq82fdHufRnWQ8nmgulV4nDp5mv5D3HaCfEVcU5TJqqQO73JgS6piqGTQbVxtfPA-BxfkyZjoxVCiTAR9p5XE6QLNhQsXB5ClUYH1OBczhrYYouwN5jwedn_-hXnfa6EjCMxuUfVnxCpGeWDqqP7Y' },
-  { id: 2, name: 'Azure Explorer', desc: 'Asististe a 3 workshops de Azure Cloud.', earned: true, img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB-6XooRD1s0I7oEdf32BgSYwKPEFnbi8Cfje3mpXyOnSsd1R0uIE1JJbiRQ4sg_gWnF4A-7hnH0l-pmxgs1y7a7C5hWV0awsfEOQkBUf1k8XsQAK9tU5oIcCEA8rPYXed8qqs8SvNAxrAUxNdh-A-Fvsxebn8mVEt7DVYZcRGLd4XxatfxJAuutWyoOrIPrpyZQMPHr-6y9tnnOt-_d-YtfOhPbX_xya3RonGS2ajsF7L7vO2Jj9IrwWTWevKYRkYD6P71toXjx5g' },
-  { id: 3, name: 'AI Specialist', desc: 'Dominas los fundamentos de IA Generativa.', earned: false, img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB-6XooRD1s0I7oEdf32BgSYwKPEFnbi8Cfje3mpXyOnSsd1R0uIE1JJbiRQ4sg_gWnF4A-7hnH0l-pmxgs1y7a7C5hWV0awsfEOQkBUf1k8XsQAK9tU5oIcCEA8rPYXed8qqs8SvNAxrAUxNdh-A-Fvsxebn8mVEt7DVYZcRGLd4XxatfxJAuutWyoOrIPrpyZQMPHr-6y9tnnOt-_d-YtfOhPbX_xya3RonGS2ajsF7L7vO2Jj9IrwWTWevKYRkYD6P71toXjx5g' },
-  { id: 4, name: 'Comunidad Oro', desc: 'Ayudaste a 10 nuevos miembros.', earned: false, img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBm8Id6Q7IQAc8zIFd_EAaBtwwHy2cpnRgt9QWXHouwYHMsHVWf-HTXY2OwMV1brokFpQm5onbPJEMW2WAaDowylSAh3UbXzgjFCKhP1lXTOJEj8HRmxWBpVqaq82fdHufRnWQ8nmgulV4nDp5mv5D3HaCfEVcU5TJqqQO73JgS6piqGTQbVxtfPA-BxfkyZjoxVCiTAR9p5XE6QLNhQsXB5ClUYH1OBczhrYYouwN5jwedn_-hXnfa6EjCMxuUfVnxCpGeWDqqP7Y' },
-];
-
 const Insignias = () => {
   const styles = useStyles();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await dashboardService.getStats();
+        setStats(data);
+      } catch (err) {
+        console.error("Error al cargar insignias:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  if (loading) return <MainLayout><Spinner label="Evaluando tus logros..." /></MainLayout>;
+
+  // Lógica de Insignias Dinámicas
+  const pStats = stats?.personal_stats || { eventos_inscritos: 0, certificados_obtenidos: 0, progreso_promedio: 0 };
+  
+  const badges = [
+    { 
+      id: 'reg', 
+      name: 'Primeros Pasos', 
+      desc: 'Inscríbete a tu primer taller de la comunidad.', 
+      earned: pStats.eventos_inscritos >= 1, 
+      img: 'https://cdn-icons-png.flaticon.com/512/6188/6188613.png' 
+    },
+    { 
+      id: 'explorer', 
+      name: 'Azure Explorer', 
+      desc: 'Asiste a 3 o más talleres tecnológicos.', 
+      earned: pStats.eventos_inscritos >= 3, 
+      img: 'https://cdn-icons-png.flaticon.com/512/4144/4144422.png' 
+    },
+    { 
+      id: 'cert', 
+      name: 'Certificado MEH', 
+      desc: 'Completa un curso y obtén tu primer diploma.', 
+      earned: pStats.certificados_obtenidos >= 1, 
+      img: 'https://cdn-icons-png.flaticon.com/512/2490/2490354.png' 
+    },
+    { 
+      id: 'lider', 
+      name: 'Líder Emergente', 
+      desc: 'Alcanza un rol superior a Miembro.', 
+      earned: user.rol !== 'MIEMBRO', 
+      img: 'https://cdn-icons-png.flaticon.com/512/1063/1063376.png' 
+    },
+  ];
+
+  // Cálculo de progreso para el hito (Basado en 4 insignias)
+  const earnedCount = badges.filter(b => b.earned).length;
+  const milestoneProgress = earnedCount / badges.length;
 
   return (
     <MainLayout>
       <div className={styles.container}>
-        {/* Header de la Sección */}
         <div className={styles.header}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
@@ -125,7 +176,7 @@ const Insignias = () => {
               Tu camino hacia el dominio tecnológico se refleja en cada una de estas insignias.
             </MEHTypography>
           </div>
-          <MEHButton icon={<Share24Filled />} appearance="outline">Compartir en LinkedIn</MEHButton>
+          <MEHButton icon={<Share24Filled />} appearance="outline" onClick={() => window.open('https://linkedin.com', '_blank')}>Compartir Perfil</MEHButton>
         </div>
 
         {/* Resumen de Hito actual */}
@@ -136,15 +187,17 @@ const Insignias = () => {
                 <Trophy24Filled style={{ color: 'white' }} />
               </div>
               <div>
-                <MEHTypography variant="h3">Gold Milestone</MEHTypography>
-                <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Próximo gran hito en tu carrera</MEHTypography>
+                <MEHTypography variant="h3">{earnedCount === badges.length ? '¡Hito Alcanzado!' : 'Próximo Hito'}</MEHTypography>
+                <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Progreso basado en tus logros actuales</MEHTypography>
               </div>
             </div>
-            <MEHTypography variant="h2" style={{ color: tokens.colorBrandForeground1 }}>75%</MEHTypography>
+            <MEHTypography variant="h2" style={{ color: tokens.colorBrandForeground1 }}>{(milestoneProgress * 100).toFixed(0)}%</MEHTypography>
           </div>
-          <ProgressBar value={0.75} color="success" style={{ height: '8px' }} />
+          <ProgressBar value={milestoneProgress} color={milestoneProgress === 1 ? "success" : "brand"} style={{ height: '8px' }} />
           <MEHTypography variant="caption" style={{ marginTop: '12px', display: 'block', opacity: 0.6 }}>
-            Te faltan <span style={{ fontWeight: 'bold', color: tokens.colorNeutralForeground1 }}>2 insignias más</span> para alcanzar el nivel de Embajador Gold.
+            {earnedCount < badges.length 
+              ? `Te faltan ${badges.length - earnedCount} insignias para completar este nivel.`
+              : '¡Has desbloqueado todas las insignias de este nivel! Sigue así.'}
           </MEHTypography>
         </MEHCard>
 
@@ -152,7 +205,7 @@ const Insignias = () => {
         <div>
           <MEHTypography variant="h3" style={{ marginBottom: '24px', display: 'block' }}>Galería de Logros</MEHTypography>
           <div className={styles.badgeGrid}>
-            {BADGE_DATA.map((badge) => (
+            {badges.map((badge) => (
               <MEHCard key={badge.id} className={styles.badgeCard}>
                 {!badge.earned && <LockClosed24Regular className={styles.lockIcon} />}
                 <img 
@@ -167,7 +220,7 @@ const Insignias = () => {
                 <MEHTypography variant="caption" style={{ opacity: 0.7, marginBottom: '20px' }}>{badge.desc}</MEHTypography>
                 
                 {badge.earned ? (
-                  <Badge appearance="tint" color="success" icon={<CheckmarkCircle24Filled />}>Obtenida</Badge>
+                  <BadgeUI color="success" icon={<CheckmarkCircle24Filled />}>Obtenida</BadgeUI>
                 ) : (
                   <MEHButton size="small" appearance="outline" icon={<Info24Regular />}>Cómo ganar</MEHButton>
                 )}
@@ -181,17 +234,17 @@ const Insignias = () => {
           <MEHTypography variant="h3">¿Cómo subir de nivel?</MEHTypography>
           <div className={styles.milestoneGrid}>
             <div className={styles.milestoneStep}>
-              <CheckmarkCircle24Filled style={{ color: tokens.colorPaletteGreenForeground1 }} />
+              {pStats.eventos_inscritos >= 1 ? <CheckmarkCircle24Filled style={{ color: tokens.colorPaletteGreenForeground1 }} /> : <LockClosed24Regular />}
               <div>
                 <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Miembro Activo</MEHTypography>
-                <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.6 }}>Registro completo y asistencia a 1 evento.</MEHTypography>
+                <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.6 }}>Asistir al menos a 1 evento de la comunidad.</MEHTypography>
               </div>
             </div>
-            <div className={styles.milestoneStep} style={{ borderLeft: `4px solid ${tokens.colorBrandBackground}` }}>
-              <div style={{ width: '20px', height: '20px', ...shorthands.border('2px', 'solid', tokens.colorBrandForeground1), ...shorthands.borderRadius('50%') }}></div>
+            <div className={styles.milestoneStep} style={{ borderLeft: `4px solid ${milestoneProgress > 0.5 ? tokens.colorBrandBackground : tokens.colorNeutralBackground3}` }}>
+               {user.rol !== 'MIEMBRO' ? <CheckmarkCircle24Filled style={{ color: tokens.colorPaletteGreenForeground1 }} /> : <div style={{ width: '20px', height: '20px', ...shorthands.border('2px', 'solid', tokens.colorBrandForeground1), ...shorthands.borderRadius('50%') }}></div>}
               <div>
-                <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Embajador MEH</MEHTypography>
-                <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.6 }}>Asistir a 5 eventos y completar 2 cursos.</MEHTypography>
+                <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Liderazgo (Embajador+)</MEHTypography>
+                <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.6 }}>Obtener un rol de liderazgo validado por el equipo MEH.</MEHTypography>
               </div>
             </div>
           </div>
@@ -201,9 +254,9 @@ const Insignias = () => {
   );
 };
 
-// Pequeño helper para merge de clases ya que no lo importe de Fluent
+// Helpers
 const mergeClasses = (...classes) => classes.filter(Boolean).join(' ');
-const Badge = ({ children, color, appearance, icon }) => (
+const BadgeUI = ({ children, color, icon }) => (
   <div style={{ 
     display: 'flex', 
     alignItems: 'center', 

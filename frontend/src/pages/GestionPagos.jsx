@@ -16,12 +16,14 @@ import {
   MoneySettings24Regular, 
   CheckmarkCircle24Regular,
   DismissCircle24Regular,
-  Eye24Regular,
   Open24Regular
 } from '@fluentui/react-icons';
 import MainLayout from '../components/layout/MainLayout';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import pagoService from '../services/pagoService';
+import { resolveApiFileUrl } from '../services/api';
+import { useAuth } from '../App';
+import { hasPermission, PERMISSION_PAYMENTS_VALIDATE } from '../auth/rbac';
 
 const useStyles = makeStyles({
   container: {
@@ -47,8 +49,10 @@ const useStyles = makeStyles({
 
 const GestionPagos = () => {
   const styles = useStyles();
+  const { user } = useAuth();
   const [pagos, setPagos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const canValidatePayments = hasPermission(user?.rol, PERMISSION_PAYMENTS_VALIDATE);
 
   useEffect(() => {
     fetchPagos();
@@ -116,7 +120,7 @@ const GestionPagos = () => {
                         <MEHButton 
                           size="small" 
                           icon={<Open24Regular />} 
-                          onClick={() => window.open(`http://localhost:8000/${pago.comprobante_url}`, '_blank')}
+                          onClick={() => window.open(resolveApiFileUrl(pago.url_comprobante), '_blank')}
                         >
                           Ver Archivo
                         </MEHButton>
@@ -131,7 +135,7 @@ const GestionPagos = () => {
                       </TableCell>
                       <TableCell>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          {pago.estado_pago === 'PENDIENTE' && (
+                          {pago.estado_pago === 'PENDIENTE' && canValidatePayments && (
                             <>
                               <MEHButton 
                                 size="small" 

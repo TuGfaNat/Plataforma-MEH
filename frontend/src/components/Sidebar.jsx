@@ -42,6 +42,15 @@ import { useTranslation } from 'react-i18next';
 import { designTokens } from '../theme/theme';
 import { useAuth, useTheme } from '../App';
 import authService from '../services/authService';
+import {
+  hasPermission,
+  PERMISSION_ATTENDANCE_SCAN,
+  PERMISSION_AUDIT_READ,
+  PERMISSION_EVENTS_MANAGE,
+  PERMISSION_PAYMENTS_READ_ALL,
+  PERMISSION_SPEAKER_ACCESS,
+  PERMISSION_VIP_ACCESS,
+} from '../auth/rbac';
 
 const useStyles = makeStyles({
   sidebar: {
@@ -127,7 +136,8 @@ const Sidebar = () => {
   };
 
   const toggleLanguage = () => {
-    const newLang = i18n.language === 'es' ? 'en' : 'es';
+    const currentLanguage = String(i18n.language || '').toLowerCase();
+    const newLang = currentLanguage.startsWith('es') ? 'en' : 'es';
     i18n.changeLanguage(newLang);
   };
 
@@ -141,9 +151,14 @@ const Sidebar = () => {
     );
   };
 
-  const isAdmin = user?.rol === 'ADMIN';
-  const isOrganizador = user?.rol === 'ORGANIZADOR' || isAdmin;
-  const isAmbassador = user?.rol === 'EMBAJADOR' || isOrganizador;
+  const canAccessVip = hasPermission(user?.rol, PERMISSION_VIP_ACCESS);
+  const canAccessSpeakerKit = hasPermission(user?.rol, PERMISSION_SPEAKER_ACCESS);
+  const canManageEvents = hasPermission(user?.rol, PERMISSION_EVENTS_MANAGE);
+  const canReadAllPayments = hasPermission(user?.rol, PERMISSION_PAYMENTS_READ_ALL);
+  const canScanAttendance = hasPermission(user?.rol, PERMISSION_ATTENDANCE_SCAN);
+  const canReadAudit = hasPermission(user?.rol, PERMISSION_AUDIT_READ);
+
+  const currentLanguageLabel = String(i18n.language || '').toLowerCase().startsWith('es') ? 'ES' : 'EN';
 
   return (
     <aside className={styles.sidebar}>
@@ -160,24 +175,34 @@ const Sidebar = () => {
         <NavItem to="/learning" icon={Library24Regular} activeIcon={Library24Filled} label={t('learning_hub') || "Centro de Aprendizaje"} />
         <NavItem to="/comunidad" icon={People24Regular} activeIcon={People24Filled} label={t('community') || "Comunidad"} />
 
-        {isAmbassador && (
+        {(canAccessVip || canAccessSpeakerKit) && (
           <>
             <div className={styles.sectionTitle}>{t('menu_liderazgo') || "Liderazgo"}</div>
-            <NavItem to="/recursos-vip" icon={BookToolbox24Regular} activeIcon={BookToolbox24Filled} label={t('ambassador_resources') || "Recursos VIP"} />
-            <NavItem to="/speaker-kit" icon={MegaphoneLoud24Regular} activeIcon={MegaphoneLoud24Filled} label={t('speaker_kit') || "Speaker Kit"} />
+            {canAccessVip && (
+              <NavItem to="/recursos-vip" icon={BookToolbox24Regular} activeIcon={BookToolbox24Filled} label={t('ambassador_resources') || "Recursos VIP"} />
+            )}
+            {canAccessSpeakerKit && (
+              <NavItem to="/speaker-kit" icon={MegaphoneLoud24Regular} activeIcon={MegaphoneLoud24Filled} label={t('speaker_kit') || "Speaker Kit"} />
+            )}
           </>
         )}
 
-        {isOrganizador && (
+        {(canManageEvents || canReadAllPayments || canScanAttendance) && (
           <>
             <div className={styles.sectionTitle}>{t('menu_gestion') || "Gestión"}</div>
-            <NavItem to="/admin" icon={ShieldSettings24Regular} activeIcon={ShieldSettings24Filled} label={t('admin_panel') || "Panel Maestro"} />
-            <NavItem to="/gestion-pagos" icon={ReceiptMoney24Regular} activeIcon={ReceiptMoney24Filled} label={t('manage_payments') || "Validar Pagos"} />
-            <NavItem to="/escaneo-qr" icon={QrCode24Regular} activeIcon={QrCode24Filled} label={t('qr_scan') || "Escaneo QR"} />
+            {canManageEvents && (
+              <NavItem to="/admin" icon={ShieldSettings24Regular} activeIcon={ShieldSettings24Filled} label={t('admin_panel') || "Panel Maestro"} />
+            )}
+            {canReadAllPayments && (
+              <NavItem to="/gestion-pagos" icon={ReceiptMoney24Regular} activeIcon={ReceiptMoney24Filled} label={t('manage_payments') || "Validar Pagos"} />
+            )}
+            {canScanAttendance && (
+              <NavItem to="/escaneo-qr" icon={QrCode24Regular} activeIcon={QrCode24Filled} label={t('qr_scan') || "Escaneo QR"} />
+            )}
           </>
         )}
 
-        {isAdmin && (
+        {canReadAudit && (
           <>
             <div className={styles.sectionTitle}>{t('menu_admin') || "Sistema"}</div>
             <NavItem to="/auditoria" icon={ShieldLock24Regular} activeIcon={ShieldLock24Filled} label={t('audit') || "Auditoría de Logs"} />
@@ -194,7 +219,7 @@ const Sidebar = () => {
             onClick={toggleLanguage}
             style={{ color: tokens.colorNeutralForeground1 }}
            >
-            {i18n.language === 'es' ? 'ES' : 'EN'}
+            {currentLanguageLabel}
            </Button>
            
            <Button 

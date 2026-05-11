@@ -1,13 +1,15 @@
 import axios from 'axios';
 
-// Detectar si estamos en local o en producción
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+const fallbackApiUrl = isLocal ? 'http://localhost:8000' : 'https://api-meh.onrender.com';
+
+export const API_BASE_URL = (configuredApiUrl || fallbackApiUrl).replace(/\/+$/, '');
+
+export const resolveApiFileUrl = (path = '') => `${API_BASE_URL}/${String(path).replace(/^\/+/, '')}`;
 
 const api = axios.create({
-  // Si es local usa puerto 8000, si no usa la URL de Render
-  baseURL: isLocal 
-    ? 'http://localhost:8000' 
-    : 'https://api-meh.onrender.com',
+  baseURL: API_BASE_URL,
 });
 
 // Interceptor para añadir el token JWT a todas las peticiones

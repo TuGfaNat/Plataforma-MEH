@@ -1,27 +1,33 @@
 import api from './api';
 
 const cursoService = {
-  // Obtener todos los cursos activos
   getCursos: async () => {
     const response = await api.get('/cursos/');
     return response.data;
   },
-
-  // Obtener un curso por ID
   getCurso: async (id) => {
     const response = await api.get(`/cursos/${id}`);
     return response.data;
   },
-
-  // Obtener mis certificados
+  createCurso: async (cursoData) => {
+    const response = await api.post('/cursos/', cursoData);
+    return response.data;
+  },
   getMisCertificados: async () => {
     const response = await api.get('/cursos/mis-certificados');
     return response.data;
   },
-
-  // Simular inscripción o progreso (esto se puede ampliar luego)
-  inscribirseCurso: async (idCurso) => {
-    const response = await api.post(`/inscripciones/cursos/${idCurso}`);
+  // RUTAS DE INSTRUCTOR
+  getMisCursosDocente: async () => {
+    const response = await api.get('/cursos/instructor/mis-cursos');
+    return response.data;
+  },
+  getAlumnosCurso: async (idCurso) => {
+    const response = await api.get(`/cursos/instructor/curso/${idCurso}/alumnos`);
+    return response.data;
+  },
+  setNotaAlumno: async (idInscripcion, nota) => {
+    const response = await api.put(`/cursos/instructor/nota/${idInscripcion}?nota=${nota}`);
     return response.data;
   }
 };

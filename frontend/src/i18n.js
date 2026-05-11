@@ -2,6 +2,13 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
+const configuredDefaultLang = (import.meta.env.VITE_I18N_DEFAULT_LANG || 'es').toLowerCase();
+const configuredSupportedLangs = (import.meta.env.VITE_I18N_SUPPORTED_LANGS || 'es,en')
+  .split(',')
+  .map((lang) => lang.trim().toLowerCase())
+  .filter(Boolean);
+const translationApiBaseUrl = import.meta.env.VITE_TRANSLATIONS_API_URL?.trim();
+
 const resources = {
   en: {
     translation: {
@@ -18,9 +25,18 @@ const resources = {
       "admin_panel": "Master Panel",
       "manage_payments": "Validate Payments",
       "qr_scan": "QR Scanning",
+      "menu_liderazgo": "Leadership",
+      "ambassador_resources": "VIP Resources",
+      "speaker_kit": "Speaker Kit",
+      "support_request": "Support Request",
       "role_member": "Member",
       "role_ambassador": "Ambassador",
+      "role_miembro": "Member",
+      "role_embajador": "Ambassador",
+      "role_moderador": "Moderator",
+      "role_soporte": "Support",
       "role_organizer": "Organizer",
+      "role_organizador": "Organizer",
       "role_admin": "Super Admin",
       "upgrade_msg": "Upgrade to Ambassador to unlock premium courses and official certificates!",
       "quick_action": "QUICK ACTION",
@@ -67,7 +83,12 @@ const resources = {
       "support_request": "Solicitud de Apoyo",
       "role_member": "Miembro",
       "role_ambassador": "Embajador",
+      "role_miembro": "Miembro",
+      "role_embajador": "Embajador",
+      "role_moderador": "Moderador",
+      "role_soporte": "Soporte",
       "role_organizer": "Organizador",
+      "role_organizador": "Organizador",
       "role_admin": "Super Admin",
       "upgrade_msg": "¡Sube a Embajador para desbloquear cursos premium y certificados oficiales!",
       "quick_action": "ACCIÓN RÁPIDA",
@@ -95,15 +116,66 @@ const resources = {
   }
 };
 
+const getPrimaryLanguage = (languageCode) => String(languageCode || '').toLowerCase().split('-')[0];
+
+const buildRemoteUrl = (lang) => {
+  const sanitizedBase = translationApiBaseUrl.replace(/\/+$/, '');
+  return `${sanitizedBase}/${lang}.json`;
+};
+
+const loadRemoteTranslations = async () => {
+  if (!translationApiBaseUrl) return;
+
+  const languagesToLoad = configuredSupportedLangs.length > 0
+    ? configuredSupportedLangs
+    : Object.keys(resources);
+
+  await Promise.all(
+    languagesToLoad.map(async (lang) => {
+      try {
+        const response = await fetch(buildRemoteUrl(lang));
+        if (!response.ok) return;
+
+        const remoteTranslations = await response.json();
+        if (!remoteTranslations || typeof remoteTranslations !== 'object') return;
+
+        i18n.addResourceBundle(
+          lang,
+          'translation',
+          remoteTranslations,
+          true,
+          true
+        );
+      } catch (_error) {
+        // Si falla la carga remota, seguimos con recursos locales.
+      }
+    })
+  );
+};
+
+const fallbackLanguage = configuredSupportedLangs.includes(configuredDefaultLang)
+  ? configuredDefaultLang
+  : 'es';
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
-    fallbackLng: 'es',
+    fallbackLng: fallbackLanguage,
+    supportedLngs: configuredSupportedLangs.length > 0 ? configuredSupportedLangs : ['es', 'en'],
+    nonExplicitSupportedLngs: true,
     interpolation: {
       escapeValue: false
+    },
+    detection: {
+      order: ['localStorage', 'navigator', 'htmlTag'],
+      caches: ['localStorage'],
+      lookupLocalStorage: 'i18nextLng',
+      convertDetectedLanguage: (detectedLanguage) => getPrimaryLanguage(detectedLanguage)
     }
   });
+
+loadRemoteTranslations();
 
 export default i18n;

@@ -1,0 +1,84 @@
+from typing import Dict, Iterable, List, Set
+from fastapi import HTTPException
+
+ROLE_VISITANTE = "VISITANTE"
+ROLE_ADMIN = "ADMIN"
+ROLE_ORGANIZADOR = "ORGANIZADOR"
+ROLE_EMBAJADOR = "EMBAJADOR"
+ROLE_MODERADOR = "MODERADOR"
+ROLE_SOPORTE = "SOPORTE"
+ROLE_MIEMBRO = "MIEMBRO"
+
+ADMIN_OR_ORGANIZER_ROLES = [ROLE_ADMIN, ROLE_ORGANIZADOR]
+ALL_DB_ROLES = [ROLE_ADMIN, ROLE_ORGANIZADOR, ROLE_EMBAJADOR, ROLE_MODERADOR, ROLE_SOPORTE, ROLE_MIEMBRO]
+
+PERMISSION_USERS_READ = "users.read"
+PERMISSION_EVENTS_MANAGE = "events.manage"
+PERMISSION_ATTENDANCE_SCAN = "attendance.scan"
+PERMISSION_COURSES_MANAGE = "courses.manage"
+PERMISSION_ANNOUNCEMENTS_MANAGE = "announcements.manage"
+PERMISSION_PAYMENTS_READ_ALL = "payments.read_all"
+PERMISSION_PAYMENTS_VALIDATE = "payments.validate"
+PERMISSION_AUDIT_READ = "audit.read"
+PERMISSION_VIP_ACCESS = "vip.access"
+PERMISSION_SPEAKER_ACCESS = "speaker.access"
+
+_ROLE_INHERITANCE: Dict[str, List[str]] = {
+    ROLE_MIEMBRO: [],
+    ROLE_EMBAJADOR: [ROLE_MIEMBRO],
+    ROLE_MODERADOR: [ROLE_EMBAJADOR],
+    ROLE_SOPORTE: [ROLE_MIEMBRO],
+    ROLE_ORGANIZADOR: [ROLE_MODERADOR],
+    ROLE_ADMIN: [ROLE_ORGANIZADOR, ROLE_SOPORTE],
+}
+
+_DIRECT_PERMISSIONS: Dict[str, Set[str]] = {
+    ROLE_MIEMBRO: set(),
+    ROLE_EMBAJADOR: {PERMISSION_VIP_ACCESS},
+    ROLE_MODERADOR: {PERMISSION_SPEAKER_ACCESS},
+    ROLE_SOPORTE: {PERMISSION_USERS_READ, PERMISSION_PAYMENTS_READ_ALL},
+    ROLE_ORGANIZADOR: {
+        PERMISSION_USERS_READ,
+        PERMISSION_EVENTS_MANAGE,
+        PERMISSION_ATTENDANCE_SCAN,
+        PERMISSION_COURSES_MANAGE,
+        PERMISSION_ANNOUNCEMENTS_MANAGE,
+        PERMISSION_PAYMENTS_READ_ALL,
+        PERMISSION_PAYMENTS_VALIDATE,
+    },
+    ROLE_ADMIN: {PERMISSION_AUDIT_READ},
+}
+
+
+def get_effective_permissions(role: str) -> Set[str]:
+    visited: Set[str] = set()
+
+    def _collect(current_role: str) -> Set[str]:
+        if current_role in visited:
+            return set()
+        visited.add(current_role)
+
+        permissions = set(_DIRECT_PERMISSIONS.get(current_role, set()))
+        for parent_role in _ROLE_INHERITANCE.get(current_role, []):
+            permissions.update(_collect(parent_role))
+        return permissions
+
+    return _collect(role)
+
+
+def has_permission(role: str, permission: str) -> bool:
+    return permission in get_effective_permissions(role)
+
+
+def ensure_roles(user_role: str, allowed_roles: Iterable[str], detail: str) -> None:
+    if user_role not in allowed_roles:
+        raise HTTPException(status_code=403, detail=detail)
+
+
+def ensure_admin(user_role: str, detail: str = "No tienes permisos para realizar esta acción") -> None:
+    ensure_roles(user_role, [ROLE_ADMIN], detail)
+
+
+def ensure_permission(user_role: str, permission: str, detail: str) -> None:
+    if not has_permission(user_role, permission):
+        raise HTTPException(status_code=403, detail=detail)
