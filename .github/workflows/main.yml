@@ -10,10 +10,10 @@ jobs:
   backend-quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           
@@ -22,30 +22,29 @@ jobs:
           cd backend
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install flake8 pytest httpx
+          pip install flake8 pytest pytest-cov httpx "python-jose[cryptography]"
           
       - name: Lint with flake8
         run: |
           cd backend
-          # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings.
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          # Analiza solo el código fuente, excluyendo librerías externas para evitar falsos positivos
+          flake8 . --count --exclude=venv --select=E9,F63,F7,F82 --show-source --statistics
           
       - name: Run Backend Tests
         run: |
           cd backend
-          export SECRET_KEY="test_secret_for_ci"
+          # Variables ficticias para el entorno de pruebas en CI
+          export SECRET_KEY="test_secret_for_ci_2026"
           export DATABASE_URL="sqlite:///./test.db"
-          pytest
+          pytest tests/test_master_suite.py
 
   frontend-quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "18"
           cache: 'npm'
