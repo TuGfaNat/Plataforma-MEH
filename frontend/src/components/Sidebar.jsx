@@ -35,7 +35,11 @@ import {
   MegaphoneLoud24Regular,
   MegaphoneLoud24Filled,
   BookToolbox24Regular,
-  BookToolbox24Filled
+  BookToolbox24Filled,
+  DataTrending24Regular,
+  DataTrending24Filled,
+  PeopleCommunity24Regular,
+  PeopleCommunity24Filled
 } from '@fluentui/react-icons';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -121,7 +125,7 @@ const useStyles = makeStyles({
   }
 });
 
-const Sidebar = () => {
+const Sidebar = ({ onClose }) => {
   const styles = useStyles();
   const location = useLocation();
   const navigate = useNavigate();
@@ -133,6 +137,7 @@ const Sidebar = () => {
     authService.logout();
     setUser(null);
     navigate('/login');
+    if (onClose) onClose();
   };
 
   const toggleLanguage = () => {
@@ -144,7 +149,11 @@ const Sidebar = () => {
   const NavItem = ({ to, icon: IconRegular, activeIcon: IconFilled, label }) => {
     const active = location.pathname === to;
     return (
-      <Link to={to} className={mergeClasses(styles.navItem, active && styles.navActive)}>
+      <Link 
+        to={to} 
+        className={mergeClasses(styles.navItem, active && styles.navActive)}
+        onClick={() => { if (onClose) onClose(); }}
+      >
         {active ? <IconFilled /> : <IconRegular />}
         <span className={styles.navText}>{label}</span>
       </Link>
@@ -191,7 +200,16 @@ const Sidebar = () => {
           <>
             <div className={styles.sectionTitle}>{t('menu_gestion') || "Gestión"}</div>
             {canManageEvents && (
+              <NavItem to="/dashboard/analytics" icon={DataTrending24Regular} activeIcon={DataTrending24Filled} label={t('analytics') || "Analítica Estratégica"} />
+            )}
+            {canManageEvents && (
               <NavItem to="/admin" icon={ShieldSettings24Regular} activeIcon={ShieldSettings24Filled} label={t('admin_panel') || "Panel Maestro"} />
+            )}
+            {canManageEvents && (
+              <NavItem to="/admin/ecosistema" icon={PeopleCommunity24Regular} activeIcon={PeopleCommunity24Filled} label="Directorio de Red" />
+            )}
+            {canManageEvents && (
+              <NavItem to="/admin/notificaciones" icon={MegaphoneLoud24Regular} activeIcon={MegaphoneLoud24Filled} label="Notificaciones" />
             )}
             {canReadAllPayments && (
               <NavItem to="/gestion-pagos" icon={ReceiptMoney24Regular} activeIcon={ReceiptMoney24Filled} label={t('manage_payments') || "Validar Pagos"} />

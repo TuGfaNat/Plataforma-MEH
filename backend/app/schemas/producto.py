@@ -10,6 +10,7 @@ class ProductoBase(BaseModel):
     stock: int = 0
     es_kit_evento: bool = False
     imagen_url: Optional[str] = None
+    categoria: str = "SOUVENIR"
 
 class ProductoCreate(ProductoBase):
     pass
@@ -21,6 +22,7 @@ class ProductoUpdate(BaseModel):
     stock: Optional[int] = None
     es_kit_evento: Optional[bool] = None
     imagen_url: Optional[str] = None
+    categoria: Optional[str] = None
     modificado_por: Optional[int] = None
 
 class ProductoResponse(ProductoBase):

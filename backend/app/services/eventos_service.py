@@ -1,68 +1,91 @@
 from datetime import datetime
 from typing import List, Optional
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from ..models import models
 from ..schemas import evento as evento_schema
 from ..core.logging import registrar_log
+from ..core.exceptions import (
+    EventoNoEncontradoError,
+    PermisoDenegadoError,
+    CupoExcedidoError,
+    ValidacionNegocioError
+)
 from ..core.permissions import (
     PERMISSION_ATTENDANCE_SCAN,
     PERMISSION_EVENTS_MANAGE,
-    ensure_permission,
+    has_permission
 )
-
 
 def create_evento(
     db: Session,
-    current_user: models.Usuario,
-    evento: evento_schema.EventoCreate,
-    ip_address: Optional[str]
+    admin_user: models.Usuario,
+    evento_data: evento_schema.EventoCreate,
+    ip_address: Optional[str] = None
 ) -> models.Evento:
-    ensure_permission(current_user.rol, PERMISSION_EVENTS_MANAGE, "No tienes permisos para crear eventos")
+    """Crea un nuevo evento en el sistema (Solo Staff autorizado)."""
+    if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError("No tienes permisos para crear eventos")
+
+    data = evento_data.model_dump()
+    id_speakers = data.pop("id_speakers", [])
+    id_auspiciadores = data.pop("id_auspiciadores", [])
+    id_comunidades = data.pop("id_comunidades", [])
 
     db_evento = models.Evento(
-        **evento.model_dump(),
-        id_organizador=current_user.id_usuario,
-        creado_por=current_user.id_usuario # MIXIN
+        **data,
+        id_organizador=admin_user.id_usuario,
+        creado_por=admin_user.id_usuario,
+        fecha_creacion=datetime.utcnow()
     )
+    
+    # Asociar relaciones (Si se proporcionan IDs)
+    if id_speakers:
+        db_evento.speakers = db.query(models.Speaker).filter(models.Speaker.id_speaker.in_(id_speakers)).all()
+    if id_auspiciadores:
+        db_evento.auspiciadores = db.query(models.Auspiciador).filter(models.Auspiciador.id_auspiciador.in_(id_auspiciadores)).all()
+    if id_comunidades:
+        db_evento.comunidades = db.query(models.ComunidadAliada).filter(models.ComunidadAliada.id_comunidad.in_(id_comunidades)).all()
+
     db.add(db_evento)
     db.commit()
     db.refresh(db_evento)
 
     registrar_log(
         db=db,
-        id_admin=current_user.id_usuario,
+        id_admin=admin_user.id_usuario,
         accion="CREAR_EVENTO",
         tabla_afectada="eventos",
         id_registro_afectado=db_evento.id_evento,
-        valor_nuevo=evento.model_dump(),
+        valor_nuevo=evento_data.model_dump(),
         ip_direccion=ip_address
     )
     return db_evento
 
-
 def list_eventos(db: Session, skip: int = 0, limit: int = 100) -> List[models.Evento]:
+    """Lista eventos públicos con paginación."""
     return db.query(models.Evento).offset(skip).limit(limit).all()
 
-
-def get_evento(db: Session, id_evento: int) -> models.Evento:
+def get_evento_by_id(db: Session, id_evento: int) -> models.Evento:
+    """Obtiene un evento por su ID o lanza error de dominio."""
     db_evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
     if not db_evento:
-        raise HTTPException(status_code=404, detail="Evento no encontrado")
+        raise EventoNoEncontradoError()
     return db_evento
-
 
 def update_evento(
     db: Session,
-    current_user: models.Usuario,
+    admin_user: models.Usuario,
     id_evento: int,
     evento_update: evento_schema.EventoUpdate,
-    ip_address: Optional[str]
+    ip_address: Optional[str] = None
 ) -> models.Evento:
-    ensure_permission(current_user.rol, PERMISSION_EVENTS_MANAGE, "No tienes permisos para modificar eventos")
-    db_evento = get_evento(db, id_evento)
-
+    """Actualiza un evento existente (Solo Staff autorizado)."""
+    if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError("No tienes permisos para modificar eventos")
+        
+    db_evento = get_evento_by_id(db, id_evento)
     valor_anterior = {
         "titulo": db_evento.titulo,
         "estado": db_evento.estado,
@@ -70,11 +93,23 @@ def update_evento(
     }
 
     update_data = evento_update.model_dump(exclude_unset=True)
+    
+    # Manejar relaciones Many-to-Many de forma aislada
+    id_speakers = update_data.pop("id_speakers", None)
+    id_auspiciadores = update_data.pop("id_auspiciadores", None)
+    id_comunidades = update_data.pop("id_comunidades", None)
+
     for key, value in update_data.items():
         setattr(db_evento, key, value)
 
-    # AUDITORIA MIXIN
-    db_evento.modificado_por = current_user.id_usuario
+    if id_speakers is not None:
+        db_evento.speakers = db.query(models.Speaker).filter(models.Speaker.id_speaker.in_(id_speakers)).all()
+    if id_auspiciadores is not None:
+        db_evento.auspiciadores = db.query(models.Auspiciador).filter(models.Auspiciador.id_auspiciador.in_(id_auspiciadores)).all()
+    if id_comunidades is not None:
+        db_evento.comunidades = db.query(models.ComunidadAliada).filter(models.ComunidadAliada.id_comunidad.in_(id_comunidades)).all()
+
+    db_evento.modificado_por = admin_user.id_usuario
     db_evento.fecha_modificacion = datetime.utcnow()
 
     db.commit()
@@ -82,7 +117,7 @@ def update_evento(
 
     registrar_log(
         db=db,
-        id_admin=current_user.id_usuario,
+        id_admin=admin_user.id_usuario,
         accion="ACTUALIZAR_EVENTO",
         tabla_afectada="eventos",
         id_registro_afectado=id_evento,
@@ -92,49 +127,55 @@ def update_evento(
     )
     return db_evento
 
-
 def registrar_asistencia_qr(
     db: Session,
-    current_user: models.Usuario,
-    id_evento: int,
-    token_qr: str,
-    id_usuario: int
+    staff_user: models.Usuario,
+    codigo_qr: str,
+    ip_address: Optional[str] = None
 ) -> dict:
-    ensure_permission(current_user.rol, PERMISSION_ATTENDANCE_SCAN, "No tienes permisos para registrar asistencia")
-
-    evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
-    if not evento or evento.token_qr != token_qr:
-        raise HTTPException(status_code=400, detail="Token QR inválido para este evento")
+    """Registra la asistencia física de un miembro mediante escaneo (Solo Staff autorizado)."""
+    if not has_permission(staff_user.rol, PERMISSION_ATTENDANCE_SCAN):
+        raise PermisoDenegadoError("No tienes permisos para registrar asistencia")
 
     inscripcion = db.query(models.InscripcionEvento).filter(
-        models.InscripcionEvento.id_usuario == id_usuario,
-        models.InscripcionEvento.id_evento == id_evento
+        models.InscripcionEvento.codigo_qr == codigo_qr
     ).first()
+    
     if not inscripcion:
-        raise HTTPException(status_code=404, detail="El usuario no está inscrito en este evento")
+        raise ValidacionNegocioError("El código QR no pertenece a ninguna inscripción válida")
+
+    if inscripcion.estado_inscripcion != "CONFIRMADA":
+        raise ValidacionNegocioError(f"La inscripción está en estado {inscripcion.estado_inscripcion}. Requiere confirmación de pago.")
+
+    if inscripcion.asistio:
+        raise ValidacionNegocioError("Esta entrada ya fue escaneada anteriormente")
 
     inscripcion.asistio = True
     inscripcion.fecha_validacion = datetime.utcnow()
-    
-    # EMITIR CERTIFICADO DE ASISTENCIA
-    nuevo_cert = models.Certificado(
-        id_usuario=id_usuario,
-        id_evento=id_evento,
-        codigo_verificacion=f"MEH-EVE-{id_usuario}-{id_evento}-{datetime.utcnow().strftime('%Y%m%d')}",
-        url_pdf=evento.plantilla_certificado_url or "https://ejemplo.com/default-event-cert.pdf",
-        fecha_emision=datetime.utcnow(),
-        creado_por=current_user.id_usuario
-    )
-    db.add(nuevo_cert)
-    
-    # NOTIFICACION EMAIL
-    from . import email_service
-    usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
-    email_service.notify_nuevo_certificado(usuario.correo, usuario.nombres, evento.titulo)
-
-    # AUDITORIA MIXIN
-    inscripcion.modificado_por = current_user.id_usuario
+    inscripcion.modificado_por = staff_user.id_usuario
     inscripcion.fecha_modificacion = datetime.utcnow()
+    
+    # Obtener info para el log y respuesta
+    usuario = inscripcion.usuario
+    evento = inscripcion.evento
 
+    registrar_log(
+        db=db,
+        id_admin=staff_user.id_usuario,
+        accion="REGISTRO_ASISTENCIA_QR",
+        tabla_afectada="inscripciones_eventos",
+        id_registro_afectado=inscripcion.id_inscripcion,
+        valor_nuevo={
+            "id_usuario": inscripcion.id_usuario,
+            "id_evento": inscripcion.id_evento,
+            "nombre_usuario": f"{usuario.nombres} {usuario.apellidos}"
+        },
+        ip_direccion=ip_address
+    )
+    
     db.commit()
-    return {"message": "Asistencia registrada con éxito", "usuario": id_usuario}
+    return {
+        "message": "Asistencia registrada con éxito", 
+        "usuario": {"nombre": f"{usuario.nombres} {usuario.apellidos}"},
+        "evento": {"titulo": evento.titulo}
+    }

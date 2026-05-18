@@ -8,9 +8,19 @@ class BadgeBase(BaseModel):
     imagen_url: str
     id_evento_origen: Optional[int] = None
     id_curso_origen: Optional[int] = None
+    puntos: int = 10
+    requisito_nivel: str = "Beginner"
 
 class BadgeCreate(BadgeBase):
     pass
+
+class BadgeUpdate(BaseModel):
+    nombre_badge: Optional[str] = None
+    descripcion: Optional[str] = None
+    imagen_url: Optional[str] = None
+    puntos: Optional[int] = None
+    requisito_nivel: Optional[str] = None
+    activo: Optional[bool] = None
 
 class BadgeResponse(BadgeBase):
     id_badge: int

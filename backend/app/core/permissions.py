@@ -1,5 +1,5 @@
 from typing import Dict, Iterable, List, Set
-from fastapi import HTTPException
+from .exceptions import PermisoDenegadoError
 
 ROLE_VISITANTE = "VISITANTE"
 ROLE_ADMIN = "ADMIN"
@@ -49,8 +49,8 @@ _DIRECT_PERMISSIONS: Dict[str, Set[str]] = {
     ROLE_ADMIN: {PERMISSION_AUDIT_READ},
 }
 
-
 def get_effective_permissions(role: str) -> Set[str]:
+    """Calcula el conjunto de permisos totales de un rol, incluyendo la herencia."""
     visited: Set[str] = set()
 
     def _collect(current_role: str) -> Set[str]:
@@ -65,20 +65,20 @@ def get_effective_permissions(role: str) -> Set[str]:
 
     return _collect(role)
 
-
 def has_permission(role: str, permission: str) -> bool:
+    """Verifica si un rol posee un permiso específico (directo o heredado)."""
     return permission in get_effective_permissions(role)
 
-
-def ensure_roles(user_role: str, allowed_roles: Iterable[str], detail: str) -> None:
+def ensure_roles(user_role: str, allowed_roles: Iterable[str], detail: str = "Rol no autorizado") -> None:
+    """Valida que el usuario pertenezca a uno de los roles permitidos."""
     if user_role not in allowed_roles:
-        raise HTTPException(status_code=403, detail=detail)
+        raise PermisoDenegadoError(detail)
 
-
-def ensure_admin(user_role: str, detail: str = "No tienes permisos para realizar esta acción") -> None:
+def ensure_admin(user_role: str, detail: str = "Acceso restringido a Administradores") -> None:
+    """Valida que el usuario sea estrictamente ADMINISTRADOR."""
     ensure_roles(user_role, [ROLE_ADMIN], detail)
 
-
-def ensure_permission(user_role: str, permission: str, detail: str) -> None:
+def ensure_permission(user_role: str, permission: str, detail: str = "No tienes el permiso requerido") -> None:
+    """Valida que el usuario tenga el permiso técnico necesario."""
     if not has_permission(user_role, permission):
-        raise HTTPException(status_code=403, detail=detail)
+        raise PermisoDenegadoError(detail)

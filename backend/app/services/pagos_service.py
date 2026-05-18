@@ -1,43 +1,48 @@
 import os
+import uuid
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
-from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from ..models import models
 from ..schemas import pago as pago_schema
 from ..core.logging import registrar_log
+from ..core.exceptions import (
+    RecursoNoEncontradoError,
+    PermisoDenegadoError,
+    ValidacionNegocioError
+)
 from ..core.permissions import (
     PERMISSION_PAYMENTS_READ_ALL,
     PERMISSION_PAYMENTS_VALIDATE,
-    ensure_permission,
+    has_permission,
 )
-
 
 UPLOAD_DIR = "static/comprobantes"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-
-async def upload_comprobante(
+async def process_comprobante_upload(
     db: Session,
-    current_user: models.Usuario,
+    user_id: int,
     id_referencia: int,
     tipo_referencia: str,
     monto: Decimal,
     metodo_pago: str,
-    file: UploadFile,
-    ip_address: Optional[str]
+    file_content: bytes,
+    file_extension: str,
+    ip_address: Optional[str] = None
 ) -> models.Pago:
-    file_extension = os.path.splitext(file.filename)[1]
-    file_name = f"comprobante_{current_user.id_usuario}_{datetime.now().timestamp()}{file_extension}"
+    """Procesa la subida física del comprobante y registra el pago en la DB."""
+    file_name = f"comprobante_{user_id}_{datetime.now().timestamp()}{file_extension}"
     file_path = os.path.join(UPLOAD_DIR, file_name)
+    
     with open(file_path, "wb") as output_file:
-        output_file.write(await file.read())
+        output_file.write(file_content)
 
     nuevo_pago = models.Pago(
-        id_usuario=current_user.id_usuario,
+        id_usuario=user_id,
         id_referencia=id_referencia,
         tipo_referencia=tipo_referencia,
         monto=monto,
@@ -45,15 +50,17 @@ async def upload_comprobante(
         url_comprobante=file_path,
         estado_pago="PENDIENTE",
         fecha_pago=datetime.utcnow(),
-        creado_por=current_user.id_usuario # MIXIN
+        creado_por=user_id,
+        fecha_creacion=datetime.utcnow()
     )
     db.add(nuevo_pago)
     db.commit()
     db.refresh(nuevo_pago)
 
+    # Vincular automáticamente a la inscripción si es un evento
     if tipo_referencia == "EVENTO":
         inscripcion = db.query(models.InscripcionEvento).filter(
-            models.InscripcionEvento.id_usuario == current_user.id_usuario,
+            models.InscripcionEvento.id_usuario == user_id,
             models.InscripcionEvento.id_evento == id_referencia
         ).first()
         if inscripcion:
@@ -62,7 +69,7 @@ async def upload_comprobante(
 
     registrar_log(
         db=db,
-        id_admin=current_user.id_usuario,
+        id_admin=user_id,
         accion="SUBIR_COMPROBANTE_PAGO",
         tabla_afectada="pagos",
         id_registro_afectado=nuevo_pago.id_pago,
@@ -71,36 +78,40 @@ async def upload_comprobante(
     )
     return nuevo_pago
 
+def list_mis_pagos(db: Session, user_id: int) -> List[models.Pago]:
+    """Obtiene el historial de pagos de un usuario."""
+    return db.query(models.Pago).filter(models.Pago.id_usuario == user_id).all()
 
-def list_mis_pagos(db: Session, current_user: models.Usuario) -> List[models.Pago]:
-    return db.query(models.Pago).filter(models.Pago.id_usuario == current_user.id_usuario).all()
-
-
-def list_todos_pagos(db: Session, current_user: models.Usuario) -> List[models.Pago]:
-    ensure_permission(current_user.rol, PERMISSION_PAYMENTS_READ_ALL, "No tienes permisos para ver todos los pagos")
+def list_todos_pagos(db: Session, admin_role: str) -> List[models.Pago]:
+    """Lista todos los pagos del sistema (Solo Staff autorizado)."""
+    if not has_permission(admin_role, PERMISSION_PAYMENTS_READ_ALL):
+        raise PermisoDenegadoError("No tienes permisos para ver todos los pagos")
     return db.query(models.Pago).order_by(models.Pago.fecha_pago.desc()).all()
-
 
 def validar_pago(
     db: Session,
-    current_user: models.Usuario,
+    admin_user: models.Usuario,
     id_pago: int,
     pago_update: pago_schema.PagoUpdate,
-    ip_address: Optional[str]
+    ip_address: Optional[str] = None
 ) -> models.Pago:
-    ensure_permission(current_user.rol, PERMISSION_PAYMENTS_VALIDATE, "No tienes permisos para validar pagos")
+    """Aprueba o rechaza un pago y actualiza la inscripción vinculada (Solo Staff)."""
+    if not has_permission(admin_user.rol, PERMISSION_PAYMENTS_VALIDATE):
+        raise PermisoDenegadoError("No tienes permisos para validar pagos")
 
     db_pago = db.query(models.Pago).filter(models.Pago.id_pago == id_pago).first()
     if not db_pago:
-        raise HTTPException(status_code=404, detail="Pago no encontrado")
+        raise RecursoNoEncontradoError("Pago no encontrado")
 
     db_pago.estado_pago = pago_update.estado_pago
-    db_pago.validado_por = current_user.id_usuario
+    db_pago.validado_por = admin_user.id_usuario
+    db_pago.fecha_validacion = datetime.utcnow()
+    db_pago.notas_admin = pago_update.notas_admin
     
-    # MIXIN AUDITORIA
-    db_pago.modificado_por = current_user.id_usuario
+    db_pago.modificado_por = admin_user.id_usuario
     db_pago.fecha_modificacion = datetime.utcnow()
 
+    # Si se aprueba un pago de EVENTO, confirmar la inscripción y asegurar el QR
     if pago_update.estado_pago == "APROBADO" and db_pago.tipo_referencia == "EVENTO":
         inscripcion = db.query(models.InscripcionEvento).filter(
             models.InscripcionEvento.id_usuario == db_pago.id_usuario,
@@ -109,21 +120,31 @@ def validar_pago(
         if inscripcion:
             inscripcion.estado_inscripcion = "CONFIRMADA"
             inscripcion.fecha_validacion = datetime.utcnow()
-            # Auditoría también en la inscripción
-            inscripcion.modificado_por = current_user.id_usuario
+            
+            if not inscripcion.codigo_qr:
+                inscripcion.codigo_qr = str(uuid.uuid4())
+                
+            inscripcion.modificado_por = admin_user.id_usuario
             inscripcion.fecha_modificacion = datetime.utcnow()
 
     db.commit()
     db.refresh(db_pago)
 
-    # NOTIFICACION EMAIL
-    from . import email_service
-    actividad_nombre = db_pago.tipo_referencia
-    email_service.notify_pago_actualizado(db_pago.usuario.correo, db_pago.usuario.nombres, db_pago.estado_pago, actividad_nombre)
+    # Notificación (Manejada con precaución de errores)
+    try:
+        from . import email_service
+        email_service.notify_pago_actualizado(
+            db_pago.usuario.correo, 
+            db_pago.usuario.nombres, 
+            db_pago.estado_pago, 
+            db_pago.tipo_referencia
+        )
+    except Exception:
+        pass
 
     registrar_log(
         db=db,
-        id_admin=current_user.id_usuario,
+        id_admin=admin_user.id_usuario,
         accion=f"VALIDAR_PAGO_{pago_update.estado_pago}",
         tabla_afectada="pagos",
         id_registro_afectado=id_pago,

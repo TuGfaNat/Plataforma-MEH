@@ -1,0 +1,58 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* Plataforma MEH Brand Colors - Lila/Carbon Palette */
+:root {
+  /* Brand Lila #7F13EC */
+  --ifm-color-primary: #7F13EC;
+  --ifm-color-primary-dark: #7211d4;
+  --ifm-color-primary-darker: #6c10c9;
+  --ifm-color-primary-darkest: #590da5;
+  --ifm-color-primary-light: #8c2be6;
+  --ifm-color-primary-lighter: #9237e8;
+  --ifm-color-primary-lightest: #a55aed;
+  
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  
+  /* Background adjustments for a cleaner look */
+  --ifm-background-color: #ffffff;
+}
+
+/* Carbon Dark Mode - Matching Plataforma MEH */
+[data-theme='dark'] {
+  --ifm-color-primary: #9d4edd; /* A slightly lighter purple for better contrast in dark mode */
+  --ifm-color-primary-dark: #8c38d3;
+  --ifm-color-primary-darker: #842ecc;
+  --ifm-color-primary-darkest: #6d26a8;
+  --ifm-color-primary-light: #ae64e2;
+  --ifm-color-primary-lighter: #b770e5;
+  --ifm-color-primary-lightest: #d196ed;
+  
+  --ifm-background-color: #0d0d0d; /* Deep carbon black */
+  --ifm-navbar-background-color: #1a1a1a;
+  --ifm-card-background-color: #1a1a1a;
+  
+  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
+}
+
+/* Custom styles for components */
+.navbar {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.footer {
+  background-color: #000000;
+}
+
+/* Mermaid diagrams styling */
+.mermaid {
+  background-color: var(--ifm-card-background-color);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}

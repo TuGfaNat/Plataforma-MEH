@@ -24,6 +24,18 @@ const pagoService = {
   validarPago: async (idPago, estado) => {
     const response = await api.put(`/pagos/admin/${idPago}/validar`, { estado_pago: estado });
     return response.data;
+  },
+
+  procesarExtracto: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await api.post('/pagos/admin/ocrm-match', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
   }
 };
 

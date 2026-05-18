@@ -12,10 +12,16 @@ router = APIRouter(prefix="/recursos", tags=["recursos"])
 @router.get("/", response_model=List[recurso_schema.RecursoResponse])
 def get_recursos(
     categoria: Optional[str] = Query(None),
+    id_curso: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    return recurso_service.list_recursos(db, categoria)
+    query = db.query(models.Recurso)
+    if categoria:
+        query = query.filter(models.Recurso.categoria == categoria)
+    if id_curso:
+        query = query.filter(models.Recurso.id_curso == id_curso)
+    return query.order_by(models.Recurso.fecha_creacion.desc()).all()
 
 @router.post("/", response_model=recurso_schema.RecursoResponse)
 def create_recurso(

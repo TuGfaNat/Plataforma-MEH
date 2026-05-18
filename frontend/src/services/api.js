@@ -21,4 +21,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Interceptor para manejar errores globales (401, 403)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      // No redirigir si ya estamos en login o landing para evitar bucles
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

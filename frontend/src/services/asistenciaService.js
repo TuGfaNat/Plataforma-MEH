@@ -8,6 +8,10 @@ const asistenciaService = {
   registrar: async (tipo, idActividad, idUsuario) => {
     const response = await api.post(`/asistencia/registrar?tipo=${tipo}&id_actividad=${idActividad}&id_usuario=${idUsuario}`);
     return response.data;
+  },
+  registrarPorQR: async (codigoQR) => {
+    const response = await api.post(`/eventos/asistencia-qr?codigo_qr=${codigoQR}`);
+    return response.data;
   }
 };
 

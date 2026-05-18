@@ -1,7 +1,12 @@
-body {
+/* NORMALIZACIÓN BASE */
+body, html {
   margin: 0;
   padding: 0;
+  width: 100%;
+  max-width: 100%;
+  min-height: 100vh;
   overflow-x: hidden;
+  background-color: #000000; /* Fondo base negro profundo */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
@@ -13,13 +18,73 @@ body {
   box-sizing: border-box;
 }
 
-/* Forzar que los menús desplegables de Fluent UI no usen fondo blanco en modo oscuro */
+/* Scrollbar Estilizado (Estilo Minimalista Microsoft Fluent Design) */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(127, 19, 236, 0.4);
+  background-clip: content-box;
+}
+
+/* Firefox Support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+/* Animación de Luces Etéreas (Mesh Sutil) */
+@keyframes aurora {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(10%, 10%) scale(1.1); }
+  66% { transform: translate(-5%, 5%) scale(0.9); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+.mesh-background {
+  position: relative;
+  background-color: #000000;
+  overflow: hidden;
+}
+
+/* Capa de luces sutiles */
+.mesh-background::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 30%, rgba(127, 19, 236, 0.08) 0%, transparent 40%),
+              radial-gradient(circle at 70% 60%, rgba(0, 120, 212, 0.05) 0%, transparent 40%),
+              radial-gradient(circle at 20% 80%, rgba(127, 19, 236, 0.05) 0%, transparent 40%);
+  animation: aurora 20s ease-in-out infinite alternate;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Forzar que los menús desplegables de Fluent UI se integren al diseño oscuro */
 .fui-Dropdown__listbox, .fui-PopoverSurface {
-  background-color: var(--colorNeutralBackground3) !important;
-  color: var(--colorNeutralForeground1) !important;
-  border: 1px solid var(--colorNeutralStroke1) !important;
+  background-color: rgba(26, 26, 26, 0.8) !important;
+  backdrop-filter: blur(20px) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
 }
 
 .fui-Option:hover {
-  background-color: var(--colorSubtleBackgroundHover) !important;
+  background-color: rgba(127, 19, 236, 0.2) !important;
 }

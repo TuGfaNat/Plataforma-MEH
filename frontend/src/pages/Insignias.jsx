@@ -4,21 +4,25 @@ import {
   shorthands, 
   tokens, 
   ProgressBar,
-  Spinner
+  Spinner,
+  Badge
 } from '@fluentui/react-components';
 import { 
   Trophy24Filled, 
   Share24Filled, 
   LockClosed24Regular,
-  Info24Regular,
-  CheckmarkCircle24Filled
+  CheckmarkCircle24Filled,
+  Delete24Regular,
+  Edit24Regular
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
-import MainLayout from '../components/layout/MainLayout';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
+import BadgeForm from '../components/BadgeForm';
+import BadgeDetailModal from '../components/BadgeDetailModal';
 import { designTokens } from '../theme/theme';
 import dashboardService from '../services/dashboardService';
-import { useAuth } from '../App';
+import insigniasService from '../services/insigniasService';
+import { useAuth, useNotify } from '../App';
 
 const useStyles = makeStyles({
   container: {
@@ -41,9 +45,16 @@ const useStyles = makeStyles({
       gap: '16px',
     }
   },
+  milestoneCard: {
+    backgroundColor: 'rgba(127, 19, 236, 0.05)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px', // Espaciado aumentado entre hito y progreso
+    ...shorthands.padding('32px'),
+  },
   badgeGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
     ...shorthands.gap('24px'),
   },
   badgeCard: {
@@ -56,15 +67,16 @@ const useStyles = makeStyles({
     position: 'relative',
     cursor: 'pointer',
     ':hover': {
-      transform: 'translateY(-8px)',
-      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+      transform: 'scale(1.05)',
+      boxShadow: '0 8px 32px rgba(127, 19, 236, 0.3)',
+      backgroundColor: 'rgba(127, 19, 236, 0.1)',
     }
   },
   badgeImage: {
     width: '100px',
     height: '100px',
     marginBottom: '20px',
-    transition: 'all 0.3s ease',
+    objectFit: 'contain',
   },
   earned: {
     filter: 'drop-shadow(0 0 15px rgba(127, 19, 236, 0.5))',
@@ -78,27 +90,13 @@ const useStyles = makeStyles({
     right: '12px',
     color: tokens.colorNeutralForeground4,
   },
-  milestoneSection: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-  },
-  milestoneGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '20px',
-    [designTokens.breakpoints.sm]: {
-      gridTemplateColumns: '1fr',
-    }
-  },
-  milestoneStep: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    ...shorthands.padding('16px'),
-    ...shorthands.borderRadius('12px'),
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    ...shorthands.border('1px', 'solid', 'rgba(255, 255, 255, 0.05)'),
+  adminActions: {
+      position: 'absolute',
+      top: '12px',
+      left: '12px',
+      display: 'flex',
+      gap: '4px',
+      zIndex: 10
   }
 });
 
@@ -106,171 +104,157 @@ const Insignias = () => {
   const styles = useStyles();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { notify } = useNotify();
   const [stats, setStats] = useState(null);
+  const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const isAdmin = ['ADMIN', 'ORGANIZADOR'].includes(user?.rol);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [statsData, badgesData] = await Promise.all([
+        dashboardService.getStats(),
+        insigniasService.getInsignias()
+      ]);
+      setStats(statsData);
+      
+      // Mapeo dinámico de insignias obtenidas (simulado por ahora basado en XP)
+      const xp = statsData?.personal_stats?.puntos_xp || 0;
+      const mapped = badgesData.map(b => ({
+          ...b,
+          earned: xp >= b.puntos * 2 // Lógica de ejemplo: si tienes el doble de puntos de la insignia
+      }));
+      setBadges(mapped);
+    } catch (err) {
+      console.error("Error al sincronizar insignias:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const data = await dashboardService.getStats();
-        setStats(data);
-      } catch (err) {
-        console.error("Error al cargar insignias:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
+    fetchData();
   }, []);
 
-  if (loading) return <MainLayout><Spinner label="Evaluando tus logros..." /></MainLayout>;
+  const handleDelete = async (e, id) => {
+      e.stopPropagation();
+      if (!window.confirm("¿Eliminar esta insignia del sistema?")) return;
+      try {
+          await insigniasService.deleteInsignia(id);
+          notify("Éxito", "Insignia eliminada", "success");
+          fetchData();
+      } catch (err) {
+          notify("Error", "No se pudo eliminar", "error");
+      }
+  };
 
-  // Lógica de Insignias Dinámicas
-  const pStats = stats?.personal_stats || { eventos_inscritos: 0, certificados_obtenidos: 0, progreso_promedio: 0 };
-  
-  const badges = [
-    { 
-      id: 'reg', 
-      name: 'Primeros Pasos', 
-      desc: 'Inscríbete a tu primer taller de la comunidad.', 
-      earned: pStats.eventos_inscritos >= 1, 
-      img: 'https://cdn-icons-png.flaticon.com/512/6188/6188613.png' 
-    },
-    { 
-      id: 'explorer', 
-      name: 'Azure Explorer', 
-      desc: 'Asiste a 3 o más talleres tecnológicos.', 
-      earned: pStats.eventos_inscritos >= 3, 
-      img: 'https://cdn-icons-png.flaticon.com/512/4144/4144422.png' 
-    },
-    { 
-      id: 'cert', 
-      name: 'Certificado MEH', 
-      desc: 'Completa un curso y obtén tu primer diploma.', 
-      earned: pStats.certificados_obtenidos >= 1, 
-      img: 'https://cdn-icons-png.flaticon.com/512/2490/2490354.png' 
-    },
-    { 
-      id: 'lider', 
-      name: 'Líder Emergente', 
-      desc: 'Alcanza un rol superior a Miembro.', 
-      earned: user.rol !== 'MIEMBRO', 
-      img: 'https://cdn-icons-png.flaticon.com/512/1063/1063376.png' 
-    },
-  ];
+  if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}><Spinner label="Sincronizando sistema de méritos..." /></div>;
 
-  // Cálculo de progreso para el hito (Basado en 4 insignias)
   const earnedCount = badges.filter(b => b.earned).length;
-  const milestoneProgress = earnedCount / badges.length;
+  const milestoneProgress = badges.length > 0 ? earnedCount / badges.length : 0;
 
   return (
-    <MainLayout>
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-              <Trophy24Filled style={{ color: tokens.colorBrandForeground1, fontSize: '32px' }} />
-              <MEHTypography variant="h1">Mis Logros e Insignias</MEHTypography>
-            </div>
-            <MEHTypography variant="body" style={{ opacity: 0.6 }}>
-              Tu camino hacia el dominio tecnológico se refleja en cada una de estas insignias.
-            </MEHTypography>
-          </div>
-          <MEHButton icon={<Share24Filled />} appearance="outline" onClick={() => window.open('https://linkedin.com', '_blank')}>Compartir Perfil</MEHButton>
-        </div>
-
-        {/* Resumen de Hito actual */}
-        <MEHCard style={{ backgroundColor: 'rgba(127, 19, 236, 0.05)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '48px', height: '48px', backgroundColor: tokens.colorBrandBackground, ...shorthands.borderRadius('50%'), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Trophy24Filled style={{ color: 'white' }} />
-              </div>
-              <div>
-                <MEHTypography variant="h3">{earnedCount === badges.length ? '¡Hito Alcanzado!' : 'Próximo Hito'}</MEHTypography>
-                <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Progreso basado en tus logros actuales</MEHTypography>
-              </div>
-            </div>
-            <MEHTypography variant="h2" style={{ color: tokens.colorBrandForeground1 }}>{(milestoneProgress * 100).toFixed(0)}%</MEHTypography>
-          </div>
-          <ProgressBar value={milestoneProgress} color={milestoneProgress === 1 ? "success" : "brand"} style={{ height: '8px' }} />
-          <MEHTypography variant="caption" style={{ marginTop: '12px', display: 'block', opacity: 0.6 }}>
-            {earnedCount < badges.length 
-              ? `Te faltan ${badges.length - earnedCount} insignias para completar este nivel.`
-              : '¡Has desbloqueado todas las insignias de este nivel! Sigue así.'}
-          </MEHTypography>
-        </MEHCard>
-
-        {/* Galería de Insignias */}
+    <div className={styles.container}>
+      <div className={styles.header}>
         <div>
-          <MEHTypography variant="h3" style={{ marginBottom: '24px', display: 'block' }}>Galería de Logros</MEHTypography>
-          <div className={styles.badgeGrid}>
-            {badges.map((badge) => (
-              <MEHCard key={badge.id} className={styles.badgeCard}>
-                {!badge.earned && <LockClosed24Regular className={styles.lockIcon} />}
-                <img 
-                  src={badge.img} 
-                  alt={badge.name} 
-                  className={mergeClasses(
-                    styles.badgeImage, 
-                    badge.earned ? styles.earned : styles.locked
-                  )} 
-                />
-                <MEHTypography variant="h3" style={{ marginBottom: '8px' }}>{badge.name}</MEHTypography>
-                <MEHTypography variant="caption" style={{ opacity: 0.7, marginBottom: '20px' }}>{badge.desc}</MEHTypography>
-                
-                {badge.earned ? (
-                  <BadgeUI color="success" icon={<CheckmarkCircle24Filled />}>Obtenida</BadgeUI>
-                ) : (
-                  <MEHButton size="small" appearance="outline" icon={<Info24Regular />}>Cómo ganar</MEHButton>
-                )}
-              </MEHCard>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <Trophy24Filled style={{ color: tokens.colorBrandForeground1, fontSize: '32px' }} />
+            <MEHTypography variant="h1">Centro de Logros y Gamificación</MEHTypography>
+          </div>
+          <MEHTypography variant="body" style={{ opacity: 0.6 }}>
+            Visualiza tu progreso y las competencias validadas por el programa MEH.
+          </MEHTypography>
+        </div>
+        <MEHButton icon={<Share24Filled />} appearance="outline" onClick={() => window.open('https://linkedin.com', '_blank')}>Compartir Perfil</MEHButton>
+      </div>
+
+      {/* Resumen de Hito actual con espaciado corregido */}
+      <MEHCard className={styles.milestoneCard}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: '56px', height: '56px', backgroundColor: tokens.colorBrandBackground, ...shorthands.borderRadius('50%'), display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 20px ${tokens.colorBrandBackground}66` }}>
+              <Trophy24Filled style={{ color: 'white', fontSize: '28px' }} />
+            </div>
+            <div>
+              <MEHTypography variant="h2">{earnedCount === badges.length ? '¡Nivel Máximo!' : 'Próximo Hito'}</MEHTypography>
+              <MEHTypography variant="body" style={{ opacity: 0.7, display: 'block' }}>Progreso de insignias en el nivel actual</MEHTypography>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+              <MEHTypography variant="h1" style={{ color: tokens.colorBrandForeground1, fontSize: '36px' }}>{(milestoneProgress * 100).toFixed(0)}%</MEHTypography>
           </div>
         </div>
 
-        {/* Requisitos de Nivel */}
-        <section className={styles.milestoneSection}>
-          <MEHTypography variant="h3">¿Cómo subir de nivel?</MEHTypography>
-          <div className={styles.milestoneGrid}>
-            <div className={styles.milestoneStep}>
-              {pStats.eventos_inscritos >= 1 ? <CheckmarkCircle24Filled style={{ color: tokens.colorPaletteGreenForeground1 }} /> : <LockClosed24Regular />}
-              <div>
-                <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Miembro Activo</MEHTypography>
-                <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.6 }}>Asistir al menos a 1 evento de la comunidad.</MEHTypography>
-              </div>
+        <div>
+            <ProgressBar value={milestoneProgress} color={milestoneProgress === 1 ? "success" : "brand"} style={{ height: '10px' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px' }}>
+                <MEHTypography variant="caption" style={{ opacity: 0.6 }}>
+                    {earnedCount} de {badges.length} insignias desbloqueadas
+                </MEHTypography>
+                <MEHTypography variant="caption" style={{ fontWeight: 'bold', color: tokens.colorBrandForeground1 }}>
+                    {stats?.personal_stats?.puntos_xp || 0} XP Acumulados
+                </MEHTypography>
             </div>
-            <div className={styles.milestoneStep} style={{ borderLeft: `4px solid ${milestoneProgress > 0.5 ? tokens.colorBrandBackground : tokens.colorNeutralBackground3}` }}>
-               {user.rol !== 'MIEMBRO' ? <CheckmarkCircle24Filled style={{ color: tokens.colorPaletteGreenForeground1 }} /> : <div style={{ width: '20px', height: '20px', ...shorthands.border('2px', 'solid', tokens.colorBrandForeground1), ...shorthands.borderRadius('50%') }}></div>}
-              <div>
-                <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Liderazgo (Embajador+)</MEHTypography>
-                <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.6 }}>Obtener un rol de liderazgo validado por el equipo MEH.</MEHTypography>
+        </div>
+      </MEHCard>
+
+      {/* Admin Tool */}
+      {isAdmin && <BadgeForm onSuccess={fetchData} />}
+
+      {/* Galería de Insignias */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <MEHTypography variant="h3">Galería de Reconocimientos</MEHTypography>
+            {isAdmin && <Badge appearance="tint" color="brand">Modo Editor Activo</Badge>}
+        </div>
+        
+        <div className={styles.badgeGrid}>
+          {badges.map((badge) => (
+            <BadgeDetailModal
+              key={badge.id_badge}
+              badge={badge}
+              trigger={
+                <MEHCard className={styles.badgeCard}>
+                  {isAdmin && (
+                      <div className={styles.adminActions}>
+                          <MEHButton size="small" appearance="subtle" icon={<Edit24Regular />} />
+                          <MEHButton size="small" appearance="subtle" icon={<Delete24Regular />} onClick={(e) => handleDelete(e, badge.id_badge)} />
+                      </div>
+                  )}
+                  {!badge.earned && !isAdmin && <LockClosed24Regular className={styles.lockIcon} />}
+                  
+                  <img 
+                    src={badge.imagen_url} 
+                    alt={badge.nombre_badge} 
+                    className={`${styles.badgeImage} ${badge.earned || isAdmin ? styles.earned : styles.locked}`}
+                  />
+                  
+                  <MEHTypography variant="h3" style={{ marginBottom: '8px' }}>
+                    {badge.nombre_badge}
+                  </MEHTypography>
+                  <MEHTypography variant="caption" style={{ opacity: 0.7, minHeight: '40px' }}>
+                    {badge.descripcion}
+                  </MEHTypography>
+                  
+                  <div style={{ marginTop: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <Badge appearance="outline" color="informative">{badge.requisito_nivel}</Badge>
+                      {badge.earned && <CheckmarkCircle24Filled style={{ color: '#22B14C', fontSize: '20px' }} />}
+                  </div>
+                </MEHCard>
+              }
+            />
+          ))}
+          {badges.length === 0 && (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', opacity: 0.5 }}>
+                  No hay insignias registradas en el sistema.
               </div>
-            </div>
-          </div>
-        </section>
+          )}
+        </div>
       </div>
-    </MainLayout>
+    </div>
   );
 };
-
-// Helpers
-const mergeClasses = (...classes) => classes.filter(Boolean).join(' ');
-const BadgeUI = ({ children, color, icon }) => (
-  <div style={{ 
-    display: 'flex', 
-    alignItems: 'center', 
-    gap: '6px', 
-    padding: '4px 12px', 
-    borderRadius: '20px', 
-    fontSize: '12px', 
-    fontWeight: 'bold',
-    backgroundColor: color === 'success' ? 'rgba(16, 124, 16, 0.1)' : 'rgba(255,255,255,0.05)',
-    color: color === 'success' ? '#4ecb71' : 'white',
-    border: `1px solid ${color === 'success' ? 'rgba(16, 124, 16, 0.2)' : 'rgba(255,255,255,0.1)'}`
-  }}>
-    {icon} {children}
-  </div>
-);
 
 export default Insignias;

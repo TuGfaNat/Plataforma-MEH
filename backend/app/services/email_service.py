@@ -4,7 +4,7 @@ from email.mime.multipart import MIMEMultipart
 import os
 from typing import Optional
 import logging
-from pydantic import EmailStr, ValidationError
+from pydantic import EmailStr, ValidationError, TypeAdapter
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def is_smtp_configured() -> bool:
 def validate_email(email: str) -> bool:
     """Valida formato de email"""
     try:
-        EmailStr.validate(email)
+        TypeAdapter(EmailStr).validate_python(email)
         return True
     except ValidationError:
         logger.error(f"❌ Email inválido: {email}")
@@ -189,3 +189,30 @@ def notify_bienvenida(email: str, nombre: str) -> bool:
     """
     return send_email(email, subject, html)
 
+
+def notify_nuevo_anuncio(email: str, nombre: str, titulo_anuncio: str, contenido_anuncio: str) -> bool:
+    """Notifica un nuevo anuncio importante a la comunidad"""
+    subject = f"🔔 Anuncio Importante: {titulo_anuncio}"
+    
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <span style="background: #7f13ec; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">COMUNIDAD MEH</span>
+        </div>
+        <h2 style="color: #333;">Hola {nombre},</h2>
+        <p>Se ha publicado un nuevo anuncio que podría interesarte:</p>
+        <div style="background: #f9f9f9; border-left: 4px solid #7f13ec; padding: 15px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #7f13ec;">{titulo_anuncio}</h3>
+            <p style="color: #555; line-height: 1.6;">{contenido_anuncio}</p>
+        </div>
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{FRONTEND_DASHBOARD}" style="display: inline-block; background: #7f13ec; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver en el Dashboard</a>
+        </div>
+        <p style="font-size: 0.9rem; color: #888;">Si no deseas recibir más notificaciones, puedes ajustar tus preferencias en la configuración de tu perfil.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <footer style="font-size: 0.8rem; color: #888; text-align: center;">
+            Plataforma Microsoft Education Hub - Innovando el futuro, juntos.
+        </footer>
+    </div>
+    """
+    return send_email(email, subject, html)

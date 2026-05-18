@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { FluentProvider, Toaster, useId, useToastController, Toast, ToastTitle, ToastBody } from '@fluentui/react-components';
+import { FluentProvider, Toaster, useId, useToastController, Toast, ToastTitle, ToastBody, Spinner } from '@fluentui/react-components';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { mlsaDarkTheme, mlsaLightTheme } from './theme/theme';
 import authService from './services/authService';
@@ -8,8 +8,11 @@ import { hasAnyRole } from './auth/rbac';
 // Páginas
 import Landing from './pages/Landing.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import EventsMaster from './pages/EventsMaster.jsx';
+import Users from './pages/Users.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
 import Auditoria from './pages/Auditoria.jsx';
 import Insignias from './pages/Insignias.jsx';
 import Finanzas from './pages/Finanzas.jsx';
@@ -22,6 +25,10 @@ import EscaneoQR from './pages/EscaneoQR.jsx';
 import RecursosVIP from './pages/RecursosVIP.jsx';
 import SpeakerKit from './pages/SpeakerKit.jsx';
 import VerificarCertificado from './pages/VerificarCertificado.jsx';
+import Analytics from './pages/Admin/Analytics.jsx';
+import EcosystemDirectory from './pages/Admin/EcosystemDirectory.jsx';
+import NotificacionesAdmin from './pages/NotificacionesAdmin.jsx';
+import DashboardLayout from './components/layout/DashboardLayout.jsx';
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
@@ -132,47 +139,31 @@ function App() {
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/verificar/:uuid" element={<VerificarCertificado />} />
                 
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/insignias" element={<ProtectedRoute><Insignias /></ProtectedRoute>} />
-                <Route path="/finanzas" element={<ProtectedRoute><Finanzas /></ProtectedRoute>} />
-                <Route path="/learning" element={<ProtectedRoute><LearningHub /></ProtectedRoute>} />
-                <Route path="/comunidad" element={<ProtectedRoute><Comunidad /></ProtectedRoute>} />
-                <Route path="/configuracion" element={<ProtectedRoute><Configuracion /></ProtectedRoute>} />
-                
-                <Route path="/recursos-vip" element={
-                    <ProtectedRoute allowedRoles={['EMBAJADOR', 'MODERADOR', 'ORGANIZADOR', 'ADMIN']}>
-                    <RecursosVIP />
-                    </ProtectedRoute>
-                } />
-                <Route path="/speaker-kit" element={
-                    <ProtectedRoute allowedRoles={['MODERADOR', 'ORGANIZADOR', 'ADMIN']}>
-                    <SpeakerKit />
-                    </ProtectedRoute>
-                } />
-
-                <Route path="/admin" element={
-                    <ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'SOPORTE']}>
-                    <AdminPanel />
-                    </ProtectedRoute>
-                } />
-                <Route path="/gestion-pagos" element={
-                    <ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'SOPORTE']}>
-                    <GestionPagos />
-                    </ProtectedRoute>
-                } />
-                <Route path="/escaneo-qr" element={
-                    <ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}>
-                    <EscaneoQR />
-                    </ProtectedRoute>
-                } />
-
-                <Route path="/auditoria" element={
-                    <ProtectedRoute allowedRoles={['ADMIN']}>
-                    <Auditoria />
-                    </ProtectedRoute>
-                } />
+                {/* Rutas con Sidebar Persistente */}
+                <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/dashboard/users" element={<Users />} />
+                  <Route path="/dashboard/events-master" element={<EventsMaster />} />
+                  <Route path="/dashboard/analytics" element={<Analytics />} />
+                  
+                  <Route path="/insignias" element={<Insignias />} />
+                  <Route path="/finanzas" element={<Finanzas />} />
+                  <Route path="/learning" element={<LearningHub />} />
+                  <Route path="/comunidad" element={<Comunidad />} />
+                  <Route path="/configuracion" element={<Configuracion />} />
+                  
+                  <Route path="/recursos-vip" element={<RecursosVIP />} />
+                  <Route path="/speaker-kit" element={<SpeakerKit />} />
+                  <Route path="/admin" element={<AdminPanel />} />
+                  <Route path="/admin/ecosistema" element={<EcosystemDirectory />} />
+                  <Route path="/admin/notificaciones" element={<NotificacionesAdmin />} />
+                  <Route path="/gestion-pagos" element={<GestionPagos />} />
+                  <Route path="/escaneo-qr" element={<EscaneoQR />} />
+                  <Route path="/auditoria" element={<Auditoria />} />
+                </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

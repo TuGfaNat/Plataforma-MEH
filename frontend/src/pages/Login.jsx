@@ -9,12 +9,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   LockClosed24Filled, 
   Mail24Filled,
-  ArrowRight24Regular
+  ArrowRight24Regular,
+  Eye24Regular,
+  EyeOff24Regular
 } from '@fluentui/react-icons';
 import authService from '../services/authService';
 import { designTokens } from '../theme/theme';
 import { MEHButton, MEHInput, MEHCard, MEHTypography } from '../components/ui';
 import { useAuth } from '../App';
+import { validateEmail, validatePassword, hasErrors } from '../utils/validators';
 
 const useStyles = makeStyles({
   container: {
@@ -87,6 +90,11 @@ const useStyles = makeStyles({
     textAlign: 'center',
     borderTop: `1px solid rgba(255, 255, 255, 0.05)`,
     paddingTop: '24px',
+  },
+  forgotLink: {
+    textAlign: 'right',
+    marginTop: '-12px',
+    fontSize: tokens.fontSizeBase200,
   }
 });
 
@@ -94,13 +102,30 @@ const Login = () => {
   const styles = useStyles();
   const navigate = useNavigate();
   const { checkAuth } = useAuth();
+  
   const [formData, setFormData] = useState({ correo: '', password: '' });
-  const [error, setError] = useState(null);
+  const [errors, setErrors] = useState({ correo: null, password: null });
+  const [errorApi, setErrorApi] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleInputChange = (field, value, validator) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: validator(value) }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
+    
+    const newErrors = {
+      correo: validateEmail(formData.correo),
+      password: formData.password ? null : "La contraseña es obligatoria"
+    };
+
+    setErrors(newErrors);
+    if (hasErrors(newErrors)) return;
+
+    setErrorApi(null);
     setLoading(true);
     
     try {
@@ -110,9 +135,9 @@ const Login = () => {
     } catch (err) {
       setLoading(false);
       if (!err.response) {
-        setError('No se pudo conectar con el servidor. Verifica tu conexión.');
+        setErrorApi('No se pudo conectar con el servidor. Verifica tu conexión.');
       } else {
-        setError(err.response.data.detail || 'Credenciales incorrectas');
+        setErrorApi(err.response.data.detail || 'Credenciales incorrectas');
       }
     }
   };
@@ -132,7 +157,7 @@ const Login = () => {
           </MEHTypography>
         </div>
 
-        {error && <MessageBar intent="error">{error}</MessageBar>}
+        {errorApi && <MessageBar intent="error">{errorApi}</MessageBar>}
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <MEHInput 
@@ -140,20 +165,38 @@ const Login = () => {
             type="email"
             contentBefore={<Mail24Filled style={{ opacity: 0.5 }} />}
             value={formData.correo}
-            onChange={(e, data) => setFormData({...formData, correo: data.value})}
+            onChange={(e, data) => handleInputChange('correo', data.value, validateEmail)}
             placeholder="ejemplo@email.com"
+            validationState={errors.correo ? "error" : "none"}
+            validationMessage={errors.correo}
             required 
           />
 
           <MEHInput 
             label="Contraseña"
-            type="password"
+            type={showPassword ? "text" : "password"}
             contentBefore={<LockClosed24Filled style={{ opacity: 0.5 }} />}
+            contentAfter={
+              <MEHButton 
+                appearance="subtle" 
+                icon={showPassword ? <EyeOff24Regular /> : <Eye24Regular />} 
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ minWidth: 'auto', padding: '0 8px' }}
+              />
+            }
             value={formData.password}
-            onChange={(e, data) => setFormData({...formData, password: data.value})}
+            onChange={(e, data) => handleInputChange('password', data.value, validatePassword)}
             placeholder="••••••••"
-            required 
+            validationState={errors.password ? "error" : "none"}
+            validationMessage={errors.password}
+            required
           />
+
+          <div className={styles.forgotLink}>
+            <Link to="/forgot-password" className={styles.link} style={{ fontSize: '12px' }}>
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
 
           <MEHButton 
             size="large" 
@@ -161,6 +204,7 @@ const Login = () => {
             loading={loading}
             icon={<ArrowRight24Regular />}
             style={{ height: '52px', marginTop: '12px' }}
+            disabled={hasErrors(errors)}
           >
             Ingresar al Portal
           </MEHButton>

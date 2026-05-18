@@ -17,6 +17,13 @@ const cursoService = {
     const response = await api.get('/cursos/mis-certificados');
     return response.data;
   },
+  
+  // PROXY MICROSOFT LEARNING
+  getMSCatalog: async () => {
+    const response = await api.get('/ms-learning/catalog');
+    return response.data;
+  },
+
   // RUTAS DE INSTRUCTOR
   getMisCursosDocente: async () => {
     const response = await api.get('/cursos/instructor/mis-cursos');

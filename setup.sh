@@ -36,6 +36,7 @@ cd ..
 # 2. Frontend Setup
 echo "--- Configurando Frontend ---"
 cd frontend
+npm install recharts
 npm install
 echo "✅ Dependencias de Node instaladas."
 

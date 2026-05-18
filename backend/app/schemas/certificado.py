@@ -17,6 +17,7 @@ class CertificadoResponse(CertificadoBase):
     id_certificado: int
     fecha_emision: datetime
     uuid_verificacion: str
+    nombre_curso_evento: Optional[str] = None
 
     class Config:
         from_attributes = True

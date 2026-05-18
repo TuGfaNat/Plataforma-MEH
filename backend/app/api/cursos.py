@@ -56,7 +56,7 @@ def get_curso_alumnos(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    return cursos_service.list_alumnos_by_curso(db, id_curso, current_user.id_usuario)
+    return cursos_service.list_alumnos_by_curso(db, id_curso, current_user.id_usuario, current_user.rol)
 
 @router.put("/instructor/nota/{id_inscripcion}")
 def update_nota_alumno(
@@ -65,4 +65,15 @@ def update_nota_alumno(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    return cursos_service.update_nota(db, id_inscripcion, nota, current_user.id_usuario)
+    return cursos_service.update_nota(db, id_inscripcion, nota, current_user.id_usuario, current_user.rol)
+
+@router.put("/{id_curso}/instructor/{id_instructor}")
+def assign_instructor(
+    id_curso: int,
+    id_instructor: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    from ..core.permissions import ensure_admin
+    ensure_admin(current_user.rol)
+    return cursos_service.assign_instructor(db, id_curso, id_instructor)

@@ -1,8 +1,8 @@
 import os
 from datetime import datetime
 from typing import List, Optional
-from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
@@ -10,27 +10,33 @@ from ..models import models
 from ..schemas import user as user_schema
 from ..core import auth as auth_core
 from ..core.logging import registrar_log
+from ..core.exceptions import (
+    CredencialesInvalidasError,
+    UsuarioNoEncontradoError,
+    RegistroDuplicadoError,
+    ValidacionNegocioError,
+    PermisoDenegadoError
+)
 from ..core.permissions import (
     ROLE_MIEMBRO,
     PERMISSION_USERS_READ,
     PERMISSION_AUDIT_READ,
-    ensure_permission,
+    has_permission
 )
-
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
-
-def register_user(db: Session, user: user_schema.UserCreate) -> models.Usuario:
-    existing_user = db.query(models.Usuario).filter(models.Usuario.correo == user.correo).first()
+def register_user(db: Session, user_data: user_schema.UserCreate) -> models.Usuario:
+    """Registra un nuevo usuario en la plataforma."""
+    existing_user = db.query(models.Usuario).filter(models.Usuario.correo == user_data.correo).first()
     if existing_user:
-        raise HTTPException(status_code=400, detail="El correo ya está registrado")
+        raise RegistroDuplicadoError("El correo electrónico ya está registrado")
 
     new_user = models.Usuario(
-        nombres=user.nombres,
-        apellidos=user.apellidos,
-        correo=user.correo,
-        password_hash=auth_core.get_password_hash(user.password),
+        nombres=user_data.nombres,
+        apellidos=user_data.apellidos,
+        correo=user_data.correo,
+        password_hash=auth_core.get_password_hash(user_data.password),
         rol=ROLE_MIEMBRO,
         fecha_registro=datetime.utcnow(),
         # Auditoría inicial
@@ -42,22 +48,27 @@ def register_user(db: Session, user: user_schema.UserCreate) -> models.Usuario:
     db.refresh(new_user)
     
     # NOTIFICACION EMAIL
-    from . import email_service
-    email_service.notify_bienvenida(new_user.correo, new_user.nombres)
+    try:
+        from . import email_service
+        email_service.notify_bienvenida(new_user.correo, new_user.nombres)
+    except Exception:
+        # No bloqueamos el registro si el email falla
+        pass
     
     return new_user
 
-
-def login_user(db: Session, credentials: user_schema.UserLogin, ip_address: Optional[str]) -> dict:
+def login_user(db: Session, credentials: user_schema.UserLogin, ip_address: Optional[str] = None) -> dict:
+    """Valida credenciales y genera un token JWT."""
     user = db.query(models.Usuario).filter(models.Usuario.correo == credentials.correo).first()
+    
     if not user or not auth_core.verify_password(credentials.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales incorrectas",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise CredencialesInvalidasError()
+
+    if not user.activo:
+        raise ValidacionNegocioError("La cuenta de usuario está desactivada")
 
     access_token = auth_core.create_access_token(data={"sub": user.correo, "rol": user.rol})
+    
     registrar_log(
         db=db,
         id_admin=user.id_usuario,
@@ -66,26 +77,29 @@ def login_user(db: Session, credentials: user_schema.UserLogin, ip_address: Opti
         id_registro_afectado=user.id_usuario,
         ip_direccion=ip_address
     )
+    
     return {"access_token": access_token, "token_type": "bearer"}
 
-
-def login_with_google(db: Session, token: str, ip_address: Optional[str]) -> dict:
+def login_with_google(db: Session, google_jwt: str, ip_address: Optional[str] = None) -> dict:
+    """Valida un token de Google y genera un token JWT de la plataforma."""
     try:
-        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
+        idinfo = id_token.verify_oauth2_token(google_jwt, google_requests.Request(), GOOGLE_CLIENT_ID)
         email = idinfo["email"]
         given_name = idinfo.get("given_name", idinfo.get("name", ""))
         family_name = idinfo.get("family_name", "")
 
         user = db.query(models.Usuario).filter(models.Usuario.correo == email).first()
+        
         if not user:
             user = models.Usuario(
                 nombres=given_name,
                 apellidos=family_name,
                 correo=email,
-                password_hash="google_oauth_no_password",
+                password_hash="google_oauth_no_password", # Marcador para usuarios sin pass local
                 rol=ROLE_MIEMBRO,
                 fecha_registro=datetime.utcnow(),
-                creado_por=0 # Autoregistro
+                creado_por=0,
+                fecha_creacion=datetime.utcnow()
             )
             db.add(user)
             db.commit()
@@ -100,7 +114,11 @@ def login_with_google(db: Session, token: str, ip_address: Optional[str]) -> dic
                 ip_direccion=ip_address
             )
 
+        if not user.activo:
+            raise ValidacionNegocioError("La cuenta de usuario está desactivada")
+
         access_token = auth_core.create_access_token(data={"sub": user.correo, "rol": user.rol})
+        
         registrar_log(
             db=db,
             id_admin=user.id_usuario,
@@ -109,60 +127,100 @@ def login_with_google(db: Session, token: str, ip_address: Optional[str]) -> dic
             id_registro_afectado=user.id_usuario,
             ip_direccion=ip_address
         )
+        
         return {"access_token": access_token, "token_type": "bearer"}
+        
     except ValueError:
-        raise HTTPException(status_code=400, detail="Token de Google inválido")
-    except Exception:
-        raise HTTPException(status_code=500, detail="Error interno del servidor")
-
+        raise ValidacionNegocioError("Token de Google inválido o expirado")
+    except Exception as e:
+        if isinstance(e, BaseDomainError): raise
+        raise ValidacionNegocioError(f"Error en autenticación de Google: {str(e)}")
 
 def update_profile(
     db: Session,
-    current_user: models.Usuario,
+    user_id: int,
     user_update: user_schema.UserUpdate,
-    ip_address: Optional[str]
+    ip_address: Optional[str] = None
 ) -> models.Usuario:
-    update_data = user_update.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(current_user, key, value)
+    """Actualiza el perfil del usuario actual."""
+    user = db.query(models.Usuario).filter(models.Usuario.id_usuario == user_id).first()
+    if not user:
+        raise UsuarioNoEncontradoError()
 
-    # AUDITORIA MIXIN
-    current_user.modificado_por = current_user.id_usuario
-    current_user.fecha_modificacion = datetime.utcnow()
+    update_data = user_update.model_dump(exclude_unset=True)
+    
+    # Prevenir que un usuario normal se cambie el rol o se active/desactive a sí mismo
+    # a través del endpoint de perfil (seguridad extra)
+    update_data.pop("rol", None)
+    update_data.pop("activo", None)
+
+    for key, value in update_data.items():
+        setattr(user, key, value)
+
+    user.modificado_por = user.id_usuario
+    user.fecha_modificacion = datetime.utcnow()
     
     db.commit()
-    db.refresh(current_user)
+    db.refresh(user)
 
     registrar_log(
         db=db,
-        id_admin=current_user.id_usuario,
+        id_admin=user.id_usuario,
         accion="ACTUALIZAR_PERFIL",
         tabla_afectada="usuarios",
-        id_registro_afectado=current_user.id_usuario,
+        id_registro_afectado=user.id_usuario,
         valor_nuevo=update_data,
         ip_direccion=ip_address
     )
-    return current_user
+    return user
 
+def list_users(
+    db: Session, 
+    admin_role: str,
+    search: Optional[str] = None,
+    rol_filter: Optional[str] = None
+) -> List[models.Usuario]:
+    """Lista usuarios del sistema (Solo Staff con permiso)."""
+    if not has_permission(admin_role, PERMISSION_USERS_READ):
+        raise PermisoDenegadoError("No tienes permisos para listar usuarios")
+    
+    query = db.query(models.Usuario)
+    
+    if search:
+        search_filter = f"%{search}%"
+        query = query.filter(
+            or_(
+                models.Usuario.nombres.ilike(search_filter),
+                models.Usuario.apellidos.ilike(search_filter),
+                models.Usuario.correo.ilike(search_filter),
+                models.Usuario.alias.ilike(search_filter)
+            )
+        )
+    
+    if rol_filter:
+        query = query.filter(models.Usuario.rol == rol_filter)
+        
+    return query.order_by(models.Usuario.fecha_registro.desc()).all()
 
-def list_users(db: Session, current_user: models.Usuario) -> List[models.Usuario]:
-    ensure_permission(current_user.rol, PERMISSION_USERS_READ, "No tienes permisos para ver usuarios")
-    return db.query(models.Usuario).order_by(models.Usuario.fecha_registro.desc()).all()
-
-# --- FUNCION EXCLUSIVA ADMIN ---
-def update_user_role(db: Session, current_user: models.Usuario, id_usuario: int, nuevo_rol: str, ip_address: Optional[str]):
-    # Solo el admin supremo (que lee auditoria) puede cambiar roles
-    ensure_permission(current_user.rol, PERMISSION_AUDIT_READ, "No tienes permisos para cambiar roles")
+def update_user_role(
+    db: Session, 
+    admin_user: models.Usuario, 
+    id_usuario: int, 
+    nuevo_rol: str, 
+    ip_address: Optional[str] = None
+) -> models.Usuario:
+    """Cambia el rol de un usuario (Solo ADMIN)."""
+    if not has_permission(admin_user.rol, PERMISSION_AUDIT_READ):
+        raise PermisoDenegadoError("Solo los administradores pueden cambiar roles")
     
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     if not usuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise UsuarioNoEncontradoError()
     
     rol_anterior = usuario.rol
     usuario.rol = nuevo_rol
     
-    # AUDITORIA MIXIN
-    usuario.modificado_por = current_user.id_usuario
+    usuario.modificado_por = admin_user.id_usuario
     usuario.fecha_modificacion = datetime.utcnow()
     
     db.commit()
@@ -170,7 +228,7 @@ def update_user_role(db: Session, current_user: models.Usuario, id_usuario: int,
     
     registrar_log(
         db=db,
-        id_admin=current_user.id_usuario,
+        id_admin=admin_user.id_usuario,
         accion="CAMBIO_ROL_USUARIO",
         tabla_afectada="usuarios",
         id_registro_afectado=id_usuario,

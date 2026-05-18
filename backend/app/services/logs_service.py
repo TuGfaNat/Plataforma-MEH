@@ -1,20 +1,35 @@
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+from datetime import datetime
 from ..models import models
-from ..core.permissions import PERMISSION_AUDIT_READ, ensure_permission
+from ..core.permissions import PERMISSION_AUDIT_READ, has_permission
+from ..core.exceptions import PermisoDenegadoError
 
 def get_logs_auditoria(
     db: Session,
-    current_user: models.Usuario,
+    admin_role: str,
+    fecha_inicio: Optional[datetime] = None,
+    fecha_fin: Optional[datetime] = None,
+    accion: Optional[str] = None,
     skip: int = 0,
     limit: int = 100
 ) -> List[dict]:
-    ensure_permission(current_user.rol, PERMISSION_AUDIT_READ, "No tienes permisos para ver los logs")
+    """Obtiene la trazabilidad total de acciones en el sistema (Solo para Administradores)."""
+    if not has_permission(admin_role, PERMISSION_AUDIT_READ):
+        raise PermisoDenegadoError("No tienes privilegios para consultar la auditoría")
     
-    # Hacemos un join con Usuarios para traer el nombre del admin
-    logs = db.query(models.LogSistema, models.Usuario).join(
+    query = db.query(models.LogSistema, models.Usuario).join(
         models.Usuario, models.LogSistema.id_admin == models.Usuario.id_usuario
-    ).order_by(models.LogSistema.fecha_hora.desc()).offset(skip).limit(limit).all()
+    )
+    
+    if fecha_inicio:
+        query = query.filter(models.LogSistema.fecha_hora >= fecha_inicio)
+    if fecha_fin:
+        query = query.filter(models.LogSistema.fecha_hora <= fecha_fin)
+    if accion:
+        query = query.filter(models.LogSistema.accion.ilike(f"%{accion}%"))
+        
+    logs = query.order_by(models.LogSistema.fecha_hora.desc()).offset(skip).limit(limit).all()
 
     return [
         {

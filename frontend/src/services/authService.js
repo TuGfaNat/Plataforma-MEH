@@ -32,8 +32,17 @@ const authService = {
     return response.data;
   },
 
-  getAllUsers: async () => {
-    const response = await api.get('/auth/usuarios');
+  getAllUsers: async (search = '', rol = '') => {
+    let url = '/auth/usuarios';
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (rol) params.append('rol', rol);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    const response = await api.get(url);
     return response.data;
   },
 

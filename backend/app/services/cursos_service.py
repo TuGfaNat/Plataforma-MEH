@@ -13,8 +13,29 @@ def list_cursos(db: Session, skip: int = 0, limit: int = 100) -> List[models.Cur
     return db.query(models.Curso).offset(skip).limit(limit).all()
 
 
-def list_user_certificados(db: Session, current_user: models.Usuario) -> List[models.Certificado]:
-    return db.query(models.Certificado).filter(models.Certificado.id_usuario == current_user.id_usuario).all()
+def list_user_certificados(db: Session, current_user: models.Usuario):
+    certs = db.query(models.Certificado).filter(models.Certificado.id_usuario == current_user.id_usuario).all()
+    results = []
+    for cert in certs:
+        nombre_entidad = "Evento/Curso"
+        if cert.id_curso:
+            curso = db.query(models.Curso).filter(models.Curso.id_curso == cert.id_curso).first()
+            if curso: nombre_entidad = curso.nombre_curso
+        elif cert.id_evento:
+            evento = db.query(models.Evento).filter(models.Evento.id_evento == cert.id_evento).first()
+            if evento: nombre_entidad = evento.titulo
+        
+        results.append({
+            "id_certificado": cert.id_certificado,
+            "id_usuario": cert.id_usuario,
+            "codigo_verificacion": cert.codigo_verificacion,
+            "url_pdf": cert.url_pdf,
+            "formato": cert.formato,
+            "fecha_emision": cert.fecha_emision,
+            "uuid_verificacion": cert.uuid_verificacion,
+            "nombre_curso_evento": nombre_entidad
+        })
+    return results
 
 
 def verify_certificado(db: Session, uuid_cert: str) -> dict:
@@ -79,51 +100,65 @@ def get_curso(db: Session, id_curso: int) -> models.Curso:
         raise HTTPException(status_code=404, detail="Curso no encontrado")
     return db_curso
 
-# LOGICA DE INSTRUCTOR
+# LOGICA DE INSTRUCTOR Y ADMIN
 def list_cursos_by_instructor(db: Session, id_instructor: int) -> List[models.Curso]:
     return db.query(models.Curso).filter(models.Curso.id_instructor == id_instructor).all()
 
-def list_alumnos_by_curso(db: Session, id_curso: int, id_instructor: int):
-    # Verificar que el curso sea de este instructor
-    curso = db.query(models.Curso).filter(
-        models.Curso.id_curso == id_curso, 
-        models.Curso.id_instructor == id_instructor
-    ).first()
+def list_alumnos_by_curso(db: Session, id_curso: int, current_user_id: int, current_user_role: str):
+    curso = db.query(models.Curso).filter(models.Curso.id_curso == id_curso).first()
     if not curso:
-        raise HTTPException(status_code=403, detail="No eres el instructor de este curso")
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+    
+    if curso.id_instructor != current_user_id and current_user_role != "ADMIN":
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver los alumnos de este curso")
     
     return db.query(models.InscripcionCurso).filter(models.InscripcionCurso.id_curso == id_curso).all()
 
-def update_nota(db: Session, id_inscripcion: int, nota: float, id_instructor: int):
-    inscripcion = db.query(models.InscripcionCurso).filter(models.InscripcionCurso.id_inscripcion_curso == id_inscripcion).first()
+def update_nota(db: Session, id_inscripcion: int, nota: float, current_user_id: int, current_user_role: str):
+    inscripcion = db.query(models.InscripcionCurso).filter(models.InscripcionCurso.id_inscripcion == id_inscripcion).first()
     if not inscripcion:
         raise HTTPException(status_code=404, detail="Inscripción no encontrada")
     
-    # Verificar permiso
     curso = db.query(models.Curso).filter(models.Curso.id_curso == inscripcion.id_curso).first()
-    if curso.id_instructor != id_instructor:
-        raise HTTPException(status_code=403, detail="No eres el instructor de este curso")
+    if curso.id_instructor != current_user_id and current_user_role != "ADMIN":
+        raise HTTPException(status_code=403, detail="No tienes permiso para calificar en este curso")
     
     inscripcion.nota_final = nota
     if nota >= 51:
-        inscripcion.completado = True
+        inscripcion.finalizado = True
         # EMITIR CERTIFICADO AUTOMÁTICO
         nuevo_cert = models.Certificado(
             id_usuario=inscripcion.id_usuario,
             id_curso=inscripcion.id_curso,
-            codigo_verificacion=f"MEH-CUR-{inscripcion.id_inscripcion_curso}-{datetime.utcnow().strftime('%Y%m%d')}",
+            codigo_verificacion=f"MEH-CUR-{inscripcion.id_inscripcion}-{datetime.utcnow().strftime('%Y%m%d')}",
             url_pdf=curso.plantilla_certificado_url or "https://ejemplo.com/default-cert.pdf",
             fecha_emision=datetime.utcnow(),
-            creado_por=id_instructor
+            creado_por=current_user_id
         )
         db.add(nuevo_cert)
         # NOTIFICACION EMAIL
-        from . import email_service
-        email_service.notify_nuevo_certificado(inscripcion.usuario.correo, inscripcion.usuario.nombres, curso.nombre_curso)
+        try:
+            from . import email_service
+            email_service.notify_nuevo_certificado(inscripcion.usuario.correo, inscripcion.usuario.nombres, curso.nombre_curso)
+        except Exception as e:
+            print(f"Error al enviar email de certificado: {str(e)}")
     
     # MIXIN AUDITORIA
-    inscripcion.modificado_por = id_instructor
+    inscripcion.modificado_por = current_user_id
     inscripcion.fecha_modificacion = datetime.utcnow()
     
     db.commit()
     return {"message": "Nota actualizada", "id_inscripcion": id_inscripcion, "nota": nota}
+
+def assign_instructor(db: Session, id_curso: int, id_instructor: int):
+    curso = db.query(models.Curso).filter(models.Curso.id_curso == id_curso).first()
+    if not curso:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+    
+    instructor = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_instructor).first()
+    if not instructor:
+        raise HTTPException(status_code=404, detail="Instructor no encontrado")
+
+    curso.id_instructor = id_instructor
+    db.commit()
+    return {"message": f"Instructor {instructor.nombres} asignado al curso {curso.nombre_curso}"}
