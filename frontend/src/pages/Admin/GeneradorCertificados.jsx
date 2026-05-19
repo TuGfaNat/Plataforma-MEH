@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import {
   makeStyles, tokens, Button, Input, Select, Field, Spinner, Text
 } from '@fluentui/react-components';
-import { Add24Regular, Certificate24Regular } from '@fluentui/react-icons';
+import { Add24Regular, Certificate24Regular, Eye24Regular } from '@fluentui/react-icons';
+import { generateCertificatePDF } from '../../services/certificateGenerator';
 import api from '../../services/api';
 import { useNotify } from '../../App';
 import { MEHCard, MEHTypography } from '../../components/ui';
@@ -72,11 +73,55 @@ const GeneradorCertificados = () => {
       const response = await api.post('/certificados-admin/bulk', payload, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      notify("Éxito", response.data.mensaje, "success");
+
+      const { data } = response;
+      notify("Éxito", data.mensaje, "success");
+
+      // Si fue modo speakers directo, disparamos PDFs inmediatamente
+      if (data.modo === "IMPRESION_DIRECTA" && data.nombres) {
+          notify("Info", "Iniciando descarga de PDFs para Speakers...", "info");
+          for (const nombre of data.nombres) {
+              await generateCertificatePDF({
+                  fullName: nombre,
+                  eventName: data.titulo,
+                  date: new Date().toISOString(),
+                  code: `SPK-${Date.now()}`,
+                  templateUrl: data.background ? `http://localhost:8000${data.background}` : null,
+                  signatureUrls: data.firmas ? data.firmas.map(f => `http://localhost:8000${f}`) : []
+              });
+          }
+      }
+
     } catch (err) {
       notify("Error", err.response?.data?.detail || "No se pudo generar los certificados", "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePreview = async () => {
+    if (!formData.titulo || !formData.background) {
+      notify("Atención", "Sube un fondo y añade un título para la vista previa.", "warning");
+      return;
+    }
+    try {
+        const bgUrl = URL.createObjectURL(formData.background);
+        const sigs = [];
+        if (formData.firma1) sigs.push(URL.createObjectURL(formData.firma1));
+        if (formData.firma2) sigs.push(URL.createObjectURL(formData.firma2));
+        if (formData.firma3) sigs.push(URL.createObjectURL(formData.firma3));
+        if (formData.firma4) sigs.push(URL.createObjectURL(formData.firma4));
+
+        await generateCertificatePDF({
+            fullName: "SPEAKER DE EJEMPLO",
+            eventName: formData.titulo,
+            date: new Date().toISOString(),
+            code: "PREVIEW-12345",
+            templateUrl: bgUrl,
+            signatureUrls: sigs
+        });
+    } catch (e) {
+        notify("Error", "No se pudo generar la vista previa.", "error");
     }
   };
 
@@ -109,6 +154,7 @@ const GeneradorCertificados = () => {
                 <>
                   <option value="TODOS">Inscritos Confirmados (Sin filtrar asistencia)</option>
                   <option value="ASISTIERON">Solo Asistentes Confirmados</option>
+                  <option value="SPEAKERS">A todos los Speakers del Evento</option>
                 </>
               )}
               {formData.tipo === 'CURSO' && (
@@ -138,9 +184,14 @@ const GeneradorCertificados = () => {
             <input type="file" accept="image/png" onChange={(e) => handleFileChange('firma4', e.target.files[0])} className={styles.fileInput} title="Firma 4" />
           </div>
 
-          <Button appearance="primary" icon={loading ? <Spinner size="tiny" /> : <Add24Regular />} onClick={handleSubmit} disabled={loading}>
-            Generar Certificados en Lote
-          </Button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <Button appearance="outline" icon={<Eye24Regular />} onClick={handlePreview} disabled={loading}>
+              Vista Previa
+            </Button>
+            <Button appearance="primary" icon={loading ? <Spinner size="tiny" /> : <Add24Regular />} onClick={handleSubmit} disabled={loading}>
+              Generar Certificados
+            </Button>
+          </div>
 
         </div>
       </MEHCard>
