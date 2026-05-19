@@ -19,7 +19,6 @@ import {
   Camera24Regular,
   Globe24Regular,
   People24Regular,
-  PersonNote24Filled,
   ArrowUpload24Regular,
   Building24Regular,
   Map24Regular,
@@ -29,8 +28,9 @@ import { MEHCard, MEHButton, MEHTypography } from "../components/ui";
 import { useAuth, useNotify } from "../App";
 import { useNavigate } from "react-router-dom";
 import authService from "../services/authService";
-import api from "../services/api";
-import { validateName, hasErrors } from "../utils/validators";
+import api, { resolveApiFileUrl } from "../services/api";
+import { getValidationError, hasErrors } from "../utils/validators";
+import { TIPOS_ENTIDAD } from "../utils/constants";
 
 const useStyles = makeStyles({
   container: {
@@ -45,7 +45,7 @@ const useStyles = makeStyles({
   },
   layoutGrid: {
     display: "grid",
-    gridTemplateColumns: "1fr 350px",
+    gridTemplateColumns: "1fr 380px",
     gap: "32px",
     "@media (max-width: 1024px)": {
       gridTemplateColumns: "1fr",
@@ -61,31 +61,49 @@ const useStyles = makeStyles({
     flexDirection: "column",
     gap: "8px",
   },
-  uploadBox: {
-    border: `2px dashed ${tokens.colorNeutralBackground3}`,
-    ...shorthands.padding('24px'),
-    ...shorthands.borderRadius('12px'),
+  uploadAction: {
+    ...shorthands.border('2px', 'dashed', tokens.colorBrandStroke1),
+    ...shorthands.padding('20px'),
+    ...shorthands.borderRadius('16px'),
     textAlign: 'center',
     position: 'relative',
-    transition: 'all 0.2s ease',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '12px',
+    backgroundColor: tokens.colorNeutralBackground2,
+    cursor: 'pointer',
+    boxShadow: tokens.shadow4,
     ':hover': {
-        borderColor: tokens.colorBrandBackground,
-        backgroundColor: 'rgba(127, 19, 236, 0.03)'
+        ...shorthands.borderColor(tokens.colorBrandBackground),
+        backgroundColor: tokens.colorBrandBackground2,
+        transform: 'translateY(-2px)',
+        boxShadow: tokens.shadow8,
     }
   },
   cardPreview: {
     background: "linear-gradient(135deg, #7f13ec 0%, #3a0078 100%)",
     color: "white",
     ...shorthands.padding("32px"),
-    ...shorthands.borderRadius("20px"),
+    ...shorthands.borderRadius("24px"),
     position: "sticky",
     top: "32px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     textAlign: "center",
-    gap: "16px",
-    boxShadow: "0 20px 40px rgba(127, 19, 236, 0.3)",
+    gap: "20px",
+    boxShadow: "0 25px 50px -12px rgba(127, 19, 236, 0.5)",
+    overflowX: "hidden"
+  },
+  avatarContainer: {
+    position: "relative",
+    ...shorthands.padding("4px"),
+    ...shorthands.borderRadius("50%"),
+    background: "rgba(255, 255, 255, 0.2)",
+    boxShadow: "0 0 20px rgba(0,0,0,0.2)"
   },
   socialGrid: {
     display: "grid",
@@ -102,8 +120,15 @@ const Configuracion = () => {
   const { user, checkAuth } = useAuth();
   const { notify } = useNotify();
   const navigate = useNavigate();
+  
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  // Estados para la API Geográfica
+  const [countries, setCountries] = useState([]);
+  const [states, setStates] = useState([]);
+  const [loadingStates, setLoadingStates] = useState(false);
 
   const [formData, setFormData] = useState({
     nombres: "",
@@ -127,7 +152,52 @@ const Configuracion = () => {
   const [errors, setErrors] = useState({
     nombres: null,
     apellidos: null,
+    alias: null,
+    bio: null,
+    institucion: null,
+    departamento: null,
   });
+
+  // 1. Cargar países al montar
+  useEffect(() => {
+    const fetchCountries = async () => {
+        try {
+            const res = await fetch("https://countriesnow.space/api/v0.1/countries");
+            const result = await res.json();
+            setCountries(result.data || []);
+        } catch (err) {
+            console.error("Error cargando países:", err);
+            notify("Error API", "No se pudieron cargar los países. Intenta más tarde.", "error");
+        }
+    };
+    fetchCountries();
+  }, []);
+
+  // 2. Cargar estados cuando cambia el país o el usuario inicializa
+  useEffect(() => {
+    if (formData.pais) {
+        fetchStates(formData.pais);
+    }
+  }, [formData.pais]);
+
+  const fetchStates = async (countryName) => {
+    if (!countryName) return;
+    setLoadingStates(true);
+    try {
+        const res = await fetch("https://countriesnow.space/api/v0.1/countries/states", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ country: countryName })
+        });
+        const result = await res.json();
+        setStates(result.data?.states || []);
+    } catch (err) {
+        console.error("Error cargando estados:", err);
+        setStates([]);
+    } finally {
+        setLoadingStates(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -149,25 +219,28 @@ const Configuracion = () => {
         learning_path_url: user.learning_path_url || "",
         perfil_publico: user.perfil_publico ?? true,
       });
+      
+      if (user.foto_url) {
+        setPreviewUrl(resolveApiFileUrl(user.foto_url));
+      }
     }
   }, [user]);
 
-  const handleInputChange = (field, value, validator) => {
+  const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (validator) {
-      setErrors((prev) => ({ ...prev, [field]: validator(value) }));
-    }
+    const error = getValidationError(field, value);
+    setErrors((prev) => ({ ...prev, [field]: error }));
   };
 
   const handleSave = async () => {
-    const newErrors = {
-      nombres: validateName(formData.nombres),
-      apellidos: validateName(formData.apellidos),
-    };
+    const newErrors = {};
+    Object.keys(errors).forEach(field => {
+        newErrors[field] = getValidationError(field, formData[field]);
+    });
 
     setErrors(newErrors);
     if (hasErrors(newErrors)) {
-      notify("Validación", "Corrige los errores antes de guardar", "warning");
+      notify("Validación", "Por favor completa todos los campos obligatorios correctamente", "warning");
       return;
     }
 
@@ -191,9 +264,18 @@ const Configuracion = () => {
     try {
       const uploadData = new FormData();
       uploadData.append('file', file);
+      
       const res = await api.post('/files/upload', uploadData);
-      setFormData(prev => ({ ...prev, foto_url: res.data.url }));
-      notify("Éxito", "Foto de perfil cargada correctamente", "success");
+      const backendUrl = res.data.url;
+      
+      const absoluteUrl = resolveApiFileUrl(backendUrl);
+      const cacheBustedUrl = `${absoluteUrl}?t=${new Date().getTime()}`;
+      
+      setFormData(prev => ({ ...prev, foto_url: backendUrl }));
+      setPreviewUrl(cacheBustedUrl);
+      
+      notify("Éxito", "Foto cargada. Recuerda guardar los cambios.", "success");
+      
     } catch (err) {
       notify("Error", "No se pudo subir la foto", "error");
     } finally {
@@ -217,40 +299,55 @@ const Configuracion = () => {
 
             <div className={styles.socialGrid}>
               <div className={styles.fieldGroup}>
-                <Label>Nombres</Label>
+                <Label required>Nombres</Label>
                 <Input
                   value={formData.nombres}
-                  onChange={(e, d) => handleInputChange('nombres', d.value, validateName)}
+                  onChange={(e, d) => handleInputChange('nombres', d.value)}
                   validationState={errors.nombres ? "error" : "none"}
                 />
+                {errors.nombres && <MEHTypography variant="caption" style={{ color: tokens.colorPaletteRedForeground1 }}>{errors.nombres}</MEHTypography>}
               </div>
               <div className={styles.fieldGroup}>
-                <Label>Apellidos</Label>
+                <Label required>Apellidos</Label>
                 <Input
                   value={formData.apellidos}
-                  onChange={(e, d) => handleInputChange('apellidos', d.value, validateName)}
+                  onChange={(e, d) => handleInputChange('apellidos', d.value)}
                   validationState={errors.apellidos ? "error" : "none"}
                 />
+                {errors.apellidos && <MEHTypography variant="caption" style={{ color: tokens.colorPaletteRedForeground1 }}>{errors.apellidos}</MEHTypography>}
               </div>
             </div>
 
             <div className={styles.socialGrid}>
               <div className={styles.fieldGroup}>
-                <Label>Alias / Username</Label>
+                <Label required>Alias / Username</Label>
                 <Input
                   contentBefore={<People24Regular />}
                   value={formData.alias}
-                  onChange={(e, d) => setFormData({ ...formData, alias: d.value })}
+                  onChange={(e, d) => handleInputChange('alias', d.value)}
+                  validationState={errors.alias ? "error" : "none"}
                 />
+                {errors.alias && <MEHTypography variant="caption" style={{ color: tokens.colorPaletteRedForeground1 }}>{errors.alias}</MEHTypography>}
               </div>
               <div className={styles.fieldGroup}>
                 <Label>Foto de Perfil</Label>
-                <div className={styles.uploadBox}>
-                  {uploading ? <Spinner size="tiny" /> : (
+                <div className={styles.uploadAction} onClick={() => document.getElementById('photo-input').click()}>
+                  {uploading ? (
+                    <Spinner size="small" label="Subiendo..." />
+                  ) : (
                     <>
-                      <ArrowUpload24Regular style={{ fontSize: '20px', marginBottom: '4px' }} />
-                      <MEHTypography variant="caption" style={{ display: 'block' }}>Subir Foto</MEHTypography>
-                      <input type="file" onChange={handlePhotoUpload} accept="image/*" style={{ opacity: 0, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
+                      <Camera24Regular style={{ fontSize: '32px', color: tokens.colorBrandForeground1 }} />
+                      <div>
+                        <MEHTypography variant="body" style={{ fontWeight: 'bold', display: 'block' }}>Actualizar Imagen</MEHTypography>
+                        <MEHTypography variant="caption" style={{ opacity: 0.6 }}>PNG, JPG hasta 5MB</MEHTypography>
+                      </div>
+                      <input 
+                        id="photo-input"
+                        type="file" 
+                        onChange={handlePhotoUpload} 
+                        accept="image/*" 
+                        style={{ display: 'none' }} 
+                      />
                     </>
                   )}
                 </div>
@@ -258,70 +355,97 @@ const Configuracion = () => {
             </div>
 
             <div className={styles.fieldGroup}>
-              <Label>Biografía</Label>
+              <Label required>Biografía</Label>
               <Textarea
                 value={formData.bio}
-                onChange={(e, d) => setFormData({ ...formData, bio: d.value })}
+                onChange={(e, d) => handleInputChange('bio', d.value)}
                 placeholder="Cuéntanos un poco sobre ti..."
+                style={{ minHeight: "100px" }}
               />
+              {errors.bio ? (
+                <MEHTypography variant="caption" style={{ color: tokens.colorPaletteRedForeground1 }}>{errors.bio}</MEHTypography>
+              ) : (
+                <MEHTypography variant="caption" style={{ opacity: 0.6 }}>{formData.bio.length}/500 caracteres</MEHTypography>
+              )}
             </div>
 
             <Divider />
-            <MEHTypography variant="h3">2. Ubicación y Entidad (Métricas)</MEHTypography>
+            <MEHTypography variant="h3">2. Ubicación y Entidad</MEHTypography>
 
             <div className={styles.socialGrid}>
               <div className={styles.fieldGroup}>
                 <Label>Soy...</Label>
                 <Select value={formData.tipo_entidad} onChange={(e, d) => setFormData({...formData, tipo_entidad: d.value})}>
-                  <option value="Estudiante">Estudiante</option>
-                  <option value="Profesional">Profesional</option>
-                  <option value="Emprendedor">Emprendedor</option>
+                  {TIPOS_ENTIDAD.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </Select>
               </div>
               <div className={styles.fieldGroup}>
-                <Label>Institución / Empresa</Label>
-                <Input contentBefore={<Building24Regular />} value={formData.institucion} onChange={(e, d) => setFormData({ ...formData, institucion: d.value })} />
+                <Label required>Institución</Label>
+                <Input 
+                    contentBefore={<Building24Regular />} 
+                    value={formData.institucion} 
+                    onChange={(e, d) => handleInputChange('institucion', d.value)} 
+                    validationState={errors.institucion ? "error" : "none"}
+                />
+                {errors.institucion && <MEHTypography variant="caption" style={{ color: tokens.colorPaletteRedForeground1 }}>{errors.institucion}</MEHTypography>}
               </div>
             </div>
 
             <div className={styles.socialGrid}>
               <div className={styles.fieldGroup}>
                 <Label>País</Label>
-                <Input contentBefore={<Globe24Regular />} value={formData.pais} onChange={(e, d) => setFormData({ ...formData, pais: d.value })} />
+                <Select value={formData.pais} onChange={(e, d) => setFormData({ ...formData, pais: d.value })}>
+                    <option value="">Selecciona un país...</option>
+                    {countries.map(p => <option key={p.iso3} value={p.country}>{p.country}</option>)}
+                </Select>
               </div>
               <div className={styles.fieldGroup}>
-                <Label>Departamento / Ciudad</Label>
-                <Input contentBefore={<Map24Regular />} value={formData.departamento} onChange={(e, d) => setFormData({ ...formData, departamento: d.value })} />
+                <Label required>Departamento / Región</Label>
+                <Select 
+                    value={formData.departamento} 
+                    onChange={(e, d) => handleInputChange('departamento', d.value)}
+                    validationState={errors.departamento ? "error" : "none"}
+                    disabled={!formData.pais || loadingStates}
+                >
+                    <option value="">{loadingStates ? "Cargando..." : "Selecciona uno..."}</option>
+                    {states.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                </Select>
+                {errors.departamento && <MEHTypography variant="caption" style={{ color: tokens.colorPaletteRedForeground1 }}>{errors.departamento}</MEHTypography>}
               </div>
             </div>
 
             <Divider />
-            <MEHTypography variant="h3">3. Presencia Digital y Redes Sociales</MEHTypography>
+            <MEHTypography variant="h3">3. Redes Sociales</MEHTypography>
 
             <div className={styles.socialGrid}>
               <div className={styles.fieldGroup}>
                 <Label>LinkedIn URL</Label>
-                <Input value={formData.linkedin_url} onChange={(e, d) => setFormData({ ...formData, linkedin_url: d.value })} />
+                <Input value={formData.linkedin_url} onChange={(e, d) => handleInputChange('linkedin_url', d.value)} placeholder="https://linkedin.com/in/..." />
               </div>
               <div className={styles.fieldGroup}>
                 <Label>GitHub URL</Label>
-                <Input value={formData.github_url} onChange={(e, d) => setFormData({ ...formData, github_url: d.value })} />
+                <Input value={formData.github_url} onChange={(e, d) => handleInputChange('github_url', d.value)} placeholder="https://github.com/..." />
               </div>
               <div className={styles.fieldGroup}>
                 <Label>Facebook URL</Label>
-                <Input value={formData.facebook_url} onChange={(e, d) => setFormData({ ...formData, facebook_url: d.value })} />
+                <Input value={formData.facebook_url} onChange={(e, d) => handleInputChange('facebook_url', d.value)} placeholder="https://facebook.com/..." />
               </div>
               <div className={styles.fieldGroup}>
                 <Label>Instagram URL</Label>
-                <Input value={formData.instagram_url} onChange={(e, d) => setFormData({ ...formData, instagram_url: d.value })} />
+                <Input value={formData.instagram_url} onChange={(e, d) => handleInputChange('instagram_url', d.value)} placeholder="https://instagram.com/..." />
               </div>
               <div className={styles.fieldGroup}>
                 <Label>TikTok URL</Label>
-                <Input value={formData.tiktok_url} onChange={(e, d) => setFormData({ ...formData, tiktok_url: d.value })} />
+                <Input value={formData.tiktok_url} onChange={(e, d) => handleInputChange('tiktok_url', d.value)} placeholder="https://tiktok.com/@..." />
               </div>
               <div className={styles.fieldGroup}>
                 <Label>Microsoft Learn Path URL</Label>
-                <Input contentBefore={<Link24Regular />} value={formData.learning_path_url} onChange={(e, d) => setFormData({ ...formData, learning_path_url: d.value })} />
+                <Input 
+                    contentBefore={<Link24Regular />} 
+                    value={formData.learning_path_url} 
+                    onChange={(e, d) => handleInputChange('learning_path_url', d.value)} 
+                    placeholder="https://learn.microsoft.com/users/..." 
+                />
               </div>
             </div>
 
@@ -342,17 +466,37 @@ const Configuracion = () => {
 
         <aside>
           <div className={styles.cardPreview}>
-            <Avatar size={96} name={`${formData.nombres} ${formData.apellidos}`} src={formData.foto_url} color="colorful" style={{ border: "4px solid rgba(255,255,255,0.2)" }} />
-            <div>
-              <MEHTypography variant="h2" style={{ color: "white" }}>{formData.alias || formData.nombres || "Tu Nombre"}</MEHTypography>
-              <Badge appearance="filled" style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "white", marginTop: "4px" }}>{user.rol}</Badge>
+            <div className={styles.avatarContainer}>
+                <Avatar 
+                    key={previewUrl}
+                    size={96} 
+                    name={`${formData.nombres} ${formData.apellidos}`} 
+                    image={{ src: previewUrl }} 
+                    color="colorful" 
+                />
             </div>
-            <MEHTypography variant="caption" style={{ color: "rgba(255,255,255,0.8)", minHeight: "40px" }}>{formData.bio || "Tu biografía aparecerá aquí."}</MEHTypography>
             
-            <MEHTypography variant="caption" style={{ color: "white", opacity: 0.9 }}>📍 {formData.departamento}, {formData.pais}</MEHTypography>
-            <MEHTypography variant="caption" style={{ color: "white", opacity: 0.9 }}>🏫 {formData.institucion}</MEHTypography>
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              <MEHTypography variant="h2" style={{ color: "white", margin: 0 }}>{formData.alias || formData.nombres || "Tu Nombre"}</MEHTypography>
+              <Badge appearance="filled" style={{ backgroundColor: "rgba(255,255,255,0.2)", color: "white", alignSelf: "center" }}>{user.rol}</Badge>
+            </div>
 
-            <MEHButton appearance="primary" style={{ backgroundColor: 'white', color: '#7f13ec', marginTop: '12px' }} onClick={() => navigate('/comunidad')}>Ver mi Perfil Público</MEHButton>
+            <MEHTypography variant="caption" style={{ color: "rgba(255,255,255,0.8)", minHeight: "40px", fontStyle: "italic" }}>
+                "{formData.bio || "Tu biografía aparecerá aquí."}"
+            </MEHTypography>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px" }}>
+                <MEHTypography variant="caption" style={{ color: "white", opacity: 0.9 }}>📍 {formData.departamento}, {formData.pais}</MEHTypography>
+                <MEHTypography variant="caption" style={{ color: "white", opacity: 0.9 }}>🏫 {formData.institucion}</MEHTypography>
+            </div>
+
+            <MEHButton 
+                appearance="primary" 
+                style={{ backgroundColor: 'white', color: '#7f13ec', width: '100%', marginTop: '10px' }} 
+                onClick={() => navigate('/comunidad')}
+            >
+                Ver mi Perfil Público
+            </MEHButton>
           </div>
         </aside>
       </div>

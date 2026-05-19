@@ -44,3 +44,5 @@ yarn-debug.log*
 yarn-error.log*
 backend/static/comprobantes/*
 !backend/static/comprobantes/.gitkeep
+backend/static/uploads/*
+!backend/static/uploads/.gitkeep

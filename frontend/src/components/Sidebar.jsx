@@ -116,12 +116,18 @@ const useStyles = makeStyles({
   },
   themeToggle: {
     display: 'flex',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: '12px',
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    ...shorthands.padding('8px', '12px'),
-    ...shorthands.borderRadius('12px'),
+    ...shorthands.padding('12px'),
+    ...shorthands.borderRadius('16px'),
     ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    marginBottom: '8px'
+  },
+  themeButton: {
+    flexGrow: 1,
+    justifyContent: 'center'
   }
 });
 
@@ -233,6 +239,7 @@ const Sidebar = ({ onClose }) => {
            <Button 
             appearance="subtle" 
             size="small" 
+            className={styles.themeButton}
             icon={<LocalLanguage24Regular />}
             onClick={toggleLanguage}
             style={{ color: tokens.colorNeutralForeground1 }}
@@ -243,6 +250,7 @@ const Sidebar = ({ onClose }) => {
            <Button 
             appearance="subtle" 
             size="small" 
+            className={styles.themeButton}
             icon={isDarkMode ? <WeatherSunny24Regular /> : <WeatherMoon24Regular />}
             onClick={toggleTheme}
             style={{ color: tokens.colorNeutralForeground1 }}

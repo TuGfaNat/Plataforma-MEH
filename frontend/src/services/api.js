@@ -6,7 +6,18 @@ const fallbackApiUrl = isLocal ? 'http://localhost:8000' : 'https://api-meh.onre
 
 export const API_BASE_URL = (configuredApiUrl || fallbackApiUrl).replace(/\/+$/, '');
 
-export const resolveApiFileUrl = (path = '') => `${API_BASE_URL}/${String(path).replace(/^\/+/, '')}`;
+/**
+ * Resuelve una ruta de archivo del backend a una URL absoluta funcional.
+ * Maneja rutas relativas (/static/...), absolutas (http://...) y valores nulos.
+ */
+export const resolveApiFileUrl = (path) => {
+  if (!path) return null;
+  if (String(path).startsWith('http')) return path;
+  
+  // Limpiar slashes duplicados
+  const cleanPath = String(path).replace(/^\/+/, '');
+  return `${API_BASE_URL}/${cleanPath}`;
+};
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -27,7 +38,6 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      // No redirigir si ya estamos en login o landing para evitar bucles
       if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
         window.location.href = '/login';
       }

@@ -1,164 +1,155 @@
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-import random
-from app.database import SessionLocal, engine
+import uuid
+import json
+from app.database import SessionLocal
 from app.models import models
-from app.services import auth_service, eventos_service, inscripciones_service, pagos_service
-from app.schemas import user as user_schema, evento as evento_schema, pago as pago_schema
 from app.core import auth as auth_core
 
-def seed_data():
+def seed_complete_ecosystem():
     db = SessionLocal()
-    print("🚀 Iniciando poblado de datos (Seeding)...")
+    print("🚀 Iniciando poblado del ecosistema completo...")
 
     try:
-        # 1. CREAR USUARIOS (ADMIN, ORGANIZADOR, MIEMBROS)
-        print("👤 Creando usuarios...")
-        users_to_create = [
-            {"nombres": "Admin", "apellidos": "Plataforma", "correo": "admin@meh.com", "rol": "ADMIN", "alias": "SuperAdmin"},
+        # 1. LIMPIAR DATOS PREVIOS (Opcional, pero recomendado para un seed limpio)
+        # Nota: En un entorno real esto se manejaría con cuidado.
+        
+        # 2. CREAR TODOS LOS ROLES DE USUARIO
+        print("👤 Creando usuarios para cada rol...")
+        roles_data = [
+            {"nombres": "Admin", "apellidos": "Maestro", "correo": "admin@meh.com", "rol": "ADMIN", "alias": "TheBoss"},
             {"nombres": "Juan", "apellidos": "Organizador", "correo": "organizador@meh.com", "rol": "ORGANIZADOR", "alias": "JuanEvents"},
-            {"nombres": "Maria", "apellidos": "Miembro", "correo": "miembro@meh.com", "rol": "MIEMBRO", "alias": "MariaDev"},
-            {"nombres": "Carlos", "apellidos": "Estudiante", "correo": "carlos@gmail.com", "rol": "MIEMBRO", "alias": "Carlitos", "tipo_entidad": "Estudiante"},
-            {"nombres": "Ana", "apellidos": "Profesional", "correo": "ana@outlook.com", "rol": "MIEMBRO", "alias": "AnaPro", "tipo_entidad": "Profesional"},
+            {"nombres": "Sofia", "apellidos": "Soporte", "correo": "soporte@meh.com", "rol": "SOPORTE", "alias": "SofiaHelp"},
+            {"nombres": "Marcos", "apellidos": "Moderador", "correo": "moderador@meh.com", "rol": "MODERADOR", "alias": "MarcosMod"},
+            {"nombres": "Elena", "apellidos": "Embajadora", "correo": "embajador@meh.com", "rol": "EMBAJADOR", "alias": "ElenaVIP"},
+            {"nombres": "Lucas", "apellidos": "Miembro", "correo": "miembro@meh.com", "rol": "MIEMBRO", "alias": "LucasDev"},
         ]
 
-        created_users = []
-        for i, u in enumerate(users_to_create):
-            # Usamos el servicio para asegurar que se aplique el hash de password y logs
-            user_in = user_schema.UserCreate(
-                password="password123",
-                **u
-            )
-            try:
-                # El primer usuario no puede ser creado por nadie (None)
-                # Para evitar violar la FK de usuarios_creado_por_fkey
-                password_hash = auth_core.get_password_hash(user_in.password)
-                
+        users = {}
+        password_hash = auth_core.get_password_hash("password123")
+
+        for r in roles_data:
+            db_user = db.query(models.Usuario).filter(models.Usuario.correo == r["correo"]).first()
+            if not db_user:
                 db_user = models.Usuario(
-                    nombres=user_in.nombres,
-                    apellidos=user_in.apellidos,
-                    correo=user_in.correo,
+                    **r,
                     password_hash=password_hash,
-                    rol=u["rol"],
-                    alias=u.get("alias"),
-                    tipo_entidad=u.get("tipo_entidad", "Estudiante"),
                     fecha_registro=datetime.utcnow(),
-                    creado_por=None, # IMPORTANTE: Evita FK error
-                    fecha_creacion=datetime.utcnow()
+                    fecha_creacion=datetime.utcnow(),
+                    tipo_entidad="Profesional" if r["rol"] != "MIEMBRO" else "Estudiante"
                 )
                 db.add(db_user)
                 db.commit()
                 db.refresh(db_user)
-                print(f"✅ Usuario creado: {u['correo']}")
-                created_users.append(db_user)
-            except Exception as e:
-                db.rollback()
-                print(f"⚠️ Error creando usuario {u['correo']}: {str(e)}")
-                db_user = db.query(models.Usuario).filter(models.Usuario.correo == u["correo"]).first()
-                if db_user:
-                    created_users.append(db_user)
+            users[r["rol"]] = db_user
+            print(f"✅ Rol {r['rol']} listo: {r['correo']}")
 
-        admin_user = created_users[0]
-        org_user = created_users[1]
-
-        # 2. CREAR EVENTOS
-        print("📅 Creando eventos...")
-        eventos_data = [
-            {
-                "titulo": "Workshop de Azure Fundamentals",
-                "descripcion": "Aprende las bases de la nube de Microsoft.",
-                "fecha_inicio": datetime.utcnow() + timedelta(days=7),
-                "modalidad": "VIRTUAL",
-                "capacidad_max": 50,
-                "ubicacion": "Microsoft Teams"
-            },
-            {
-                "titulo": "MEH Conf 2026",
-                "descripcion": "El evento tecnológico más grande de la comunidad.",
-                "fecha_inicio": datetime.utcnow() + timedelta(days=30),
-                "modalidad": "PRESENCIAL",
-                "capacidad_max": 200,
-                "ubicacion": "Auditorio UMSA, La Paz"
-            },
-            {
-                "titulo": "Taller de IA Generativa",
-                "descripcion": "Creación de agentes inteligentes con OpenAI.",
-                "fecha_inicio": datetime.utcnow() - timedelta(days=5),
-                "modalidad": "HIBRIDO",
-                "capacidad_max": 30,
-                "ubicacion": "Hub Tecnológico"
-            }
-        ]
-
-        created_events = []
-        for ev in eventos_data:
-            ev_in = evento_schema.EventoCreate(**ev)
-            db_ev = eventos_service.create_evento(db, admin_user, ev_in)
-            created_events.append(db_ev)
-
-        # 3. INSCRIPCIONES Y PAGOS
-        print("💳 Creando inscripciones y simulando pagos...")
-        # Miembro 1 se inscribe a 2 eventos
-        miembro = created_users[2]
+        # 3. CREAR EVENTOS Y CURSOS
+        print("📅 Creando contenidos...")
         
-        # Inscripción 1: Workshop Azure (Pendiente)
-        ins1 = inscripciones_service.inscribir_evento(db, miembro.id_usuario, created_events[0].id_evento)
-        
-        # Inscripción 2: MEH Conf (Pagada y Confirmada)
-        ins2 = inscripciones_service.inscribir_evento(db, miembro.id_usuario, created_events[1].id_evento)
-        # Subir comprobante ficticio
-        pago = models.Pago(
-            id_usuario=miembro.id_usuario,
-            monto=150.00,
-            metodo_pago="TRANSFERENCIA",
-            estado_pago="APROBADO",
-            id_referencia=created_events[1].id_evento,
-            tipo_referencia="EVENTO",
-            url_comprobante="static/comprobantes/seed_test.jpg",
-            validado_por=admin_user.id_usuario,
-            fecha_validacion=datetime.utcnow()
+        # Evento 1: Futuro (Para inscripciones)
+        evento_futuro = models.Evento(
+            titulo="Cumbre de IA 2026",
+            descripcion="El futuro de la inteligencia artificial en Bolivia.",
+            fecha_inicio=datetime.utcnow() + timedelta(days=15),
+            modalidad="PRESENCIAL",
+            capacidad_max=100,
+            ubicacion="Auditorio Central UMSA",
+            id_organizador=users["ORGANIZADOR"].id_usuario,
+            estado="PROGRAMADO"
         )
-        db.add(pago)
-        db.commit()
-        # Confirmar inscripción manualmente para el seed
-        ins2.id_pago = pago.id_pago
-        ins2.estado_inscripcion = "CONFIRMADA"
-        db.commit()
-
-        # 4. CREAR CURSOS
-        print("🎓 Creando cursos...")
-        cursos_data = [
-            {"nombre_curso": "Python para Data Science", "descripcion": "Domina Pandas y Numpy", "horas_academicas": 40},
-            {"nombre_curso": "React + Fluent UI", "descripcion": "Interfaces modernas", "horas_academicas": 20}
-        ]
+        db.add(evento_futuro)
         
-        for c in cursos_data:
-            db_curso = models.Curso(**c, instructor=org_user)
-            db.add(db_curso)
+        # Curso 1: VIP (Para Embajadores)
+        curso_python = models.Curso(
+            nombre_curso="Masterclass: Python Arquitectura",
+            descripcion="Patrones de diseño avanzados.",
+            horas_academicas=40,
+            id_instructor=users["ORGANIZADOR"].id_usuario,
+            estado="ACTIVO"
+        )
+        db.add(curso_python)
         db.commit()
 
-        # 5. CREAR LOGS DE AUDITORÍA
-        print("🛡️ Generando logs de actividad...")
-        # (Los servicios ya generan algunos, pero agregamos manuales)
-        log = models.LogSistema(
-            id_admin=admin_user.id_usuario,
-            accion="CONFIGURACION_SISTEMA",
-            tabla_afectada="configuracion_global",
-            id_registro_afectado=1,
-            valor_nuevo="{'mantenimiento': False}",
+        # 4. CREAR ESCENARIOS DE NEGOCIO
+        print("🧪 Generando escenarios de prueba...")
+
+        # Escenario A: Miembro con pago PENDIENTE (Para que Soporte lo valide)
+        ins_pend = models.InscripcionEvento(
+            id_usuario=users["MIEMBRO"].id_usuario,
+            id_evento=evento_futuro.id_evento,
+            estado_inscripcion="PENDIENTE",
+            codigo_qr=str(uuid.uuid4())
+        )
+        db.add(ins_pend)
+        db.commit()
+        
+        pago_pend = models.Pago(
+            id_usuario=users["MIEMBRO"].id_usuario,
+            monto=100.00,
+            metodo_pago="QR_BANCARIO",
+            estado_pago="PENDIENTE",
+            id_referencia=evento_futuro.id_evento,
+            tipo_referencia="EVENTO",
+            url_comprobante="static/comprobantes/seed_pendiente.png",
+            fecha_pago=datetime.utcnow()
+        )
+        db.add(pago_pend)
+        db.commit()
+        ins_pend.id_pago = pago_pend.id_pago
+        db.commit()
+
+        # Escenario B: Embajador con acceso a Recursos VIP
+        recurso_vip = models.Recurso(
+            titulo="Guía de Arquitectura MEH",
+            descripcion="Documento confidencial para líderes.",
+            categoria="VIP",
+            tipo_recurso="ARCHIVO",
+            url_descarga="static/uploads/guia_arquitectura.pdf",
+            creado_por=users["ADMIN"].id_usuario
+        )
+        db.add(recurso_vip)
+
+        # Escenario C: Moderador con Speaker Kit
+        recurso_mod = models.Recurso(
+            titulo="Plantilla PPT MEH 2026",
+            descripcion="Diseño oficial para ponentes.",
+            categoria="SPEAKER",
+            tipo_recurso="LINK",
+            url_descarga="https://onedrive.com/template",
+            creado_por=users["ORGANIZADOR"].id_usuario
+        )
+        db.add(recurso_mod)
+        db.commit()
+
+        # 5. LOGS PARA EL ADMIN
+        print("🛡️ Registrando actividad inicial...")
+        log_entry = models.LogSistema(
+            id_admin=users["ADMIN"].id_usuario,
+            accion="SEED_SYSTEM_ECOSYSTEM",
+            tabla_afectada="all",
+            valor_nuevo="{'status': 'success', 'data': 'complete_roles'}",
             ip_direccion="127.0.0.1"
         )
-        db.add(log)
+        db.add(log_entry)
         db.commit()
 
-        print("✅ Poblado completado con éxito!")
-        print(f"📊 Resumen: {len(created_users)} usuarios, {len(created_events)} eventos, 1 pago validado.")
+        print("\n✅ ECOSISTEMA CREADO!")
+        print("--------------------------------------------------")
+        print("🔑 TODAS LAS CONTRASEÑAS SON: password123")
+        print("1. ADMIN: admin@meh.com -> Ve todo y auditoría.")
+        print("2. ORGANIZADOR: organizador@meh.com -> Gestiona eventos.")
+        print("3. SOPORTE: soporte@meh.com -> Ve el pago de Lucas en 'Validar Pagos'.")
+        print("4. MODERADOR: moderador@meh.com -> Ve el Speaker Kit.")
+        print("5. EMBAJADOR: embajador@meh.com -> Ve Recursos VIP.")
+        print("6. MIEMBRO: miembro@meh.com -> Ve su inscripción pendiente.")
+        print("--------------------------------------------------")
 
     except Exception as e:
-        print(f"❌ ERROR durante el seeding: {str(e)}")
+        print(f"❌ ERROR: {str(e)}")
         db.rollback()
     finally:
         db.close()
 
 if __name__ == "__main__":
-    seed_data()
+    seed_complete_ecosystem()
