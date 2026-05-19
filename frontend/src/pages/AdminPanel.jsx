@@ -338,7 +338,9 @@ const AdminPanel = () => {
             setIsAddingEvento={setIsAddingEvento} isEditingEvento={isEditingEvento} 
             setIsEditingEvento={setIsEditingEvento} newEvento={newEvento} 
             setNewEvento={setNewEvento} handleSaveEvento={handleSaveEvento} 
-            handleEditEvento={handleEditEvento} confirmDelete={confirmDelete} styles={styles} 
+            handleEditEvento={handleEditEvento} confirmDelete={confirmDelete} styles={styles}
+            handleFileUpload={handleFileUpload}
+            uploading={uploading}
           />
         )}
 
