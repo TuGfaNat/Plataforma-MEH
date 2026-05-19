@@ -12,7 +12,9 @@ export const validateName = (name) => {
 };
 
 export const validateEmail = (email) => {
-    const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    // Uses a stricter regex that doesn't allow leading dashes in the domain, ensuring domain parts only start/end with letters/numbers.
+    // Adjusted to support single-character subdomains.
+    const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}))$/;
     if (!email) return "El correo es obligatorio";
     if (!re.test(String(email).toLowerCase())) return "Formato de correo inválido";
     return null;

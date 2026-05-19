@@ -27,6 +27,7 @@ import SpeakerKit from './pages/SpeakerKit.jsx';
 import VerificarCertificado from './pages/VerificarCertificado.jsx';
 import ValidadorTalento from './pages/ValidadorTalento.jsx';
 import Analytics from './pages/Admin/Analytics.jsx';
+import GeneradorCertificados from './pages/Admin/GeneradorCertificados.jsx';
 import EcosystemDirectory from './pages/Admin/EcosystemDirectory.jsx';
 import NotificacionesAdmin from './pages/NotificacionesAdmin.jsx';
 import DashboardLayout from './components/layout/DashboardLayout.jsx';
@@ -161,6 +162,7 @@ function App() {
                   <Route path="/speaker-kit" element={<SpeakerKit />} />
                   <Route path="/admin" element={<AdminPanel />} />
                   <Route path="/admin/ecosistema" element={<EcosystemDirectory />} />
+                  <Route path="/admin/generador-certificados" element={<GeneradorCertificados />} />
                   <Route path="/admin/notificaciones" element={<NotificacionesAdmin />} />
                   <Route path="/gestion-pagos" element={<GestionPagos />} />
                   <Route path="/escaneo-qr" element={<EscaneoQR />} />
