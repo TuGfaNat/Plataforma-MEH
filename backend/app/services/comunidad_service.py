@@ -5,37 +5,48 @@ from datetime import datetime
 from ..models import models
 from ..schemas import anuncio as anuncio_schema
 from ..core.logging import registrar_log
-from ..core.permissions import PERMISSION_ANNOUNCEMENTS_MANAGE, ensure_permission
-from .email_service import notify_nuevo_anuncio
-
+from ..core.permissions import PERMISSION_ANNOUNCEMENTS_MANAGE, has_permission
+from ..core.exceptions import (
+    RecursoNoEncontradoError,
+    PermisoDenegadoError,
+    ValidacionNegocioError
+)
 
 def list_miembros_publicos(db: Session) -> List[models.Usuario]:
+    """Lista usuarios que tienen habilitado el perfil público."""
     return db.query(models.Usuario).filter(models.Usuario.perfil_publico == True).all()
 
-
-def get_perfil_publico(db: Session, id_usuario: int) -> Optional[models.Usuario]:
-    return db.query(models.Usuario).filter(
+def get_perfil_publico(db: Session, id_usuario: int) -> models.Usuario:
+    """Obtiene los datos de un perfil público específico."""
+    perfil = db.query(models.Usuario).filter(
         models.Usuario.id_usuario == id_usuario,
         models.Usuario.perfil_publico == True
     ).first()
-
+    if not perfil:
+        raise RecursoNoEncontradoError("Perfil no encontrado o privado")
+    return perfil
 
 def list_anuncios_activos(db: Session) -> List[models.Anuncio]:
-    return db.query(models.Anuncio).filter(models.Anuncio.activo == True).order_by(models.Anuncio.fecha_publicacion.desc()).all()
+    """Lista anuncios para la comunidad (solo activos)."""
+    return db.query(models.Anuncio).filter(
+        models.Anuncio.activo == True
+    ).order_by(models.Anuncio.fecha_publicacion.desc()).all()
 
-
-def list_all_anuncios(db: Session, current_user: models.Usuario) -> List[models.Anuncio]:
-    ensure_permission(current_user.rol, PERMISSION_ANNOUNCEMENTS_MANAGE, "No tienes permisos")
+def list_all_anuncios(db: Session, role: str) -> List[models.Anuncio]:
+    """Lista todos los anuncios incluyendo inactivos (Solo Staff)."""
+    if not has_permission(role, PERMISSION_ANNOUNCEMENTS_MANAGE):
+        raise PermisoDenegadoError()
     return db.query(models.Anuncio).order_by(models.Anuncio.fecha_publicacion.desc()).all()
-
 
 def create_anuncio(
     db: Session,
     current_user: models.Usuario,
     anuncio: anuncio_schema.AnuncioCreate,
-    ip_address: Optional[str]
+    ip_address: Optional[str] = None
 ) -> models.Anuncio:
-    ensure_permission(current_user.rol, PERMISSION_ANNOUNCEMENTS_MANAGE, "No tienes permisos para publicar anuncios")
+    """Crea un nuevo anuncio y opcionalmente notifica por email (Solo Staff)."""
+    if not has_permission(current_user.rol, PERMISSION_ANNOUNCEMENTS_MANAGE):
+        raise PermisoDenegadoError("No tienes permisos para publicar anuncios")
 
     anuncio_data = anuncio.model_dump()
     enviar_email = anuncio_data.pop("enviar_email", False)
@@ -43,7 +54,8 @@ def create_anuncio(
     db_anuncio = models.Anuncio(
         **anuncio_data, 
         id_autor=current_user.id_usuario,
-        creado_por=current_user.id_usuario # MIXIN
+        creado_por=current_user.id_usuario,
+        fecha_creacion=datetime.utcnow()
     )
     db.add(db_anuncio)
     db.commit()
@@ -60,35 +72,40 @@ def create_anuncio(
         ip_direccion=ip_address
     )
 
-    # Envío de correos si se solicita
+    # Notificaciones (Manejadas con precaución)
     if enviar_email:
-        miembros = db.query(models.Usuario).filter(models.Usuario.activo == True).all()
-        for miembro in miembros:
-            try:
-                notify_nuevo_anuncio(
-                    email=miembro.correo,
-                    nombre=f"{miembro.nombres} {miembro.apellidos}",
-                    titulo_anuncio=db_anuncio.titulo,
-                    contenido_anuncio=db_anuncio.contenido
-                )
-            except Exception as e:
-                print(f"Fallo al notificar a {miembro.correo}: {str(e)}")
+        try:
+            from .email_service import notify_nuevo_anuncio
+            miembros = db.query(models.Usuario).filter(models.Usuario.activo == True).all()
+            for miembro in miembros:
+                try:
+                    notify_nuevo_anuncio(
+                        email=miembro.correo,
+                        nombre=f"{miembro.nombres} {miembro.apellidos}",
+                        titulo_anuncio=db_anuncio.titulo,
+                        contenido_anuncio=db_anuncio.contenido
+                    )
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
     return db_anuncio
-
 
 def update_anuncio(
     db: Session,
     id_anuncio: int,
     anuncio_update: anuncio_schema.AnuncioUpdate,
-    current_user: models.Usuario,
-    ip_address: Optional[str]
+    admin_user: models.Usuario,
+    ip_address: Optional[str] = None
 ) -> models.Anuncio:
-    ensure_permission(current_user.rol, PERMISSION_ANNOUNCEMENTS_MANAGE, "No tienes permisos")
+    """Actualiza un anuncio existente (Solo Staff)."""
+    if not has_permission(admin_user.rol, PERMISSION_ANNOUNCEMENTS_MANAGE):
+        raise PermisoDenegadoError()
 
     db_anuncio = db.query(models.Anuncio).filter(models.Anuncio.id_anuncio == id_anuncio).first()
     if not db_anuncio:
-        return None
+        raise RecursoNoEncontradoError("Anuncio no encontrado")
     
     old_data = {
         "titulo": db_anuncio.titulo,
@@ -96,10 +113,11 @@ def update_anuncio(
         "activo": db_anuncio.activo
     }
 
-    for key, value in anuncio_update.model_dump(exclude_unset=True).items():
+    update_data = anuncio_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
         setattr(db_anuncio, key, value)
     
-    db_anuncio.modificado_por = current_user.id_usuario
+    db_anuncio.modificado_por = admin_user.id_usuario
     db_anuncio.fecha_modificacion = datetime.utcnow()
     
     db.commit()
@@ -107,25 +125,33 @@ def update_anuncio(
 
     registrar_log(
         db=db,
-        id_admin=current_user.id_usuario,
+        id_admin=admin_user.id_usuario,
         accion="ACTUALIZAR_ANUNCIO",
         tabla_afectada="anuncios",
         id_registro_afectado=id_anuncio,
         valor_anterior=old_data,
-        valor_nuevo=anuncio_update.model_dump(exclude_unset=True),
+        valor_nuevo=update_data,
         ip_direccion=ip_address
     )
     
     return db_anuncio
 
-
-def delete_anuncio(db: Session, id_anuncio: int, current_user: models.Usuario) -> bool:
-    ensure_permission(current_user.rol, PERMISSION_ANNOUNCEMENTS_MANAGE, "No tienes permisos")
+def delete_anuncio(db: Session, id_anuncio: int, admin_user: models.Usuario) -> None:
+    """Elimina permanentemente un anuncio (Solo Staff)."""
+    if not has_permission(admin_user.rol, PERMISSION_ANNOUNCEMENTS_MANAGE):
+        raise PermisoDenegadoError()
     
     db_anuncio = db.query(models.Anuncio).filter(models.Anuncio.id_anuncio == id_anuncio).first()
     if not db_anuncio:
-        return False
+        raise RecursoNoEncontradoError("Anuncio no encontrado")
     
     db.delete(db_anuncio)
     db.commit()
-    return True
+
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="BORRAR_ANUNCIO",
+        tabla_afectada="anuncios",
+        id_registro_afectado=id_anuncio
+    )

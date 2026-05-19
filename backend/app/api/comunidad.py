@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.orm import Session
 from typing import List
 from ..database import get_db
@@ -15,18 +15,17 @@ router = APIRouter(
 
 @router.get("/miembros", response_model=List[user_schema.UserResponse])
 def get_miembros_publicos(db: Session = Depends(get_db)):
+    """Lista todos los perfiles marcados como públicos."""
     return comunidad_service.list_miembros_publicos(db)
 
 @router.get("/miembros/{id_usuario}", response_model=user_schema.UserProfileResponse)
 def get_miembro_detalle(id_usuario: int, db: Session = Depends(get_db)):
-    perfil = comunidad_service.get_perfil_publico(db, id_usuario)
-    if not perfil:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail="Perfil no encontrado o privado")
-    return perfil
+    """Obtiene el detalle de un perfil público."""
+    return comunidad_service.get_perfil_publico(db, id_usuario)
 
 @router.get("/anuncios", response_model=List[anuncio_schema.AnuncioResponse])
 def get_anuncios(db: Session = Depends(get_db)):
+    """Muestra los anuncios activos para la comunidad."""
     return comunidad_service.list_anuncios_activos(db)
 
 @router.get("/anuncios/all", response_model=List[anuncio_schema.AnuncioResponse])
@@ -34,15 +33,17 @@ def get_all_anuncios(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    return comunidad_service.list_all_anuncios(db, current_user)
+    """Lista todos los anuncios (incluyendo inactivos) para gestión (Solo Staff)."""
+    return comunidad_service.list_all_anuncios(db, current_user.rol)
 
-@router.post("/anuncios", response_model=anuncio_schema.AnuncioResponse)
+@router.post("/anuncios", response_model=anuncio_schema.AnuncioResponse, status_code=status.HTTP_201_CREATED)
 def create_anuncio(
     request: Request,
     anuncio: anuncio_schema.AnuncioCreate,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    """Crea y publica un nuevo anuncio."""
     ip_address = request.client.host if request.client else None
     return comunidad_service.create_anuncio(db, current_user, anuncio, ip_address)
 
@@ -54,16 +55,16 @@ def update_anuncio(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    """Actualiza un anuncio existente."""
     ip_address = request.client.host if request.client else None
     return comunidad_service.update_anuncio(db, id_anuncio, anuncio, current_user, ip_address)
 
-@router.delete("/anuncios/{id_anuncio}")
+@router.delete("/anuncios/{id_anuncio}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_anuncio(
     id_anuncio: int,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    success = comunidad_service.delete_anuncio(db, id_anuncio, current_user)
-    if not success:
-        return {"error": "No se pudo eliminar el anuncio"}
-    return {"message": "Anuncio eliminado correctamente"}
+    """Elimina permanentemente un anuncio."""
+    comunidad_service.delete_anuncio(db, id_anuncio, current_user)
+    return None

@@ -4,7 +4,6 @@ import {
   shorthands, 
   tokens, 
   Input, 
-  Textarea, 
   Switch, 
   Table, 
   TableHeader, 
@@ -14,13 +13,14 @@ import {
   TableCell,
   Spinner,
   Badge,
-  Divider
+  Divider,
+  Select,
+  Label
 } from '@fluentui/react-components';
 import { 
   MegaphoneLoud24Filled, 
   Send24Regular, 
   Delete24Regular, 
-  Edit24Regular,
   Mail24Filled,
   Link24Regular,
   Image24Regular
@@ -28,9 +28,13 @@ import {
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import comunidadService from '../services/comunidadService';
 import { useNotify } from '../App';
-import api from '../services/api';
+import api, { resolveApiFileUrl } from '../services/api';
 
 import { designTokens } from '../theme/theme';
+
+// Importar React Quill para texto enriquecido
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 const useStyles = makeStyles({
   container: {
@@ -46,8 +50,23 @@ const useStyles = makeStyles({
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '16px',
+    gap: '20px',
     width: '100%',
+  },
+  quillWrapper: {
+    marginTop: '4px',
+    '& .ql-toolbar': {
+      ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
+      ...shorthands.borderRadius('12px', '12px', '0', '0'),
+      backgroundColor: tokens.colorNeutralBackground3,
+    },
+    '& .ql-container': {
+      ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
+      ...shorthands.borderRadius('0', '0', '12px', '12px'),
+      minHeight: '200px',
+      fontSize: '16px',
+      backgroundColor: tokens.colorNeutralBackground1,
+    }
   },
   tableWrapper: {
     width: '100%',
@@ -61,16 +80,37 @@ const useStyles = makeStyles({
       gridTemplateColumns: '1fr',
     }
   },
-  uploadBox: {
-    border: `2px dashed ${tokens.colorNeutralBackground3}`,
-    padding: '16px',
-    borderRadius: '8px',
+  uploadAction: {
+    ...shorthands.border('2px', 'dashed', tokens.colorBrandStroke1),
+    ...shorthands.padding('16px'),
+    ...shorthands.borderRadius('12px'),
     textAlign: 'center',
     position: 'relative',
+    transition: 'all 0.2s ease',
+    backgroundColor: tokens.colorNeutralBackground2,
     cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    height: '100%',
+    minHeight: '80px',
     ':hover': {
-        borderColor: tokens.colorBrandBackground,
+        ...shorthands.borderColor(tokens.colorBrandBackground),
+        backgroundColor: tokens.colorBrandBackground2,
     }
+  },
+  imagePreview: {
+    width: '100%',
+    height: '120px',
+    objectFit: 'cover',
+    ...shorthands.borderRadius('8px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3)
+  },
+  actionCell: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center'
   }
 });
 
@@ -81,6 +121,7 @@ const NotificacionesAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
   
   const [formData, setFormData] = useState({
     titulo: '',
@@ -91,6 +132,16 @@ const NotificacionesAdmin = () => {
     enviar_email: false,
     activo: true
   });
+
+  // Configuración de la barra de herramientas de Quill
+  const quillModules = {
+    toolbar: [
+      [{ 'header': [1, 2, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{'list': 'ordered'}, {'list': 'bullet'}],
+      ['link', 'clean']
+    ],
+  };
 
   useEffect(() => {
     fetchAnuncios();
@@ -117,7 +168,11 @@ const NotificacionesAdmin = () => {
       const uploadData = new FormData();
       uploadData.append('file', file);
       const res = await api.post('/files/upload', uploadData);
-      setFormData(prev => ({ ...prev, url_imagen: res.data.url }));
+      const backendUrl = res.data.url;
+      
+      setFormData(prev => ({ ...prev, url_imagen: backendUrl }));
+      setPreviewUrl(`${resolveApiFileUrl(backendUrl)}?t=${new Date().getTime()}`);
+      
       notify("Éxito", "Imagen cargada correctamente", "success");
     } catch (err) {
       notify("Error", "No se pudo subir la imagen", "error");
@@ -133,6 +188,7 @@ const NotificacionesAdmin = () => {
       await comunidadService.crearAnuncio(formData);
       notify("Éxito", "Anuncio publicado correctamente", "success");
       setFormData({ titulo: '', contenido: '', tipo: 'INFO', url_imagen: '', link_accion: '', enviar_email: false, activo: true });
+      setPreviewUrl(null);
       fetchAnuncios();
     } catch (err) {
       notify("Error", "No se pudo publicar el anuncio", "error");
@@ -144,6 +200,7 @@ const NotificacionesAdmin = () => {
   const handleToggleActivo = async (idAnuncio, currentState) => {
     try {
       await comunidadService.actualizarAnuncio(idAnuncio, { activo: !currentState });
+      notify("Actualizado", "Estado del anuncio modificado", "success");
       fetchAnuncios();
     } catch (err) {
       notify("Error", "No se pudo actualizar el estado", "error");
@@ -163,9 +220,9 @@ const NotificacionesAdmin = () => {
 
   return (
     <div className={styles.container}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <MegaphoneLoud24Filled style={{ color: tokens.colorBrandForeground1, fontSize: '32px' }} />
-        <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+        <MegaphoneLoud24Filled style={{ color: tokens.colorBrandForeground1, fontSize: '42px' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <MEHTypography variant="h1">Gestión de Notificaciones</MEHTypography>
             <MEHTypography variant="body" style={{ opacity: 0.7 }}>Crea anuncios para la comunidad y notifica por correo electrónico.</MEHTypography>
         </div>
@@ -175,64 +232,89 @@ const NotificacionesAdmin = () => {
         <MEHCard>
             <MEHTypography variant="h3" style={{ marginBottom: '20px', display: 'block' }}>Nuevo Anuncio</MEHTypography>
             <form onSubmit={handleSubmit} className={styles.form}>
-                <Input 
-                    placeholder="Título del anuncio" 
-                    value={formData.titulo} 
-                    onChange={(e, d) => setFormData({...formData, titulo: d.value})}
-                    required
-                    style={{ width: '100%' }}
-                />
-                <Textarea 
-                    placeholder="Contenido detallado..." 
-                    value={formData.contenido}
-                    onChange={(e, d) => setFormData({...formData, contenido: d.value})}
-                    required
-                    rows={6}
-                    style={{ width: '100%' }}
-                />
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div>
-                        <MEHTypography variant="caption" style={{ marginBottom: '4px', display: 'block' }}>Imagen del Anuncio</MEHTypography>
-                        <div className={styles.uploadBox}>
-                            {uploading ? <Spinner size="tiny" /> : (
-                                <>
-                                    <Image24Regular style={{ fontSize: '20px', opacity: 0.5 }} />
-                                    <input type="file" accept="image/*" onChange={handleFileUpload} style={{ opacity: 0, position: 'absolute', inset: 0, cursor: 'pointer' }} />
-                                </>
-                            )}
-                            {formData.url_imagen && <Badge color="success" appearance="tint" style={{ marginLeft: '8px' }}>Cargada</Badge>}
-                        </div>
+                <div className={styles.fieldGroup}>
+                    <Label required style={{ marginBottom: '4px' }}>Título del Anuncio</Label>
+                    <Input 
+                        placeholder="Título descriptivo..." 
+                        value={formData.titulo} 
+                        onChange={(e, d) => setFormData({...formData, titulo: d.value})}
+                        required
+                        style={{ width: '100%' }}
+                    />
+                </div>
+
+                <div className={styles.fieldGroup}>
+                    <Label required style={{ marginBottom: '4px' }}>Cuerpo del Mensaje</Label>
+                    <div className={styles.quillWrapper}>
+                        <ReactQuill 
+                            theme="snow"
+                            value={formData.contenido}
+                            onChange={(content) => setFormData({...formData, contenido: content})}
+                            modules={quillModules}
+                            placeholder="Redacta el contenido con negritas, links y listas..."
+                        />
                     </div>
-                    <div>
-                        <MEHTypography variant="caption" style={{ marginBottom: '4px', display: 'block' }}>Link de Acción</MEHTypography>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className={styles.fieldGroup}>
+                        <MEHTypography variant="caption" style={{ fontWeight: 'bold' }}>Imagen del Anuncio</MEHTypography>
+                        {previewUrl ? (
+                            <div style={{ position: 'relative' }}>
+                                <img src={previewUrl} className={styles.imagePreview} alt="Preview" />
+                                <MEHButton 
+                                    size="small" 
+                                    icon={<Delete24Regular />} 
+                                    style={{ position: 'absolute', top: '4px', right: '4px' }}
+                                    onClick={() => { setFormData({...formData, url_imagen: ''}); setPreviewUrl(null); }}
+                                />
+                            </div>
+                        ) : (
+                            <div className={styles.uploadAction} onClick={() => document.getElementById('notif-file').click()}>
+                                {uploading ? <Spinner size="tiny" /> : (
+                                    <>
+                                        <Image24Regular style={{ fontSize: '20px', color: tokens.colorBrandForeground1 }} />
+                                        <MEHTypography variant="caption">Subir Multimedia</MEHTypography>
+                                        <input id="notif-file" type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    <div className={styles.fieldGroup}>
+                        <MEHTypography variant="caption" style={{ fontWeight: 'bold' }}>Link de Acción</MEHTypography>
                         <Input 
                             contentBefore={<Link24Regular />}
                             placeholder="https://..." 
                             value={formData.link_accion}
                             onChange={(e, d) => setFormData({...formData, link_accion: d.value})}
-                            style={{ width: '100%' }}
+                            style={{ height: '54px' }}
                         />
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '24px', margin: '8px 0' }}>
-                    <Switch 
-                        label="Enviar por Email" 
-                        checked={formData.enviar_email}
-                        onChange={(e, d) => setFormData({...formData, enviar_email: d.checked})}
-                    />
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <MEHTypography variant="caption">Tipo:</MEHTypography>
-                        <select 
+                <Divider />
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <Switch 
+                            label="Enviar por Email" 
+                            checked={formData.enviar_email}
+                            onChange={(e, d) => setFormData({...formData, enviar_email: d.checked})}
+                        />
+                        <MEHTypography variant="caption" style={{ opacity: 0.6, marginLeft: '40px' }}>Notifica a todos los miembros activos.</MEHTypography>
+                    </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '150px' }}>
+                        <MEHTypography variant="caption" style={{ fontWeight: 'bold' }}>Categoría:</MEHTypography>
+                        <Select 
                             value={formData.tipo}
-                            onChange={(e) => setFormData({...formData, tipo: e.target.value})}
-                            style={{ padding: '4px 8px', borderRadius: '4px', backgroundColor: '#333', color: 'white', border: 'none' }}
+                            onChange={(e, d) => setFormData({...formData, tipo: d.value})}
                         >
                             <option value="INFO">Información</option>
                             <option value="NUEVO">Novedad</option>
                             <option value="ALERTA">Alerta</option>
-                        </select>
+                        </Select>
                     </div>
                 </div>
 
@@ -242,8 +324,9 @@ const NotificacionesAdmin = () => {
                     size="large" 
                     icon={<Send24Regular />}
                     loading={publishing}
+                    style={{ marginTop: '12px' }}
                 >
-                    Publicar Ahora
+                    Publicar Anuncio
                 </MEHButton>
             </form>
         </MEHCard>
@@ -252,7 +335,7 @@ const NotificacionesAdmin = () => {
             <MEHTypography variant="h3" style={{ marginBottom: '20px', display: 'block' }}>Historial Reciente</MEHTypography>
             {loading ? <Spinner label="Cargando historial..." /> : (
                 <div className={styles.tableWrapper}>
-                    <Table>
+                    <Table size="extra-small">
                         <TableHeader>
                             <TableRow>
                                 <TableHeaderCell>Fecha</TableHeaderCell>
@@ -266,7 +349,9 @@ const NotificacionesAdmin = () => {
                             {anuncios.map(anuncio => (
                                 <TableRow key={anuncio.id_anuncio}>
                                     <TableCell>{new Date(anuncio.fecha_publicacion).toLocaleDateString()}</TableCell>
-                                    <TableCell><b>{anuncio.titulo}</b></TableCell>
+                                    <TableCell style={{ maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <b>{anuncio.titulo}</b>
+                                    </TableCell>
                                     <TableCell>
                                         <Badge appearance="tint" color={anuncio.tipo === 'ALERTA' ? 'danger' : 'brand'}>
                                             {anuncio.tipo}
@@ -279,8 +364,14 @@ const NotificacionesAdmin = () => {
                                         />
                                     </TableCell>
                                     <TableCell>
-                                        <div style={{ display: 'flex', gap: '4px' }}>
-                                            <MEHButton size="small" icon={<Delete24Regular />} onClick={() => handleDelete(anuncio.id_anuncio)} />
+                                        <div className={styles.actionCell}>
+                                            <MEHButton 
+                                                size="small" 
+                                                icon={<Delete24Regular />} 
+                                                onClick={() => handleDelete(anuncio.id_anuncio)} 
+                                                appearance="subtle"
+                                                style={{ color: tokens.colorPaletteRedForeground1 }}
+                                            />
                                         </div>
                                     </TableCell>
                                 </TableRow>
