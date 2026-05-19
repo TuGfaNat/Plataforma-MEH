@@ -5,8 +5,7 @@ import {
 import { Add24Regular, Certificate24Regular } from '@fluentui/react-icons';
 import api from '../../services/api';
 import { useNotify } from '../../App';
-import MEHCard from '../../components/ui/MEHCard';
-import MEHTypography from '../../components/ui/MEHTypography';
+import { MEHCard, MEHTypography } from '../../components/ui';
 
 const useStyles = makeStyles({
   container: {

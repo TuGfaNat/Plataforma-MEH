@@ -232,9 +232,9 @@ const Sidebar = ({ onClose }) => {
             )}
             {canManageEvents && (
               <NavItem to="/admin/notificaciones" icon={MegaphoneLoud24Regular} activeIcon={MegaphoneLoud24Filled} label="Notificaciones" />
+            )}
             {canManageEvents && (
               <NavItem to="/admin/generador-certificados" icon={Print24Regular} activeIcon={Print24Filled} label="Generador Certificados" />
-            )}
             )}
             {canReadAllPayments && (
               <NavItem to="/gestion-pagos" icon={ReceiptMoney24Regular} activeIcon={ReceiptMoney24Filled} label={t('manage_payments') || "Validar Pagos"} />
