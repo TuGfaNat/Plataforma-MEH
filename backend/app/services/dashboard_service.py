@@ -26,6 +26,20 @@ def get_dashboard_stats(db: Session, user_id: int, role: str, nombres: str):
         models.Certificado.id_usuario == user_id
     ).count()
 
+    # Obtener últimas 3 insignias
+    ultimas_insignias = db.query(models.Badge).join(models.UsuarioBadge).filter(
+        models.UsuarioBadge.id_usuario == user_id
+    ).order_by(models.UsuarioBadge.fecha_obtencion.desc()).limit(3).all()
+
+    ultimas_insignias_data = [
+        {
+            "id_badge": b.id_badge,
+            "nombre_badge": b.nombre_badge,
+            "imagen_url": b.imagen_url,
+            "puntos": b.puntos
+        } for b in ultimas_insignias
+    ]
+
     # Sincronizado con el modelo saneado (progreso)
     promedio_progreso = db.query(func.avg(models.InscripcionCurso.progreso)).filter(
         models.InscripcionCurso.id_usuario == user_id
@@ -36,7 +50,8 @@ def get_dashboard_stats(db: Session, user_id: int, role: str, nombres: str):
         "certificados_obtenidos": mis_certificados,
         "progreso_promedio": float(promedio_progreso),
         "eventos_asistidos": mis_eventos, # Por ahora simplificado
-        "eventos_esperados": 10
+        "eventos_esperados": 10,
+        "ultimas_insignias": ultimas_insignias_data
     }
 
     # 2. WIDGETS POR PERMISOS (Staff / Admin)

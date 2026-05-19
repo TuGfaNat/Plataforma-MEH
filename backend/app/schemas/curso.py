@@ -1,7 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
-from decimal import Decimal
 
 class LeccionBase(BaseModel):
     titulo: str
@@ -70,7 +69,6 @@ class CursoBase(BaseModel):
     nombre_curso: str
     descripcion: str
     horas_academicas: int
-    costo: Decimal = Decimal(0)
     imagen_url: Optional[str] = None
     estado: str = "ACTIVO"
 

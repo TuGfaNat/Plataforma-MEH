@@ -9,15 +9,18 @@ import {
 } from '@fluentui/react-components';
 import { 
   People24Regular,
-  ChatBubblesQuestion24Regular,
+  ChatMultiple24Regular,
   Megaphone24Regular,
   Info24Regular,
   Star24Regular,
-  Alert24Regular
+  Alert24Regular,
+  Globe24Regular,
+  Link24Regular
 } from '@fluentui/react-icons';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import comunidadService from '../services/comunidadService';
 import UserProfileModal from '../components/UserProfileModal';
+import { resolveApiFileUrl } from '../services/api';
 
 const useStyles = makeStyles({
   container: {
@@ -38,20 +41,40 @@ const useStyles = makeStyles({
   },
   memberGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))',
     ...shorthands.gap('16px'),
   },
   memberCard: {
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    textAlign: 'center',
-    ...shorthands.padding('24px', '16px'),
-    gap: '8px',
-    transition: 'background-color 0.2s',
+    ...shorthands.padding('18px'),
+    gap: '12px',
+    transition: 'all 0.2s',
     ':hover': {
-      backgroundColor: 'rgba(255,255,255,0.05)',
+      backgroundColor: 'rgba(255,255,255,0.04)',
     }
+  },
+  memberTop: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  memberMeta: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px',
+    marginTop: '2px',
+  },
+  memberDetails: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '6px 10px',
+    opacity: 0.9,
+  },
+  memberSocials: {
+    display: 'flex',
+    gap: '6px',
+    flexWrap: 'wrap',
   },
   mainGrid: {
     display: 'grid',
@@ -69,8 +92,46 @@ const useStyles = makeStyles({
     backgroundColor: 'rgba(255,255,255,0.02)',
     ...shorthands.borderRadius('8px'),
     ...shorthands.border('1px', 'solid', 'rgba(255,255,255,0.05)'),
+  },
+  noticeItem: {
+    paddingBottom: '16px',
+    borderBottom: '1px solid rgba(255,255,255,0.1)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
   }
 });
+
+const OFFICIAL_CHANNELS = [
+  {
+    name: 'Grupo WhatsApp',
+    description: 'Conversación diaria, networking y coordinación.',
+    url: 'https://chat.whatsapp.com/LDxk8EbhDYo5s8U9S8OzLm',
+    icon: 'https://img.icons8.com/color/48/000000/whatsapp--v1.png',
+    button: 'Unirme',
+  },
+  {
+    name: 'Canal Telegram',
+    description: 'Comunicados rápidos y novedades oficiales.',
+    url: 'https://t.me/microsoft_education_hub',
+    icon: 'https://cdn-icons-png.flaticon.com/512/2111/2111646.png',
+    button: 'Seguir',
+  },
+  {
+    name: 'Canal WhatsApp',
+    description: 'Anuncios institucionales y eventos importantes.',
+    url: 'https://whatsapp.com/channel/0029VagyQcK6mYPQwwV0pc1M',
+    icon: 'https://cdn-icons-png.flaticon.com/512/733/733585.png',
+    button: 'Seguir',
+  },
+  {
+    name: 'LinkedIn Oficial',
+    description: 'Publicaciones profesionales y alianzas.',
+    url: 'https://www.linkedin.com/company/microsoft-education-hub',
+    icon: 'https://cdn-icons-png.flaticon.com/512/174/174857.png',
+    button: 'Visitar',
+  },
+];
 
 const Comunidad = () => {
   const styles = useStyles();
@@ -126,25 +187,19 @@ const Comunidad = () => {
           {/* Canales */}
           <section>
             <MEHTypography variant="h3" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ChatBubblesQuestion24Regular /> Canales Oficiales
+              <ChatMultiple24Regular /> Canales Oficiales
             </MEHTypography>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div className={styles.channelItem}>
-                <img src="https://img.icons8.com/color/48/000000/discord-logo.png" alt="Discord" style={{ width: '32px' }} />
-                <div style={{ flexGrow: 1 }}>
-                  <MEHTypography variant="body" style={{ fontWeight: 'bold', display: 'block' }}>Servidor de Discord</MEHTypography>
-                  <MEHTypography variant="caption" style={{ opacity: 0.6 }}>Preguntas, networking y memes tech.</MEHTypography>
+              {OFFICIAL_CHANNELS.map((ch) => (
+                <div key={ch.name} className={styles.channelItem}>
+                  <img src={ch.icon} alt={ch.name} style={{ width: '32px' }} />
+                  <div style={{ flexGrow: 1 }}>
+                    <MEHTypography variant="body" style={{ fontWeight: 'bold', display: 'block' }}>{ch.name}</MEHTypography>
+                    <MEHTypography variant="caption" style={{ opacity: 0.7 }}>{ch.description}</MEHTypography>
+                  </div>
+                  <MEHButton appearance="primary" onClick={() => window.open(ch.url, '_blank')}>{ch.button}</MEHButton>
                 </div>
-                <MEHButton appearance="primary" onClick={() => window.open('https://discord.com', '_blank')}>Unirme</MEHButton>
-              </div>
-              <div className={styles.channelItem}>
-                <img src="https://img.icons8.com/color/48/000000/whatsapp--v1.png" alt="WhatsApp" style={{ width: '32px' }} />
-                <div style={{ flexGrow: 1 }}>
-                  <MEHTypography variant="body" style={{ fontWeight: 'bold', display: 'block' }}>Grupo de Anuncios</MEHTypography>
-                  <MEHTypography variant="caption" style={{ opacity: 0.6 }}>Solo administradores (links y eventos).</MEHTypography>
-                </div>
-                <MEHButton appearance="outline" onClick={() => window.open('https://whatsapp.com', '_blank')}>Unirme</MEHButton>
-              </div>
+              ))}
             </div>
           </section>
 
@@ -157,11 +212,37 @@ const Comunidad = () => {
               <div className={styles.memberGrid}>
                 {miembros.map(m => (
                   <MEHCard key={m.id_usuario} className={styles.memberCard}>
-                    <Avatar name={`${m.nombres} ${m.apellidos}`} size={64} color="colorful" src={m.foto_url} />
-                    <div style={{ marginTop: '8px' }}>
-                      <MEHTypography variant="body" style={{ fontWeight: 'bold', display: 'block' }}>{m.alias || m.nombres}</MEHTypography>
-                      <MEHTypography variant="caption" style={{ color: tokens.colorBrandForeground1 }}>{m.rol}</MEHTypography>
+                    <div className={styles.memberTop}>
+                      <Avatar name={`${m.nombres} ${m.apellidos}`} size={56} color="colorful" image={{ src: resolveApiFileUrl(m.foto_url) }} />
+                      <div>
+                        <MEHTypography variant="body" style={{ fontWeight: 'bold', display: 'block' }}>
+                          {m.alias || `${m.nombres} ${m.apellidos}`}
+                        </MEHTypography>
+                        <MEHTypography variant="caption" style={{ opacity: 0.75 }}>
+                          {m.nombres} {m.apellidos}
+                        </MEHTypography>
+                        <div className={styles.memberMeta}>
+                          <Badge appearance="tint" color="brand">{m.rol}</Badge>
+                          <Badge appearance="outline">{m.tipo_entidad || 'Miembro'}</Badge>
+                        </div>
+                      </div>
                     </div>
+
+                    <div className={styles.memberDetails}>
+                      <MEHTypography variant="caption"><b>Institución:</b> {m.institucion || 'No definida'}</MEHTypography>
+                      <MEHTypography variant="caption"><b>Ubicación:</b> {m.departamento || 'N/D'}, {m.pais || 'N/D'}</MEHTypography>
+                    </div>
+
+                    <MEHTypography variant="caption" style={{ opacity: 0.75 }}>
+                      {m.bio ? (m.bio.length > 140 ? `${m.bio.slice(0, 140)}...` : m.bio) : 'Sin biografía pública.'}
+                    </MEHTypography>
+
+                    <div className={styles.memberSocials}>
+                      {m.linkedin_url && <MEHButton size="small" appearance="subtle" icon={<Globe24Regular />} onClick={() => window.open(m.linkedin_url, '_blank')}>LinkedIn</MEHButton>}
+                      {m.github_url && <MEHButton size="small" appearance="subtle" icon={<Globe24Regular />} onClick={() => window.open(m.github_url, '_blank')}>GitHub</MEHButton>}
+                      {m.learning_path_url && <MEHButton size="small" appearance="subtle" icon={<Globe24Regular />} onClick={() => window.open(m.learning_path_url, '_blank')}>Learn</MEHButton>}
+                    </div>
+
                     <MEHButton 
                       appearance="subtle" 
                       size="small"
@@ -170,7 +251,7 @@ const Comunidad = () => {
                         setIsModalOpen(true);
                       }}
                     >
-                      Ver perfil
+                      Ver perfil completo
                     </MEHButton>
                   </MEHCard>
                 ))}
@@ -194,7 +275,7 @@ const Comunidad = () => {
                 <Spinner size="small" />
               ) : anuncios.length > 0 ? (
                 anuncios.map(anuncio => (
-                  <div key={anuncio.id_anuncio} style={{ paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                  <div key={anuncio.id_anuncio} className={styles.noticeItem}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                       <Badge color={anuncio.tipo === 'ALERTA' ? 'danger' : 'brand'} appearance="tint">
                         {anuncio.tipo}
@@ -212,6 +293,23 @@ const Comunidad = () => {
                         </MEHTypography>
                       </div>
                     </div>
+                    {anuncio.url_imagen && (
+                      <img
+                        src={resolveApiFileUrl(anuncio.url_imagen)}
+                        alt={anuncio.titulo}
+                        style={{ width: '100%', borderRadius: '8px', maxHeight: '180px', objectFit: 'cover' }}
+                      />
+                    )}
+                    {anuncio.link_accion && (
+                      <MEHButton
+                        appearance="outline"
+                        size="small"
+                        icon={<Link24Regular />}
+                        onClick={() => window.open(anuncio.link_accion, '_blank')}
+                      >
+                        Ver más
+                      </MEHButton>
+                    )}
                   </div>
                 ))
               ) : (

@@ -25,14 +25,18 @@ class ComunidadSimple(BaseModel):
 class EventoBase(BaseModel):
     titulo: str
     descripcion: Optional[str] = None
+    tipo_evento: str = "CONFERENCIA"
     fecha_inicio: datetime
     fecha_fin: Optional[datetime] = None
     hora_inicio: Optional[str] = None
     hora_fin: Optional[str] = None
-    modalidad: str
+    modalidad: str = "PRESENCIAL"
     ubicacion: Optional[str] = None
-    capacidad_max: int
+    link_mapas: Optional[str] = None
+    agenda: Optional[str] = None # JSON string
+    capacidad_max: int = 50
     imagen_url: Optional[str] = None
+    refrigerio_incluido: bool = False
 
 class EventoCreate(EventoBase):
     id_speakers: Optional[List[int]] = []
@@ -42,13 +46,19 @@ class EventoCreate(EventoBase):
 class EventoUpdate(BaseModel):
     titulo: Optional[str] = None
     descripcion: Optional[str] = None
+    tipo_evento: Optional[str] = None
     fecha_inicio: Optional[datetime] = None
     fecha_fin: Optional[datetime] = None
     hora_inicio: Optional[str] = None
     hora_fin: Optional[str] = None
+    modalidad: Optional[str] = None
+    ubicacion: Optional[str] = None
+    link_mapas: Optional[str] = None
+    agenda: Optional[str] = None
     estado: Optional[str] = None
     capacidad_max: Optional[int] = None
     imagen_url: Optional[str] = None
+    refrigerio_incluido: Optional[bool] = None
     id_speakers: Optional[List[int]] = None
     id_auspiciadores: Optional[List[int]] = None
     id_comunidades: Optional[List[int]] = None

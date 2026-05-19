@@ -5,7 +5,8 @@ import {
   tokens, 
   Body1,
   Button,
-  mergeClasses
+  mergeClasses,
+  Avatar
 } from '@fluentui/react-components';
 import { 
   Trophy24Regular, 
@@ -244,6 +245,24 @@ const Sidebar = ({ onClose }) => {
       </nav>
 
       <div className={styles.footer}>
+        {user && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', marginBottom: '8px' }}>
+            <Avatar 
+                size={32} 
+                name={`${user.nombres} ${user.apellidos}`} 
+                image={user.foto_url ? { src: user.foto_url } : undefined}
+                color="colorful"
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <Body1 style={{ fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user.nombres} {user.apellidos}
+              </Body1>
+              <span style={{ fontSize: '0.75rem', opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user.correo}
+              </span>
+            </div>
+          </div>
+        )}
         <div className={styles.themeToggle}>
            <Button 
             appearance="subtle" 

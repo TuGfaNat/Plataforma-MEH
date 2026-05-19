@@ -18,10 +18,17 @@ def sanitize():
         db.execute(text("UPDATE lecciones SET orden = 1 WHERE orden IS NULL"))
         logger.info("✅ Campo 'orden' saneado en tabla lecciones.")
         
-        # 3. Corregir Eventos sin tipo o refrigerio
+        # 3. Corregir Eventos: Añadir columnas faltantes y sanear datos
+        try:
+            db.execute(text("ALTER TABLE eventos ADD COLUMN IF NOT EXISTS link_mapas VARCHAR"))
+            db.execute(text("ALTER TABLE eventos ADD COLUMN IF NOT EXISTS agenda TEXT"))
+            logger.info("✅ Columnas 'link_mapas' y 'agenda' aseguradas en tabla eventos.")
+        except Exception as e:
+            logger.warning(f"⚠️ Nota: Al intentar añadir columnas en eventos: {e}")
+
         db.execute(text("UPDATE eventos SET tipo_evento = 'CONFERENCIA' WHERE tipo_evento IS NULL"))
         db.execute(text("UPDATE eventos SET refrigerio_incluido = false WHERE refrigerio_incluido IS NULL"))
-        logger.info("✅ Campos de logística saneados en tabla eventos.")
+        logger.info("✅ Datos de logística saneados en tabla eventos.")
         
         # 4. Asegurar que los anuncios tengan estado activo
         db.execute(text("UPDATE anuncios SET activo = true WHERE activo IS NULL"))

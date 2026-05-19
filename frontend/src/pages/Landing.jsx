@@ -288,6 +288,13 @@ const Landing = () => {
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <MEHButton 
+            appearance="subtle"
+            onClick={() => navigate('/validador')}
+            style={{ marginRight: '8px' }}
+          >
+            {t('verificar_talento')}
+          </MEHButton>
+          <MEHButton 
             appearance="subtle" 
             icon={<Translate24Regular />} 
             onClick={changeLanguage}

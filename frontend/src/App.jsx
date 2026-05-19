@@ -25,6 +25,7 @@ import EscaneoQR from './pages/EscaneoQR.jsx';
 import RecursosVIP from './pages/RecursosVIP.jsx';
 import SpeakerKit from './pages/SpeakerKit.jsx';
 import VerificarCertificado from './pages/VerificarCertificado.jsx';
+import ValidadorTalento from './pages/ValidadorTalento.jsx';
 import Analytics from './pages/Admin/Analytics.jsx';
 import EcosystemDirectory from './pages/Admin/EcosystemDirectory.jsx';
 import NotificacionesAdmin from './pages/NotificacionesAdmin.jsx';
@@ -140,6 +141,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/validador" element={<ValidadorTalento />} />
                 <Route path="/verificar/:uuid" element={<VerificarCertificado />} />
                 
                 {/* Rutas con Sidebar Persistente */}

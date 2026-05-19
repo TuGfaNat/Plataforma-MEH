@@ -39,7 +39,12 @@ def list_user_certificados(db: Session, current_user: models.Usuario):
 
 
 def verify_certificado(db: Session, uuid_cert: str) -> dict:
-    cert = db.query(models.Certificado).filter(models.Certificado.uuid_verificacion == uuid_cert).first()
+    # Buscar por UUID o por Código de Verificación legible
+    cert = db.query(models.Certificado).filter(
+        (models.Certificado.uuid_verificacion == uuid_cert) | 
+        (models.Certificado.codigo_verificacion == uuid_cert)
+    ).first()
+    
     if not cert:
         raise HTTPException(status_code=404, detail="Certificado no encontrado o inválido")
 
@@ -131,7 +136,7 @@ def update_nota(db: Session, id_inscripcion: int, nota: float, current_user_id: 
             id_usuario=inscripcion.id_usuario,
             id_curso=inscripcion.id_curso,
             codigo_verificacion=f"MEH-CUR-{inscripcion.id_inscripcion}-{datetime.utcnow().strftime('%Y%m%d')}",
-            url_pdf=curso.plantilla_certificado_url or "https://ejemplo.com/default-cert.pdf",
+            url_pdf=curso.plantilla_certificado_url if hasattr(curso, 'plantilla_certificado_url') else "https://ejemplo.com/default-cert.pdf",
             fecha_emision=datetime.utcnow(),
             creado_por=current_user_id
         )

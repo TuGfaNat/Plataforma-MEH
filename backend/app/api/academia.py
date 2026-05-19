@@ -18,12 +18,38 @@ def get_lecciones(id_curso: int, db: Session = Depends(get_db)):
 def create_leccion(data: schema.LeccionCreate, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
     return academia_service.create_leccion(db, data, current_user.id_usuario)
 
+@router.put("/lecciones/{id_leccion}", response_model=schema.LeccionResponse)
+def update_leccion(id_leccion: int, data: dict, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
+    return academia_service.update_leccion(db, id_leccion, data, current_user.id_usuario)
+
+@router.delete("/lecciones/{id_leccion}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_leccion(id_leccion: int, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
+    academia_service.delete_leccion(db, id_leccion, current_user.id_usuario)
+    return None
+
+@router.get("/lecciones/{id_leccion}/tareas", response_model=List[schema.TareaResponse])
+def get_tareas_leccion(id_leccion: int, db: Session = Depends(get_db)):
+    return academia_service.list_tareas_leccion(db, id_leccion)
+
 # --- TAREAS ---
 @router.post("/tareas", response_model=schema.TareaResponse, status_code=status.HTTP_201_CREATED)
 def create_tarea(data: schema.TareaCreate, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
     return academia_service.create_tarea(db, data, current_user.id_usuario)
 
+@router.put("/tareas/{id_tarea}", response_model=schema.TareaResponse)
+def update_tarea(id_tarea: int, data: dict, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
+    return academia_service.update_tarea(db, id_tarea, data, current_user.id_usuario)
+
+@router.delete("/tareas/{id_tarea}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_tarea(id_tarea: int, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
+    academia_service.delete_tarea(db, id_tarea, current_user.id_usuario)
+    return None
+
 # --- ENTREGAS ---
+@router.get("/tareas/{id_tarea}/entregas", response_model=List[schema.EntregaTareaResponse])
+def get_entregas_tarea(id_tarea: int, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
+    return academia_service.list_entregas_tarea(db, id_tarea)
+
 @router.post("/tareas/entregar", response_model=schema.EntregaTareaResponse)
 def submit_tarea(data: schema.EntregaTareaCreate, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
     return academia_service.submit_tarea(db, data, current_user.id_usuario)

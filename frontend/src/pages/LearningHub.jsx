@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  makeStyles, shorthands, tokens, Badge, Spinner, Dialog, DialogTrigger, DialogSurface, DialogTitle, DialogBody, DialogActions, DialogContent, TabList, Tab
+  makeStyles, shorthands, tokens, Badge, Spinner, TabList, Tab
 } from '@fluentui/react-components';
 import { 
   Library24Regular, PlayCircle24Regular, DocumentPdf24Regular, Link24Regular, Clock24Regular, Person24Regular,
-  CheckmarkCircle24Filled, ArrowDownload24Regular, Eye24Regular, Dismiss24Regular, Ribbon24Regular,
+  ArrowDownload24Regular, Ribbon24Regular,
   BookOpen24Regular, Globe24Regular
 } from '@fluentui/react-icons';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
@@ -46,6 +46,20 @@ const useStyles = makeStyles({
     ...shorthands.border('1px', 'solid', 'rgba(255, 255, 255, 0.05)'),
     transition: 'all 0.2s ease',
     ':hover': { backgroundColor: 'rgba(255, 255, 255, 0.05)' }
+  },
+  sectionGrid: {
+   display: 'grid',
+   gridTemplateColumns: '1fr 1fr',
+   gap: '32px',
+   '@media (max-width: 900px)': {
+     gridTemplateColumns: '1fr',
+     gap: '20px'
+   }
+  },
+  emptyCard: {
+   ...shorthands.padding('24px'),
+   textAlign: 'center',
+   opacity: 0.8
   }
 });
 
@@ -60,10 +74,8 @@ const LearningHub = () => {
   const [msCursos, setMsCursos] = useState([]);
   const [certificados, setCertificados] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
-  
-  const [selectedCert, setSelectedCert] = useState(null);
-  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [generatingCertId, setGeneratingCertId] = useState(null);
+  const [startingCourseId, setStartingCourseId] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -83,24 +95,63 @@ const LearningHub = () => {
       setMsCursos(msData.modules?.slice(0, 12) || []);
     } catch (err) {
       console.error("Error cargando Learning Hub:", err);
+      const detail = err?.response?.data?.detail;
+      notify("Error", typeof detail === "string" ? detail : "No se pudo cargar el Learning Hub.", "error");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleStartCourse = async (curso) => {
+    if (!curso?.id_curso) return;
+    setStartingCourseId(curso.id_curso);
+    try {
+      await cursoService.inscribirseCurso(curso.id_curso);
+      notify("Inscripción exitosa", `Te inscribiste en ${curso.nombre_curso}.`, "success");
+      navigate(`/learning/curso/${curso.id_curso}`);
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      const message = typeof detail === "string" ? detail : "No se pudo iniciar este curso.";
+      if (err?.response?.status === 400 || err?.response?.status === 409) {
+        notify("Ya inscrito", message, "info");
+        navigate(`/learning/curso/${curso.id_curso}`);
+      } else {
+        notify("Error", message, "error");
+      }
+    } finally {
+      setStartingCourseId(null);
+    }
+  };
+
+  const handleOpenMsLearn = (module) => {
+    if (!module?.url) {
+      notify("Sin enlace", "Este módulo no tiene URL disponible.", "warning");
+      return;
+    }
+    window.open(module.url, '_blank', 'noopener,noreferrer');
+  };
+
   const handleDownloadCertificate = async (cert) => {
-    setGenerating(true);
+    if (!user) {
+      notify("Error", "No se encontró el usuario para generar el certificado.", "error");
+      return;
+    }
+    setGeneratingCertId(cert.id_certificado);
     try {
         await generateCertificatePDF({
             fullName: `${user.nombres} ${user.apellidos}`,
             eventName: cert.nombre_curso_evento,
             date: cert.fecha_emision,
-            code: cert.uuid_verificacion,
+            code: cert.uuid_verificacion || cert.codigo_verificacion,
             templateUrl: null
         });
         notify("Éxito", "Certificado generado correctamente", "success");
-    } catch (err) { notify("Error", "No se pudo generar el PDF", "error"); }
-    finally { setGenerating(false); }
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      notify("Error", typeof detail === "string" ? detail : "No se pudo generar el PDF", "error");
+    } finally {
+      setGeneratingCertId(null);
+    }
   };
 
   const DEFAULT_BANNER = "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop";
@@ -121,9 +172,9 @@ const LearningHub = () => {
         <section>
           <div className={styles.courseGrid}>
             {activeTab === 'local' ? (
-              cursos.map(curso => (
+              cursos.length > 0 ? cursos.map(curso => (
                 <MEHCard key={curso.id_curso} className={styles.courseCard}>
-                  <img src={curso.imagen_url || DEFAULT_BANNER} alt="banner" className={styles.cardBanner} />
+                  <img src={curso.imagen_url || DEFAULT_BANNER} alt={`Portada de ${curso.nombre_curso}`} className={styles.cardBanner} />
                   <div className={styles.cardContent}>
                     <MEHTypography variant="h3">{curso.nombre_curso}</MEHTypography>
                     <div style={{ display: 'flex', gap: '12px', opacity: 0.6 }}>
@@ -131,18 +182,29 @@ const LearningHub = () => {
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}><Person24Regular fontSize={14} /> Instructor MEH</span>
                     </div>
                     <MEHTypography variant="caption" style={{ opacity: 0.7, minHeight: '40px' }}>{curso.descripcion}</MEHTypography>
-                    <MEHButton appearance="primary" icon={<PlayCircle24Regular />}>Empezar ahora</MEHButton>
+                    <MEHButton
+                      appearance="primary"
+                      icon={<PlayCircle24Regular />}
+                      onClick={() => handleStartCourse(curso)}
+                      disabled={startingCourseId === curso.id_curso}
+                    >
+                      {startingCourseId === curso.id_curso ? "Iniciando..." : "Empezar ahora"}
+                    </MEHButton>
                   </div>
                 </MEHCard>
-              ))
+              )) : (
+                <MEHCard className={styles.emptyCard}>
+                  <MEHTypography variant="caption">Aún no hay cursos de la comunidad disponibles.</MEHTypography>
+                </MEHCard>
+              )
             ) : (
-              msCursos.map(m => (
+              msCursos.length > 0 ? msCursos.map(m => (
                 <MEHCard key={m.uid} className={styles.courseCard}>
                   <div style={{ height: '140px', backgroundColor: '#0078d4', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                       <img 
                         src={m.icon_url || "https://img.icons8.com/color/96/000000/microsoft.png"} 
                         style={{ width: '80px', height: '80px', objectFit: 'contain' }} 
-                        alt="ms-icon" 
+                        alt={`Icono del módulo ${m.title || 'Microsoft Learn'}`} 
                       />
                       {m.levels && m.levels.length > 0 && (
                         <Badge appearance="filled" style={{ position: 'absolute', bottom: '8px', right: '8px', backgroundColor: 'rgba(0,0,0,0.6)' }}>
@@ -164,20 +226,25 @@ const LearningHub = () => {
                     <MEHButton 
                         appearance="primary" 
                         icon={<Link24Regular />} 
-                        onClick={() => window.open(m.url, '_blank')}
+                        onClick={() => handleOpenMsLearn(m)}
+                        disabled={!m.url}
                         style={{ marginTop: 'auto' }}
                     >
                         Ver en MS Learn
                     </MEHButton>
                   </div>
                 </MEHCard>
-              ))
+              )) : (
+                <MEHCard className={styles.emptyCard}>
+                  <MEHTypography variant="caption">No hay módulos de Microsoft Learn disponibles por ahora.</MEHTypography>
+                </MEHCard>
+              )
             )}
           </div>
         </section>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+      <div className={styles.sectionGrid}>
           <MEHCard>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
               <Ribbon24Regular style={{ color: tokens.colorBrandForeground1 }} />
@@ -189,9 +256,15 @@ const LearningHub = () => {
                   <DocumentPdf24Regular style={{ color: tokens.colorBrandForeground1, fontSize: '28px' }} />
                   <div style={{ flexGrow: 1 }}>
                     <MEHTypography variant="caption" style={{ fontWeight: 'bold', display: 'block' }}>{cert.nombre_curso_evento}</MEHTypography>
-                    <MEHTypography variant="caption" style={{ opacity: 0.6 }}>{cert.codigo_verificacion}</MEHTypography>
+                    <MEHTypography variant="caption" style={{ opacity: 0.6 }}>{cert.codigo_verificacion || cert.uuid_verificacion}</MEHTypography>
                   </div>
-                  <MEHButton appearance="subtle" icon={<ArrowDownload24Regular />} onClick={() => handleDownloadCertificate(cert)} />
+                  <MEHButton
+                    appearance="subtle"
+                    icon={<ArrowDownload24Regular />}
+                    aria-label={`Descargar certificado de ${cert.nombre_curso_evento}`}
+                    onClick={() => handleDownloadCertificate(cert)}
+                    disabled={generatingCertId === cert.id_certificado}
+                  />
                 </div>
               )) : <MEHTypography variant="caption">No hay certificados aún.</MEHTypography>}
             </div>

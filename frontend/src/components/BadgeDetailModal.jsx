@@ -10,8 +10,16 @@ import {
   shorthands,
   tokens,
 } from '@fluentui/react-components';
-import { Dismiss24Regular } from '@fluentui/react-icons';
-import { MEHButton, MEHTypography } from './ui';
+import { 
+  Dismiss24Regular, 
+  CheckmarkCircle24Filled, 
+  Share24Filled 
+} from '@fluentui/react-icons';
+import { 
+  MEHButton, 
+  MEHTypography 
+} from './ui';
+import { Badge } from '@fluentui/react-components';
 
 const useStyles = makeStyles({
   dialogContent: {
@@ -58,9 +66,8 @@ const BadgeDetailModal = ({ badge, trigger, onClose }) => {
   };
 
   const handleShare = () => {
-    const url = `${window.location.origin}/badges/${badge.id}`;
+    const url = `${window.location.origin}/badges/${badge.id_badge}`;
     navigator.clipboard.writeText(url);
-    // Aquí podrías mostrar un toast
     alert('¡Enlace copiado!');
   };
 
@@ -84,13 +91,21 @@ const BadgeDetailModal = ({ badge, trigger, onClose }) => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
               <DialogTitle style={{ marginBottom: '16px' }}>
-                {badge.nombre}
+                {badge.nombre_badge}
               </DialogTitle>
-              <img
-                src={badge.imagen_url || badge.icon}
-                alt={badge.nombre}
-                className={styles.badgeImage}
-              />
+              <div style={{ position: 'relative', width: 'fit-content' }}>
+                <img
+                  src={badge.imagen_url}
+                  alt={badge.nombre_badge}
+                  className={styles.badgeImage}
+                  style={{ filter: badge.earned ? 'none' : 'grayscale(1) opacity(0.5)' }}
+                />
+                {badge.earned && (
+                  <div style={{ position: 'absolute', bottom: '24px', right: '0', backgroundColor: '#22B14C', color: 'white', borderRadius: '50%', padding: '4px', border: '2px solid white' }}>
+                    <CheckmarkCircle24Filled style={{ fontSize: '20px' }} />
+                  </div>
+                )}
+              </div>
             </div>
             <MEHButton
               appearance="subtle"
@@ -104,39 +119,35 @@ const BadgeDetailModal = ({ badge, trigger, onClose }) => {
             <div className={styles.infoLabel}>Descripción</div>
             <div className={styles.infoValue}>
               <MEHTypography variant="body">
-                {badge.descripcion}
+                {badge.descripcion || 'Sin descripción disponible.'}
               </MEHTypography>
             </div>
           </div>
 
-          {badge.fecha_obtenida && (
-            <div className={styles.infoRow}>
-              <div className={styles.infoLabel}>Fecha de Obtención</div>
-              <div className={styles.infoValue}>
-                <MEHTypography variant="body">
-                  {formatDate(badge.fecha_obtenida)}
-                </MEHTypography>
-              </div>
-            </div>
-          )}
-
-          {badge.requisito_nivel && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className={styles.infoRow}>
               <div className={styles.infoLabel}>Nivel Requerido</div>
               <div className={styles.infoValue}>
-                <MEHTypography variant="body">
-                  {badge.requisito_nivel}
+                <Badge appearance="tint" color="brand">{badge.requisito_nivel}</Badge>
+              </div>
+            </div>
+
+            <div className={styles.infoRow}>
+              <div className={styles.infoLabel}>Valor</div>
+              <div className={styles.infoValue}>
+                <MEHTypography variant="body" style={{ fontWeight: 'bold', color: tokens.colorBrandForeground1 }}>
+                  +{badge.puntos} XP
                 </MEHTypography>
               </div>
             </div>
-          )}
+          </div>
 
-          {badge.puntos && (
+          {badge.earned && badge.fecha_obtencion && (
             <div className={styles.infoRow}>
-              <div className={styles.infoLabel}>Puntos</div>
+              <div className={styles.infoLabel}>Obtenida el</div>
               <div className={styles.infoValue}>
                 <MEHTypography variant="body">
-                  +{badge.puntos} puntos
+                  {formatDate(badge.fecha_obtencion)}
                 </MEHTypography>
               </div>
             </div>
@@ -146,8 +157,9 @@ const BadgeDetailModal = ({ badge, trigger, onClose }) => {
             <MEHButton
               appearance="secondary"
               onClick={handleShare}
+              icon={<Share24Filled />}
             >
-              📋 Copiar Enlace
+              Compartir Logro
             </MEHButton>
             <MEHButton
               appearance="primary"

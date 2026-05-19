@@ -5,8 +5,16 @@ const cursoService = {
     const response = await api.get('/cursos/');
     return response.data;
   },
+  inscribirseCurso: async (idCurso) => {
+    const response = await api.post(`/inscripciones/cursos/${idCurso}`);
+    return response.data;
+  },
   getCurso: async (id) => {
     const response = await api.get(`/cursos/${id}`);
+    return response.data;
+  },
+  getLeccionesCurso: async (idCurso) => {
+    const response = await api.get(`/academia/cursos/${idCurso}/lecciones`);
     return response.data;
   },
   createCurso: async (cursoData) => {

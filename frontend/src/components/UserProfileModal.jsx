@@ -24,6 +24,7 @@ import {
 } from '@fluentui/react-icons';
 import { MEHTypography } from './ui';
 import comunidadService from '../services/comunidadService';
+import { resolveApiFileUrl } from '../services/api';
 
 const useStyles = makeStyles({
   surface: {
@@ -106,7 +107,7 @@ const UserProfileModal = ({ userId, isOpen, onOpenChange }) => {
             {loading ? <Spinner label="Cargando..." /> : profile && (
               <>
                 <div className={styles.header}>
-                  <Avatar size={96} name={`${profile.nombres} ${profile.apellidos}`} src={profile.foto_url} color="colorful" />
+                  <Avatar size={96} name={`${profile.nombres} ${profile.apellidos}`} image={{ src: resolveApiFileUrl(profile.foto_url) }} color="colorful" />
                   <div style={{ textAlign: 'center' }}>
                     <MEHTypography variant="h2" style={{ display: 'block' }}>{profile.alias || `${profile.nombres} ${profile.apellidos}`}</MEHTypography>
                     <Badge appearance="filled" color="brand">{profile.rol}</Badge>
@@ -146,7 +147,7 @@ const UserProfileModal = ({ userId, isOpen, onOpenChange }) => {
                   <div className={styles.badgesContainer}>
                     {profile.badges?.map(ub => (
                       <div key={ub.id_usuario_badge} className={styles.badgeItem}>
-                        <img src={ub.badge.imagen_url} className={styles.badgeImage} alt="Badge" />
+                        <img src={resolveApiFileUrl(ub.badge.imagen_url)} className={styles.badgeImage} alt="Badge" />
                         <MEHTypography variant="caption" style={{ fontSize: '10px' }}>{ub.badge.nombre_badge}</MEHTypography>
                       </div>
                     ))}

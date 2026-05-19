@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   makeStyles,
   shorthands,
@@ -44,7 +44,7 @@ const useStyles = makeStyles({
   }
 });
 
-const BadgeForm = ({ onSuccess }) => {
+const BadgeForm = ({ onSuccess, editingBadge, onCancel }) => {
   const styles = useStyles();
   const { user } = useAuth();
   const { notify } = useNotify();
@@ -58,6 +58,26 @@ const BadgeForm = ({ onSuccess }) => {
     puntos: 10,
     imagen_url: '',
   });
+
+  useEffect(() => {
+    if (editingBadge) {
+      setFormData({
+        nombre_badge: editingBadge.nombre_badge || '',
+        descripcion: editingBadge.descripcion || '',
+        requisito_nivel: editingBadge.requisito_nivel || 'Beginner',
+        puntos: editingBadge.puntos || 10,
+        imagen_url: editingBadge.imagen_url || '',
+      });
+    } else {
+      setFormData({
+        nombre_badge: '',
+        descripcion: '',
+        requisito_nivel: 'Beginner',
+        puntos: 10,
+        imagen_url: '',
+      });
+    }
+  }, [editingBadge]);
 
   const handleFileUpload = async (e) => {
       const file = e.target.files[0];
@@ -86,8 +106,14 @@ const BadgeForm = ({ onSuccess }) => {
 
     setLoading(true);
     try {
-      await insigniasService.createInsignia(formData);
-      notify("Éxito", "Insignia registrada en el sistema de gamificación", "success");
+      if (editingBadge) {
+        await insigniasService.updateInsignia(editingBadge.id_badge, formData);
+        notify("Éxito", "Insignia actualizada correctamente", "success");
+      } else {
+        await insigniasService.createInsignia(formData);
+        notify("Éxito", "Insignia registrada en el sistema de gamificación", "success");
+      }
+      
       setFormData({
         nombre_badge: '',
         descripcion: '',
@@ -97,7 +123,7 @@ const BadgeForm = ({ onSuccess }) => {
       });
       onSuccess?.();
     } catch (err) {
-      notify("Error", "No se pudo crear la insignia", "error");
+      notify("Error", `No se pudo ${editingBadge ? 'actualizar' : 'crear'} la insignia`, "error");
     } finally {
       setLoading(false);
     }
@@ -107,9 +133,16 @@ const BadgeForm = ({ onSuccess }) => {
 
   return (
     <MEHCard>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-        <Add24Regular style={{ fontSize: '24px', color: tokens.colorBrandForeground1 }} />
-        <MEHTypography variant="h2">Panel de Gamificación: Nueva Insignia</MEHTypography>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {editingBadge ? <Edit24Regular style={{ fontSize: '24px', color: tokens.colorBrandForeground1 }} /> : <Add24Regular style={{ fontSize: '24px', color: tokens.colorBrandForeground1 }} />}
+          <MEHTypography variant="h2">
+            {editingBadge ? 'Editar Insignia' : 'Panel de Gamificación: Nueva Insignia'}
+          </MEHTypography>
+        </div>
+        {editingBadge && (
+          <MEHButton appearance="subtle" onClick={onCancel}>Cancelar Edición</MEHButton>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className={styles.formContainer}>
@@ -188,9 +221,9 @@ const BadgeForm = ({ onSuccess }) => {
                 size="large" 
                 type="submit" 
                 loading={loading}
-                icon={<Add24Regular />}
+                icon={editingBadge ? <Edit24Regular /> : <Add24Regular />}
             >
-                Publicar Insignia
+                {editingBadge ? 'Actualizar Insignia' : 'Publicar Insignia'}
             </MEHButton>
         </div>
       </form>

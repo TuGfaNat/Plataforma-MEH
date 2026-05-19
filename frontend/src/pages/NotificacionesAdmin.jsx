@@ -33,8 +33,8 @@ import api, { resolveApiFileUrl } from '../services/api';
 import { designTokens } from '../theme/theme';
 
 // Importar React Quill para texto enriquecido
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 
 const useStyles = makeStyles({
   container: {

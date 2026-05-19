@@ -70,12 +70,24 @@ export const generateCertificatePDF = async (data) => {
   doc.setFont("helvetica", "normal");
   doc.text(`Emitido el: ${new Date(date).toLocaleDateString()}`, width / 2, 280, { align: "center" });
 
-  // 4. Código de Validación y URL
+  // 4. Código de Validación, URL y QR
   doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
-  const validationUrl = `${window.location.origin}/verificar-certificado/${code}`;
-  doc.text(`Código de Verificación: ${code}`, 40, height - 40);
-  doc.text(`Validar en: ${validationUrl}`, 40, height - 25);
+  const validationUrl = `${window.location.origin}/verificar/${code}`;
+  
+  // Texto de validación
+  doc.text(`Código de Verificación: ${code}`, 40, height - 50);
+  doc.text(`Validar en: ${validationUrl}`, 40, height - 35);
+  doc.text("Este documento cuenta con validez digital verificable en nuestro portal oficial.", 40, height - 20);
+
+  // QR Code (Usando API externa para no añadir dependencias pesadas)
+  try {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(validationUrl)}`;
+    const qrImg = await loadImage(qrUrl);
+    doc.addImage(qrImg, 'PNG', width - 100, height - 100, 70, 70);
+  } catch (e) {
+    console.warn("No se pudo generar el código QR.");
+  }
 
   // 5. Marca de Agua / Logo MEH (Simulado)
   doc.setDrawColor(127, 19, 236);

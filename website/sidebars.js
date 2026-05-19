@@ -25,11 +25,13 @@ const sidebars = {
         description: 'Guías paso a paso para usuarios y administradores.',
       },
       items: [
-        'usuario/onboarding-miembro',
-        'usuario/gestion-eventos',
-        'usuario/sistema-pagos',
-        'usuario/analitica-certificados',
-        'usuario/instalacion',
+        'usuario/01-onboarding-auth',
+        'usuario/02-dashboard-central',
+        'usuario/03-events-hub',
+        'usuario/04-qr-operations',
+        'usuario/05-learning-gamification',
+        'usuario/06-admin-master-panel',
+        'usuario/07-public-validator',
       ],
     },
     {

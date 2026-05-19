@@ -108,23 +108,23 @@ const Insignias = () => {
   const [stats, setStats] = useState(null);
   const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingBadge, setEditingBadge] = useState(null);
 
   const isAdmin = ['ADMIN', 'ORGANIZADOR'].includes(user?.rol);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [statsData, badgesData] = await Promise.all([
+      const [statsData, badgesData, myBadgesData] = await Promise.all([
         dashboardService.getStats(),
-        insigniasService.getInsignias()
+        insigniasService.getInsignias(),
+        insigniasService.getMisInsignias(user.id_usuario)
       ]);
       setStats(statsData);
       
-      // Mapeo dinámico de insignias obtenidas (simulado por ahora basado en XP)
-      const xp = statsData?.personal_stats?.puntos_xp || 0;
       const mapped = badgesData.map(b => ({
           ...b,
-          earned: xp >= b.puntos * 2 // Lógica de ejemplo: si tienes el doble de puntos de la insignia
+          earned: myBadgesData.some(mb => mb.id_badge === b.id_badge)
       }));
       setBadges(mapped);
     } catch (err) {
@@ -150,6 +150,12 @@ const Insignias = () => {
       }
   };
 
+  const handleEdit = (e, badge) => {
+      e.stopPropagation();
+      setEditingBadge(badge);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}><Spinner label="Sincronizando sistema de méritos..." /></div>;
 
   const earnedCount = badges.filter(b => b.earned).length;
@@ -170,7 +176,7 @@ const Insignias = () => {
         <MEHButton icon={<Share24Filled />} appearance="outline" onClick={() => window.open('https://linkedin.com', '_blank')}>Compartir Perfil</MEHButton>
       </div>
 
-      {/* Resumen de Hito actual con espaciado corregido */}
+      {/* Resumen de Hito actual */}
       <MEHCard className={styles.milestoneCard}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -178,7 +184,7 @@ const Insignias = () => {
               <Trophy24Filled style={{ color: 'white', fontSize: '28px' }} />
             </div>
             <div>
-              <MEHTypography variant="h2">{earnedCount === badges.length ? '¡Nivel Máximo!' : 'Próximo Hito'}</MEHTypography>
+              <MEHTypography variant="h2">{earnedCount === badges.length ? '¡Colección Completada!' : 'Próximo Hito'}</MEHTypography>
               <MEHTypography variant="body" style={{ opacity: 0.7, display: 'block' }}>Progreso de insignias en el nivel actual</MEHTypography>
             </div>
           </div>
@@ -201,7 +207,16 @@ const Insignias = () => {
       </MEHCard>
 
       {/* Admin Tool */}
-      {isAdmin && <BadgeForm onSuccess={fetchData} />}
+      {isAdmin && (
+        <BadgeForm 
+            onSuccess={() => {
+                fetchData();
+                setEditingBadge(null);
+            }} 
+            editingBadge={editingBadge}
+            onCancel={() => setEditingBadge(null)}
+        />
+      )}
 
       {/* Galería de Insignias */}
       <div>
@@ -219,7 +234,7 @@ const Insignias = () => {
                 <MEHCard className={styles.badgeCard}>
                   {isAdmin && (
                       <div className={styles.adminActions}>
-                          <MEHButton size="small" appearance="subtle" icon={<Edit24Regular />} />
+                          <MEHButton size="small" appearance="subtle" icon={<Edit24Regular />} onClick={(e) => handleEdit(e, badge)} />
                           <MEHButton size="small" appearance="subtle" icon={<Delete24Regular />} onClick={(e) => handleDelete(e, badge.id_badge)} />
                       </div>
                   )}

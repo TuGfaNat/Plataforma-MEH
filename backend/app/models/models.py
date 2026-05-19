@@ -209,6 +209,8 @@ class Evento(Base, AuditMixin):
     hora_fin = Column(String, nullable=True)
     modalidad = Column(String)
     ubicacion = Column(String, nullable=True)
+    link_mapas = Column(String, nullable=True)
+    agenda = Column(TEXT, nullable=True) # Almacena estructura JSON de la agenda
     capacidad_max = Column(Integer)
     estado = Column(String, default="PROGRAMADO")
     imagen_url = Column(String, nullable=True)
@@ -280,7 +282,6 @@ class Curso(Base, AuditMixin):
     nombre_curso = Column(String)
     descripcion = Column(TEXT)
     horas_academicas = Column(Integer)
-    costo = Column(Numeric(10, 2), default=0)
     estado = Column(String, default="ACTIVO")
     imagen_url = Column(String, nullable=True)
     id_instructor = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True, index=True)

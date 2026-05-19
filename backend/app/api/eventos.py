@@ -26,7 +26,13 @@ def create_evento(
 @router.get("/", response_model=List[evento_schema.EventoResponse])
 def get_eventos(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """Lista todos los eventos disponibles."""
-    return eventos_service.list_eventos(db, skip, limit)
+    try:
+        return eventos_service.list_eventos(db, skip, limit)
+    except Exception as e:
+        print(f"DEBUG ERROR EN GET_EVENTOS: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise e
 
 @router.get("/{id_evento}", response_model=evento_schema.EventoResponse)
 def get_evento(id_evento: int, db: Session = Depends(get_db)):

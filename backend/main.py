@@ -4,7 +4,7 @@ import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.api import auth, eventos, cursos, inscripciones, logs, pagos, comunidad, dashboard, recursos, asistencia, reports, badges, files, admin_directories, learning_path, souvenirs
+from app.api import auth, eventos, cursos, academia, inscripciones, logs, pagos, comunidad, dashboard, recursos, asistencia, reports, badges, files, admin_directories, learning_path, souvenirs
 from app.core.exceptions import global_exception_handler, BaseDomainError, domain_exception_handler
 from app.core.email_config import SMTPConfig
 
@@ -57,6 +57,7 @@ async def log_requests(request: Request, call_next):
 app.include_router(auth.router)
 app.include_router(eventos.router)
 app.include_router(cursos.router)
+app.include_router(academia.router) # Habilitado el motor de aula virtual
 app.include_router(inscripciones.router)
 app.include_router(logs.router)
 app.include_router(pagos.router)
