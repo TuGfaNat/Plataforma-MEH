@@ -45,3 +45,26 @@ Este proyecto es una plataforma robusta diseñada para la automatización de eve
 ## 🎓 Créditos Académicos
 Desarrollado para la **Universidad Mayor de San Andrés (UMSA)**.  
 *Facultad de Ciencias Puras y Naturales - Carrera de Informática.*
+
+## 🗄️ Gestión de Migraciones (Alembic)
+
+Este proyecto utiliza **Alembic** para gestionar los cambios en la base de datos PostgreSQL. Sigue estos pasos para aplicar o crear migraciones:
+
+### 1. Aplicar migraciones existentes (Bajar migraciones)
+Si acabas de clonar el proyecto o alguien del equipo actualizó la base de datos, debes ejecutar el siguiente comando dentro del entorno virtual (`venv`) en la carpeta `backend/`:
+
+```bash
+cd backend
+# Asegúrate de tener activado tu entorno virtual (source venv/bin/activate o venv\Scripts\activate)
+alembic upgrade head
+```
+Esto sincronizará tu base de datos local con el último estado del proyecto.
+
+### 2. Crear una nueva migración (Para desarrolladores)
+Si haces un cambio en los modelos (`backend/app/models/models.py`), genera un nuevo archivo de migración de forma automática:
+
+```bash
+cd backend
+alembic revision --autogenerate -m "Descripción clara de tu cambio"
+alembic upgrade head
+```
