@@ -46,6 +46,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { designTokens } from '../theme/theme';
 import { useAuth, useTheme } from '../App';
+import { resolveApiFileUrl } from '../services/api';
 import authService from '../services/authService';
 import {
   hasPermission,
@@ -250,7 +251,7 @@ const Sidebar = ({ onClose }) => {
             <Avatar 
                 size={32} 
                 name={`${user.nombres} ${user.apellidos}`} 
-                image={user.foto_url ? { src: user.foto_url } : undefined}
+                image={user.foto_url ? { src: resolveApiFileUrl(user.foto_url) } : undefined}
                 color="colorful"
             />
             <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

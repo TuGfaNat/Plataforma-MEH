@@ -33,6 +33,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { designTokens } from '../theme/theme';
 import { useAuth } from '../App';
+import { resolveApiFileUrl } from '../services/api';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import RankBenefitsTable from '../components/RankBenefitsTable';
 import DashboardAnalytics from '../components/DashboardAnalytics';
@@ -242,7 +243,7 @@ const Dashboard = () => {
           <Avatar 
             size={128} 
             name={fullName} 
-            image={user.foto_url ? { src: user.foto_url } : undefined}
+            image={user.foto_url ? { src: resolveApiFileUrl(user.foto_url) } : undefined}
             color="colorful" 
           />
           <div style={{ position: 'absolute', bottom: '0', right: '0', width: '45px', height: '45px' }}>
@@ -350,7 +351,7 @@ const Dashboard = () => {
                             badge={{...badge, earned: true}} 
                             trigger={
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                    <img src={badge.imagen_url} alt={badge.nombre_badge} style={{ width: '64px', height: '64px', objectFit: 'contain', filter: 'drop-shadow(0 0 8px rgba(127, 19, 236, 0.3))' }} />
+                                    <img src={resolveApiFileUrl(badge.imagen_url)} alt={badge.nombre_badge} style={{ width: '64px', height: '64px', objectFit: 'contain', filter: 'drop-shadow(0 0 8px rgba(127, 19, 236, 0.3))' }} />
                                     <MEHTypography variant="caption" style={{ fontWeight: 'bold', textAlign: 'center' }}>{badge.nombre_badge}</MEHTypography>
                                 </div>
                             }
@@ -377,7 +378,7 @@ const Dashboard = () => {
                   
                   return (
                     <div key={evento.id_evento} className={styles.eventItem}>
-                      <img src={evento.imagen_url || DEFAULT_EVENT_IMG} className={styles.eventMiniature} alt="event" />
+                      <img src={resolveApiFileUrl(evento.imagen_url) || DEFAULT_EVENT_IMG} className={styles.eventMiniature} alt="event" />
                       <div className={styles.dateBox}>
                         <MEHTypography variant="caption" style={{ display: 'block', fontWeight: 'bold', color: tokens.colorBrandForeground1, fontSize: '10px' }}>{month}</MEHTypography>
                         <MEHTypography variant="h3" style={{ fontSize: '16px' }}>{day}</MEHTypography>
