@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime, date
 
@@ -19,8 +19,7 @@ class CertificadoResponse(CertificadoBase):
     uuid_verificacion: str
     nombre_curso_evento: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CertificadoPublicResponse(BaseModel):
     codigo_verificacion: str
