@@ -131,7 +131,8 @@ def registrar_asistencia_qr(
     db: Session,
     staff_user: models.Usuario,
     codigo_qr: str,
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
+    id_checkpoint: Optional[int] = None
 ) -> dict:
     """Registra la asistencia física de un miembro mediante escaneo (Solo Staff autorizado)."""
     if not has_permission(staff_user.rol, PERMISSION_ATTENDANCE_SCAN):
@@ -179,3 +180,28 @@ def registrar_asistencia_qr(
         "usuario": {"nombre": f"{usuario.nombres} {usuario.apellidos}"},
         "evento": {"titulo": evento.titulo}
     }
+
+def get_checkpoints(db: Session, id_evento: int):
+    return db.query(models.Checkpoint).filter(
+        models.Checkpoint.id_evento == id_evento,
+        models.Checkpoint.activo == True
+    ).order_by(models.Checkpoint.orden.asc()).all()
+
+def create_checkpoint(db: Session, admin_user: models.Usuario, id_evento: int, checkpoint_data):
+    if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError("No tienes permisos para crear checkpoints")
+
+    evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
+    if not evento:
+        raise ValidacionNegocioError("Evento no encontrado")
+
+    nuevo = models.Checkpoint(
+        id_evento=id_evento,
+        nombre_checkpoint=checkpoint_data.nombre_checkpoint,
+        tipo_checkpoint=checkpoint_data.tipo_checkpoint,
+        orden=checkpoint_data.orden
+    )
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+    return nuevo

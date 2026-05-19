@@ -8,6 +8,7 @@ import {
   Input,
   TabList,
   Tab,
+  Select,
 } from '@fluentui/react-components';
 import {
   CheckmarkCircle24Filled,
@@ -20,6 +21,7 @@ import {
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { QRCodeSVG } from 'qrcode.react';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
+import { Select } from '@fluentui/react-components';
 import asistenciaService from '../services/asistenciaService';
 
 const useStyles = makeStyles({
@@ -94,7 +96,38 @@ const EscaneoQR = () => {
   const [loading, setLoading] = useState(false);
   const [manualCode, setManualCode] = useState('');
   const [generatorValue, setGeneratorValue] = useState('');
+  const [eventos, setEventos] = useState([]);
+  const [selectedEvento, setSelectedEvento] = useState('');
+  const [checkpoints, setCheckpoints] = useState([]);
+  const [selectedCheckpoint, setSelectedCheckpoint] = useState('');
   const scannerRef = useRef(null);
+
+  useEffect(() => {
+    const fetchActividades = async () => {
+      try {
+        const data = await asistenciaService.getActividades();
+        setEventos(data.eventos || []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchActividades();
+  }, []);
+
+  const handleEventoChange = async (e, data) => {
+    setSelectedEvento(data.value);
+    setSelectedCheckpoint('');
+    if (data.value) {
+      try {
+        const cpData = await asistenciaService.getCheckpoints(data.value);
+        setCheckpoints(cpData);
+      } catch (err) {
+        console.error("Error cargando checkpoints", err);
+      }
+    } else {
+      setCheckpoints([]);
+    }
+  };
 
   const normalizeQrPayload = (value) => {
     const raw = String(value || '').trim();
@@ -163,7 +196,7 @@ const EscaneoQR = () => {
     setScanResult(null);
 
     try {
-      const result = await asistenciaService.registrarPorQR(normalizedCode);
+      const result = await asistenciaService.registrarPorQR(normalizedCode, selectedCheckpoint ? parseInt(selectedCheckpoint) : null);
       setScanResult(`Asistencia de ${result.usuario.nombre} confirmada para ${result.evento.titulo}`);
       setTimeout(() => setScanResult(null), 4000);
     } catch (err) {
@@ -196,6 +229,27 @@ const EscaneoQR = () => {
           <Tab value="manual" icon={<Keyboard24Regular />}>Ingreso Manual (Evento)</Tab>
           <Tab value="generator" icon={<QrCode24Regular />}>Generador QR Evento</Tab>
         </TabList>
+
+        <div style={{ width: '100%', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+          <Field label="Evento Actual">
+            <Select value={selectedEvento} onChange={handleEventoChange}>
+              <option value="">-- Seleccionar Evento --</option>
+              {eventos.map(e => (
+                <option key={e.id_evento} value={e.id_evento}>{e.titulo}</option>
+              ))}
+            </Select>
+          </Field>
+          {selectedEvento && (
+            <Field label="Checkpoint (Opcional - Ej. Refrigerio)">
+              <Select value={selectedCheckpoint} onChange={(e, data) => setSelectedCheckpoint(data.value)}>
+                <option value="">-- Entrada Principal (Asistencia) --</option>
+                {checkpoints.map(cp => (
+                  <option key={cp.id_checkpoint} value={cp.id_checkpoint}>{cp.nombre_checkpoint}</option>
+                ))}
+              </Select>
+            </Field>
+          )}
+        </div>
 
         {mode === 'camera' && (
           <>

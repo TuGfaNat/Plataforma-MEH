@@ -4,6 +4,7 @@ from typing import List, Optional
 from ..database import get_db
 from ..models import models
 from ..schemas import evento as evento_schema
+from ..schemas.evento import QRScanRequest, CheckpointCreate, CheckpointResponse
 from ..services import eventos_service
 from .auth import get_current_user
 
@@ -54,13 +55,19 @@ def update_evento(
 @router.post("/asistencia-qr")
 def registrar_asistencia_qr(
     request: Request,
-    codigo_qr: str,
+    payload: QRScanRequest,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    """Registra asistencia mediante el escaneo de un código QR."""
+    """Registra asistencia mediante el escaneo de un código QR, soportando checkpoints dinámicos."""
     ip_address = request.client.host if request.client else None
-    return eventos_service.registrar_asistencia_qr(db, current_user, codigo_qr, ip_address)
+    return eventos_service.registrar_asistencia_qr(
+        db=db,
+        staff_user=current_user,
+        codigo_qr=payload.codigo_qr,
+        ip_address=ip_address,
+        id_checkpoint=payload.id_checkpoint
+    )
 
 @router.post("/{id_evento}/asistencia-qr")
 def registrar_asistencia_qr_legacy(
@@ -74,3 +81,16 @@ def registrar_asistencia_qr_legacy(
     _ = id_evento
     ip_address = request.client.host if request.client else None
     return eventos_service.registrar_asistencia_qr(db, current_user, token_qr, ip_address)
+
+@router.get("/{id_evento}/checkpoints", response_model=List[CheckpointResponse])
+def get_checkpoints(id_evento: int, db: Session = Depends(get_db)):
+    return eventos_service.get_checkpoints(db, id_evento)
+
+@router.post("/{id_evento}/checkpoints", response_model=CheckpointResponse)
+def create_checkpoint(
+    id_evento: int,
+    data: CheckpointCreate,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    return eventos_service.create_checkpoint(db, current_user, id_evento, data)

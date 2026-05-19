@@ -4,7 +4,7 @@ import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.api import auth, eventos, cursos, academia, inscripciones, logs, pagos, comunidad, dashboard, recursos, asistencia, reports, badges, files, admin_directories, learning_path, souvenirs
+from app.api import auth, eventos, cursos, academia, inscripciones, logs, pagos, comunidad, dashboard, recursos, asistencia, reports, badges, files, admin_directories, learning_path, souvenirs, certificados_admin
 from app.core.exceptions import global_exception_handler, BaseDomainError, domain_exception_handler
 from app.core.email_config import SMTPConfig
 
@@ -71,6 +71,7 @@ app.include_router(files.router)
 app.include_router(admin_directories.router)
 app.include_router(learning_path.router)
 app.include_router(souvenirs.router)
+app.include_router(certificados_admin.router)
 
 @app.get("/")
 def read_root():
