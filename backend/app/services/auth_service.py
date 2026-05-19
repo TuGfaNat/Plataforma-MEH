@@ -207,7 +207,15 @@ def list_users(
     if rol_filter:
         query = query.filter(models.Usuario.rol == rol_filter)
         
-    return query.order_by(models.Usuario.fecha_registro.desc()).all()
+    users = query.order_by(models.Usuario.fecha_registro.desc()).all()
+    
+    # Inyectar métricas de fidelidad
+    for u in users:
+        u.badge_count = len(u.badges)
+        u.souvenir_count = len(u.pedidos)
+        u.total_invertido = sum([p.total for p in u.pedidos if p.estado == "COMPLETADO"])
+        
+    return users
 
 def update_user_role(
     db: Session, 

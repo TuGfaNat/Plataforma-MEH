@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr, HttpUrl
-from typing import Optional
+from pydantic import BaseModel, EmailStr, HttpUrl, ConfigDict
+from typing import Optional, List
 from datetime import datetime
 
 class UserBase(BaseModel):
@@ -68,13 +68,14 @@ class UserResponse(UserBase):
     id_usuario: int
     fecha_registro: datetime
     activo: bool
+    badge_count: Optional[int] = 0
+    souvenir_count: Optional[int] = 0
+    total_invertido: Optional[float] = 0.0
     creado_por: Optional[int] = None
     fecha_creacion: Optional[datetime] = None
     modificado_por: Optional[int] = None
     fecha_modificacion: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 from .badge import BadgeResponse
 
@@ -82,9 +83,7 @@ class UserBadgeDetail(BaseModel):
     id_usuario_badge: int
     fecha_obtencion: datetime
     badge: BadgeResponse
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserProfileResponse(UserResponse):
     badges: Optional[list[UserBadgeDetail]] = []

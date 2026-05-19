@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { Button as FluentButton, mergeClasses } from '@fluentui/react-components';
 
 /**
- * MEHButton: Wrapper sobre Fluent UI Button.
+ * MEHButton: Wrapper sobre Fluent UI Button con soporte para forwardRef.
+ * Necesario para que componentes como Tooltip puedan posicionarse correctamente.
  */
-export const MEHButton = ({ 
+export const MEHButton = forwardRef(({ 
   children, 
   appearance = 'primary', 
   size = 'medium', 
@@ -15,9 +16,10 @@ export const MEHButton = ({
   type = 'button',
   className,
   ...props 
-}) => {
+}, ref) => {
   return (
     <FluentButton
+      ref={ref}
       appearance={appearance}
       size={size}
       disabled={disabled || loading}
@@ -30,4 +32,6 @@ export const MEHButton = ({
       {loading ? '...' : children}
     </FluentButton>
   );
-};
+});
+
+MEHButton.displayName = 'MEHButton';

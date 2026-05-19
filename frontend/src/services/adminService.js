@@ -32,6 +32,14 @@ const adminService = {
   createSouvenir: async (data) => {
     const response = await api.post('/souvenirs/', data);
     return response.data;
+  },
+  updateSouvenir: async (id, data) => {
+    const response = await api.put(`/souvenirs/${id}`, data);
+    return response.data;
+  },
+  deleteSouvenir: async (id) => {
+    const response = await api.delete(`/souvenirs/${id}`);
+    return response.data;
   }
 };
 

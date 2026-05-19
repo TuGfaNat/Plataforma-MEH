@@ -47,14 +47,12 @@ class Usuario(Base, AuditMixin):
     fecha_registro = Column(DateTime, default=datetime.utcnow)
     bio = Column(TEXT, nullable=True)
     
-    # Nuevos campos solicitados
-    institucion = Column(String, nullable=True) # Trabajo o estudio
+    institucion = Column(String, nullable=True)
     estudia_en = Column(String, nullable=True)
-    tipo_entidad = Column(String, default="Estudiante") # Estudiante / Profesional
+    tipo_entidad = Column(String, default="Estudiante")
     pais = Column(String, default="Bolivia")
-    departamento = Column(String, nullable=True) # Para métricas bolivianas
+    departamento = Column(String, nullable=True)
     
-    # Redes sociales
     linkedin_url = Column(String, nullable=True)
     github_url = Column(String, nullable=True)
     facebook_url = Column(String, nullable=True)
@@ -65,7 +63,6 @@ class Usuario(Base, AuditMixin):
     perfil_publico = Column(Boolean, default=True)
     activo = Column(Boolean, default=True)
 
-    # Relaciones
     inscripciones_eventos = relationship("InscripcionEvento", back_populates="usuario", foreign_keys="[InscripcionEvento.id_usuario]")
     inscripciones_cursos = relationship("InscripcionCurso", back_populates="usuario", foreign_keys="[InscripcionCurso.id_usuario]")
     pagos = relationship("Pago", back_populates="usuario", foreign_keys="[Pago.id_usuario]")
@@ -104,7 +101,7 @@ class Auspiciador(Base, AuditMixin):
     nombre = Column(String)
     logo_url = Column(String, nullable=True)
     sitio_web = Column(String, nullable=True)
-    tipo = Column(String, default="GENERAL") # GOLD, SILVER, BRONZE, GENERAL
+    tipo = Column(String, default="GENERAL")
     correo_contacto = Column(String, nullable=True)
     whatsapp_contacto = Column(String, nullable=True)
 
@@ -125,7 +122,7 @@ class ComunidadAliada(Base, AuditMixin):
 class ConfiguracionGlobal(Base, AuditMixin):
     __tablename__ = "configuracion_global"
     id_config = Column(Integer, primary_key=True)
-    clave = Column(String, unique=True) # e.g., 'ADMIN_QR_PAGO'
+    clave = Column(String, unique=True)
     valor = Column(TEXT)
     descripcion = Column(String, nullable=True)
 
@@ -159,7 +156,7 @@ class Producto(Base, AuditMixin):
     stock = Column(Integer, default=0)
     es_kit_evento = Column(Boolean, default=False)
     imagen_url = Column(TEXT, nullable=True)
-    categoria = Column(String, default="SOUVENIR") # SOUVENIR, OTRO
+    categoria = Column(String, default="SOUVENIR")
     activo = Column(Boolean, default=True)
 
     __table_args__ = (
@@ -172,7 +169,7 @@ class Pedido(Base, AuditMixin):
     id_pedido = Column(Integer, primary_key=True, index=True)
     id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario"), index=True)
     id_pago = Column(Integer, ForeignKey("pagos.id_pago"), nullable=True, index=True)
-    estado = Column(String, default="PENDIENTE") # PENDIENTE, COMPLETADO, CANCELADO
+    estado = Column(String, default="PENDIENTE")
     fecha_pedido = Column(DateTime, default=datetime.utcnow)
     total = Column(Numeric(10, 2), default=0)
 
@@ -205,15 +202,17 @@ class Evento(Base, AuditMixin):
     id_evento = Column(Integer, primary_key=True, index=True)
     titulo = Column(String)
     descripcion = Column(TEXT, nullable=True)
+    tipo_evento = Column(String, default="CONFERENCIA")
     fecha_inicio = Column(DateTime)
     fecha_fin = Column(DateTime, nullable=True)
-    hora_inicio = Column(String, nullable=True) # e.g. "14:00"
+    hora_inicio = Column(String, nullable=True)
     hora_fin = Column(String, nullable=True)
-    modalidad = Column(String) # VIRTUAL, PRESENCIAL, HIBRIDO
+    modalidad = Column(String)
     ubicacion = Column(String, nullable=True)
     capacidad_max = Column(Integer)
     estado = Column(String, default="PROGRAMADO")
     imagen_url = Column(String, nullable=True)
+    refrigerio_incluido = Column(Boolean, default=False)
     token_qr = Column(String, nullable=True)
     id_organizador = Column(Integer, ForeignKey("usuarios.id_usuario"), index=True)
 
@@ -221,7 +220,6 @@ class Evento(Base, AuditMixin):
     checkpoints = relationship("Checkpoint", back_populates="evento")
     organizador = relationship("Usuario", foreign_keys="[Evento.id_organizador]")
     
-    # Nuevas relaciones para el Master Panel
     speakers = relationship("Speaker", secondary=eventos_speakers, back_populates="eventos")
     auspiciadores = relationship("Auspiciador", secondary=eventos_auspiciadores, back_populates="eventos")
     comunidades = relationship("ComunidadAliada", secondary=eventos_comunidades, back_populates="eventos")
@@ -282,17 +280,69 @@ class Curso(Base, AuditMixin):
     nombre_curso = Column(String)
     descripcion = Column(TEXT)
     horas_academicas = Column(Integer)
+    costo = Column(Numeric(10, 2), default=0)
     estado = Column(String, default="ACTIVO")
     imagen_url = Column(String, nullable=True)
     id_instructor = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True, index=True)
     
-    # Campos para integracion MS Learning o cursos propios
     es_ms_learning = Column(Boolean, default=False)
     external_url = Column(String, nullable=True)
-    uid_ms = Column(String, nullable=True) # ID unico del catalogo de MS
+    uid_ms = Column(String, nullable=True)
 
     inscripciones = relationship("InscripcionCurso", back_populates="curso")
     instructor = relationship("Usuario", foreign_keys="[Curso.id_instructor]")
+    lecciones = relationship("Leccion", back_populates="curso", cascade="all, delete-orphan")
+    posts_foro = relationship("PostForo", back_populates="curso")
+
+class Leccion(Base, AuditMixin):
+    __tablename__ = "lecciones"
+    id_leccion = Column(Integer, primary_key=True, index=True)
+    id_curso = Column(Integer, ForeignKey("cursos.id_curso", ondelete="CASCADE"))
+    titulo = Column(String)
+    contenido_video_url = Column(String, nullable=True)
+    contenido_texto = Column(TEXT, nullable=True)
+    orden = Column(Integer, default=1)
+
+    curso = relationship("Curso", back_populates="lecciones")
+    tareas = relationship("Tarea", back_populates="leccion")
+
+class Tarea(Base, AuditMixin):
+    __tablename__ = "tareas"
+    id_tarea = Column(Integer, primary_key=True, index=True)
+    id_leccion = Column(Integer, ForeignKey("lecciones.id_leccion", ondelete="CASCADE"))
+    titulo = Column(String)
+    instrucciones = Column(TEXT)
+    puntos_max = Column(Integer, default=100)
+    fecha_entrega_limite = Column(DateTime, nullable=True)
+    archivo_adjunto_url = Column(String, nullable=True)
+
+    leccion = relationship("Leccion", back_populates="tareas")
+    entregas = relationship("EntregaTarea", back_populates="tarea")
+
+class EntregaTarea(Base, AuditMixin):
+    __tablename__ = "entregas_tareas"
+    id_entrega = Column(Integer, primary_key=True, index=True)
+    id_tarea = Column(Integer, ForeignKey("tareas.id_tarea", ondelete="CASCADE"))
+    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario"))
+    archivo_url = Column(String)
+    comentario_alumno = Column(TEXT, nullable=True)
+    nota = Column(Integer, nullable=True)
+    comentario_docente = Column(TEXT, nullable=True)
+    fecha_envio = Column(DateTime, default=datetime.utcnow)
+
+    tarea = relationship("Tarea", back_populates="entregas")
+    usuario = relationship("Usuario", foreign_keys="[EntregaTarea.id_usuario]")
+
+class PostForo(Base, AuditMixin):
+    __tablename__ = "posts_foro"
+    id_post = Column(Integer, primary_key=True, index=True)
+    id_curso = Column(Integer, ForeignKey("cursos.id_curso", ondelete="CASCADE"))
+    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario"))
+    mensaje = Column(TEXT)
+    es_pregunta_docente = Column(Boolean, default=False)
+    
+    curso = relationship("Curso", back_populates="posts_foro")
+    usuario = relationship("Usuario", foreign_keys="[PostForo.id_usuario]")
 
 class InscripcionCurso(Base, AuditMixin):
     __tablename__ = "inscripciones_cursos"
@@ -378,15 +428,20 @@ class Recurso(Base, AuditMixin):
     id_recurso = Column(Integer, primary_key=True, index=True)
     titulo = Column(String)
     descripcion = Column(TEXT)
+    motivo = Column(String, nullable=True)
+    autor_nombre = Column(String, nullable=True)
     url_descarga = Column(String, nullable=True)
-    tipo_archivo = Column(String, nullable=True) # e.g., 'pdf', 'zip'
-    tipo_recurso = Column(String, default="ARCHIVO") # ARCHIVO, VIDEO, BLOG, LINK
-    contenido_md = Column(TEXT, nullable=True) # Para blogs/readmes
-    categoria = Column(String) # VIP, SPEAKER, GENERAL
+    portada_url = Column(String, nullable=True)
+    tipo_archivo = Column(String, nullable=True)
+    tipo_recurso = Column(String, default="ARCHIVO")
+    contenido_md = Column(TEXT, nullable=True)
+    categoria = Column(String)
     id_curso = Column(Integer, ForeignKey("cursos.id_curso"), nullable=True)
+    id_evento = Column(Integer, ForeignKey("eventos.id_evento"), nullable=True)
 
-    autor = relationship("Usuario", foreign_keys="[Recurso.creado_por]")
+    autor_sistema = relationship("Usuario", foreign_keys="[Recurso.creado_por]")
     curso = relationship("Curso", foreign_keys=[id_curso])
+    evento = relationship("Evento", foreign_keys=[id_evento])
 
 class Anuncio(Base, AuditMixin):
     __tablename__ = "anuncios"
@@ -394,8 +449,8 @@ class Anuncio(Base, AuditMixin):
     id_anuncio = Column(Integer, primary_key=True, index=True)
     titulo = Column(String)
     contenido = Column(TEXT)
-    url_imagen = Column(String, nullable=True) # Agregado
-    link_accion = Column(String, nullable=True) # Agregado (ej. para redireccionar a un evento)
+    url_imagen = Column(String, nullable=True)
+    link_accion = Column(String, nullable=True)
     tipo = Column(String, default="INFO")
     fecha_publicacion = Column(DateTime, default=datetime.utcnow)
     id_autor = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)

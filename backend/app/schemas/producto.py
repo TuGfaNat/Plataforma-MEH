@@ -1,8 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
 
+# --- PRODUCTOS ---
 class ProductoBase(BaseModel):
     nombre: str
     descripcion: Optional[str] = None
@@ -23,40 +24,26 @@ class ProductoUpdate(BaseModel):
     es_kit_evento: Optional[bool] = None
     imagen_url: Optional[str] = None
     categoria: Optional[str] = None
-    modificado_por: Optional[int] = None
 
 class ProductoResponse(ProductoBase):
     id_producto: int
-    modificado_por: Optional[int] = None
-    fecha_modificacion: Optional[datetime] = None
+    creado_por: Optional[int] = None
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
-
-class PedidoDetalleBase(BaseModel):
+# --- VENTAS (POS) ---
+class VentaItem(BaseModel):
     id_producto: int
-    cantidad: int = 1
+    cantidad: int
 
-class PedidoDetalleResponse(PedidoDetalleBase):
-    id_detalle: int
-    id_pedido: int
-
-    class Config:
-        from_attributes = True
-
-class PedidoBase(BaseModel):
-    id_pago: Optional[int] = None
-    estado_entrega: str = "PENDIENTE"
-
-class PedidoCreate(PedidoBase):
+class VentaRequest(BaseModel):
     id_usuario: int
-    detalles: List[PedidoDetalleBase]
+    items: List[VentaItem]
+    metodo_pago: str = "EFECTIVO" # EFECTIVO, QR, TRANSFERENCIA
 
-class PedidoResponse(PedidoBase):
+class PedidoResponse(BaseModel):
     id_pedido: int
     id_usuario: int
+    total: Decimal
+    estado: str
     fecha_pedido: datetime
-    detalles: List[PedidoDetalleResponse]
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

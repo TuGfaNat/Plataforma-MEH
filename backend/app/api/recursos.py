@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..database import get_db
@@ -13,6 +13,7 @@ router = APIRouter(prefix="/recursos", tags=["recursos"])
 def get_recursos(
     categoria: Optional[str] = Query(None),
     id_curso: Optional[int] = Query(None),
+    id_evento: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
@@ -21,20 +22,38 @@ def get_recursos(
         query = query.filter(models.Recurso.categoria == categoria)
     if id_curso:
         query = query.filter(models.Recurso.id_curso == id_curso)
+    if id_evento:
+        query = query.filter(models.Recurso.id_evento == id_evento)
     return query.order_by(models.Recurso.fecha_creacion.desc()).all()
 
-@router.post("/", response_model=recurso_schema.RecursoResponse)
+@router.post("/", response_model=recurso_schema.RecursoResponse, status_code=status.HTTP_201_CREATED)
 def create_recurso(
+    request: Request,
     recurso: recurso_schema.RecursoCreate,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    return recurso_service.create_recurso(db, current_user, recurso)
+    ip = request.client.host if request.client else None
+    return recurso_service.create_recurso(db, current_user, recurso, ip)
 
-@router.delete("/{id_recurso}")
-def delete_recurso(
+@router.put("/{id_recurso}", response_model=recurso_schema.RecursoResponse)
+def update_recurso(
     id_recurso: int,
+    request: Request,
+    recurso_update: recurso_schema.RecursoUpdate,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    return recurso_service.delete_recurso(db, current_user, id_recurso)
+    ip = request.client.host if request.client else None
+    return recurso_service.update_recurso(db, current_user, id_recurso, recurso_update, ip)
+
+@router.delete("/{id_recurso}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_recurso(
+    id_recurso: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    ip = request.client.host if request.client else None
+    recurso_service.delete_recurso(db, current_user, id_recurso, ip)
+    return None

@@ -1,0 +1,42 @@
+from fastapi import APIRouter, Depends, status, Request
+from sqlalchemy.orm import Session
+from typing import List
+from ..database import get_db
+from ..models import models
+from ..schemas import curso as schema
+from ..services import academia_service
+from .auth import get_current_user
+
+router = APIRouter(prefix="/academia", tags=["academia"])
+
+# --- LECCIONES ---
+@router.get("/cursos/{id_curso}/lecciones", response_model=List[schema.LeccionResponse])
+def get_lecciones(id_curso: int, db: Session = Depends(get_db)):
+    return academia_service.list_lecciones(db, id_curso)
+
+@router.post("/lecciones", response_model=schema.LeccionResponse, status_code=status.HTTP_201_CREATED)
+def create_leccion(data: schema.LeccionCreate, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
+    return academia_service.create_leccion(db, data, current_user.id_usuario)
+
+# --- TAREAS ---
+@router.post("/tareas", response_model=schema.TareaResponse, status_code=status.HTTP_201_CREATED)
+def create_tarea(data: schema.TareaCreate, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
+    return academia_service.create_tarea(db, data, current_user.id_usuario)
+
+# --- ENTREGAS ---
+@router.post("/tareas/entregar", response_model=schema.EntregaTareaResponse)
+def submit_tarea(data: schema.EntregaTareaCreate, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
+    return academia_service.submit_tarea(db, data, current_user.id_usuario)
+
+@router.put("/entregas/{id_entrega}/calificar", response_model=schema.EntregaTareaResponse)
+def calificar_entrega(id_entrega: int, data: schema.EntregaTareaCalificar, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
+    return academia_service.calificar_entrega(db, id_entrega, data, current_user.id_usuario)
+
+# --- FOROS ---
+@router.get("/cursos/{id_curso}/foro", response_model=List[schema.PostForoResponse])
+def get_foro(id_curso: int, db: Session = Depends(get_db)):
+    return academia_service.list_posts_foro(db, id_curso)
+
+@router.post("/foro", response_model=schema.PostForoResponse)
+def create_post(data: schema.PostForoCreate, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
+    return academia_service.create_post_foro(db, data, current_user.id_usuario)
