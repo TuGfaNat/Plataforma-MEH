@@ -1,3 +1,4 @@
+import json
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
@@ -14,7 +15,7 @@ def get_logs_auditoria(
     skip: int = 0,
     limit: int = 100
 ) -> List[dict]:
-    """Obtiene la trazabilidad total de acciones en el sistema (Solo para Administradores)."""
+    """Obtiene la trazabilidad total de acciones en el sistema con parseo de JSON inteligente."""
     if not has_permission(admin_role, PERMISSION_AUDIT_READ):
         raise PermisoDenegadoError("No tienes privilegios para consultar la auditoría")
     
@@ -31,17 +32,26 @@ def get_logs_auditoria(
         
     logs = query.order_by(models.LogSistema.fecha_hora.desc()).offset(skip).limit(limit).all()
 
-    return [
-        {
+    resultado = []
+    for log in logs:
+        # Intentar parsear el JSON de los valores anterior y nuevo
+        def parse_safe(val):
+            if not val: return None
+            try:
+                return json.loads(val)
+            except (json.JSONDecodeError, TypeError):
+                return val # Devolver como texto si no es JSON válido
+
+        resultado.append({
             "id_log": log.LogSistema.id_log,
             "admin_name": f"{log.Usuario.nombres} {log.Usuario.apellidos}",
             "accion": log.LogSistema.accion,
             "tabla_afectada": log.LogSistema.tabla_afectada,
             "id_registro_afectado": log.LogSistema.id_registro_afectado,
             "fecha": log.LogSistema.fecha_hora,
-            "valor_anterior": log.LogSistema.valor_anterior,
-            "valor_nuevo": log.LogSistema.valor_nuevo,
+            "valor_anterior": parse_safe(log.LogSistema.valor_anterior),
+            "valor_nuevo": parse_safe(log.LogSistema.valor_nuevo),
             "ip_direccion": log.LogSistema.ip_direccion
-        }
-        for log in logs
-    ]
+        })
+    
+    return resultado

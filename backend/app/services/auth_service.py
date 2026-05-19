@@ -15,7 +15,8 @@ from ..core.exceptions import (
     UsuarioNoEncontradoError,
     RegistroDuplicadoError,
     ValidacionNegocioError,
-    PermisoDenegadoError
+    PermisoDenegadoError,
+    BaseDomainError
 )
 from ..core.permissions import (
     ROLE_MIEMBRO,
@@ -40,7 +41,7 @@ def register_user(db: Session, user_data: user_schema.UserCreate) -> models.Usua
         rol=ROLE_MIEMBRO,
         fecha_registro=datetime.utcnow(),
         # Auditoría inicial
-        creado_por=0, # 0 indica autoregistro
+        creado_por=None, 
         fecha_creacion=datetime.utcnow()
     )
     db.add(new_user)
@@ -52,7 +53,6 @@ def register_user(db: Session, user_data: user_schema.UserCreate) -> models.Usua
         from . import email_service
         email_service.notify_bienvenida(new_user.correo, new_user.nombres)
     except Exception:
-        # No bloqueamos el registro si el email falla
         pass
     
     return new_user
@@ -95,10 +95,10 @@ def login_with_google(db: Session, google_jwt: str, ip_address: Optional[str] = 
                 nombres=given_name,
                 apellidos=family_name,
                 correo=email,
-                password_hash="google_oauth_no_password", # Marcador para usuarios sin pass local
+                password_hash="google_oauth_no_password",
                 rol=ROLE_MIEMBRO,
                 fecha_registro=datetime.utcnow(),
-                creado_por=0,
+                creado_por=None,
                 fecha_creacion=datetime.utcnow()
             )
             db.add(user)
@@ -142,15 +142,20 @@ def update_profile(
     user_update: user_schema.UserUpdate,
     ip_address: Optional[str] = None
 ) -> models.Usuario:
-    """Actualiza el perfil del usuario actual."""
+    """Actualiza el perfil del usuario actual registrando cambios en la auditoría."""
     user = db.query(models.Usuario).filter(models.Usuario.id_usuario == user_id).first()
     if not user:
         raise UsuarioNoEncontradoError()
 
+    # 1. Capturar valores anteriores para auditoría
     update_data = user_update.model_dump(exclude_unset=True)
-    
-    # Prevenir que un usuario normal se cambie el rol o se active/desactive a sí mismo
-    # a través del endpoint de perfil (seguridad extra)
+    valor_anterior = {}
+    for key in update_data.keys():
+        if hasattr(user, key):
+            valor_anterior[key] = getattr(user, key)
+
+    # 2. Aplicar cambios
+    # Prevenir cambios no autorizados
     update_data.pop("rol", None)
     update_data.pop("activo", None)
 
@@ -163,12 +168,14 @@ def update_profile(
     db.commit()
     db.refresh(user)
 
+    # 3. Registrar log con comparación real
     registrar_log(
         db=db,
         id_admin=user.id_usuario,
         accion="ACTUALIZAR_PERFIL",
         tabla_afectada="usuarios",
         id_registro_afectado=user.id_usuario,
+        valor_anterior=valor_anterior,
         valor_nuevo=update_data,
         ip_direccion=ip_address
     )
