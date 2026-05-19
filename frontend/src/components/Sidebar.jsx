@@ -13,6 +13,8 @@ import {
   Trophy24Filled,
   Library24Regular, 
   Library24Filled,
+  Certificate24Regular,
+  Certificate24Filled,
   Settings24Regular,
   Settings24Filled,
   Payment24Regular,
@@ -196,6 +198,7 @@ const Sidebar = ({ onClose }) => {
       <nav className={styles.navSection}>
         <div className={styles.sectionTitle}>{t('menu_personal') || "Mi Espacio"}</div>
         <NavItem to="/dashboard" icon={Home24Regular} activeIcon={Home24Filled} label={t('dashboard') || "Panel de Control"} />
+        <NavItem to="/validador" icon={Certificate24Regular} activeIcon={Certificate24Filled} label={t('validator') || "Validador de Talentos"} />
         <NavItem to="/insignias" icon={Trophy24Regular} activeIcon={Trophy24Filled} label={t('badges') || "Insignias"} />
         <NavItem to="/finanzas" icon={Payment24Regular} activeIcon={Payment24Filled} label={t('finances') || "Mis Pagos"} />
         <NavItem to="/learning" icon={Library24Regular} activeIcon={Library24Filled} label={t('learning_hub') || "Centro de Aprendizaje"} />
