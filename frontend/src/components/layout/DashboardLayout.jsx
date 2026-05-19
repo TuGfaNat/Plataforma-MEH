@@ -8,11 +8,11 @@ import { designTokens } from '../../theme/theme';
 const useStyles = makeStyles({
   layout: {
     display: 'flex',
-    minHeight: '100vh',
+    height: '100vh', // Altura fija a la pantalla
     backgroundColor: tokens.colorNeutralBackground2,
     position: 'relative',
     maxWidth: '100%',
-    overflowX: 'hidden',
+    overflow: 'hidden', // Evita scroll global del navegador
   },
   sidebarContainer: {
     position: 'fixed',
@@ -35,42 +35,39 @@ const useStyles = makeStyles({
     },
   },
   sidebarDesktop: {
-    position: 'sticky',
-    top: 0,
-    height: '100vh',
     width: '280px',
+    height: '100vh',
     display: 'block',
+    flexShrink: 0,
     [designTokens.breakpoints.sm]: {
       display: 'none',
     },
   },
   content: {
     flexGrow: 1,
-    padding: '32px',
+    height: '100vh', // Scroll independiente
     overflowY: 'auto',
     overflowX: 'hidden',
+    padding: '32px',
     backgroundColor: tokens.colorNeutralBackground2,
-    minHeight: '100vh',
-    width: '100%',
     [designTokens.breakpoints.sm]: {
       padding: '16px',
-      paddingTop: '70px', // Espacio para el botón de hamburguesa
+      paddingTop: '70px',
     },
-    // Scrollbar personalizado global
+    // Scrollbar personalizado para el contenido principal
     scrollbarWidth: 'thin',
-    scrollbarColor: 'rgba(127, 19, 236, 0.5) rgba(127, 19, 236, 0.1)',
+    scrollbarColor: 'rgba(127, 19, 236, 0.3) transparent',
     '&::-webkit-scrollbar': {
-      width: '8px',
+      width: '6px',
     },
     '&::-webkit-scrollbar-track': {
-      background: 'rgba(127, 19, 236, 0.1)',
-      borderRadius: '4px',
+      background: 'transparent',
     },
     '&::-webkit-scrollbar-thumb': {
-      background: 'rgba(127, 19, 236, 0.5)',
-      borderRadius: '4px',
+      background: 'rgba(127, 19, 236, 0.3)',
+      borderRadius: '10px',
       '&:hover': {
-        background: 'rgba(127, 19, 236, 0.7)',
+        background: 'rgba(127, 19, 236, 0.5)',
       }
     }
   },

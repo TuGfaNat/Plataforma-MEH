@@ -59,24 +59,32 @@ import {
 const useStyles = makeStyles({
   sidebar: {
     width: '280px',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)', // Fondo más oscuro para el sidebar
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     backdropFilter: 'blur(20px)',
     display: 'flex',
     flexDirection: 'column',
     ...shorthands.borderRight('1px', 'solid', tokens.colorNeutralBackground3),
     padding: '32px 16px',
-    height: '100vh',
-    position: 'sticky',
-    top: 0,
+    height: '100vh', 
+    boxSizing: 'border-box',
     zIndex: 100,
-    overflowY: 'auto'
+    // Menú interno scrolleable si hay muchos items
+    overflowY: 'auto',
+    scrollbarWidth: 'none', 
+    '&::-webkit-scrollbar': { display: 'none' }
   },
   logoContainer: {
     display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px',
-    paddingLeft: '12px', textDecorationLine: 'none', color: 'inherit'
+    paddingLeft: '12px', textDecorationLine: 'none', color: 'inherit',
+    flexShrink: 0
   },
   logoImg: { width: '42px' },
-  navSection: { display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1 },
+  navSection: { 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '8px', 
+    flexGrow: 1 
+  },
   sectionTitle: {
     fontSize: '0.75rem',
     fontWeight: tokens.fontWeightBold,
@@ -92,7 +100,7 @@ const useStyles = makeStyles({
     padding: '14px 16px',
     ...shorthands.borderRadius('12px'),
     textDecorationLine: 'none',
-    color: tokens.colorNeutralForeground2, // Usamos un texto más suave por defecto
+    color: tokens.colorNeutralForeground2,
     transition: 'all 0.2s',
     cursor: 'pointer',
     ':hover': { 
@@ -103,7 +111,7 @@ const useStyles = makeStyles({
   navText: { fontSize: '0.95rem' },
   navActive: { 
     backgroundColor: 'rgba(127, 19, 236, 0.2)', 
-    color: tokens.colorBrandForeground1, // El lila claro que definimos
+    color: tokens.colorBrandForeground1,
     fontWeight: 'bold'
   },
   footer: { 
@@ -112,7 +120,8 @@ const useStyles = makeStyles({
     ...shorthands.borderTop('1.5px', 'solid', tokens.colorNeutralBackground3),
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px'
+    gap: '12px',
+    flexShrink: 0
   },
   themeToggle: {
     display: 'flex',
