@@ -91,6 +91,10 @@ class Speaker(Base, AuditMixin):
     trabajo_actual = Column(String, nullable=True)
     linkedin_url = Column(String, nullable=True)
     twitter_url = Column(String, nullable=True)
+    facebook_url = Column(String, nullable=True)
+    instagram_url = Column(String, nullable=True)
+    correo_contacto = Column(String, nullable=True)
+    whatsapp_contacto = Column(String, nullable=True)
 
     eventos = relationship("Evento", secondary=eventos_speakers, back_populates="speakers")
 
@@ -101,6 +105,8 @@ class Auspiciador(Base, AuditMixin):
     logo_url = Column(String, nullable=True)
     sitio_web = Column(String, nullable=True)
     tipo = Column(String, default="GENERAL") # GOLD, SILVER, BRONZE, GENERAL
+    correo_contacto = Column(String, nullable=True)
+    whatsapp_contacto = Column(String, nullable=True)
 
     eventos = relationship("Evento", secondary=eventos_auspiciadores, back_populates="auspiciadores")
 
@@ -111,6 +117,8 @@ class ComunidadAliada(Base, AuditMixin):
     descripcion = Column(TEXT, nullable=True)
     logo_url = Column(String, nullable=True)
     link_contacto = Column(String, nullable=True)
+    correo_contacto = Column(String, nullable=True)
+    whatsapp_contacto = Column(String, nullable=True)
 
     eventos = relationship("Evento", secondary=eventos_comunidades, back_populates="comunidades")
 
