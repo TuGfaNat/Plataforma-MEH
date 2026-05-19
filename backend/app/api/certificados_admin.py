@@ -45,6 +45,7 @@ async def generate_bulk(
                 file_out.write(await f.read())
             firmas_paths.append(f_path)
 
+    # El servicio puede retornar un dict con modo "BD_REGISTRO" o "IMPRESION_DIRECTA"
     return certificado_generator_service.generate_bulk_certificates(
         db=db,
         admin_user=current_user,

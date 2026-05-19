@@ -4,14 +4,15 @@ import { jsPDF } from "jspdf";
  * Servicio Maestro de Generación de Certificados - Plataforma MEH
  * 
  * @param {Object} data - Datos del certificado
- * @param {string} data.fullName - Nombre completo del estudiante
- * @param {string} data.eventName - Nombre del curso o evento
+ * @param {string} data.fullName - Nombre completo del estudiante/speaker
+ * @param {string} data.eventName - Nombre del curso o evento (título del cert)
  * @param {string} data.date - Fecha de emisión
  * @param {string} data.code - Código de verificación único
  * @param {string} data.templateUrl - URL de la imagen de fondo (opcional)
+ * @param {Array<string>} data.signatureUrls - Array de URLs de las firmas
  */
 export const generateCertificatePDF = async (data) => {
-  const { fullName, eventName, date, code, templateUrl } = data;
+  const { fullName, eventName, date, code, templateUrl, signatureUrls = [] } = data;
 
   // 1. Crear instancia de jsPDF (Paisaje/A4)
   const doc = new jsPDF({
@@ -24,7 +25,6 @@ export const generateCertificatePDF = async (data) => {
   const height = doc.internal.pageSize.getHeight();
 
   // 2. Cargar imagen de fondo (Template)
-  // Si no hay template, usamos un diseño base por código
   if (templateUrl) {
     try {
         const img = await loadImage(templateUrl);
@@ -38,7 +38,7 @@ export const generateCertificatePDF = async (data) => {
   }
 
   // 3. Imprimir Texto Personalizado
-  doc.setTextColor(20, 20, 20); // Gris muy oscuro
+  doc.setTextColor(20, 20, 20);
   
   // Título
   doc.setFont("helvetica", "bold");
@@ -49,7 +49,7 @@ export const generateCertificatePDF = async (data) => {
   doc.setFont("helvetica", "normal");
   doc.text("Se otorga el presente reconocimiento a:", width / 2, 140, { align: "center" });
 
-  // Nombre del Estudiante
+  // Nombre del Estudiante/Speaker
   doc.setTextColor(127, 19, 236); // Morado MEH
   doc.setFont("helvetica", "bold");
   doc.setFontSize(32);
@@ -59,43 +59,53 @@ export const generateCertificatePDF = async (data) => {
   doc.setTextColor(60, 60, 60);
   doc.setFontSize(16);
   doc.setFont("helvetica", "normal");
-  doc.text(`Por haber completado satisfactoriamente el programa:`, width / 2, 220, { align: "center" });
+  doc.text(`Por su destacada participación en el programa:`, width / 2, 220, { align: "center" });
   
   doc.setFont("helvetica", "bold");
   doc.setFontSize(24);
   doc.text(eventName, width / 2, 250, { align: "center" });
 
-  // Fecha y Firmas
+  // Fecha
   doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
   doc.text(`Emitido el: ${new Date(date).toLocaleDateString()}`, width / 2, 280, { align: "center" });
 
-  // 4. Código de Validación, URL y QR
+  // 4. Firmas
+  if (signatureUrls && signatureUrls.length > 0) {
+    const numSignatures = signatureUrls.length;
+    // Ancho total reservado para firmas
+    const padding = 100;
+    const availableWidth = width - (padding * 2);
+    const spacing = availableWidth / numSignatures;
+
+    for (let i = 0; i < numSignatures; i++) {
+        try {
+            const sigImg = await loadImage(signatureUrls[i]);
+            // Calculamos posición X para centrar cada firma en su cuadrante
+            const xPos = padding + (spacing * i) + (spacing / 2) - 30; // 30 es la mitad del ancho de la firma
+            doc.addImage(sigImg, 'PNG', xPos, 320, 60, 40);
+
+            // Línea para la firma
+            doc.setDrawColor(100, 100, 100);
+            doc.setLineWidth(1);
+            doc.line(xPos - 10, 365, xPos + 70, 365);
+        } catch (e) {
+            console.warn(`No se pudo cargar la firma ${i+1}`);
+        }
+    }
+  }
+
+  // 5. Código de Validación, URL y QR
   doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
   const validationUrl = `${window.location.origin}/verificar/${code}`;
   
-  // Texto de validación
   doc.text(`Código de Verificación: ${code}`, 40, height - 50);
   doc.text(`Validar en: ${validationUrl}`, 40, height - 35);
   doc.text("Este documento cuenta con validez digital verificable en nuestro portal oficial.", 40, height - 20);
 
-  // QR Code (Usando API externa para no añadir dependencias pesadas)
-  try {
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(validationUrl)}`;
-    const qrImg = await loadImage(qrUrl);
-    doc.addImage(qrImg, 'PNG', width - 100, height - 100, 70, 70);
-  } catch (e) {
-    console.warn("No se pudo generar el código QR.");
-  }
-
-  // 5. Marca de Agua / Logo MEH (Simulado)
-  doc.setDrawColor(127, 19, 236);
-  doc.setLineWidth(2);
-  doc.line(width / 2 - 100, 310, width / 2 + 100, 310);
-
   // Guardar Archivo
-  const fileName = `Certificado_MEH_${fullName.replace(/\s+/g, '_')}.pdf`;
+  const fileName = `Certificado_${fullName.replace(/\s+/g, '_')}.pdf`;
   doc.save(fileName);
   
   return true;
@@ -114,16 +124,12 @@ const loadImage = (url) => {
 
 // Diseño base si falla el template
 const drawBaseTemplate = (doc, width, height) => {
-    // Fondo claro
     doc.setFillColor(245, 245, 250);
     doc.rect(0, 0, width, height, 'F');
-    
-    // Marco elegante
     doc.setDrawColor(127, 19, 236);
     doc.setLineWidth(10);
     doc.rect(20, 20, width - 40, height - 40);
-    
-    doc.setDrawColor(0, 120, 212); // Azul Microsoft
+    doc.setDrawColor(0, 120, 212);
     doc.setLineWidth(2);
     doc.rect(25, 25, width - 50, height - 50);
 };
