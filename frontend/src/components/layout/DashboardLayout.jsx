@@ -80,7 +80,7 @@ const useStyles = makeStyles({
       left: 0,
       right: 0,
       height: '60px',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground1} 50%, transparent)`,
       backdropFilter: 'blur(10px)',
       alignItems: 'center',
       padding: '0 16px',
