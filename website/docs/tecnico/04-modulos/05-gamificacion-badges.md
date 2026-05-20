@@ -1,68 +1,100 @@
 ---
-id: 05-gamificacion-badges
-title: Gamificación (Badges)
-sidebar_label: Gamificación (Badges)
+id: "05"
+title: "Gamificación (Badges)"
+sidebar_position: 5
 ---
 
 # Gamificación (Badges)
 
-### Sección M0 — Decisiones Arquitectónicas Locales (ADR)
+> **⚠️ [GENERADO AUTOMÁTICAMENTE]:** Esta documentación fue generada a partir del análisis estático del código fuente de Plataforma MEH.
+
+## Sección M0 — Decisiones Arquitectónicas Locales (ADR)
 
 | ID | Decisión | Alternativas consideradas | Justificación | Consecuencias |
 |---|---|---|---|---|
-| ADR-M05-001 | Uso de FastAPI Routers dedicados | Un solo router monolítico | Mejor separación de responsabilidades y modularidad | Mayor cantidad de archivos, pero código más mantenible |
+| ADR-M05-001 | Uso de arquitectura en capas | Monolito o lógica en routers | Mantenibilidad y reusabilidad | Mayor cantidad de archivos y abstracciones |
 
-### Sección M1 — Arquitectura del Módulo (C4 Nivel 3 + Ciclo de Vida)
+## Sección M1 — Arquitectura del Módulo (C4 Nivel 3 + Ciclo de Vida)
 
 ```mermaid
 graph TD
-    Router[Router: /api/v1/gamificación] --> Service[Service Layer: badge_service.py]
+    Router[Router: /api/v1/...] --> Service[Service Layer]
     Service --> Model[Modelo ORM]
     Service --> AuditMixin[AuditMixin]
 ```
 
-```mermaid
-sequenceDiagram
-    Client->>Router: Petición HTTP
-    Router->>Schema: Valida payload
-    Schema-->>Router: OK
-    Router->>Service: Procesar
-    Service->>DB: commit()
-    Service-->>Router: Resultado
-    Router-->>Client: 200/201 OK
-```
+Ciclo de vida de una petición típica:
+1. Llegada al Router (FastAPI).
+2. Validación Pydantic.
+3. Inyección de dependencia (get_db).
+4. Ejecución en Service Layer.
+5. Persistencia.
+6. Auditoría.
+7. Respuesta serializada.
 
-### Sección M2 — Diccionario de Datos
-
-[PUNTO DE INSERCIÓN MULTIMEDIA]
-Tipo: Diagrama Entidad-Relación
-Descripción: Diagrama ER del módulo.
-Figura 1. *Diagrama ER de Gamificación (Badges).*
+## Sección M2 — Diccionario de Datos
 
 ```mermaid
 erDiagram
-    GAMIFICACIÓN ||--o{ RELACION : "1:N"
+    badges {
+        id_badge string
+        nombre_badge string
+        descripcion string
+        imagen_url string
+        id_evento_origen string
+        id_curso_origen string
+        puntos string
+        requisito_nivel string
+    }
+    usuarios_badges {
+        id_usuario_badge string
+        id_usuario string
+        id_badge string
+        fecha_obtencion string
+    }
 ```
 
-| Nombre del Campo | Tipo de Dato | Restricciones de Integridad |
+### Tabla: `badges`
+
+| Nombre del Campo | Tipo de Dato | Restricciones |
 |---|---|---|
-| id | INTEGER | PK, index=True, autoincrement |
+| id_badge | `Integer, primary_key=True, index=True` | - |
+| nombre_badge | `String` | - |
+| descripcion | `TEXT, nullable=True` | - |
+| imagen_url | `TEXT` | - |
+| id_evento_origen | `Integer, ForeignKey("eventos.id_evento"), nullable=True` | - |
+| id_curso_origen | `Integer, ForeignKey("cursos.id_curso"), nullable=True` | - |
+| puntos | `Integer, default=10` | - |
+| requisito_nivel | `String, default="Beginner"` | - |
 
-### Sección M3 — Contratos de APIs
+### Tabla: `usuarios_badges`
 
-| Método | URI | Request Payload | Response |
-|---|---|---|---|
-| GET | `/api/v1/gamificación` | - | `200 OK` |
+| Nombre del Campo | Tipo de Dato | Restricciones |
+|---|---|---|
+| id_usuario_badge | `Integer, primary_key=True, index=True` | - |
+| id_usuario | `Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE")` | - |
+| id_badge | `Integer, ForeignKey("badges.id_badge", ondelete="CASCADE")` | - |
+| fecha_obtencion | `DateTime, default=datetime.utcnow` | - |
 
-### Sección M4 — Ingeniería Avanzada y Algoritmos Núcleo
+## Sección M3 — Contratos de APIs
 
-Detalles de implementación específica para Gamificación (Badges).
+| Método | URI |
+|---|---|
+| GET | `/api/v1/badges/` |
+| POST | `/api/v1/badges/` |
+| PUT | `/api/v1/badges/{id_badge}` |
+| DELETE | `/api/v1/badges/{id_badge}` |
+| GET | `/api/v1/badges/usuario/{id_usuario}` |
+| POST | `/api/v1/badges/asignar` |
 
-### Sección M5 — Frontend
+## Sección M4 — Ingeniería Avanzada y Algoritmos Núcleo
 
-- **Ruta:** `/gamificación`
-- **Conexión con backend:** Hook hacia `/api/v1/gamificación`
+Para información sobre la trazabilidad, se usa `AuditMixin` en los modelos para capturar el usuario creador/modificador.
 
-### Sección M6 — Migraciones
+## Sección M5 — Frontend (por módulo)
 
-- **Alembic:** Ver tabla de migraciones global.
+Revisar la carpeta `frontend/src/` para componentes asociados a este módulo.
+
+## Sección M6 — Migraciones
+
+* Las migraciones asociadas a estas tablas se encuentran en `alembic/versions/`.

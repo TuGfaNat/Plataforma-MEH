@@ -1,68 +1,56 @@
 ---
-id: 12-dashboard-reportes
-title: Dashboard / Reportes
-sidebar_label: Dashboard / Reportes
+id: "12"
+title: "Dashboard / Reportes"
+sidebar_position: 12
 ---
 
 # Dashboard / Reportes
 
-### Sección M0 — Decisiones Arquitectónicas Locales (ADR)
+> **⚠️ [GENERADO AUTOMÁTICAMENTE]:** Esta documentación fue generada a partir del análisis estático del código fuente de Plataforma MEH.
+
+## Sección M0 — Decisiones Arquitectónicas Locales (ADR)
 
 | ID | Decisión | Alternativas consideradas | Justificación | Consecuencias |
 |---|---|---|---|---|
-| ADR-M12-001 | Uso de FastAPI Routers dedicados | Un solo router monolítico | Mejor separación de responsabilidades y modularidad | Mayor cantidad de archivos, pero código más mantenible |
+| ADR-M12-001 | Uso de arquitectura en capas | Monolito o lógica en routers | Mantenibilidad y reusabilidad | Mayor cantidad de archivos y abstracciones |
 
-### Sección M1 — Arquitectura del Módulo (C4 Nivel 3 + Ciclo de Vida)
+## Sección M1 — Arquitectura del Módulo (C4 Nivel 3 + Ciclo de Vida)
 
 ```mermaid
 graph TD
-    Router[Router: /api/v1/dashboard] --> Service[Service Layer: dashboard_service.py]
+    Router[Router: /api/v1/...] --> Service[Service Layer]
     Service --> Model[Modelo ORM]
     Service --> AuditMixin[AuditMixin]
 ```
 
-```mermaid
-sequenceDiagram
-    Client->>Router: Petición HTTP
-    Router->>Schema: Valida payload
-    Schema-->>Router: OK
-    Router->>Service: Procesar
-    Service->>DB: commit()
-    Service-->>Router: Resultado
-    Router-->>Client: 200/201 OK
-```
+Ciclo de vida de una petición típica:
+1. Llegada al Router (FastAPI).
+2. Validación Pydantic.
+3. Inyección de dependencia (get_db).
+4. Ejecución en Service Layer.
+5. Persistencia.
+6. Auditoría.
+7. Respuesta serializada.
 
-### Sección M2 — Diccionario de Datos
+## Sección M2 — Diccionario de Datos
 
-[PUNTO DE INSERCIÓN MULTIMEDIA]
-Tipo: Diagrama Entidad-Relación
-Descripción: Diagrama ER del módulo.
-Figura 1. *Diagrama ER de Dashboard / Reportes.*
+[SIN TABLAS PROPIAS]
 
-```mermaid
-erDiagram
-    DASHBOARD ||--o{ RELACION : "1:N"
-```
+## Sección M3 — Contratos de APIs
 
-| Nombre del Campo | Tipo de Dato | Restricciones de Integridad |
-|---|---|---|
-| id | INTEGER | PK, index=True, autoincrement |
+| Método | URI |
+|---|---|
+| GET | `/api/v1/dashboard/stats` |
+| GET | `/api/v1/reports/dashboard-stats` |
 
-### Sección M3 — Contratos de APIs
+## Sección M4 — Ingeniería Avanzada y Algoritmos Núcleo
 
-| Método | URI | Request Payload | Response |
-|---|---|---|---|
-| GET | `/api/v1/dashboard` | - | `200 OK` |
+Para información sobre la trazabilidad, se usa `AuditMixin` en los modelos para capturar el usuario creador/modificador.
 
-### Sección M4 — Ingeniería Avanzada y Algoritmos Núcleo
+## Sección M5 — Frontend (por módulo)
 
-Detalles de implementación específica para Dashboard / Reportes.
+Revisar la carpeta `frontend/src/` para componentes asociados a este módulo.
 
-### Sección M5 — Frontend
+## Sección M6 — Migraciones
 
-- **Ruta:** `/dashboard`
-- **Conexión con backend:** Hook hacia `/api/v1/dashboard`
-
-### Sección M6 — Migraciones
-
-- **Alembic:** Ver tabla de migraciones global.
+* Las migraciones asociadas a estas tablas se encuentran en `alembic/versions/`.
