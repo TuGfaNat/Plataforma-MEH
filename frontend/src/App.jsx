@@ -1,7 +1,7 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { FluentProvider, Toaster, useId, useToastController, Toast, ToastTitle, ToastBody, Spinner } from '@fluentui/react-components';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { mlsaDarkTheme, mlsaLightTheme } from './theme/theme';
+import { themes } from './theme/theme';
 import authService from './services/authService';
 import { hasAnyRole } from './auth/rbac';
 
@@ -13,6 +13,7 @@ import Users from './pages/Users.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 import Auditoria from './pages/Auditoria.jsx';
 import Insignias from './pages/Insignias.jsx';
 import Finanzas from './pages/Finanzas.jsx';
@@ -65,9 +66,9 @@ function App() {
   const [loading, setLoading] = useState(true);
   
   // TEMA PERSISTENTE (LOCAL + API)
-  const [isDarkMode, setIsDarkMode] = useState(() => {
+  const [currentTheme, setCurrentTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
-    return savedTheme ? savedTheme === 'dark' : true;
+    return savedTheme && themes[savedTheme] ? savedTheme : 'dark';
   });
 
   const toasterId = useId("toaster");
@@ -91,8 +92,8 @@ function App() {
         if (userData) {
           setUser(userData);
           // Sincronizar tema con la preferencia de la DB si existe
-          if (userData.preferencia_tema) {
-              setIsDarkMode(userData.preferencia_tema === 'dark');
+          if (userData.preferencia_tema && themes[userData.preferencia_tema]) {
+              setCurrentTheme(userData.preferencia_tema);
           }
         }
       } else {
@@ -113,17 +114,21 @@ function App() {
 
   // Guardar en local storage para persistencia antes del login
   useEffect(() => {
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-  }, [isDarkMode]);
+    localStorage.setItem('theme', currentTheme);
+  }, [currentTheme]);
 
   const toggleTheme = async () => {
-    const newMode = !isDarkMode;
-    setIsDarkMode(newMode);
+    const themeKeys = Object.keys(themes);
+    const currentIndex = themeKeys.indexOf(currentTheme);
+    const nextIndex = (currentIndex + 1) % themeKeys.length;
+    const nextTheme = themeKeys[nextIndex];
+    
+    setCurrentTheme(nextTheme);
     
     // Si hay usuario, guardar en la API para persistencia total
     if (user) {
         try {
-            await authService.updateMe({ preferencia_tema: newMode ? 'dark' : 'light' });
+            await authService.updateMe({ preferencia_tema: nextTheme });
         } catch (err) {
             console.error("No se pudo guardar la preferencia de tema en el servidor");
         }
@@ -132,9 +137,9 @@ function App() {
 
   return (
     <AuthContext.Provider value={{ user, setUser, checkAuth, loading }}>
-      <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
+      <ThemeContext.Provider value={{ currentTheme, toggleTheme, setCurrentTheme }}>
         <NotificationContext.Provider value={{ notify }}>
-            <FluentProvider theme={isDarkMode ? mlsaDarkTheme : mlsaLightTheme}>
+            <FluentProvider theme={themes[currentTheme] || themes.dark}>
             <Toaster toasterId={toasterId} />
             <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Routes>
@@ -142,6 +147,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/validador" element={<ValidadorTalento />} />
                 <Route path="/verificar/:uuid" element={<VerificarCertificado />} />
                 

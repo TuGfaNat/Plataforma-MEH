@@ -1,5 +1,6 @@
 import os
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -78,7 +79,56 @@ def login_user(db: Session, credentials: user_schema.UserLogin, ip_address: Opti
         ip_direccion=ip_address
     )
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "es_nuevo": user.es_nuevo
+    }
+
+def forgot_password(db: Session, request: user_schema.ForgotPasswordRequest) -> bool:
+    """Inicia el flujo de recuperación de contraseña."""
+    user = db.query(models.Usuario).filter(models.Usuario.correo == request.correo).first()
+    
+    if not user:
+        # Por seguridad no revelamos si el usuario existe o no
+        return True
+
+    # Generar token aleatorio seguro
+    token = secrets.token_urlsafe(32)
+    user.reset_token = token
+    user.reset_token_exp = datetime.utcnow() + timedelta(hours=1)
+    
+    db.commit()
+
+    # Enviar email
+    try:
+        from . import email_service
+        email_service.notify_reset_password(user.correo, user.nombres, token)
+    except Exception as e:
+        print(f"Error enviando email de reset: {e}")
+        return False
+        
+    return True
+
+def reset_password(db: Session, request: user_schema.ResetPasswordRequest) -> bool:
+    """Completa el flujo de recuperación de contraseña."""
+    user = db.query(models.Usuario).filter(
+        models.Usuario.reset_token == request.token,
+        models.Usuario.reset_token_exp > datetime.utcnow()
+    ).first()
+    
+    if not user:
+        raise ValidacionNegocioError("El token es inválido o ha expirado")
+
+    # Actualizar contraseña
+    user.password_hash = auth_core.get_password_hash(request.nuevo_password)
+    user.reset_token = None
+    user.reset_token_exp = None
+    user.es_nuevo = False # Si resetea contraseña, ya no es nuevo
+    
+    db.commit()
+    
+    return True
 
 def login_with_google(db: Session, google_jwt: str, ip_address: Optional[str] = None) -> dict:
     """Valida un token de Google y genera un token JWT de la plataforma."""

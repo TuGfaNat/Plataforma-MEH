@@ -1,0 +1,1 @@
+# Historial de Pagos\n\nRevisa el estado de tus comprobantes en la sección 'Mis Finanzas'.\n\n![Historial de Pagos](pathname:///img/placeholder.png)

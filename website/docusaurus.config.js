@@ -15,7 +15,6 @@ const config = {
   projectName: "Plataforma-MEH",
 
   onBrokenLinks: "throw",
-  onBrokenMarkdownLinks: "warn",
 
   i18n: {
     defaultLocale: "es",
@@ -24,6 +23,10 @@ const config = {
 
   markdown: {
     mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: "warn",
+      onBrokenMarkdownImages: "warn",
+    },
   },
   themes: ["@docusaurus/theme-mermaid"],
 

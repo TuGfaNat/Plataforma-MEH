@@ -129,9 +129,15 @@ const Login = () => {
     setLoading(true);
     
     try {
-      await authService.login(formData.correo, formData.password);
+      const response = await authService.login(formData.correo, formData.password);
       if (checkAuth) await checkAuth(); 
-      navigate('/dashboard');
+      
+      if (response.es_nuevo) {
+        // Redirigir a recuperación para que cambie su clave temporal/inicial
+        navigate('/forgot-password?first_time=true');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setLoading(false);
       if (!err.response) {

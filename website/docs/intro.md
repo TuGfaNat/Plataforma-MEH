@@ -101,4 +101,4 @@ El MEH actúa como un **Single Point of Truth (Única Fuente de Verdad)** median
 
 ---
 
-_Para iniciar con el despliegue técnico, diríjase a la sección de **[Guía de Instalación](./usuario/instalacion)**._
+_Para iniciar con el despliegue técnico, diríjase a la sección de **[Guía de Instalación](./usuario)**._

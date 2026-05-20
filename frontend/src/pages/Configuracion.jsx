@@ -12,6 +12,7 @@ import {
   Spinner,
   Badge,
   Select,
+  mergeClasses,
 } from "@fluentui/react-components";
 import {
   Person24Regular,
@@ -22,10 +23,13 @@ import {
   ArrowUpload24Regular,
   Building24Regular,
   Map24Regular,
-  Link24Regular
+  Link24Regular,
+  WeatherSunny24Regular,
+  WeatherMoon24Regular,
+  Library24Regular
 } from "@fluentui/react-icons";
 import { MEHCard, MEHButton, MEHTypography } from "../components/ui";
-import { useAuth, useNotify } from "../App";
+import { useAuth, useNotify, useTheme } from "../App";
 import { useNavigate } from "react-router-dom";
 import authService from "../services/authService";
 import api, { resolveApiFileUrl } from "../services/api";
@@ -112,6 +116,32 @@ const useStyles = makeStyles({
     "@media (max-width: 600px)": {
       gridTemplateColumns: "1fr",
     }
+  },
+  themeGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+    gap: "12px",
+    marginTop: "12px",
+  },
+  themeCard: {
+    ...shorthands.padding("16px"),
+    ...shorthands.borderRadius("16px"),
+    ...shorthands.border("2px", "solid", "transparent"),
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "8px",
+    cursor: "pointer",
+    transition: "all 0.2s",
+    backgroundColor: tokens.colorNeutralBackground3,
+    ':hover': {
+      backgroundColor: tokens.colorNeutralBackground2,
+      ...shorthands.borderColor(tokens.colorBrandStroke1),
+    }
+  },
+  themeCardSelected: {
+    ...shorthands.borderColor(tokens.colorBrandBackground),
+    backgroundColor: tokens.colorBrandBackground2,
   }
 });
 
@@ -119,11 +149,25 @@ const Configuracion = () => {
   const styles = useStyles();
   const { user, checkAuth } = useAuth();
   const { notify } = useNotify();
+  const { currentTheme, setCurrentTheme } = useTheme();
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+
+  const handleThemeChange = async (themeKey) => {
+    setCurrentTheme(themeKey);
+    localStorage.setItem('theme', themeKey);
+    
+    if (user) {
+      try {
+        await authService.updateMe({ preferencia_tema: themeKey });
+      } catch (err) {
+        console.error("Error al guardar tema");
+      }
+    }
+  };
 
   // Estados para la API Geográfica
   const [countries, setCountries] = useState([]);
@@ -446,6 +490,48 @@ const Configuracion = () => {
                     onChange={(e, d) => handleInputChange('learning_path_url', d.value)} 
                     placeholder="https://learn.microsoft.com/users/..." 
                 />
+              </div>
+            </div>
+
+            <Divider />
+            <MEHTypography variant="h3">4. Personalización del Sistema</MEHTypography>
+            <MEHTypography variant="caption" style={{ opacity: 0.6 }}>Elige el estilo que mejor se adapte a ti. El cambio se aplica instantáneamente.</MEHTypography>
+
+            <div className={styles.themeGrid}>
+              <div 
+                className={mergeClasses(styles.themeCard, currentTheme === 'dark' && styles.themeCardSelected)}
+                onClick={() => handleThemeChange('dark')}
+              >
+                <WeatherMoon24Regular style={{ fontSize: '24px' }} />
+                <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Oscuro</MEHTypography>
+                <MEHTypography variant="caption" style={{ opacity: 0.6, textAlign: 'center' }}>Por defecto y elegante</MEHTypography>
+              </div>
+
+              <div 
+                className={mergeClasses(styles.themeCard, currentTheme === 'light' && styles.themeCardSelected)}
+                onClick={() => handleThemeChange('light')}
+              >
+                <WeatherSunny24Regular style={{ fontSize: '24px' }} />
+                <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Claro</MEHTypography>
+                <MEHTypography variant="caption" style={{ opacity: 0.6, textAlign: 'center' }}>Máxima claridad diurna</MEHTypography>
+              </div>
+
+              <div 
+                className={mergeClasses(styles.themeCard, currentTheme === 'ash' && styles.themeCardSelected)}
+                onClick={() => handleThemeChange('ash')}
+              >
+                <Library24Regular style={{ fontSize: '24px' }} />
+                <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Ceniza</MEHTypography>
+                <MEHTypography variant="caption" style={{ opacity: 0.6, textAlign: 'center' }}>Grises suaves y neutros</MEHTypography>
+              </div>
+
+              <div 
+                className={mergeClasses(styles.themeCard, currentTheme === 'ocean' && styles.themeCardSelected)}
+                onClick={() => handleThemeChange('ocean')}
+              >
+                <Globe24Regular style={{ fontSize: '24px' }} />
+                <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Ocean</MEHTypography>
+                <MEHTypography variant="caption" style={{ opacity: 0.6, textAlign: 'center' }}>Azules y plomos técnicos</MEHTypography>
               </div>
             </div>
 

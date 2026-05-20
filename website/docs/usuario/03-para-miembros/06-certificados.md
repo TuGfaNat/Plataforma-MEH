@@ -1,0 +1,1 @@
+# Descargar Certificados\n\nAl terminar un curso o evento, descárgalo desde la sección 'Mis Certificados'.\n\n![Descargar Certificados](pathname:///img/placeholder.png)

@@ -1,17 +1,17 @@
-import React from 'react';
-import { 
-  makeStyles, 
-  shorthands, 
-  tokens, 
+import React from "react";
+import {
+  makeStyles,
+  shorthands,
+  tokens,
   Body1,
   Button,
   mergeClasses,
-  Avatar
-} from '@fluentui/react-components';
-import { 
-  Trophy24Regular, 
+  Avatar,
+} from "@fluentui/react-components";
+import {
+  Trophy24Regular,
   Trophy24Filled,
-  Library24Regular, 
+  Library24Regular,
   Library24Filled,
   Certificate24Regular,
   Certificate24Filled,
@@ -44,13 +44,14 @@ import {
   DataTrending24Regular,
   DataTrending24Filled,
   PeopleCommunity24Regular,
-  PeopleCommunity24Filled
-} from '@fluentui/react-icons';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { designTokens } from '../theme/theme';
-import { useAuth, useTheme } from '../App';
-import authService from '../services/authService';
+  PeopleCommunity24Filled,
+} from "@fluentui/react-icons";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { designTokens } from "../theme/theme";
+import { useAuth, useTheme } from "../App";
+import { resolveApiFileUrl } from "../services/api";
+import authService from "../services/authService";
 import {
   hasPermission,
   PERMISSION_ATTENDANCE_SCAN,
@@ -59,90 +60,95 @@ import {
   PERMISSION_PAYMENTS_READ_ALL,
   PERMISSION_SPEAKER_ACCESS,
   PERMISSION_VIP_ACCESS,
-} from '../auth/rbac';
+} from "../auth/rbac";
 
 const useStyles = makeStyles({
   sidebar: {
-    width: '280px',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    backdropFilter: 'blur(20px)',
-    display: 'flex',
-    flexDirection: 'column',
-    ...shorthands.borderRight('1px', 'solid', tokens.colorNeutralBackground3),
-    padding: '32px 16px',
-    height: '100vh', 
-    boxSizing: 'border-box',
+    width: "280px",
+    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    backdropFilter: "blur(20px)",
+    display: "flex",
+    flexDirection: "column",
+    ...shorthands.borderRight("1px", "solid", tokens.colorNeutralBackground3),
+    padding: "32px 16px",
+    height: "100vh",
+    boxSizing: "border-box",
     zIndex: 100,
     // Menú interno scrolleable si hay muchos items
-    overflowY: 'auto',
-    scrollbarWidth: 'none', 
-    '&::-webkit-scrollbar': { display: 'none' }
+    overflowY: "auto",
+    scrollbarWidth: "none",
+    "&::-webkit-scrollbar": { display: "none" },
   },
   logoContainer: {
-    display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px',
-    paddingLeft: '12px', textDecorationLine: 'none', color: 'inherit',
-    flexShrink: 0
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    marginBottom: "48px",
+    paddingLeft: "12px",
+    textDecorationLine: "none",
+    color: "inherit",
+    flexShrink: 0,
   },
-  logoImg: { width: '42px' },
-  navSection: { 
-    display: 'flex', 
-    flexDirection: 'column', 
-    gap: '8px', 
-    flexGrow: 1 
+  logoImg: { width: "42px" },
+  navSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    flexGrow: 1,
   },
   sectionTitle: {
-    fontSize: '0.75rem',
+    fontSize: "0.75rem",
     fontWeight: tokens.fontWeightBold,
     color: tokens.colorNeutralForeground4,
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    padding: '16px 16px 8px 16px',
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    padding: "16px 16px 8px 16px",
   },
   navItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '14px 16px',
-    ...shorthands.borderRadius('12px'),
-    textDecorationLine: 'none',
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "14px 16px",
+    ...shorthands.borderRadius("12px"),
+    textDecorationLine: "none",
     color: tokens.colorNeutralForeground2,
-    transition: 'all 0.2s',
-    cursor: 'pointer',
-    ':hover': { 
-      backgroundColor: 'rgba(255, 255, 255, 0.05)', 
-      color: tokens.colorNeutralForeground1 
-    }
+    transition: "all 0.2s",
+    cursor: "pointer",
+    ":hover": {
+      backgroundColor: "rgba(255, 255, 255, 0.05)",
+      color: tokens.colorNeutralForeground1,
+    },
   },
-  navText: { fontSize: '0.95rem' },
-  navActive: { 
-    backgroundColor: 'rgba(127, 19, 236, 0.2)', 
+  navText: { fontSize: "0.95rem" },
+  navActive: {
+    backgroundColor: "rgba(127, 19, 236, 0.2)",
     color: tokens.colorBrandForeground1,
-    fontWeight: 'bold'
+    fontWeight: "bold",
   },
-  footer: { 
-    marginTop: 'auto', 
-    paddingTop: '24px', 
-    ...shorthands.borderTop('1.5px', 'solid', tokens.colorNeutralBackground3),
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-    flexShrink: 0
+  footer: {
+    marginTop: "auto",
+    paddingTop: "24px",
+    ...shorthands.borderTop("1.5px", "solid", tokens.colorNeutralBackground3),
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    flexShrink: 0,
   },
   themeToggle: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: '12px',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    ...shorthands.padding('12px'),
-    ...shorthands.borderRadius('16px'),
-    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
-    marginBottom: '8px'
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "12px",
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    ...shorthands.padding("12px"),
+    ...shorthands.borderRadius("16px"),
+    ...shorthands.border("1px", "solid", tokens.colorNeutralBackground3),
+    marginBottom: "8px",
   },
   themeButton: {
     flexGrow: 1,
-    justifyContent: 'center'
-  }
+    justifyContent: "center",
+  },
 });
 
 const Sidebar = ({ onClose }) => {
@@ -150,29 +156,36 @@ const Sidebar = ({ onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const { isDarkMode, toggleTheme } = useTheme();
+  const { currentTheme, toggleTheme } = useTheme();
   const { user, setUser } = useAuth();
 
   const handleLogout = () => {
     authService.logout();
     setUser(null);
-    navigate('/login');
+    navigate("/login");
     if (onClose) onClose();
   };
 
   const toggleLanguage = () => {
-    const currentLanguage = String(i18n.language || '').toLowerCase();
-    const newLang = currentLanguage.startsWith('es') ? 'en' : 'es';
+    const currentLanguage = String(i18n.language || "").toLowerCase();
+    const newLang = currentLanguage.startsWith("es") ? "en" : "es";
     i18n.changeLanguage(newLang);
   };
 
-  const NavItem = ({ to, icon: IconRegular, activeIcon: IconFilled, label }) => {
+  const NavItem = ({
+    to,
+    icon: IconRegular,
+    activeIcon: IconFilled,
+    label,
+  }) => {
     const active = location.pathname === to;
     return (
-      <Link 
-        to={to} 
+      <Link
+        to={to}
         className={mergeClasses(styles.navItem, active && styles.navActive)}
-        onClick={() => { if (onClose) onClose(); }}
+        onClick={() => {
+          if (onClose) onClose();
+        }}
       >
         {active ? <IconFilled /> : <IconRegular />}
         <span className={styles.navText}>{label}</span>
@@ -181,125 +194,288 @@ const Sidebar = ({ onClose }) => {
   };
 
   const canAccessVip = hasPermission(user?.rol, PERMISSION_VIP_ACCESS);
-  const canAccessSpeakerKit = hasPermission(user?.rol, PERMISSION_SPEAKER_ACCESS);
+  const canAccessSpeakerKit = hasPermission(
+    user?.rol,
+    PERMISSION_SPEAKER_ACCESS,
+  );
   const canManageEvents = hasPermission(user?.rol, PERMISSION_EVENTS_MANAGE);
-  const canReadAllPayments = hasPermission(user?.rol, PERMISSION_PAYMENTS_READ_ALL);
-  const canScanAttendance = hasPermission(user?.rol, PERMISSION_ATTENDANCE_SCAN);
+  const canReadAllPayments = hasPermission(
+    user?.rol,
+    PERMISSION_PAYMENTS_READ_ALL,
+  );
+  const canScanAttendance = hasPermission(
+    user?.rol,
+    PERMISSION_ATTENDANCE_SCAN,
+  );
   const canReadAudit = hasPermission(user?.rol, PERMISSION_AUDIT_READ);
 
-  const currentLanguageLabel = String(i18n.language || '').toLowerCase().startsWith('es') ? 'ES' : 'EN';
+  const currentLanguageLabel = String(i18n.language || "")
+    .toLowerCase()
+    .startsWith("es")
+    ? "ES"
+    : "EN";
 
   return (
     <aside className={styles.sidebar}>
       <Link to="/" className={styles.logoContainer}>
         <img src={designTokens.logo} alt="logo" className={styles.logoImg} />
-        <Body1 style={{ fontWeight: tokens.fontWeightBlack, color: tokens.colorNeutralForeground1 }}>MEH</Body1>
+        <Body1
+          style={{
+            fontWeight: tokens.fontWeightBlack,
+            color: tokens.colorNeutralForeground1,
+          }}
+        >
+          MEH
+        </Body1>
       </Link>
 
       <nav className={styles.navSection}>
-        <div className={styles.sectionTitle}>{t('menu_personal') || "Mi Espacio"}</div>
-        <NavItem to="/dashboard" icon={Home24Regular} activeIcon={Home24Filled} label={t('dashboard') || "Panel de Control"} />
-        <NavItem to="/validador" icon={Certificate24Regular} activeIcon={Certificate24Filled} label={t('validator') || "Validador de Talentos"} />
-        <NavItem to="/insignias" icon={Trophy24Regular} activeIcon={Trophy24Filled} label={t('badges') || "Insignias"} />
-        <NavItem to="/finanzas" icon={Payment24Regular} activeIcon={Payment24Filled} label={t('finances') || "Mis Pagos"} />
-        <NavItem to="/learning" icon={Library24Regular} activeIcon={Library24Filled} label={t('learning_hub') || "Centro de Aprendizaje"} />
-        <NavItem to="/comunidad" icon={People24Regular} activeIcon={People24Filled} label={t('community') || "Comunidad"} />
+        <div className={styles.sectionTitle}>
+          {t("menu_personal") || "Mi Espacio"}
+        </div>
+        <NavItem
+          to="/dashboard"
+          icon={Home24Regular}
+          activeIcon={Home24Filled}
+          label={t("dashboard") || "Panel de Control"}
+        />
+        <NavItem
+          to="/validador"
+          icon={Certificate24Regular}
+          activeIcon={Certificate24Filled}
+          label={t("validador") || "Validador de Talentos"}
+        />
+        <NavItem
+          to="/insignias"
+          icon={Trophy24Regular}
+          activeIcon={Trophy24Filled}
+          label={t("badges") || "Insignias"}
+        />
+        <NavItem
+          to="/finanzas"
+          icon={Payment24Regular}
+          activeIcon={Payment24Filled}
+          label={t("finances") || "Mis Pagos"}
+        />
+        <NavItem
+          to="/learning"
+          icon={Library24Regular}
+          activeIcon={Library24Filled}
+          label={t("learning_hub") || "Centro de Aprendizaje"}
+        />
+        <NavItem
+          to="/comunidad"
+          icon={People24Regular}
+          activeIcon={People24Filled}
+          label={t("community") || "Comunidad"}
+        />
 
         {(canAccessVip || canAccessSpeakerKit) && (
           <>
-            <div className={styles.sectionTitle}>{t('menu_liderazgo') || "Liderazgo"}</div>
+            <div className={styles.sectionTitle}>
+              {t("menu_liderazgo") || "Liderazgo"}
+            </div>
             {canAccessVip && (
-              <NavItem to="/recursos-vip" icon={BookToolbox24Regular} activeIcon={BookToolbox24Filled} label={t('ambassador_resources') || "Recursos VIP"} />
+              <NavItem
+                to="/recursos-vip"
+                icon={BookToolbox24Regular}
+                activeIcon={BookToolbox24Filled}
+                label={t("ambassador_resources") || "Recursos VIP"}
+              />
             )}
             {canAccessSpeakerKit && (
-              <NavItem to="/speaker-kit" icon={MegaphoneLoud24Regular} activeIcon={MegaphoneLoud24Filled} label={t('speaker_kit') || "Speaker Kit"} />
+              <NavItem
+                to="/speaker-kit"
+                icon={MegaphoneLoud24Regular}
+                activeIcon={MegaphoneLoud24Filled}
+                label={t("speaker_kit") || "Speaker Kit"}
+              />
             )}
           </>
         )}
 
         {(canManageEvents || canReadAllPayments || canScanAttendance) && (
           <>
-            <div className={styles.sectionTitle}>{t('menu_gestion') || "Gestión"}</div>
+            <div className={styles.sectionTitle}>
+              {t("menu_gestion") || "Gestión"}
+            </div>
             {canManageEvents && (
-              <NavItem to="/dashboard/analytics" icon={DataTrending24Regular} activeIcon={DataTrending24Filled} label={t('analytics') || "Analítica Estratégica"} />
+              <NavItem
+                to="/dashboard/analytics"
+                icon={DataTrending24Regular}
+                activeIcon={DataTrending24Filled}
+                label={t("analytics") || "Analítica Estratégica"}
+              />
             )}
             {canManageEvents && (
-              <NavItem to="/admin" icon={ShieldSettings24Regular} activeIcon={ShieldSettings24Filled} label={t('admin_panel') || "Panel Maestro"} />
+              <NavItem
+                to="/admin"
+                icon={ShieldSettings24Regular}
+                activeIcon={ShieldSettings24Filled}
+                label={t("admin_panel") || "Panel Maestro"}
+              />
             )}
             {canManageEvents && (
-              <NavItem to="/admin/ecosistema" icon={PeopleCommunity24Regular} activeIcon={PeopleCommunity24Filled} label="Directorio de Red" />
+              <NavItem
+                to="/admin/ecosistema"
+                icon={PeopleCommunity24Regular}
+                activeIcon={PeopleCommunity24Filled}
+                label="Directorio de Red"
+              />
             )}
             {canManageEvents && (
-              <NavItem to="/admin/notificaciones" icon={MegaphoneLoud24Regular} activeIcon={MegaphoneLoud24Filled} label="Notificaciones" />
+              <NavItem
+                to="/admin/notificaciones"
+                icon={MegaphoneLoud24Regular}
+                activeIcon={MegaphoneLoud24Filled}
+                label="Notificaciones"
+              />
+            )}
+            {canManageEvents && (
+              <NavItem
+                to="/admin/generador-certificados"
+                icon={Print24Regular}
+                activeIcon={Print24Filled}
+                label="Generador Certificados"
+              />
             )}
             {canManageEvents && (
               <NavItem to="/admin/generador-certificados" icon={Print24Regular} activeIcon={Print24Filled} label="Generador Certificados" />
             )}
             {canReadAllPayments && (
-              <NavItem to="/gestion-pagos" icon={ReceiptMoney24Regular} activeIcon={ReceiptMoney24Filled} label={t('manage_payments') || "Validar Pagos"} />
+              <NavItem
+                to="/gestion-pagos"
+                icon={ReceiptMoney24Regular}
+                activeIcon={ReceiptMoney24Filled}
+                label={t("manage_payments") || "Validar Pagos"}
+              />
             )}
             {canScanAttendance && (
-              <NavItem to="/escaneo-qr" icon={QrCode24Regular} activeIcon={QrCode24Filled} label={t('qr_scan') || "Escaneo QR"} />
+              <NavItem
+                to="/escaneo-qr"
+                icon={QrCode24Regular}
+                activeIcon={QrCode24Filled}
+                label={t("qr_scan") || "Escaneo QR"}
+              />
             )}
           </>
         )}
 
         {canReadAudit && (
           <>
-            <div className={styles.sectionTitle}>{t('menu_admin') || "Sistema"}</div>
-            <NavItem to="/auditoria" icon={ShieldLock24Regular} activeIcon={ShieldLock24Filled} label={t('audit') || "Auditoría de Logs"} />
+            <div className={styles.sectionTitle}>
+              {t("menu_admin") || "Sistema"}
+            </div>
+            <NavItem
+              to="/auditoria"
+              icon={ShieldLock24Regular}
+              activeIcon={ShieldLock24Filled}
+              label={t("audit") || "Auditoría de Logs"}
+            />
           </>
         )}
       </nav>
 
       <div className={styles.footer}>
         {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', marginBottom: '8px' }}>
-            <Avatar 
-                size={32} 
-                name={`${user.nombres} ${user.apellidos}`} 
-                image={user.foto_url ? { src: user.foto_url } : undefined}
-                color="colorful"
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              padding: "12px 16px",
+              backgroundColor: "rgba(255, 255, 255, 0.03)",
+              borderRadius: "12px",
+              marginBottom: "8px",
+            }}
+          >
+            <Avatar
+              size={32}
+              name={`${user.nombres} ${user.apellidos}`}
+              image={
+                user.foto_url
+                  ? { src: resolveApiFileUrl(user.foto_url) }
+                  : undefined
+              }
+              color="colorful"
             />
-            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <Body1 style={{ fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              <Body1
+                style={{
+                  fontWeight: "bold",
+                  fontSize: "0.85rem",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
                 {user.nombres} {user.apellidos}
               </Body1>
-              <span style={{ fontSize: '0.75rem', opacity: 0.6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  opacity: 0.6,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
                 {user.correo}
               </span>
             </div>
           </div>
         )}
         <div className={styles.themeToggle}>
-           <Button 
-            appearance="subtle" 
-            size="small" 
+          <Button
+            appearance="subtle"
+            size="small"
             className={styles.themeButton}
             icon={<LocalLanguage24Regular />}
             onClick={toggleLanguage}
             style={{ color: tokens.colorNeutralForeground1 }}
-           >
+          >
             {currentLanguageLabel}
-           </Button>
-           
-           <Button 
-            appearance="subtle" 
-            size="small" 
+          </Button>
+
+          <Button
+            appearance="subtle"
+            size="small"
             className={styles.themeButton}
-            icon={isDarkMode ? <WeatherSunny24Regular /> : <WeatherMoon24Regular />}
+            icon={
+              currentTheme === 'light' ? <WeatherMoon24Regular /> : 
+              currentTheme === 'dark' ? <WeatherSunny24Regular /> :
+              currentTheme === 'ash' ? <Library24Regular /> :
+              <Globe24Regular />
+            }
             onClick={toggleTheme}
             style={{ color: tokens.colorNeutralForeground1 }}
-           >
-            {isDarkMode ? "Light" : "Carbon"}
-           </Button>
+          >
+            {currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}
+          </Button>
         </div>
 
-        <NavItem to="/configuracion" icon={Settings24Regular} activeIcon={Settings24Filled} label={t('settings') || "Configuración"} />
-        
-        <div className={styles.navItem} onClick={handleLogout} style={{ color: tokens.colorPaletteRedForeground1 }}>
+        <NavItem
+          to="/configuracion"
+          icon={Settings24Regular}
+          activeIcon={Settings24Filled}
+          label={t("settings") || "Configuración"}
+        />
+
+        <div
+          className={styles.navItem}
+          onClick={handleLogout}
+          style={{ color: tokens.colorPaletteRedForeground1 }}
+        >
           <SignOut24Regular />
-          <span className={styles.navText}>{t('logout') || "Cerrar Sesión"}</span>
+          <span className={styles.navText}>
+            {t("logout") || "Cerrar Sesión"}
+          </span>
         </div>
       </div>
     </aside>
