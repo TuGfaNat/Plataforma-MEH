@@ -6,15 +6,61 @@ const sidebars = {
       type: 'category',
       label: 'Documentación Técnica',
       link: {
-        type: 'generated-index',
-        description: 'Detalles internos del sistema, arquitectura y base de datos.',
+        type: 'doc',
+        id: 'tecnico/index',
       },
       items: [
-        'tecnico/arquitectura',
-        'tecnico/persistencia-datos',
-        'tecnico/seguridad-rbac',
-        'tecnico/api-reference',
-        'tecnico/devops-calidad',
+        {
+          type: 'category',
+          label: '1. Visión General',
+          items: [
+            'tecnico/01-vision-general/index',
+          ],
+        },
+        {
+          type: 'category',
+          label: '2. Mapa Dependencias',
+          items: [
+            'tecnico/02-mapa-dependencias/index',
+          ],
+        },
+        {
+          type: 'category',
+          label: '3. Decisiones Arquitectónicas',
+          items: [
+            'tecnico/03-decisiones-arquitectonicas/index',
+          ],
+        },
+        {
+          type: 'category',
+          label: '4. Módulos',
+          items: [
+            'tecnico/04-modulos/index',
+            'tecnico/04-modulos/01-auth-identidad',
+            'tecnico/04-modulos/02-eventos',
+            'tecnico/04-modulos/03-inscripciones-asistencia',
+            'tecnico/04-modulos/04-learning-hub-cursos',
+            'tecnico/04-modulos/05-gamificacion-badges',
+            'tecnico/04-modulos/06-certificados',
+            'tecnico/04-modulos/07-pagos-ocrn',
+            'tecnico/04-modulos/08-productos-souvenirs',
+            'tecnico/04-modulos/09-academia',
+            'tecnico/04-modulos/10-recursos',
+            'tecnico/04-modulos/11-anuncios',
+            'tecnico/04-modulos/12-dashboard-reportes',
+            'tecnico/04-modulos/13-logs-auditoria',
+            'tecnico/04-modulos/14-admin-configuracion',
+            'tecnico/04-modulos/15-files',
+          ],
+        },
+        {
+          type: 'category',
+          label: '5. Apéndices',
+          items: [
+            'tecnico/05-apendices/index',
+          ],
+        },
+        'tecnico/06-historial-cambios',
       ],
     },
     {
