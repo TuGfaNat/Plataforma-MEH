@@ -1,0 +1,1 @@
+# Tomar Cursos\n\nEntra al Learning Hub, elige un curso y comienza tus lecciones.\n\n![Tomar Cursos](pathname:///img/placeholder.png)

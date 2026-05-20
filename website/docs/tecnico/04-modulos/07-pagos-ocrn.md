@@ -1,94 +1,50 @@
 ---
-id: "07"
-title: "Pagos / OCRM"
-sidebar_position: 7
+id: 07
+title: Pagos y OCR
+sidebar_label: Pagos y OCR
 ---
 
-# Pagos / OCRM
+# Pagos y OCR
 
-> **⚠️ [GENERADO AUTOMÁTICAMENTE]:** Esta documentación fue generada a partir del análisis estático del código fuente de Plataforma MEH.
+### M0 — Decisiones Arquitectónicas Locales
 
-## Sección M0 — Decisiones Arquitectónicas Locales (ADR)
+:::note Decisión Local
+Se aplica el uso estricto de **SQLAlchemy Síncrono** y Pydantic para la serialización de datos de este módulo.
+:::
 
-| ID | Decisión | Alternativas consideradas | Justificación | Consecuencias |
-|---|---|---|---|---|
-| ADR-M07-001 | Uso de arquitectura en capas | Monolito o lógica en routers | Mantenibilidad y reusabilidad | Mayor cantidad de archivos y abstracciones |
-
-## Sección M1 — Arquitectura del Módulo (C4 Nivel 3 + Ciclo de Vida)
+### M1 — Arquitectura del Módulo
 
 ```mermaid
-graph TD
-    Router[Router: /api/v1/...] --> Service[Service Layer]
-    Service --> Model[Modelo ORM]
-    Service --> AuditMixin[AuditMixin]
+graph LR
+    API[Router: /api/v1/pagos] --> Service[Service: pagos_service.py]
+    Service --> Models[Modelos SQLAlchemy]
+    Models --> DB[(PostgreSQL Síncrono)]
 ```
 
-Ciclo de vida de una petición típica:
-1. Llegada al Router (FastAPI).
-2. Validación Pydantic.
-3. Inyección de dependencia (get_db).
-4. Ejecución en Service Layer.
-5. Persistencia.
-6. Auditoría.
-7. Respuesta serializada.
+### M2 — Diccionario de Datos
 
-## Sección M2 — Diccionario de Datos
+Los modelos utilizan `INTEGER SERIAL` exclusivamente. No se permiten `UUIDs`.
 
-```mermaid
-erDiagram
-    pagos {
-        id_pago string
-        id_usuario string
-        monto string
-        fecha_pago string
-        metodo_pago string
-        estado_pago string
-        comprobante_url string
-        id_referencia string
-        tipo_referencia string
-        validado_por string
-        url_comprobante string
-        fecha_validacion string
-        notas_admin string
-    }
-```
-
-### Tabla: `pagos`
-
-| Nombre del Campo | Tipo de Dato | Restricciones |
+| Entidad Principal | PK (INTEGER) | Auditoría |
 |---|---|---|
-| id_pago | `Integer, primary_key=True, index=True` | - |
-| id_usuario | `Integer, ForeignKey("usuarios.id_usuario"), index=True` | - |
-| monto | `Numeric(10, 2)` | - |
-| fecha_pago | `DateTime, default=datetime.utcnow` | - |
-| metodo_pago | `String` | - |
-| estado_pago | `String, default="PENDIENTE"` | - |
-| comprobante_url | `TEXT, nullable=True` | - |
-| id_referencia | `Integer` | - |
-| tipo_referencia | `String` | - |
-| validado_por | `Integer, ForeignKey("usuarios.id_usuario"), nullable=True, index=True` | - |
-| url_comprobante | `String, nullable=True` | - |
-| fecha_validacion | `DateTime, nullable=True` | - |
-| notas_admin | `TEXT, nullable=True` | - |
+| `Pagos` | `id_pag` | `AuditMixin` presente |
 
-## Sección M3 — Contratos de APIs
+### M3 — Contratos de APIs
 
-| Método | URI |
-|---|---|
-| POST | `/api/v1/pagos/upload-comprobante` |
-| GET | `/api/v1/pagos/mis-pagos` |
-| GET | `/api/v1/pagos/admin/todos` |
-| PUT | `/api/v1/pagos/admin/{id_pago}/validar` |
-| POST | `/api/v1/pagos/admin/ocrm-match` |
+| Método | URI Real | Body | Status |
+|---|---|---|---|
+| POST | `/api/v1/pagos/upload-comprobante` | Depende | 200/201 OK |\n| GET | `/api/v1/pagos/mis-pagos` | Depende | 200/201 OK |\n| GET | `/api/v1/pagos/admin/todos` | Depende | 200/201 OK |\n| PUT | `/api/v1/pagos/admin/{id_pago}/validar` | Depende | 200/201 OK |\n| POST | `/api/v1/pagos/admin/ocrm-match` | Depende | 200/201 OK |
 
-## Sección M4 — Ingeniería Avanzada y Algoritmos Núcleo
+### M4 — Lógica Núcleo
 
-Para información sobre la trazabilidad, se usa `AuditMixin` en los modelos para capturar el usuario creador/modificador.
+Todo proceso de base de datos se realiza de manera bloqueante (Sync), garantizando atomicidad mediante `db.commit()` estándar.
 
-## Sección M5 — Frontend (por módulo)
+### M5 — Frontend
 
-Revisar la carpeta `frontend/src/` para componentes asociados a este módulo.
+Los componentes del frontend utilizan **React, JSX puro y Fluent UI v9**.
+- Las llamadas usan `fetch` o `axios` apuntando a las rutas de M3.
+- No se admite el uso de `.tsx`.
 
-## Sección M6 — Migraciones
+### M6 — Migraciones Relacionadas
 
-* Las migraciones asociadas a estas tablas se encuentran en `alembic/versions/`.
+Las migraciones de Alembic correspondientes se aplican a este modelo en orden secuencial.

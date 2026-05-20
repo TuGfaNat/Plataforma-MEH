@@ -1,0 +1,1 @@
+# Validar Talento\n\nRealiza las pruebas de la Academia para certificar tus habilidades técnicas.\n\n![Validar Talento](pathname:///img/placeholder.png)

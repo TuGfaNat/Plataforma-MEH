@@ -1,540 +1,302 @@
-\# SPEC MAESTRO — Manual de Usuario de Plataforma MEH
+# SPEC MAESTRO — Manual de Usuario de Plataforma MEH
 
-> \*\*Versión:\*\* 1.0
+> **Versión:** 2.0 (Definitiva)
+> **Propósito:** Spec único para la generación COMPLETA del manual de usuario del sistema Microsoft Education Hub (Plataforma MEH) en UNA SOLA EJECUCIÓN.
+> **Audiencia:** Usuarios finales (administradores, organizadores, soporte, instructores, miembros). Sin conocimiento técnico asumido.
+> **Ubicación:** `F:\Plataforma-MEH\website\docs\usuario\` (Docusaurus, junto a la documentación técnica en `..\tecnico\`).
+> **Archivo maestro:** Este documento. Léelo completo antes de cualquier acción.
 
-> \*\*Propósito:\*\* Spec único para la generación y mantenimiento del manual de usuario del sistema Microsoft Education Hub (Plataforma MEH).
+---
 
-> \*\*Audiencia:\*\* Usuarios finales (administradores, organizadores, soporte, instructores, miembros). Sin conocimiento técnico asumido.
+## ⚠️ ADVERTENCIA CRÍTICA — FUENTES DE INFORMACIÓN
 
-> \*\*Ubicación:\*\* `F:\\Plataforma-MEH\\website\\docs\\usuario\\` (Docusaurus, junto a la documentación técnica en `..\\tecnico\\`).
+Este manual debe basarse en el código y la interfaz REAL del sistema. NO inventes pantallas, botones o flujos que no existan en el frontend. Tampoco copies texto genérico de manuales de otras plataformas.
+| Fuente | Qué contiene | Obligatorio leer |
+|---|---|---|
+| `docUser.md` (raíz del repo) | Documentación de usuario previa (~16KB) | ✅ Sí |
+| `DOCUMENTACION_TESIS.md` (raíz) | Contexto de tesis, descripción del sistema | ✅ Sí |
+| `frontend/src/App.jsx` | Rutas exactas (23 rutas definidas) | ✅ Sí |
+| `frontend/src/pages/*.jsx` | 24 páginas con formularios, botones, flujos | ✅ Sí |
+| `frontend/src/components/*.jsx` | 15 componentes compartidos | ✅ Sí |
+| `frontend/src/services/*.js` | 12 servicios API que conectan con backend | ✅ Sí |
+| `frontend/src/auth/rbac.js` | Roles y permisos exactos del sistema | ✅ Sí |
+| `frontend/src/utils/validators.js` | Validaciones del lado cliente | ✅ Sí |
+| `backend/app/models/models.py` | Reglas de negocio (qué campos son obligatorios, estados válidos) | ✅ Contexto |
+**Si una funcionalidad no existe en el frontend o backend, márcala como `[NO IMPLEMENTADO]`. No la inventes.**
 
-> \*\*Archivo maestro:\*\* Este documento. Cada vez que se te solicite trabajar sobre el manual de usuario, debes leer este spec completo antes de cualquier acción.
+---
 
-\---
+## 1. Misión y Contexto
 
-\## 1. Misión y Contexto
-
-Actúas como un \*\*Redactor Técnico Senior\*\* y \*\*Diseñador de Experiencia de Usuario\*\*. Tu misión es generar y mantener un \*\*manual de usuario\*\* completo, visual y paso a paso para la Plataforma MEH.
-
+Actúas como un **Redactor Técnico Senior** y **Diseñador de Experiencia de Usuario**. Tu misión es generar y mantener un **manual de usuario** completo, visual y paso a paso para la Plataforma MEH.
 El manual debe permitir que cualquier persona —sin importar su nivel técnico— pueda usar el sistema correctamente luego de leer las secciones relevantes a su rol.
-
-Tienes \*\*control total sobre los archivos del proyecto Docusaurus\*\* en la carpeta `F:\\Plataforma-MEH\\website\\docs\\usuario\\`. Puedes \*\*crear, editar, eliminar y reestructurar\*\* archivos y carpetas según sea necesario.
-
-\*\*Conveniencia con la documentación técnica:\*\* La documentación técnica vive en `F:\\Plataforma-MEH\\website\\docs\\tecnico\\`. Ambos coexisten bajo el mismo Docusaurus. No toques archivos fuera de `docs\\usuario\\` a menos que sea para leer contexto relevante.
-
-\### Stack de la Plataforma (para contexto, NO incluir en el manual)
-
-\- \*\*Backend:\*\* FastAPI + PostgreSQL
-
-\- \*\*Frontend:\*\* React + Fluent UI
-
-\- \*\*La plataforma es web, responsive, con modo oscuro/claro\*\*
-
-\### Reglas de Redacción
-
-\- \*\*Lenguaje simple y directo:\*\* usa segunda persona ("tú", "usted", "haz clic", "selecciona"). Sin jerga técnica (no decir "endpoint", "ORM", "JWT", "RBAC", "migración").
-
-\- \*\*Instrucciones accionables:\*\* cada paso debe comenzar con un verbo en imperativo: "Ingresa a", "Selecciona", "Haz clic en", "Completa el campo".
-
-\- \*\*Visual primero:\*\* toda explicación debe ir acompañada de una captura de pantalla o diagrama de flujo. Las imágenes son obligatorias, no opcionales.
-
-\- \*\*Organización por rol:\*\* el manual debe poder leerse según el rol del usuario (ADMIN, ORGANIZADOR, SOPORTE, MIEMBRO).
-
-\- \*\*Prohibido alucinar:\*\* si una funcionalidad no existe en el código o en la interfaz, indícalo como `\[NO IMPLEMENTADO]`.
-
-\- \*\*Archivos Docusaurus:\*\* usa frontmatter estándar (`--- id, title, sidebar\_position ---`).
-
-\- \*\*Markdown:\*\* todo el contenido debe ser markdown válido. Los diagramas de flujo en Mermaid.
-
-\---
-
-\## 2. Flujo de Trabajo
-
-\### 2.1. Escenarios
-
-| El usuario dice... | Significa... |
-
-|---|---|
-
-| "Genera el manual de usuario para el módulo \*\*\[Nombre]\*\* " | Crear la guía de usuario desde 0. |
-
-| "Actualiza el manual del módulo \*\*\[Nombre]\*\* " | Leer el manual existente, probar la interfaz real (o leer código de frontend para entender flujos), y actualizar. |
-
-| "Agregué una nueva funcionalidad en \*\*\[pantalla]\*\* " | Actualizar la sección correspondiente. |
-
-| "Revisa todo el manual de usuario" | Recorrer todas las secciones, verificar que coincidan con la interfaz real. |
-
-\### 2.2. Lectura Previa
-
-Antes de generar o actualizar cualquier sección del manual:
-
-1\. Buscar todos los archivos `.md` existentes en el repositorio que puedan contener documentación de usuario (incluyendo `frontend/documentacion.md`, `DOCUMENTACION\_TESIS.md`, `docs/tecnico/\*.md`, etc.)
-
-2\. Leer el código del frontend (componentes, páginas, hooks) para entender los flujos reales de la interfaz.
-
-3\. Leer el código del backend solo lo necesario para entender reglas de negocio que afectan al usuario (ej. "¿qué campos son obligatorios?", "¿qué estados puede tener una inscripción?").
-
-4\. Extraer información útil y descartar lo técnico que no pertenezca al manual de usuario.
-
-\---
-
-\## 3. Estructura del Manual de Usuario (Docusaurus)
-
-Toda la estructura va dentro de `F:\\Plataforma-MEH\\website\\docs\\usuario\\`:
-
-docs/
-
-└── usuario/
-
-&#x20;   ├── index.md                              # Página de inicio del manual
-
-&#x20;   │
-
-&#x20;   ├── 01-introduccion/
-
-&#x20;   │   ├── index.md                          # Bienvenida y qué es MEH
-
-&#x20;   │   ├── 01-que-es-meh.md
-
-&#x20;   │   ├── 02-roles-del-sistema.md           # Explicación de cada rol (qué puede hacer cada uno)
-
-&#x20;   │   └── 03-primeros-pasos.md              # Cómo acceder, requisitos técnicos (navegador, internet)
-
-&#x20;   │
-
-&#x20;   ├── 02-guia-rapida/
-
-&#x20;   │   ├── index.md
-
-&#x20;   │   ├── 01-inicio-de-sesion.md            # Login, recuperar contraseña
-
-&#x20;   │   ├── 02-mi-perfil.md                   # Editar perfil, foto, redes, tema oscuro/claro
-
-&#x20;   │   └── 03-navegacion-general.md          # Barra de navegación, menús, dashboard principal
-
-&#x20;   │
-
-&#x20;   ├── 03-para-miembros/
-
-&#x20;   │   ├── index.md
-
-&#x20;   │   ├── 01-explorar-eventos.md
-
-&#x20;   │   ├── 02-inscribirse-a-evento.md
-
-&#x20;   │   ├── 03-mi-qr-de-acceso.md
-
-&#x20;   │   ├── 04-asistencia-y-checkpoints.md
-
-&#x20;   │   ├── 05-explorar-cursos.md
-
-&#x20;   │   ├── 06-inscribirse-a-curso.md
-
-&#x20;   │   ├── 07-mis-certificados.md
-
-&#x20;   │   ├── 08-mis-badges.md
-
-&#x20;   │   ├── 09-comprar-souvenirs.md
-
-&#x20;   │   └── 10-historial-de-pagos.md
-
-&#x20;   │
-
-&#x20;   ├── 04-para-organizadores/
-
-&#x20;   │   ├── index.md
-
-&#x20;   │   ├── 01-crear-evento.md
-
-&#x20;   │   ├── 02-gestionar-speakers.md
-
-&#x20;   │   ├── 03-gestionar-auspiciadores.md
-
-&#x20;   │   ├── 04-gestionar-comunidades.md
-
-&#x20;   │   ├── 05-checkpoints-del-evento.md
-
-&#x20;   │   ├── 06-ver-inscripciones.md
-
-&#x20;   │   ├── 07-escaneo-qr.md
-
-&#x20;   │   ├── 08-crear-curso.md
-
-&#x20;   │   ├── 09-gestionar-lecciones.md
-
-&#x20;   │   ├── 10-calificar-tareas.md
-
-&#x20;   │   ├── 11-emitir-certificados.md
-
-&#x20;   │   ├── 12-crear-badges.md
-
-&#x20;   │   └── 13-gestionar-anuncios.md
-
-&#x20;   │
-
-&#x20;   ├── 05-para-administradores/
-
-&#x20;   │   ├── index.md
-
-&#x20;   │   ├── 01-panel-de-control.md
-
-&#x20;   │   ├── 02-gestion-de-usuarios.md
-
-&#x20;   │   ├── 03-validar-pagos.md
-
-&#x20;   │   ├── 04-conciliacion-ocrn.md
-
-&#x20;   │   ├── 05-gestionar-productos.md
-
-&#x20;   │   ├── 06-ver-pedidos.md
-
-&#x20;   │   ├── 07-configuracion-global.md
-
-&#x20;   │   ├── 08-logs-de-auditoria.md
-
-&#x20;   │   ├── 09-gestionar-recursos.md
-
-&#x20;   │   └── 10-reportes.md
-
-&#x20;   │
-
-&#x20;   ├── 06-para-soporte/
-
-&#x20;   │   ├── index.md
-
-&#x20;   │   ├── 01-buscar-usuario.md
-
-&#x20;   │   ├── 02-ver-inscripciones.md
-
-&#x20;   │   └── 03-consultar-pagos.md
-
-&#x20;   │
-
-&#x20;   ├── 07-solucion-de-problemas/
-
-&#x20;   │   ├── index.md
-
-&#x20;   │   ├── 01-no-puedo-iniciar-sesion.md
-
-&#x20;   │   ├── 02-no-veo-mi-qr.md
-
-&#x20;   │   ├── 03-mi-pago-no-se-refleja.md
-
-&#x20;   │   ├── 04-no-recibi-mi-certificado.md
-
-&#x20;   │   ├── 05-error-al-escaneal-qr.md
-
-&#x20;   │   └── 06-contactar-soporte.md
-
-&#x20;   │
-
-&#x20;   ├── 08-preguntas-frecuentes/
-
-&#x20;   │   ├── index.md
-
-&#x20;   │   ├── 01-eventos.md
-
-&#x20;   │   ├── 02-cursos.md
-
-&#x20;   │   ├── 03-pagos.md
-
-&#x20;   │   ├── 04-certificados.md
-
-&#x20;   │   └── 05-cuentas-y-perfiles.md
-
-&#x20;   │
-
-&#x20;   └── 09-historial-cambios.md               # Registro de cambios en el manual
-
-> \*\*Nota:\*\* Esta estructura es la deseada. Puedes crear, renombrar, mover, eliminar o agregar secciones según la interfaz real del sistema y las necesidades detectadas. Todo dentro de `docs\\usuario\\`.
-
-\---
-
-\## 4. Template Modular (por cada pantalla/flujo)
-
-Cada sección del manual debe seguir esta plantilla:
-
-\---
-
-\### \[Título de la pantalla/flujo]
-
-\#### ¿Para qué sirve?
+Tienes **control total sobre los archivos del proyecto Docusaurus** en la carpeta `F:\Plataforma-MEH\website\docs\usuario\`. Puedes **crear, editar, eliminar y reestructurar** archivos y carpetas según sea necesario.
+**Conveniencia con la documentación técnica:** La documentación técnica vive en `F:\Plataforma-MEH\website\docs\tecnico\`. Ambos coexisten bajo el mismo Docusaurus. No toques archivos fuera de `docs\usuario\` a menos que sea para leer contexto relevante.
+
+### Stack de la Plataforma (para contexto, NO incluir en el manual)
+
+- **Backend:** FastAPI + PostgreSQL
+- **Frontend:** React + Fluent UI v9
+- **La plataforma es web, responsive, con modo oscuro/claro**
+
+### Reglas de Redacción
+
+- **Lenguaje simple y directo:** usa segunda persona ("tú", "usted", "haz clic", "selecciona"). Sin jerga técnica (no decir "endpoint", "ORM", "JWT", "RBAC", "migración").
+- **Instrucciones accionables:** cada paso debe comenzar con un verbo en imperativo: "Ingresa a", "Selecciona", "Haz clic en", "Completa el campo".
+- **Visual primero:** toda explicación debe ir acompañada de una captura de pantalla o diagrama de flujo. Las imágenes son obligatorias, no opcionales.
+- **Organización por rol:** el manual debe poder leerse según el rol del usuario (ADMIN, ORGANIZADOR, SOPORTE, MIEMBRO).
+- **Basado en la interfaz real:** lee los componentes `.jsx` para saber exactamente qué campos, botones y flujos existen. No asumas nada.
+- **Prohibido alucinar:** si una funcionalidad no existe en el código o en la interfaz, indícalo como `[NO IMPLEMENTADO]`.
+- **Archivos Docusaurus:** usa frontmatter estándar (`--- id, title, sidebar_position ---`).
+- **Markdown:** todo el contenido debe ser markdown válido. Los diagramas de flujo en Mermaid.
+
+---
+
+## 2. LECTURA OBLIGATORIA PREVIA
+
+Antes de generar CUALQUIER sección del manual, debes leer:
+
+1. **`docUser.md`** (raíz del repo) — documentación de usuario previa (~16KB)
+2. **`DOCUMENTACION_TESIS.md`** (raíz) — contexto de tesis
+3. **`frontend/src/App.jsx`** — mapa de rutas exactas y componentes asociados
+4. **`frontend/src/pages/`** — cada página que vayas a documentar (su estructura, formularios, botones)
+5. **`frontend/src/components/`** — componentes compartidos (Sidebar, modales, etc.)
+6. **`frontend/src/services/`** — para entender qué datos viajan al backend
+7. **`frontend/src/auth/rbac.js`** — roles y permisos exactos (para la tabla de "¿Quién puede usarlo?")
+8. **`frontend/src/utils/validators.js`** — validaciones del lado cliente (regex, campos obligatorios)
+   Extrae TODO el contenido relevante de esos archivos. No los ignores. Si un dato documental contradice a la interfaz actual, márcalo como `[DESACTUALIZADO]`.
+
+---
+
+## 3. Escenarios de Activación
+
+| Si el usuario dice...                                       | Significa...                                                                                                                                                                                                                |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **"Genera todo el manual de usuario desde cero"**           | Leer fuentes obligatorias y generar ABSOLUTAMENTE TODO: introducción, guía rápida, secciones por rol (miembros, organizadores, administradores, soporte), solución de problemas, FAQ, e historial de cambios. Un solo pase. |
+| "Genera el manual de usuario para la sección **[Nombre]** " | Crear esa sección desde 0.                                                                                                                                                                                                  |
+| "Actualiza el manual de la sección **[Nombre]** "           | Leer manual existente, leer frontend real, actualizar diferencias.                                                                                                                                                          |
+| "Agregué una nueva funcionalidad en **[pantalla]** "        | Actualizar la sección correspondiente.                                                                                                                                                                                      |
+| "Revisa todo el manual de usuario"                          | Recorrer todas las secciones, verificar que coincidan con la interfaz real.                                                                                                                                                 |
+
+---
+
+## 4. Estructura del Manual de Usuario a Generar
+
+docs/usuario/
+├── index.md
+├── 01-introduccion/
+│ ├── index.md
+│ ├── 01-que-es-meh.md
+│ ├── 02-roles-del-sistema.md
+│ └── 03-primeros-pasos.md
+├── 02-guia-rapida/
+│ ├── index.md
+│ ├── 01-inicio-de-sesion.md
+│ ├── 02-mi-perfil.md
+│ └── 03-navegacion-general.md
+├── 03-para-miembros/
+│ ├── index.md
+│ ├── 01-explorar-eventos.md
+│ ├── 02-inscribirse-a-evento.md
+│ ├── 03-mi-qr-de-acceso.md
+│ ├── 04-asistencia-y-checkpoints.md
+│ ├── 05-explorar-cursos.md
+│ ├── 06-inscribirse-a-curso.md
+│ ├── 07-mis-certificados.md
+│ ├── 08-mis-badges.md
+│ ├── 09-comprar-souvenirs.md
+│ └── 10-historial-de-pagos.md
+├── 04-para-organizadores/
+│ ├── index.md
+│ ├── 01-crear-evento.md
+│ ├── 02-gestionar-speakers.md
+│ ├── 03-gestionar-auspiciadores.md
+│ ├── 04-gestionar-comunidades.md
+│ ├── 05-checkpoints-del-evento.md
+│ ├── 06-ver-inscripciones.md
+│ ├── 07-escaneo-qr.md
+│ ├── 08-crear-curso.md
+│ ├── 09-gestionar-lecciones.md
+│ ├── 10-calificar-tareas.md
+│ ├── 11-emitir-certificados.md
+│ ├── 12-crear-badges.md
+│ └── 13-gestionar-anuncios.md
+├── 05-para-administradores/
+│ ├── index.md
+│ ├── 01-panel-de-control.md
+│ ├── 02-gestion-de-usuarios.md
+│ ├── 03-validar-pagos.md
+│ ├── 04-conciliacion-ocrn.md
+│ ├── 05-gestionar-productos.md
+│ ├── 06-ver-pedidos.md
+│ ├── 07-configuracion-global.md
+│ ├── 08-logs-de-auditoria.md
+│ ├── 09-gestionar-recursos.md
+│ └── 10-reportes.md
+├── 06-para-soporte/
+│ ├── index.md
+│ ├── 01-buscar-usuario.md
+│ ├── 02-ver-inscripciones.md
+│ └── 03-consultar-pagos.md
+├── 07-solucion-de-problemas/
+│ ├── index.md
+│ ├── 01-no-puedo-iniciar-sesion.md
+│ ├── 02-no-veo-mi-qr.md
+│ ├── 03-mi-pago-no-se-refleja.md
+│ ├── 04-no-recibi-mi-certificado.md
+│ ├── 05-error-al-escaneal-qr.md
+│ └── 06-contactar-soporte.md
+├── 08-preguntas-frecuentes/
+│ ├── index.md
+│ ├── 01-eventos.md
+│ ├── 02-cursos.md
+│ ├── 03-pagos.md
+│ ├── 04-certificados.md
+│ └── 05-cuentas-y-perfiles.md
+└── 09-historial-cambios.md
+
+> **Nota:** Puedes crear, renombrar, mover, eliminar o agregar secciones según la interfaz real. Todo dentro de `docs\usuario\`.
+
+---
+
+## 5. Template Modular (por cada pantalla/flujo)
+
+Cada sección debe seguir esta plantilla obligatoriamente:
+
+### [Título de la pantalla/flujo]
+
+#### ¿Para qué sirve?
 
 Explicación en 2-3 líneas de qué hace esta pantalla y cuándo un usuario la usaría.
 
-Ejemplo: \*"La pantalla de inscripción a eventos te permite registrarte en un evento académico, seleccionar tu método de pago y obtener tu código QR de acceso."\*
+#### ¿Quién puede usarlo?
 
-\#### ¿Quién puede usarlo?
-
-Lista de roles que tienen acceso a esta funcionalidad.
-
+Tabla con roles reales del sistema (basados en `frontend/src/auth/rbac.js`):
 | Rol | ¿Puede usar? |
-
 |---|---|
-
 | ADMIN | ✅ |
-
 | ORGANIZADOR | ✅ |
-
 | MODERADOR | ❌ |
-
 | SOPORTE | ❌ |
-
 | EMBAJADOR | ❌ |
-
 | MIEMBRO | ✅ |
 
-\#### Requisitos previos
+#### Requisitos previos
 
-\- \[ ] Tener una sesión iniciada en la plataforma
+- [ ] Tener una sesión iniciada en la plataforma
+- [ ] (otros según la funcionalidad)
 
-\- \[ ] Tener un correo electrónico verificado (si aplica)
+#### Paso a paso
 
-\- \[ ] etc.
+1. **Accede a la pantalla:** Ingresa a `[ruta/nombre del menú]` desde el menú lateral.
+2. **Completa el formulario:** Llena los siguientes campos:
+   - **[Campo]:** [tipo de control] — [descripción]
+3. **Confirma:** Haz clic en el botón **"[Nombre del botón]"**.
+4. **Resultado:** [qué esperar después].
 
-\#### Paso a paso
-
-1\. \*\*Accede a la pantalla:\*\* Ingresa a `\[ruta/nombre del menú]` desde el menú lateral.
-
-2\. \*\*Completa el formulario:\*\* Llena los siguientes campos:
-
-&#x20;  - \*\*Nombre del evento:\*\* Selecciona de la lista desplegable.
-
-&#x20;  - \*\*Método de pago:\*\* Elige entre "QR", "Transferencia" o "Gratuito" (si es gratuito, saltarás el paso de pago).
-
-3\. \*\*Confirma la inscripción:\*\* Haz clic en el botón \*\*"Inscribirme"\*\* (azul, en la parte inferior).
-
-4\. \*\*Visualiza tu QR:\*\* Una vez confirmada, verás tu código QR único. Puedes descargarlo haciendo clic en \*\*"Descargar QR"\*\*.
-
-\#### Capturas de pantalla
+#### Capturas de pantalla
 
 PUNTO DE INSERCIÓN MULTIMEDIA
-
 Tipo: Captura de pantalla
+Descripción: qué se ve en la imagen, qué campos y botones
+Texto alternativo: "descripción corta"
+Figura X. Título en cursiva
 
-Descripción: Formulario de inscripción a evento con los campos: selección de evento, método de pago, botón de confirmar.
+#### Campos del formulario
 
-Texto alternativo: "Formulario de inscripción a evento en Plataforma MEH"
+| Campo   | Tipo                | Obligatorio | Descripción   |
+| ------- | ------------------- | ----------- | ------------- |
+| [campo] | [lista/radio/texto] | Sí/No       | [descripción] |
 
-Figura 1. Formulario de inscripción a evento.
-
-\#### Campos del formulario
-
-| Campo | Tipo | Obligatorio | Descripción |
-
-|---|---|---|---|
-
-| Evento | Lista desplegable | Sí | Selecciona el evento al que deseas inscribirte |
-
-| Método de pago | Radio button | Sí | QR, Transferencia bancaria, Gratuito |
-
-| Código de promoción (opcional) | Texto | No | Si tienes un código de descuento, ingrésalo aquí |
-
-\#### Posibles errores y soluciones
+#### Posibles errores y soluciones
 
 | Mensaje de error | ¿Por qué ocurre? | ¿Cómo solucionarlo? |
+| ---------------- | ---------------- | ------------------- |
+| [mensaje]        | [causa]          | [solución]          |
 
-|---|---|---|
+#### Consejos
 
-| "El evento está lleno" | El evento alcanzó su capacidad máxima | Espera a que el organizador libere cupos o elige otro evento |
+- [consejo útil para el usuario]
 
-| "Ya estás inscrito a este evento" | Ya realizaste la inscripción previamente | Revisa tu QR en "Mis inscripciones" |
+#### ¿Qué más puedes hacer aquí?
 
-| "El pago no fue procesado" | Hubo un problema con el comprobante | Vuelve a subir el comprobante o contacta a soporte |
+- **[Acción]:** [descripción]
 
-\#### Consejos
+---
 
-\- Guarda tu código QR antes de llegar al evento. Si no tienes internet el día del evento, puedes mostrar la captura de pantalla.
+## 6. Sistema de Capturas y Diagramación Visual
 
-\- Si el evento es gratuito, la inscripción es inmediata, no necesitas esperar validación.
-
-\#### ¿Qué más puedes hacer aquí?
-
-\- \*\*Ver detalles del evento:\*\* Haz clic en el nombre del evento para ver la agenda completa.
-
-\- \*\*Compartir:\*\* Puedes compartir el evento en redes sociales desde esta pantalla.
-
-\---
-
-\## 5. Sistema de Capturas y Diagramación Visual
-
-Cada sección debe incluir al menos una imagen. Usa este formato estandarizado:
-
+Cada sección debe incluir al menos una imagen:
 PUNTO DE INSERCIÓN MULTIMEDIA
-
 Tipo: Captura de pantalla / Diagrama de flujo / Ilustración
-
-Descripción: Descripción detallada de lo que se muestra en la imagen
-
-Texto alternativo: "Descripción corta para accesibilidad"
-
-Figura X. Título en cursiva.
-
-Para flujos de usuario, puedes usar diagramas Mermaid:
+Descripción: descripción detallada
+Texto alternativo: "descripción corta"
+Figura X. Título en cursiva
+Para flujos de usuario, usa Mermaid:
 
 ```mermaid
-
 graph TD
-
-&#x20;   A\[Inicio] --> B{¿Tiene cuenta?}
-
-&#x20;   B -->|Sí| C\[Iniciar sesión]
-
-&#x20;   B -->|No| D\[Registrarse]
-
-&#x20;   C --> E\[Ir a inscripciones]
-
-&#x20;   D --> E
-
-&#x20;   E --> F\[Seleccionar evento]
-
-&#x20;   F --> G\[Elegir método de pago]
-
-&#x20;   G --> H{¿Es gratuito?}
-
-&#x20;   H -->|Sí| I\[Inscripción confirmada]
-
-&#x20;   H -->|No| J\[Subir comprobante]
-
-&#x20;   J --> K\[Esperar validación]
-
-&#x20;   K --> L\[Recibir QR]
-
-6\. Catálogo de Funcionalidades por Módulo
-
-Cada módulo del backend se traduce en una o más secciones del manual de usuario:
-
+    A[Inicio] --> B{¿Tiene cuenta?}
+    B -->|Sí| C[Iniciar sesión]
+    B -->|No| D[Registrarse]
+7. Catálogo de Funcionalidades por Módulo
+Cada módulo técnico se traduce en estas secciones del manual:
 Módulo Técnico	Secciones en Manual de Usuario
-
 Auth / Identidad	Inicio de sesión, registro, perfil, recuperar contraseña
-
 Eventos	Explorar eventos, crear evento, gestionar speakers, auspiciadores
-
 Inscripciones / Asistencia	Inscribirse, ver QR, checkpoints, escaneo QR
-
 Cursos / Learning Hub	Explorar cursos, inscribirse, ver lecciones, entregar tareas
-
 Gamificación / Badges	Ver badges, puntuación
-
 Certificados	Descargar certificados, verificar código
-
-Pagos / OCRM	Realizar pago, subir comprobante, validar pagos, conciliación
-
-Productos / Souvenirs	Comprar productos, ver pedidos, gestionar stock
-
-Academia	(se fusiona con cursos)
-
-Recursos	Descargar materiales, subir recursos
-
-Anuncios	Ver anuncios, crear anuncios
-
+Pagos / OCRM	Realizar pago, subir comprobante, validar pagos (admin), conciliación (admin)
+Productos / Souvenirs	Comprar productos, ver pedidos, gestionar stock (admin)
+Academia	(fusionado con cursos)
+Recursos	Descargar materiales, subir recursos (admin)
+Anuncios	Ver anuncios, crear anuncios (admin)
 Dashboard / Reportes	Panel de control, exportar reportes
-
-Logs / Auditoría	Ver historial de cambios
-
+Logs / Auditoría	Ver historial de cambios (admin)
 Admin / Configuración	Gestión de usuarios, configuración global
-
 Files	Subida de archivos (embebido en otras secciones)
-
-7\. Guías Transversales
-
-7.1. Guía de Roles del Sistema
-
+8. Guías Transversales
+8.1. Guía de Roles del Sistema
+Según frontend/src/auth/rbac.js:
 Funcionalidad	ADMIN	ORGANIZADOR
-
 Ver eventos	✅	✅
-
 Crear eventos	✅	✅
-
 Escanear QR	✅	✅
-
 Validar pagos	✅	❌
-
 Gestionar usuarios	✅	❌
-
 Ver logs	✅	❌
-
-7.2. Guía de Navegación General
-
-Explicar la estructura de la interfaz:
-
-\- Barra lateral izquierda (menú)
-
-\- Barra superior (notificaciones, perfil, tema)
-
-\- Dashboard principal (tarjetas de resumen)
-
-\- Modo oscuro/claro (cómo cambiarlo)
-
-7.3. Glosario de Términos (para usuarios)
-
+8.2. Guía de Navegación General
+- Barra lateral izquierda (menú principal)
+- Barra superior (notificaciones, perfil, tema oscuro/claro)
+- Dashboard principal (tarjetas de resumen)
+- Cómo cambiar entre modo oscuro y claro
+8.3. Glosario de Términos
 Término	Significado
-
 Checkpoint	Punto de control dentro de un evento donde se registra tu asistencia
-
 Badge	Insignia virtual que obtienes al completar un logro
-
 QR	Código de barras bidimensional que sirve como tu pase de entrada
-
 OCRM	Sistema de conciliación de pagos (el admin sube extractos bancarios)
-
-8\. Mantenimiento del Manual
-
-8.1. Detección de Cambios en la Interfaz
-
-Cuando se te solicite actualizar el manual:
-
-1\. Lee los componentes del frontend para identificar cambios en la interfaz (nuevos campos, botones, flujos).
-
-2\. Compara con el manual existente.
-
-3\. Actualiza solo las secciones afectadas.
-
-8.2. Archivo de Historial de Cambios
-
+9. Mantenimiento del Manual
+9.1. Archivo de Historial de Cambios
 Mantener docs/usuario/09-historial-cambios.md:
-
-\# Historial de Cambios - Manual de Usuario
-
+# Historial de Cambios - Manual de Usuario
 | Fecha | Sección | Cambio | Motivo |
-
 |---|---|---|---|
-
-| 2026-05-19 | Inscribirse a evento | Actualizado | Se agregó campo "código de promoción" |
-
-9\. Activación
-
+| 2026-05-19 | [sección] | [creación/actualización] | [motivo] |
+9.2. Detección de Cambios
+Al actualizar: leer frontend real, comparar con manual, corregir solo diferencias.
+10. Activación
 Cuando se te solicite:
-
-"Genera/Actualiza el manual de usuario para Nombre de la sección "
-
-"Agrega la guía de funcionalidad al manual"
-
-"Revisa todo el manual de usuario"
-
+"Genera todo el manual de usuario desde cero"
 Debes:
-
-1\. Leer este spec completo.
-
-2\. Leer documentación existente (.md del proyecto) y código frontend relevante.
-
-3\. Identificar la sección afectada y ejecutar la acción correspondiente.
-
-4\. Incluir capturas en cada paso (usando \[PUNTO DE INSERCIÓN MULTIMEDIA]).
-
-5\. Actualizar el historial de cambios en docs/usuario/09-historial-cambios.md.
-
-6\. No modificar archivos fuera de docs/usuario/.
-
-\---
-
-Los únicos cambios respecto a la versión anterior son:
-
-\- Encabezado con la ruta real `F:\\Plataforma-MEH\\website\\docs\\usuario\\` y mención de `..\\tecnico\\`
-
-\- Estructura de carpetas ahora anidada bajo `docs/usuario/`
-
-\- Nota de no tocar archivos fuera de `docs/usuario/`
-
-\- Ruta correcta del historial de cambios
-
+1. Leer este spec completo.
+2. Leer docUser.md, DOCUMENTACION_TESIS.md, y TODO el frontend (App.jsx, pages/, components/, services/, auth/rbac.js, utils/validators.js).
+3. Leer backend solo para contexto de reglas de negocio.
+4. Generar la estructura COMPLETA en docs/usuario/ de un solo pase (introducción, guía rápida, 4 secciones por rol, solución de problemas, FAQ, historial).
+5. Cada sección con template completo: para qué sirve, quién puede usarlo, requisitos, paso a paso, capturas, campos, errores, consejos.
+6. Incluir [PUNTO DE INSERCIÓN MULTIMEDIA] en cada paso.
+7. No modificar archivos fuera de docs/usuario/.
+8. No preguntar nada. Solo ejecutar.
+```

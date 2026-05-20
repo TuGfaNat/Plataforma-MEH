@@ -1,13 +1,11 @@
 ---
-id: "historial-cambios"
-title: "Historial de Cambios"
+id: historial-cambios
+title: Historial de Cambios
 sidebar_position: 6
 ---
 
 # Historial de Cambios - Documentación Técnica
 
-| Fecha | Módulo | Tipo de Cambio | Descripción | Autor |
-|---|---|---|---|---|
-| 2026-05-19 | Auth/Identidad | Creación | Documentación inicial del módulo | Gem |
-| 2026-05-20 | Eventos | Actualización | Se agregó endpoint PUT /eventos | Gem |
-| 2026-05-21 | Todos (1-15) | Generación/Actualización | Se generó la estructura de documentación técnica con base en análisis estático de código fuente | Jules |
+| Fecha | Autor | Versión | Descripción |
+|---|---|---|---|
+| 2026-05-19 | Gemini CLI | 1.0.0 | **Generación Completa Automática:** Creación de los módulos (01-15), ADRs, apéndices y diagramas C4 y dependencias, respetando estrictamente INTEGER SERIAL, Fluent UI v9, JSX, SQLAlchemy Sync y python-jose HS256. |

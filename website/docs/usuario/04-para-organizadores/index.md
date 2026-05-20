@@ -1,50 +1,17 @@
----
-id: index-04-para-organizadores
-title: Para Organizadores
-sidebar_label: Para Organizadores
----
+# Manual para Organizadores
 
-### Para Organizadores
+Gestiona tus actividades de forma eficiente.
 
-#### ¿Para qué sirve?
-Guía de funcionalidades para los organizadores de eventos y cursos.
-
-#### ¿Quién puede usarlo?
-| Rol | ¿Puede usar? |
-|---|---|
-| ADMIN | ✅ |
-| ORGANIZADOR | ✅ |
-| MODERADOR | ❌ |
-| SOPORTE | ❌ |
-| EMBAJADOR | ❌ |
-| MIEMBRO | ❌ |
-
-#### Requisitos previos
-- [ ] Tener una sesión iniciada y permisos de organizador
-
-#### Paso a paso
-
-1. **Accede a la pantalla:** Ingresa a `Para Organizadores` desde el menú lateral.
-2. **Interactúa con la interfaz:** Completa los campos o selecciona las opciones requeridas.
-3. **Confirma la acción:** Haz clic en el botón principal para confirmar.
-
-#### Capturas de pantalla
-[PUNTO DE INSERCIÓN MULTIMEDIA]
-
-Tipo: Captura de pantalla
-Descripción: Vista de la funcionalidad Para Organizadores
-Texto alternativo: "Interfaz de Para Organizadores en Plataforma MEH"
-Figura 1. Pantalla de Para Organizadores.
-
-#### Campos principales (si aplica)
-| Campo | Tipo | Obligatorio | Descripción |
-|---|---|---|---|
-| Ejemplo | Texto | No | Campo de ejemplo |
-
-#### Posibles errores y soluciones
-| Mensaje de error | ¿Por qué ocurre? | ¿Cómo solucionarlo? |
-|---|---|---|
-| "Error de conexión" | Fallo de red | Revisa tu conexión a internet |
-
-#### Consejos
-- Asegúrate de guardar tus cambios antes de salir de la pantalla.
+1. **Crear Evento:** Llena el formulario en el Panel de Organizador.
+2. **Speakers:** Agrega y vincula oradores a tus sesiones.
+3. **Auspiciadores:** Gestiona los logos y beneficios de marcas aliadas.
+4. **Checkpoints:** Crea puntos de escaneo para medir participación.
+5. **Inscripciones:** Revisa quiénes se han anotado a tu actividad.
+6. **Escaneo QR:** Usa la cámara para validar entradas en la puerta.
+7. **Cursos:** Sube contenido educativo al Learning Hub.
+8. **Lecciones:** Organiza tu curso por módulos y temas.
+9. **Tareas:** [NO IMPLEMENTADO] - La gestión de entregas está en desarrollo.
+10. **Certificados:** Configura la plantilla y gatilla la emisión masiva.
+11. **Insignias:** Diseña y otorga medallas por participación destacada.
+12. **Anuncios:** Envía notificaciones a todos los inscritos.
+13. **Comunidades Aliadas:** Vincula otras organizaciones al evento.

@@ -1,50 +1,7 @@
----
-id: index-06-para-soporte
-title: Para Soporte
-sidebar_label: Para Soporte
----
+# Guía de Soporte
 
-### Para Soporte
+Ayuda a los miembros a tener una mejor experiencia.
 
-#### ¿Para qué sirve?
-Guía para personal de soporte encargado de resolver consultas.
-
-#### ¿Quién puede usarlo?
-| Rol | ¿Puede usar? |
-|---|---|
-| ADMIN | ✅ |
-| ORGANIZADOR | ❌ |
-| MODERADOR | ❌ |
-| SOPORTE | ✅ |
-| EMBAJADOR | ❌ |
-| MIEMBRO | ❌ |
-
-#### Requisitos previos
-- [ ] Permisos de soporte
-
-#### Paso a paso
-
-1. **Accede a la pantalla:** Ingresa a `Para Soporte` desde el menú lateral.
-2. **Interactúa con la interfaz:** Completa los campos o selecciona las opciones requeridas.
-3. **Confirma la acción:** Haz clic en el botón principal para confirmar.
-
-#### Capturas de pantalla
-[PUNTO DE INSERCIÓN MULTIMEDIA]
-
-Tipo: Captura de pantalla
-Descripción: Vista de la funcionalidad Para Soporte
-Texto alternativo: "Interfaz de Para Soporte en Plataforma MEH"
-Figura 1. Pantalla de Para Soporte.
-
-#### Campos principales (si aplica)
-| Campo | Tipo | Obligatorio | Descripción |
-|---|---|---|---|
-| Ejemplo | Texto | No | Campo de ejemplo |
-
-#### Posibles errores y soluciones
-| Mensaje de error | ¿Por qué ocurre? | ¿Cómo solucionarlo? |
-|---|---|---|
-| "Error de conexión" | Fallo de red | Revisa tu conexión a internet |
-
-#### Consejos
-- Asegúrate de guardar tus cambios antes de salir de la pantalla.
+1. **Buscar Usuario:** Localiza a una persona por su correo o alias.
+2. **Ver Inscripciones:** Confirma si un usuario está correctamente anotado.
+3. **Consultar Pagos:** Verifica si un pago fue rechazado o está pendiente.

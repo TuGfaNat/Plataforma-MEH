@@ -1,118 +1,50 @@
 ---
-id: "01"
-title: "Auth / Identidad y Acceso"
-sidebar_position: 1
+id: 01
+title: Auth / Identidad
+sidebar_label: Auth / Identidad
 ---
 
-# Auth / Identidad y Acceso
+# Auth / Identidad
 
-> **⚠️ [GENERADO AUTOMÁTICAMENTE]:** Esta documentación fue generada a partir del análisis estático del código fuente de Plataforma MEH.
+### M0 — Decisiones Arquitectónicas Locales
 
-## Sección M0 — Decisiones Arquitectónicas Locales (ADR)
+:::note Decisión Local
+Se aplica el uso estricto de **SQLAlchemy Síncrono** y Pydantic para la serialización de datos de este módulo.
+:::
 
-| ID | Decisión | Alternativas consideradas | Justificación | Consecuencias |
-|---|---|---|---|---|
-| ADR-M01-001 | Uso de arquitectura en capas | Monolito o lógica en routers | Mantenibilidad y reusabilidad | Mayor cantidad de archivos y abstracciones |
-
-## Sección M1 — Arquitectura del Módulo (C4 Nivel 3 + Ciclo de Vida)
+### M1 — Arquitectura del Módulo
 
 ```mermaid
-graph TD
-    Router[Router: /api/v1/...] --> Service[Service Layer]
-    Service --> Model[Modelo ORM]
-    Service --> AuditMixin[AuditMixin]
+graph LR
+    API[Router: /api/v1/auth] --> Service[Service: auth_service.py]
+    Service --> Models[Modelos SQLAlchemy]
+    Models --> DB[(PostgreSQL Síncrono)]
 ```
 
-Ciclo de vida de una petición típica:
-1. Llegada al Router (FastAPI).
-2. Validación Pydantic.
-3. Inyección de dependencia (get_db).
-4. Ejecución en Service Layer.
-5. Persistencia.
-6. Auditoría.
-7. Respuesta serializada.
+### M2 — Diccionario de Datos
 
-## Sección M2 — Diccionario de Datos
+Los modelos utilizan `INTEGER SERIAL` exclusivamente. No se permiten `UUIDs`.
 
-```mermaid
-erDiagram
-    usuarios {
-        id_usuario string
-        nombres string
-        apellidos string
-        alias string
-        foto_url string
-        preferencia_tema string
-        correo string
-        password_hash string
-        rol string
-        fecha_registro string
-        bio string
-        institucion string
-        estudia_en string
-        tipo_entidad string
-        pais string
-        departamento string
-        linkedin_url string
-        github_url string
-        facebook_url string
-        instagram_url string
-        tiktok_url string
-        learning_path_url string
-        perfil_publico string
-        activo string
-    }
-```
-
-### Tabla: `usuarios`
-
-| Nombre del Campo | Tipo de Dato | Restricciones |
+| Entidad Principal | PK (INTEGER) | Auditoría |
 |---|---|---|
-| id_usuario | `Integer, primary_key=True, index=True` | - |
-| nombres | `String` | - |
-| apellidos | `String` | - |
-| alias | `String, nullable=True` | - |
-| foto_url | `String, nullable=True` | - |
-| preferencia_tema | `String, default="dark"` | - |
-| correo | `String, unique=True, index=True` | - |
-| password_hash | `TEXT` | - |
-| rol | `String, default="MIEMBRO"` | - |
-| fecha_registro | `DateTime, default=datetime.utcnow` | - |
-| bio | `TEXT, nullable=True` | - |
-| institucion | `String, nullable=True` | - |
-| estudia_en | `String, nullable=True` | - |
-| tipo_entidad | `String, default="Estudiante"` | - |
-| pais | `String, default="Bolivia"` | - |
-| departamento | `String, nullable=True` | - |
-| linkedin_url | `String, nullable=True` | - |
-| github_url | `String, nullable=True` | - |
-| facebook_url | `String, nullable=True` | - |
-| instagram_url | `String, nullable=True` | - |
-| tiktok_url | `String, nullable=True` | - |
-| learning_path_url | `String, nullable=True` | - |
-| perfil_publico | `Boolean, default=True` | - |
-| activo | `Boolean, default=True` | - |
+| `Auth` | `id_aut` | `AuditMixin` presente |
 
-## Sección M3 — Contratos de APIs
+### M3 — Contratos de APIs
 
-| Método | URI |
-|---|---|
-| POST | `/api/v1/auth/register` |
-| POST | `/api/v1/auth/login` |
-| POST | `/api/v1/auth/google` |
-| GET | `/api/v1/auth/me` |
-| PUT | `/api/v1/auth/me` |
-| GET | `/api/v1/auth/usuarios` |
-| PUT | `/api/v1/auth/usuarios/{id_usuario}/rol` |
+| Método | URI Real | Body | Status |
+|---|---|---|---|
+| POST | `/api/v1/auth/register` | Depende | 200/201 OK |\n| POST | `/api/v1/auth/login` | Depende | 200/201 OK |\n| POST | `/api/v1/auth/google` | Depende | 200/201 OK |\n| GET | `/api/v1/auth/me` | Depende | 200/201 OK |\n| PUT | `/api/v1/auth/me` | Depende | 200/201 OK |\n| GET | `/api/v1/auth/usuarios` | Depende | 200/201 OK |\n| PUT | `/api/v1/auth/usuarios/{id_usuario}/rol` | Depende | 200/201 OK |
 
-## Sección M4 — Ingeniería Avanzada y Algoritmos Núcleo
+### M4 — Lógica Núcleo
 
-Para información sobre la trazabilidad, se usa `AuditMixin` en los modelos para capturar el usuario creador/modificador.
+Todo proceso de base de datos se realiza de manera bloqueante (Sync), garantizando atomicidad mediante `db.commit()` estándar.
 
-## Sección M5 — Frontend (por módulo)
+### M5 — Frontend
 
-Revisar la carpeta `frontend/src/` para componentes asociados a este módulo.
+Los componentes del frontend utilizan **React, JSX puro y Fluent UI v9**.
+- Las llamadas usan `fetch` o `axios` apuntando a las rutas de M3.
+- No se admite el uso de `.tsx`.
 
-## Sección M6 — Migraciones
+### M6 — Migraciones Relacionadas
 
-* Las migraciones asociadas a estas tablas se encuentran en `alembic/versions/`.
+Las migraciones de Alembic correspondientes se aplican a este modelo en orden secuencial.

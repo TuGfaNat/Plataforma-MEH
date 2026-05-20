@@ -1,50 +1,22 @@
----
-id: index-02-guia-rapida
-title: Guía Rápida
-sidebar_label: Guía Rápida
----
+# Guía Rápida
 
-### Guía Rápida
+Aprende a moverte por la plataforma en pocos segundos.
 
-#### ¿Para qué sirve?
-Una guía rápida para comenzar a utilizar las funcionalidades principales.
+## Inicio de Sesión
+1. Ve a la página de **Login**.
+2. Ingresa tu correo electrónico y contraseña.
+3. Haz clic en el botón de **Entrar**.
+![Login Screen](pathname:///img/01-login.png)
 
-#### ¿Quién puede usarlo?
-| Rol | ¿Puede usar? |
-|---|---|
-| ADMIN | ✅ |
-| ORGANIZADOR | ✅ |
-| MODERADOR | ✅ |
-| SOPORTE | ✅ |
-| EMBAJADOR | ✅ |
-| MIEMBRO | ✅ |
+## Tu Perfil
+1. Haz clic en tu nombre o avatar en la barra superior.
+2. Selecciona **Mi Perfil**.
+3. Cambia tu foto, bio o alias.
+![Perfil](pathname:///img/02-perfil.png)
 
-#### Requisitos previos
-- [ ] Ninguno
-
-#### Paso a paso
-
-1. **Accede a la pantalla:** Ingresa a `Guía Rápida` desde el menú lateral.
-2. **Interactúa con la interfaz:** Completa los campos o selecciona las opciones requeridas.
-3. **Confirma la acción:** Haz clic en el botón principal para confirmar.
-
-#### Capturas de pantalla
-[PUNTO DE INSERCIÓN MULTIMEDIA]
-
-Tipo: Captura de pantalla
-Descripción: Vista de la funcionalidad Guía Rápida
-Texto alternativo: "Interfaz de Guía Rápida en Plataforma MEH"
-Figura 1. Pantalla de Guía Rápida.
-
-#### Campos principales (si aplica)
-| Campo | Tipo | Obligatorio | Descripción |
-|---|---|---|---|
-| Ejemplo | Texto | No | Campo de ejemplo |
-
-#### Posibles errores y soluciones
-| Mensaje de error | ¿Por qué ocurre? | ¿Cómo solucionarlo? |
-|---|---|---|
-| "Error de conexión" | Fallo de red | Revisa tu conexión a internet |
-
-#### Consejos
-- Asegúrate de guardar tus cambios antes de salir de la pantalla.
+## Navegación General
+Usa la **Barra Lateral** izquierda para acceder a:
+- **Dashboard:** Tu resumen personal.
+- **Learning Hub:** Tus cursos y progreso.
+- **Comunidad:** Directorio y eventos.
+- **Recursos VIP:** (Solo para Embajadores).

@@ -1,11 +1,5 @@
----
-id: 09-historial-cambios
-title: Historial de Cambios
-sidebar_label: Historial
----
-
 # Historial de Cambios - Manual de Usuario
 
-| Fecha | Sección | Cambio | Motivo |
+| Fecha | Versión | Descripción | Autor |
 |---|---|---|---|
-| 2024-05-19 | Todo | Creación inicial | Generación de la estructura base del manual |
+| 2026-05-19 | 1.0.0 | Generación inicial basada en la interfaz real del sistema. | Gemini CLI |

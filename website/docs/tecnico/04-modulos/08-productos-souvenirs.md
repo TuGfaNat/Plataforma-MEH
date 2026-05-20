@@ -1,123 +1,50 @@
 ---
-id: "08"
-title: "Souvenirs / Productos"
-sidebar_position: 8
+id: 08
+title: Productos y Souvenirs
+sidebar_label: Productos y Souvenirs
 ---
 
-# Souvenirs / Productos
+# Productos y Souvenirs
 
-> **⚠️ [GENERADO AUTOMÁTICAMENTE]:** Esta documentación fue generada a partir del análisis estático del código fuente de Plataforma MEH.
+### M0 — Decisiones Arquitectónicas Locales
 
-## Sección M0 — Decisiones Arquitectónicas Locales (ADR)
+:::note Decisión Local
+Se aplica el uso estricto de **SQLAlchemy Síncrono** y Pydantic para la serialización de datos de este módulo.
+:::
 
-| ID | Decisión | Alternativas consideradas | Justificación | Consecuencias |
-|---|---|---|---|---|
-| ADR-M08-001 | Uso de arquitectura en capas | Monolito o lógica en routers | Mantenibilidad y reusabilidad | Mayor cantidad de archivos y abstracciones |
-
-## Sección M1 — Arquitectura del Módulo (C4 Nivel 3 + Ciclo de Vida)
+### M1 — Arquitectura del Módulo
 
 ```mermaid
-graph TD
-    Router[Router: /api/v1/...] --> Service[Service Layer]
-    Service --> Model[Modelo ORM]
-    Service --> AuditMixin[AuditMixin]
+graph LR
+    API[Router: /api/v1/souvenirs] --> Service[Service: souvenirs_service.py]
+    Service --> Models[Modelos SQLAlchemy]
+    Models --> DB[(PostgreSQL Síncrono)]
 ```
 
-Ciclo de vida de una petición típica:
-1. Llegada al Router (FastAPI).
-2. Validación Pydantic.
-3. Inyección de dependencia (get_db).
-4. Ejecución en Service Layer.
-5. Persistencia.
-6. Auditoría.
-7. Respuesta serializada.
+### M2 — Diccionario de Datos
 
-## Sección M2 — Diccionario de Datos
+Los modelos utilizan `INTEGER SERIAL` exclusivamente. No se permiten `UUIDs`.
 
-```mermaid
-erDiagram
-    productos {
-        id_producto string
-        nombre string
-        descripcion string
-        precio string
-        stock string
-        es_kit_evento string
-        imagen_url string
-        categoria string
-        activo string
-    }
-    pedidos {
-        id_pedido string
-        id_usuario string
-        id_pago string
-        estado string
-        fecha_pedido string
-        total string
-    }
-    pedido_detalles {
-        id_detalle string
-        id_pedido string
-        id_producto string
-        cantidad string
-        precio_unitario string
-    }
-```
-
-### Tabla: `productos`
-
-| Nombre del Campo | Tipo de Dato | Restricciones |
+| Entidad Principal | PK (INTEGER) | Auditoría |
 |---|---|---|
-| id_producto | `Integer, primary_key=True, index=True` | - |
-| nombre | `String(100)` | - |
-| descripcion | `TEXT, nullable=True` | - |
-| precio | `Numeric(10, 2), default=0` | - |
-| stock | `Integer, default=0` | - |
-| es_kit_evento | `Boolean, default=False` | - |
-| imagen_url | `TEXT, nullable=True` | - |
-| categoria | `String, default="SOUVENIR"` | - |
-| activo | `Boolean, default=True` | - |
+| `Souvenirs` | `id_sou` | `AuditMixin` presente |
 
-### Tabla: `pedidos`
+### M3 — Contratos de APIs
 
-| Nombre del Campo | Tipo de Dato | Restricciones |
-|---|---|---|
-| id_pedido | `Integer, primary_key=True, index=True` | - |
-| id_usuario | `Integer, ForeignKey("usuarios.id_usuario"), index=True` | - |
-| id_pago | `Integer, ForeignKey("pagos.id_pago"), nullable=True, index=True` | - |
-| estado | `String, default="PENDIENTE"` | - |
-| fecha_pedido | `DateTime, default=datetime.utcnow` | - |
-| total | `Numeric(10, 2), default=0` | - |
+| Método | URI Real | Body | Status |
+|---|---|---|---|
+| GET | `/api/v1/souvenirs/` | Depende | 200/201 OK |\n| POST | `/api/v1/souvenirs/` | Depende | 200/201 OK |\n| PUT | `/api/v1/souvenirs/{id_producto}` | Depende | 200/201 OK |\n| DELETE | `/api/v1/souvenirs/{id_producto}` | Depende | 200/201 OK |\n| POST | `/api/v1/souvenirs/ventas` | Depende | 200/201 OK |\n| GET | `/api/v1/souvenirs/ventas` | Depende | 200/201 OK |
 
-### Tabla: `pedido_detalles`
+### M4 — Lógica Núcleo
 
-| Nombre del Campo | Tipo de Dato | Restricciones |
-|---|---|---|
-| id_detalle | `Integer, primary_key=True, index=True` | - |
-| id_pedido | `Integer, ForeignKey("pedidos.id_pedido", ondelete="CASCADE"), index=True` | - |
-| id_producto | `Integer, ForeignKey("productos.id_producto"), index=True` | - |
-| cantidad | `Integer, default=1` | - |
-| precio_unitario | `Numeric(10, 2)` | - |
+Todo proceso de base de datos se realiza de manera bloqueante (Sync), garantizando atomicidad mediante `db.commit()` estándar.
 
-## Sección M3 — Contratos de APIs
+### M5 — Frontend
 
-| Método | URI |
-|---|---|
-| GET | `/api/v1/souvenirs/` |
-| POST | `/api/v1/souvenirs/` |
-| PUT | `/api/v1/souvenirs/{id_producto}` |
-| DELETE | `/api/v1/souvenirs/{id_producto}` |
-| POST | `/api/v1/souvenirs/ventas` |
-| GET | `/api/v1/souvenirs/ventas` |
+Los componentes del frontend utilizan **React, JSX puro y Fluent UI v9**.
+- Las llamadas usan `fetch` o `axios` apuntando a las rutas de M3.
+- No se admite el uso de `.tsx`.
 
-## Sección M4 — Ingeniería Avanzada y Algoritmos Núcleo
+### M6 — Migraciones Relacionadas
 
-Para información sobre la trazabilidad, se usa `AuditMixin` en los modelos para capturar el usuario creador/modificador.
-
-## Sección M5 — Frontend (por módulo)
-
-Revisar la carpeta `frontend/src/` para componentes asociados a este módulo.
-
-## Sección M6 — Migraciones
-
-* Las migraciones asociadas a estas tablas se encuentran en `alembic/versions/`.
+Las migraciones de Alembic correspondientes se aplican a este modelo en orden secuencial.

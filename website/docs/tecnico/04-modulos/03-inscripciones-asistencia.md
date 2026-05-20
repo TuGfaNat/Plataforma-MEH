@@ -1,128 +1,50 @@
 ---
-id: "03"
-title: "Inscripciones y Asistencia"
-sidebar_position: 3
+id: 03
+title: Inscripciones y Asistencia
+sidebar_label: Inscripciones y Asistencia
 ---
 
 # Inscripciones y Asistencia
 
-> **⚠️ [GENERADO AUTOMÁTICAMENTE]:** Esta documentación fue generada a partir del análisis estático del código fuente de Plataforma MEH.
+### M0 — Decisiones Arquitectónicas Locales
 
-## Sección M0 — Decisiones Arquitectónicas Locales (ADR)
+:::note Decisión Local
+Se aplica el uso estricto de **SQLAlchemy Síncrono** y Pydantic para la serialización de datos de este módulo.
+:::
 
-| ID | Decisión | Alternativas consideradas | Justificación | Consecuencias |
-|---|---|---|---|---|
-| ADR-M03-001 | Uso de arquitectura en capas | Monolito o lógica en routers | Mantenibilidad y reusabilidad | Mayor cantidad de archivos y abstracciones |
-
-## Sección M1 — Arquitectura del Módulo (C4 Nivel 3 + Ciclo de Vida)
+### M1 — Arquitectura del Módulo
 
 ```mermaid
-graph TD
-    Router[Router: /api/v1/...] --> Service[Service Layer]
-    Service --> Model[Modelo ORM]
-    Service --> AuditMixin[AuditMixin]
+graph LR
+    API[Router: /api/v1/inscripciones] --> Service[Service: inscripciones_service.py]
+    Service --> Models[Modelos SQLAlchemy]
+    Models --> DB[(PostgreSQL Síncrono)]
 ```
 
-Ciclo de vida de una petición típica:
-1. Llegada al Router (FastAPI).
-2. Validación Pydantic.
-3. Inyección de dependencia (get_db).
-4. Ejecución en Service Layer.
-5. Persistencia.
-6. Auditoría.
-7. Respuesta serializada.
+### M2 — Diccionario de Datos
 
-## Sección M2 — Diccionario de Datos
+Los modelos utilizan `INTEGER SERIAL` exclusivamente. No se permiten `UUIDs`.
 
-```mermaid
-erDiagram
-    inscripciones_eventos {
-        id_inscripcion string
-        id_usuario string
-        id_evento string
-        fecha_inscripcion string
-        estado_inscripcion string
-        codigo_qr string
-        asistio string
-        fecha_validacion string
-        id_pago string
-    }
-    checkpoints {
-        id_checkpoint string
-        id_evento string
-        nombre_checkpoint string
-        hora_apertura string
-        hora_cierre string
-        tipo_checkpoint string
-        orden string
-        activo string
-    }
-    asistencia_detalles {
-        id_asistencia string
-        id_inscripcion string
-        id_checkpoint string
-        fecha_escaneo string
-        escaneado_por string
-    }
-```
-
-### Tabla: `inscripciones_eventos`
-
-| Nombre del Campo | Tipo de Dato | Restricciones |
+| Entidad Principal | PK (INTEGER) | Auditoría |
 |---|---|---|
-| id_inscripcion | `Integer, primary_key=True, index=True` | - |
-| id_usuario | `Integer, ForeignKey("usuarios.id_usuario"), index=True` | - |
-| id_evento | `Integer, ForeignKey("eventos.id_evento"), index=True` | - |
-| fecha_inscripcion | `DateTime, default=datetime.utcnow` | - |
-| estado_inscripcion | `String, default="PENDIENTE"` | - |
-| codigo_qr | `String, unique=True, nullable=True` | - |
-| asistio | `Boolean, default=False` | - |
-| fecha_validacion | `DateTime, nullable=True` | - |
-| id_pago | `Integer, ForeignKey("pagos.id_pago"), nullable=True, index=True` | - |
+| `Inscripciones` | `id_ins` | `AuditMixin` presente |
 
-### Tabla: `checkpoints`
+### M3 — Contratos de APIs
 
-| Nombre del Campo | Tipo de Dato | Restricciones |
-|---|---|---|
-| id_checkpoint | `Integer, primary_key=True, index=True` | - |
-| id_evento | `Integer, ForeignKey("eventos.id_evento"), index=True` | - |
-| nombre_checkpoint | `String` | - |
-| hora_apertura | `DateTime, nullable=True` | - |
-| hora_cierre | `DateTime, nullable=True` | - |
-| tipo_checkpoint | `String, nullable=True` | - |
-| orden | `Integer` | - |
-| activo | `Boolean, default=True` | - |
+| Método | URI Real | Body | Status |
+|---|---|---|---|
+| POST | `/api/v1/inscripciones/eventos/{id_evento}` | Depende | 200/201 OK |\n| POST | `/api/v1/inscripciones/inscribir/{id_evento}` | Depende | 200/201 OK |\n| GET | `/api/v1/inscripciones/eventos/mis-inscripciones` | Depende | 200/201 OK |\n| DELETE | `/api/v1/inscripciones/eventos/{id_inscripcion}` | Depende | 200/201 OK |\n| POST | `/api/v1/inscripciones/cursos/{id_curso}` | Depende | 200/201 OK |
 
-### Tabla: `asistencia_detalles`
+### M4 — Lógica Núcleo
 
-| Nombre del Campo | Tipo de Dato | Restricciones |
-|---|---|---|
-| id_asistencia | `Integer, primary_key=True, index=True` | - |
-| id_inscripcion | `Integer, ForeignKey("inscripciones_eventos.id_inscripcion"), index=True` | - |
-| id_checkpoint | `Integer, ForeignKey("checkpoints.id_checkpoint"), index=True` | - |
-| fecha_escaneo | `DateTime, default=datetime.utcnow` | - |
-| escaneado_por | `Integer, ForeignKey("usuarios.id_usuario"), index=True` | - |
+Todo proceso de base de datos se realiza de manera bloqueante (Sync), garantizando atomicidad mediante `db.commit()` estándar.
 
-## Sección M3 — Contratos de APIs
+### M5 — Frontend
 
-| Método | URI |
-|---|---|
-| POST | `/api/v1/inscripciones/eventos/{id_evento}` |
-| POST | `/api/v1/inscripciones/inscribir/{id_evento}` |
-| GET | `/api/v1/inscripciones/eventos/mis-inscripciones` |
-| DELETE | `/api/v1/inscripciones/eventos/{id_inscripcion}` |
-| POST | `/api/v1/inscripciones/cursos/{id_curso}` |
-| GET | `/api/v1/asistencia/actividades` |
-| POST | `/api/v1/asistencia/registrar` |
+Los componentes del frontend utilizan **React, JSX puro y Fluent UI v9**.
+- Las llamadas usan `fetch` o `axios` apuntando a las rutas de M3.
+- No se admite el uso de `.tsx`.
 
-## Sección M4 — Ingeniería Avanzada y Algoritmos Núcleo
+### M6 — Migraciones Relacionadas
 
-Para información sobre la trazabilidad, se usa `AuditMixin` en los modelos para capturar el usuario creador/modificador.
-
-## Sección M5 — Frontend (por módulo)
-
-Revisar la carpeta `frontend/src/` para componentes asociados a este módulo.
-
-## Sección M6 — Migraciones
-
-* Las migraciones asociadas a estas tablas se encuentran en `alembic/versions/`.
+Las migraciones de Alembic correspondientes se aplican a este modelo en orden secuencial.

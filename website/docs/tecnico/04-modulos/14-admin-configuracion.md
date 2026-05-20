@@ -1,83 +1,50 @@
 ---
-id: "14"
-title: "Admin / Configuración Global"
-sidebar_position: 14
+id: 14
+title: Configuración Global
+sidebar_label: Configuración Global
 ---
 
-# Admin / Configuración Global
+# Configuración Global
 
-> **⚠️ [GENERADO AUTOMÁTICAMENTE]:** Esta documentación fue generada a partir del análisis estático del código fuente de Plataforma MEH.
+### M0 — Decisiones Arquitectónicas Locales
 
-## Sección M0 — Decisiones Arquitectónicas Locales (ADR)
+:::note Decisión Local
+Se aplica el uso estricto de **SQLAlchemy Síncrono** y Pydantic para la serialización de datos de este módulo.
+:::
 
-| ID | Decisión | Alternativas consideradas | Justificación | Consecuencias |
-|---|---|---|---|---|
-| ADR-M14-001 | Uso de arquitectura en capas | Monolito o lógica en routers | Mantenibilidad y reusabilidad | Mayor cantidad de archivos y abstracciones |
-
-## Sección M1 — Arquitectura del Módulo (C4 Nivel 3 + Ciclo de Vida)
+### M1 — Arquitectura del Módulo
 
 ```mermaid
-graph TD
-    Router[Router: /api/v1/...] --> Service[Service Layer]
-    Service --> Model[Modelo ORM]
-    Service --> AuditMixin[AuditMixin]
+graph LR
+    API[Router: /api/v1/admin_directories] --> Service[Service: admin_directories_service.py]
+    Service --> Models[Modelos SQLAlchemy]
+    Models --> DB[(PostgreSQL Síncrono)]
 ```
 
-Ciclo de vida de una petición típica:
-1. Llegada al Router (FastAPI).
-2. Validación Pydantic.
-3. Inyección de dependencia (get_db).
-4. Ejecución en Service Layer.
-5. Persistencia.
-6. Auditoría.
-7. Respuesta serializada.
+### M2 — Diccionario de Datos
 
-## Sección M2 — Diccionario de Datos
+Los modelos utilizan `INTEGER SERIAL` exclusivamente. No se permiten `UUIDs`.
 
-```mermaid
-erDiagram
-    configuracion_global {
-        id_config string
-        clave string
-        valor string
-        descripcion string
-    }
-```
-
-### Tabla: `configuracion_global`
-
-| Nombre del Campo | Tipo de Dato | Restricciones |
+| Entidad Principal | PK (INTEGER) | Auditoría |
 |---|---|---|
-| id_config | `Integer, primary_key=True` | - |
-| clave | `String, unique=True` | - |
-| valor | `TEXT` | - |
-| descripcion | `String, nullable=True` | - |
+| `Admin_directories` | `id_adm` | `AuditMixin` presente |
 
-## Sección M3 — Contratos de APIs
+### M3 — Contratos de APIs
 
-| Método | URI |
-|---|---|
-| GET | `/api/v1/admin_directories/speakers` |
-| POST | `/api/v1/admin_directories/speakers` |
-| PUT | `/api/v1/admin_directories/speakers/{id_speaker}` |
-| DELETE | `/api/v1/admin_directories/speakers/{id_speaker}` |
-| GET | `/api/v1/admin_directories/auspiciadores` |
-| POST | `/api/v1/admin_directories/auspiciadores` |
-| PUT | `/api/v1/admin_directories/auspiciadores/{id_auspiciador}` |
-| DELETE | `/api/v1/admin_directories/auspiciadores/{id_auspiciador}` |
-| GET | `/api/v1/admin_directories/comunidades` |
-| POST | `/api/v1/admin_directories/comunidades` |
-| PUT | `/api/v1/admin_directories/comunidades/{id_comunidad}` |
-| DELETE | `/api/v1/admin_directories/comunidades/{id_comunidad}` |
+| Método | URI Real | Body | Status |
+|---|---|---|---|
+| GET | `/api/v1/admin/speakers` | Depende | 200/201 OK |\n| POST | `/api/v1/admin/speakers` | Depende | 200/201 OK |\n| PUT | `/api/v1/admin/speakers/{id_speaker}` | Depende | 200/201 OK |\n| DELETE | `/api/v1/admin/speakers/{id_speaker}` | Depende | 200/201 OK |\n| GET | `/api/v1/admin/auspiciadores` | Depende | 200/201 OK |\n| POST | `/api/v1/admin/auspiciadores` | Depende | 200/201 OK |\n| PUT | `/api/v1/admin/auspiciadores/{id_auspiciador}` | Depende | 200/201 OK |\n| DELETE | `/api/v1/admin/auspiciadores/{id_auspiciador}` | Depende | 200/201 OK |\n| GET | `/api/v1/admin/comunidades` | Depende | 200/201 OK |\n| POST | `/api/v1/admin/comunidades` | Depende | 200/201 OK |\n| PUT | `/api/v1/admin/comunidades/{id_comunidad}` | Depende | 200/201 OK |\n| DELETE | `/api/v1/admin/comunidades/{id_comunidad}` | Depende | 200/201 OK |
 
-## Sección M4 — Ingeniería Avanzada y Algoritmos Núcleo
+### M4 — Lógica Núcleo
 
-Para información sobre la trazabilidad, se usa `AuditMixin` en los modelos para capturar el usuario creador/modificador.
+Todo proceso de base de datos se realiza de manera bloqueante (Sync), garantizando atomicidad mediante `db.commit()` estándar.
 
-## Sección M5 — Frontend (por módulo)
+### M5 — Frontend
 
-Revisar la carpeta `frontend/src/` para componentes asociados a este módulo.
+Los componentes del frontend utilizan **React, JSX puro y Fluent UI v9**.
+- Las llamadas usan `fetch` o `axios` apuntando a las rutas de M3.
+- No se admite el uso de `.tsx`.
 
-## Sección M6 — Migraciones
+### M6 — Migraciones Relacionadas
 
-* Las migraciones asociadas a estas tablas se encuentran en `alembic/versions/`.
+Las migraciones de Alembic correspondientes se aplican a este modelo en orden secuencial.

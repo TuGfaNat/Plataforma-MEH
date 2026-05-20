@@ -1,50 +1,19 @@
----
-id: index-01-introduccion
-title: Introducción
-sidebar_label: Introducción
----
+# Bienvenido a Plataforma MEH
 
-### Introducción
+Esta plataforma es el centro digital de la comunidad **Microsoft Education Hub**. Aquí podrás gestionar tu participación en eventos, avanzar en tu formación técnica y conectar con otros profesionales.
 
-#### ¿Para qué sirve?
-Bienvenida a Plataforma MEH. Conoce qué es y cómo empezar.
+## Roles del Sistema
 
-#### ¿Quién puede usarlo?
-| Rol | ¿Puede usar? |
-|---|---|
-| ADMIN | ✅ |
-| ORGANIZADOR | ✅ |
-| MODERADOR | ✅ |
-| SOPORTE | ✅ |
-| EMBAJADOR | ✅ |
-| MIEMBRO | ✅ |
-
-#### Requisitos previos
-- [ ] Ninguno
-
-#### Paso a paso
-
-1. **Accede a la pantalla:** Ingresa a `Introducción` desde el menú lateral.
-2. **Interactúa con la interfaz:** Completa los campos o selecciona las opciones requeridas.
-3. **Confirma la acción:** Haz clic en el botón principal para confirmar.
-
-#### Capturas de pantalla
-[PUNTO DE INSERCIÓN MULTIMEDIA]
-
-Tipo: Captura de pantalla
-Descripción: Vista de la funcionalidad Introducción
-Texto alternativo: "Interfaz de Introducción en Plataforma MEH"
-Figura 1. Pantalla de Introducción.
-
-#### Campos principales (si aplica)
-| Campo | Tipo | Obligatorio | Descripción |
-|---|---|---|---|
-| Ejemplo | Texto | No | Campo de ejemplo |
-
-#### Posibles errores y soluciones
-| Mensaje de error | ¿Por qué ocurre? | ¿Cómo solucionarlo? |
+| Rol | Descripción | Permisos Principales |
 |---|---|---|
-| "Error de conexión" | Fallo de red | Revisa tu conexión a internet |
+| **Visitante** | Usuario no registrado. | Ver eventos públicos y página de inicio. |
+| **Miembro** | Usuario registrado estándar. | Inscribirse a eventos, tomar cursos, obtener certificados. |
+| **Embajador** | Miembro destacado. | Acceso a recursos VIP y beneficios exclusivos. |
+| **Soporte** | Equipo de ayuda. | Consultar pagos y resolver dudas de usuarios. |
+| **Organizador** | Gestor de actividades. | Crear eventos, gestionar lecciones y emitir insignias. |
+| **Administrador** | Control total. | Gestión de usuarios, auditoría y configuración global. |
 
-#### Consejos
-- Asegúrate de guardar tus cambios antes de salir de la pantalla.
+## Primeros Pasos
+1. **Regístrate** con tu correo institucional o personal.
+2. **Completa tu perfil** con tu alias y foto para que la comunidad te reconozca.
+3. **Explora el Landing** para ver las últimas noticias y eventos destacados.
