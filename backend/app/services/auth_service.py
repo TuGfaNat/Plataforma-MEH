@@ -82,7 +82,7 @@ def login_user(db: Session, credentials: user_schema.UserLogin, ip_address: Opti
     return {
         "access_token": access_token, 
         "token_type": "bearer",
-        "es_nuevo": user.es_nuevo
+        "es_nuevo": bool(user.es_nuevo)
     }
 
 def forgot_password(db: Session, request: user_schema.ForgotPasswordRequest) -> bool:

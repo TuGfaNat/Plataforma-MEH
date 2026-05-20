@@ -9,7 +9,7 @@ const useStyles = makeStyles({
 /**
  * MEHCard: Contenedor estético con efecto adaptativo al tema actual.
  */
-export const MEHCard = ({ children, appearance = 'glass', className, ...props }) => {
+export const MEHCard = ({ children, appearance = 'glass', className, style, ...props }) => {
   const styles = useStyles();
 
   const combinedClasses = mergeClasses(
@@ -18,7 +18,7 @@ export const MEHCard = ({ children, appearance = 'glass', className, ...props })
   );
 
   return (
-    <FluentCard className={combinedClasses} style={{ ...glassStyle, ...style }} {...props}>
+    <FluentCard className={combinedClasses} style={style} {...props}>
       {children}
     </FluentCard>
   );

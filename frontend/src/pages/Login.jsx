@@ -217,9 +217,18 @@ const Login = () => {
         </form>
 
         <div className={styles.footer}>
-          <MEHTypography variant="body" style={{ opacity: 0.7 }}>
+          <MEHTypography variant="body" style={{ opacity: 0.7, marginBottom: '16px', display: 'block' }}>
             ¿Eres un nuevo miembro? <Link to="/register" className={styles.link}>Únete aquí</Link>
           </MEHTypography>
+          
+          <MEHButton 
+            appearance="subtle" 
+            size="small" 
+            onClick={() => navigate('/')}
+            style={{ marginTop: '8px', opacity: 0.8 }}
+          >
+            Volver al Inicio
+          </MEHButton>
         </div>
       </MEHCard>
     </div>
