@@ -1,37 +1,20 @@
 import React from 'react';
-import { Card as FluentCard, makeStyles, mergeClasses, shorthands, tokens } from '@fluentui/react-components';
+import { Card as FluentCard, mergeClasses } from '@fluentui/react-components';
 import { useTheme } from '../../../App';
-
-const useStyles = makeStyles({
-  glassDark: {
-    background: 'rgba(255, 255, 255, 0.03)',
-    backdropFilter: 'blur(10px)',
-    ...shorthands.border('1px', 'solid', 'rgba(255, 255, 255, 0.1)'),
-  },
-  glassLight: {
-    background: 'rgba(33, 37, 41, 0.8)', 
-    backdropFilter: 'blur(15px)',
-    ...shorthands.border('1px', 'solid', 'rgba(255, 255, 255, 0.1)'),
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-  }
-});
+import { getGlassEffect } from '../../../theme/effects';
 
 /**
- * MEHCard: Contenedor estético con efecto Glassmorphism.
+ * MEHCard: Contenedor estético con efecto adaptativo al tema actual.
  */
-export const MEHCard = ({ children, appearance = 'glass', className, ...props }) => {
-  const styles = useStyles();
-  const { isDarkMode } = useTheme();
+export const MEHCard = ({ children, appearance = 'glass', className, style, ...props }) => {
+  const { currentTheme } = useTheme();
   
-  const glassStyle = isDarkMode ? styles.glassDark : styles.glassLight;
+  const glassStyle = appearance === 'glass' ? getGlassEffect(currentTheme) : {};
 
-  const combinedClasses = mergeClasses(
-    appearance === 'glass' && glassStyle,
-    className
-  );
+  const combinedClasses = mergeClasses(className);
 
   return (
-    <FluentCard className={combinedClasses} {...props}>
+    <FluentCard className={combinedClasses} style={{ ...glassStyle, ...style }} {...props}>
       {children}
     </FluentCard>
   );
