@@ -91,6 +91,14 @@ class UserProfileResponse(UserResponse):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    es_nuevo: bool = False
+
+class ForgotPasswordRequest(BaseModel):
+    correo: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    nuevo_password: str
 
 class TokenData(BaseModel):
     correo: Optional[str] = None

@@ -62,6 +62,11 @@ class Usuario(Base, AuditMixin):
     
     perfil_publico = Column(Boolean, default=True)
     activo = Column(Boolean, default=True)
+    
+    # Flags de seguridad y onboarding
+    es_nuevo = Column(Boolean, default=True)
+    reset_token = Column(String, nullable=True)
+    reset_token_exp = Column(DateTime, nullable=True)
 
     inscripciones_eventos = relationship("InscripcionEvento", back_populates="usuario", foreign_keys="[InscripcionEvento.id_usuario]")
     inscripciones_cursos = relationship("InscripcionCurso", back_populates="usuario", foreign_keys="[InscripcionCurso.id_usuario]")

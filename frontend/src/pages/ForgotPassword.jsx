@@ -5,12 +5,13 @@ import {
   MessageBar,
   tokens
 } from '@fluentui/react-components';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { 
   Mail24Filled,
   ArrowLeft24Regular,
   Send24Regular
 } from '@fluentui/react-icons';
+import authService from '../services/authService';
 import { designTokens } from '../theme/theme';
 import { MEHButton, MEHInput, MEHCard, MEHTypography } from '../components/ui';
 import { validateEmail } from '../utils/validators';
@@ -80,8 +81,12 @@ const useStyles = makeStyles({
 const ForgotPassword = () => {
   const styles = useStyles();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isFirstTime = searchParams.get('first_time') === 'true';
+
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState(null);
+  const [apiError, setApiError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -94,11 +99,18 @@ const ForgotPassword = () => {
     }
     
     setLoading(true);
-    // Simulación de envío (backend pendiente)
-    setTimeout(() => {
+    setApiError(null);
+    try {
+      await authService.forgotPassword(email);
       setSuccess(true);
+    } catch (err) {
+      // Por seguridad, incluso si falla mostramos éxito para evitar enumeración de usuarios
+      // Pero logueamos el error
+      console.error("Error en forgot password:", err);
+      setSuccess(true); 
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   const handleEmailChange = (e, data) => {
@@ -118,9 +130,14 @@ const ForgotPassword = () => {
         <img src={designTokens.logo} alt="MEH Logo" className={styles.logo} />
         
         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-          <MEHTypography variant="h2" style={{ display: 'block', textAlign: 'center' }}>¿Olvidaste tu clave?</MEHTypography>
+          <MEHTypography variant="h2" style={{ display: 'block', textAlign: 'center' }}>
+            {isFirstTime ? "Configura tu cuenta" : "¿Olvidaste tu clave?"}
+          </MEHTypography>
           <MEHTypography variant="body" style={{ opacity: 0.7, display: 'block', textAlign: 'center' }}>
-            Ingresa tu correo institucional y te enviaremos instrucciones para recuperarla.
+            {isFirstTime 
+              ? "Como es tu primera vez, necesitamos que confirmes tu correo para crear una contraseña segura."
+              : "Ingresa tu correo institucional y te enviaremos instrucciones para recuperarla."
+            }
           </MEHTypography>
         </div>
 

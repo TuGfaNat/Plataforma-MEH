@@ -45,6 +45,16 @@ def login(request: Request, user_credentials: user_schema.UserLogin, db: Session
     ip_address = request.client.host if request.client else None
     return auth_service.login_user(db, user_credentials, ip_address)
 
+@router.post("/forgot-password")
+def forgot_password(request: user_schema.ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """Endpoint para solicitar restablecimiento de contraseña."""
+    return auth_service.forgot_password(db, request)
+
+@router.post("/reset-password")
+def reset_password(request: user_schema.ResetPasswordRequest, db: Session = Depends(get_db)):
+    """Endpoint para completar el restablecimiento de contraseña."""
+    return auth_service.reset_password(db, request)
+
 @router.post("/google", response_model=user_schema.Token)
 def google_login(request: Request, payload: dict, db: Session = Depends(get_db)):
     """Endpoint para autenticación mediante Google OAuth."""

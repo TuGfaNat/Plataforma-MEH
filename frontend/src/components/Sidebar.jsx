@@ -156,7 +156,7 @@ const Sidebar = ({ onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const { isDarkMode, toggleTheme } = useTheme();
+  const { currentTheme, toggleTheme } = useTheme();
   const { user, setUser } = useAuth();
 
   const handleLogout = () => {
@@ -445,12 +445,15 @@ const Sidebar = ({ onClose }) => {
             size="small"
             className={styles.themeButton}
             icon={
-              isDarkMode ? <WeatherSunny24Regular /> : <WeatherMoon24Regular />
+              currentTheme === 'light' ? <WeatherMoon24Regular /> : 
+              currentTheme === 'dark' ? <WeatherSunny24Regular /> :
+              currentTheme === 'ash' ? <Library24Regular /> :
+              <Globe24Regular />
             }
             onClick={toggleTheme}
             style={{ color: tokens.colorNeutralForeground1 }}
           >
-            {isDarkMode ? "Light" : "Carbon"}
+            {currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}
           </Button>
         </div>
 

@@ -216,3 +216,26 @@ def notify_nuevo_anuncio(email: str, nombre: str, titulo_anuncio: str, contenido
     </div>
     """
     return send_email(email, subject, html)
+
+
+def notify_reset_password(email: str, nombre: str, token: str) -> bool:
+    """Notifica solicitud de restablecimiento de contraseña"""
+    subject = "Restablece tu contraseña - Plataforma MEH"
+    reset_url = f"{FRONTEND_URL}/reset-password?token={token}"
+    
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+        <h2 style="color: #7f13ec;">Hola {nombre},</h2>
+        <p>Has solicitado restablecer tu contraseña en la Plataforma MEH.</p>
+        <p>Para continuar, haz clic en el siguiente botón. Este enlace expirará en 1 hora.</p>
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{reset_url}" style="display: inline-block; background: #7f13ec; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Restablecer Contraseña</a>
+        </div>
+        <p style="font-size: 0.9rem; color: #888;">Si no solicitaste este cambio, puedes ignorar este correo de forma segura.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <footer style="font-size: 0.8rem; color: #888; text-align: center;">
+            Plataforma Microsoft Education Hub - Innovando el futuro, juntos.
+        </footer>
+    </div>
+    """
+    return send_email(email, subject, html)
