@@ -7,7 +7,7 @@ const useStyles = makeStyles({
 });
 
 /**
- * MEHCard: Contenedor estético con efecto Glassmorphism.
+ * MEHCard: Contenedor estético con efecto adaptativo al tema actual.
  */
 export const MEHCard = ({ children, appearance = 'glass', className, ...props }) => {
   const styles = useStyles();
@@ -18,7 +18,7 @@ export const MEHCard = ({ children, appearance = 'glass', className, ...props })
   );
 
   return (
-    <FluentCard className={combinedClasses} {...props}>
+    <FluentCard className={combinedClasses} style={{ ...glassStyle, ...style }} {...props}>
       {children}
     </FluentCard>
   );
