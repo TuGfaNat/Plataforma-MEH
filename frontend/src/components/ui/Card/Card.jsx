@@ -1,19 +1,9 @@
 import React from 'react';
-import { Card as FluentCard, makeStyles, mergeClasses, shorthands, tokens } from '@fluentui/react-components';
-import { useTheme } from '../../../App';
+import { Card as FluentCard, makeStyles, mergeClasses } from '@fluentui/react-components';
+import { effectMixins } from '../../../theme/effects';
 
 const useStyles = makeStyles({
-  glassDark: {
-    background: 'rgba(255, 255, 255, 0.03)',
-    backdropFilter: 'blur(10px)',
-    ...shorthands.border('1px', 'solid', 'rgba(255, 255, 255, 0.1)'),
-  },
-  glassLight: {
-    background: 'rgba(33, 37, 41, 0.8)', 
-    backdropFilter: 'blur(15px)',
-    ...shorthands.border('1px', 'solid', 'rgba(255, 255, 255, 0.1)'),
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-  }
+  glass: effectMixins.glass
 });
 
 /**
@@ -21,12 +11,9 @@ const useStyles = makeStyles({
  */
 export const MEHCard = ({ children, appearance = 'glass', className, ...props }) => {
   const styles = useStyles();
-  const { isDarkMode } = useTheme();
-  
-  const glassStyle = isDarkMode ? styles.glassDark : styles.glassLight;
 
   const combinedClasses = mergeClasses(
-    appearance === 'glass' && glassStyle,
+    appearance === 'glass' && styles.glass,
     className
   );
 

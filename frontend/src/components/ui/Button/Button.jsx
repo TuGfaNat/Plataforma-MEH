@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { Button as FluentButton, mergeClasses } from '@fluentui/react-components';
+import { Button as FluentButton, mergeClasses, Spinner } from '@fluentui/react-components';
 
 /**
  * MEHButton: Wrapper sobre Fluent UI Button con soporte para forwardRef.
@@ -29,7 +29,7 @@ export const MEHButton = forwardRef(({
       className={mergeClasses(className)}
       {...props}
     >
-      {loading ? '...' : children}
+      {loading ? <Spinner size="tiny" /> : children}
     </FluentButton>
   );
 });
