@@ -12,6 +12,7 @@ import {
   ClipboardTask24Regular, Person24Regular, Checkmark24Regular
 } from '@fluentui/react-icons';
 import ReactQuill from 'react-quill-new';
+import { useTranslation } from 'react-i18next';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
 
@@ -45,6 +46,7 @@ const AcademyTab = ({
   confirmDelete, fetchLecciones, handleFileUpload, uploading, quillModules 
 }) => {
   const styles = useStyles();
+  const { t } = useTranslation();
 
   // Estados para Tareas
   const [tareas, setTareas] = useState({}); // { id_leccion: [tareas] }
@@ -111,9 +113,9 @@ const AcademyTab = ({
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <HatGraduation24Regular color={tokens.colorBrandForeground1} />
-            <MEHTypography variant="h3">Programas</MEHTypography>
+            <MEHTypography variant="h3">{t("programs")}</MEHTypography>
           </div>
-          <Tooltip content="Nuevo Curso" relationship="label">
+          <Tooltip content={t("admin_new_course")} relationship="label">
             <Button icon={<Add24Regular />} appearance="primary" size="small" shape="circular" onClick={() => {
               setIsAddingCurso(true);
               setIsEditingCurso(false);
@@ -156,7 +158,7 @@ const AcademyTab = ({
           ))}
           {data.length === 0 && (
             <div style={{ textAlign: 'center', padding: '24px', opacity: 0.5 }}>
-              <MEHTypography variant="caption">No hay cursos creados.</MEHTypography>
+              <MEHTypography variant="caption">{t("admin_no_courses")}</MEHTypography>
             </div>
           )}
         </div>
@@ -170,19 +172,19 @@ const AcademyTab = ({
                 <BookOpen24Regular />
               </div>
               <MEHTypography variant="h2">
-                {isEditingCurso ? 'Configurar Programa' : 'Lanzar Nuevo Programa'}
+                {isEditingCurso ? t("admin_configure_program") : t("admin_launch_new_program")}
               </MEHTypography>
             </div>
 
-            <Field label="Nombre del Curso" required>
+            <Field label={t("admin_course_name")} required>
               <Input 
-                placeholder="Ej: Master en React Avanzado"
+                placeholder={t("admin_course_name_placeholder")}
                 value={newCurso.nombre_curso} 
                 onChange={(e, d) => setNewCurso({...newCurso, nombre_curso: d.value})} 
               />
             </Field>
 
-            <Field label="Descripción del Programa">
+            <Field label={t("admin_program_description")}>
               <div className={`${styles.quillWrapper} ${styles.quillSmall}`}>
                 <ReactQuill 
                   theme="snow" 
@@ -194,7 +196,7 @@ const AcademyTab = ({
             </Field>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <Field label="Horas Académicas">
+              <Field label={t("admin_academic_hours")}>
                 <Input 
                   type="number" 
                   contentBefore={<Clock24Regular />}
@@ -202,7 +204,7 @@ const AcademyTab = ({
                   onChange={(e, d) => setNewCurso({...newCurso, horas_academicas: d.value})} 
                 />
               </Field>
-              <Field label="Portada del Curso">
+              <Field label={t("admin_course_cover")}>
                 <div className={styles.uploadBox}>
                   <div className={styles.previewContainer}>
                     {newCurso.imagen_url ? (
@@ -221,12 +223,12 @@ const AcademyTab = ({
                     onClick={() => document.getElementById('curso-file').click()}
                   >
                     {uploading ? (
-                      <Spinner size="small" label="Cargando..." />
+                      <Spinner size="small" label={t("uploading")} />
                     ) : (
                       <>
                         <ArrowUpload24Regular fontSize="24px" />
                         <MEHTypography variant="caption">
-                          {newCurso.imagen_url ? 'Cambiar Imagen' : 'Subir Portada'}
+                          {newCurso.imagen_url ? t("edit") : t("admin_course_cover")}
                         </MEHTypography>
                       </>
                     )}
@@ -250,7 +252,7 @@ const AcademyTab = ({
                 icon={<Save24Regular />}
                 onClick={handleSaveCurso}
               >
-                {isEditingCurso ? 'Guardar Cambios' : 'Activar Programa'}
+                {isEditingCurso ? t("edit") : t("admin_activate_program")}
               </MEHButton>
               <Button 
                 appearance="subtle" 
@@ -261,7 +263,7 @@ const AcademyTab = ({
                   setIsEditingCurso(false);
                 }}
               >
-                Cancelar
+                {t("cancel")}
               </Button>
             </div>
           </div>
@@ -278,12 +280,12 @@ const AcademyTab = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <MEHTypography variant="h1">{currentCourse.nombre_curso}</MEHTypography>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <Badge color="success" appearance="tint">Aula Virtual Activa</Badge>
+                    <Badge color="success" appearance="tint">{t("admin_virtual_classroom_active")}</Badge>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.6, fontSize: '12px' }}>
-                      <Clock24Regular fontSize={14} /> {currentCourse.horas_academicas} Horas
+                      <Clock24Regular fontSize={14} /> {currentCourse.horas_academicas} {t("admin_hours_count")}
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.6, fontSize: '12px' }}>
-                      <DocumentText24Regular fontSize={14} /> {lecciones.length} Lecciones
+                      <DocumentText24Regular fontSize={14} /> {lecciones.length} {t("admin_lessons_count")}
                     </span>
                   </div>
                 </div>
@@ -297,7 +299,7 @@ const AcademyTab = ({
                   setNewLeccion({ titulo: '', contenido_video_url: '', contenido_texto: '', orden: lecciones.length + 1 });
                 }}
               >
-                Nueva Lección
+                {t("admin_new_lesson")}
               </MEHButton>
             </div>
 
@@ -305,22 +307,22 @@ const AcademyTab = ({
               <div className={styles.formPanel} style={{marginBottom: '32px', border: `2px solid ${tokens.colorBrandStroke1}`}}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <MEHTypography variant="h3">
-                    {isEditingLeccion ? 'Editar Lección' : 'Crear Nueva Lección'}
+                    {isEditingLeccion ? t("admin_edit_lesson") : t("admin_create_new_lesson")}
                   </MEHTypography>
-                  <Badge appearance="outline">Orden: {newLeccion.orden}</Badge>
+                  <Badge appearance="outline">{t("admin_order_badge")}: {newLeccion.orden}</Badge>
                 </div>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
-                  <Field label="Título de la Lección" required>
+                  <Field label={t("admin_lesson_title")} required>
                     <Input 
-                      placeholder="Ej: Introducción a Hooks"
+                      placeholder={t("admin_lesson_title_placeholder")}
                       value={newLeccion.titulo} 
                       onChange={(e, d) => setNewLeccion({...newLeccion, titulo: d.value})} 
                     />
                   </Field>
-                  <Field label="URL Video (Opcional)">
+                  <Field label={t("admin_video_url_optional")}>
                     <Input 
-                      placeholder="YouTube/Vimeo link"
+                      placeholder={t("admin_video_link_placeholder")}
                       contentBefore={<Video24Regular />}
                       value={newLeccion.contenido_video_url} 
                       onChange={(e, d) => setNewLeccion({...newLeccion, contenido_video_url: d.value})} 
@@ -328,7 +330,7 @@ const AcademyTab = ({
                   </Field>
                 </div>
 
-                <Field label="Contenido de la Lección">
+                <Field label={t("admin_lesson_content")}>
                   <div className={styles.quillWrapper}>
                     <ReactQuill 
                       theme="snow" 
@@ -341,17 +343,17 @@ const AcademyTab = ({
 
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <MEHButton appearance="primary" icon={<Save24Regular />} onClick={handleSaveLeccion}>
-                    {isEditingLeccion ? 'Actualizar Lección' : 'Publicar Lección'}
+                    {isEditingLeccion ? t("admin_update_lesson") : t("admin_publish_lesson")}
                   </MEHButton>
                   <Button appearance="subtle" icon={<Dismiss24Regular />} onClick={() => setIsAddingLeccion(false)}>
-                    Cancelar
+                    {t("cancel")}
                   </Button>
                 </div>
               </div>
             )}
 
             <MEHTypography variant="h3" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <DocumentText24Regular /> Plan de Estudios
+              <DocumentText24Regular /> {t("admin_study_plan")}
             </MEHTypography>
 
             <Accordion collapsible defaultOpenItems={lecciones.length > 0 ? [lecciones[0].id_leccion] : []}>
@@ -364,10 +366,10 @@ const AcademyTab = ({
                           {l.orden}
                         </div>
                         <MEHTypography variant="bold">{l.titulo}</MEHTypography>
-                        {l.contenido_video_url && <Badge appearance="tint" color="brand" icon={<Video24Regular />}>Video</Badge>}
+                        {l.contenido_video_url && <Badge appearance="tint" color="brand" icon={<Video24Regular />}>{t("admin_video_available")}</Badge>}
                       </div>
                       <div className={styles.lessonActions} onClick={e => e.stopPropagation()}>
-                        <Tooltip content="Editar Lección" relationship="label">
+                        <Tooltip content={t("admin_edit_lesson")} relationship="label">
                           <Button 
                             icon={<Edit20Regular />} 
                             size="small" 
@@ -375,7 +377,7 @@ const AcademyTab = ({
                             onClick={() => handleEditLeccion(l)} 
                           />
                         </Tooltip>
-                        <Tooltip content="Eliminar Lección" relationship="label">
+                        <Tooltip content={t("delete")} relationship="label">
                           <Button 
                             icon={<Delete20Regular color={tokens.colorPaletteRedForeground1} />} 
                             size="small" 
@@ -391,7 +393,7 @@ const AcademyTab = ({
                       {l.contenido_video_url && (
                         <div style={{ backgroundColor: tokens.colorNeutralBackground3, padding: '12px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <Video24Regular color={tokens.colorBrandForeground1} />
-                          <MEHTypography variant="caption"><b>Video disponible:</b> {l.contenido_video_url}</MEHTypography>
+                          <MEHTypography variant="caption"><b>{t("admin_video_available")}:</b> {l.contenido_video_url}</MEHTypography>
                         </div>
                       )}
                       <div dangerouslySetInnerHTML={{__html: l.contenido_texto}} className="meh-content-preview" />
@@ -400,14 +402,14 @@ const AcademyTab = ({
                       
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <MEHTypography variant="h4" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <ClipboardTask24Regular color={tokens.colorBrandForeground1} /> Tareas de la Lección
+                          <ClipboardTask24Regular color={tokens.colorBrandForeground1} /> {t("admin_lesson_tasks")}
                         </MEHTypography>
                         <MEHButton size="small" appearance="subtle" icon={<Add24Regular />} onClick={() => {
                            setNewTarea({ titulo: '', instrucciones: '', puntos_max: 100, fecha_entrega_limite: '' });
                            setCurrentLeccionIdForTarea(l.id_leccion);
                            setIsAddingTarea(true);
                            setIsEditingTarea(false);
-                        }}>Añadir Tarea</MEHButton>
+                        }}>{t("admin_add_task")}</MEHButton>
                       </div>
 
                       {/* Listado de Tareas */}
@@ -420,7 +422,7 @@ const AcademyTab = ({
                               </div>
                               <MEHTypography variant="caption" style={{ opacity: 0.8 }}>{t.instrucciones}</MEHTypography>
                               <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                                 <MEHButton size="small" appearance="outline" icon={<Person24Regular />} onClick={() => fetchEntregas(t.id_tarea)}>Ver Entregas</MEHButton>
+                                 <MEHButton size="small" appearance="outline" icon={<Person24Regular />} onClick={() => fetchEntregas(t.id_tarea)}>{t("admin_view_submissions")}</MEHButton>
                                  <Button size="small" appearance="subtle" icon={<Edit20Regular />} onClick={() => {
                                     setNewTarea({ ...t });
                                     setCurrentTareaId(t.id_tarea);
@@ -432,7 +434,7 @@ const AcademyTab = ({
                            </div>
                          ))}
                          {!(tareas[l.id_leccion]?.length) && (
-                            <MEHTypography variant="caption" style={{ opacity: 0.5, fontStyle: 'italic' }}>Sin tareas asignadas. Haz clic en 'Añadir Tarea' para comenzar.</MEHTypography>
+                            <MEHTypography variant="caption" style={{ opacity: 0.5, fontStyle: 'italic' }}>{t("admin_no_tasks_assigned")}</MEHTypography>
                          )}
                       </div>
                     </div>
@@ -441,7 +443,7 @@ const AcademyTab = ({
               ))}
               {lecciones.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '40px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '16px', border: `2px dashed ${tokens.colorNeutralBackground3}` }}>
-                  <MEHTypography variant="body">Este curso aún no tiene lecciones. ¡Comienza creando la primera!</MEHTypography>
+                  <MEHTypography variant="body">{t("admin_course_no_lessons")}</MEHTypography>
                 </div>
               )}
             </Accordion>
@@ -452,8 +454,8 @@ const AcademyTab = ({
               <HatGraduation24Regular style={{fontSize: '80px', color: tokens.colorBrandForeground1}} />
             </div>
             <div>
-              <MEHTypography variant="h2">Gestión del Aula Virtual</MEHTypography>
-              <MEHTypography variant="body">Selecciona un programa de la izquierda para gestionar sus módulos y lecciones.</MEHTypography>
+              <MEHTypography variant="h2">{t("admin_virtual_classroom_management")}</MEHTypography>
+              <MEHTypography variant="body">{t("admin_select_program_manage")}</MEHTypography>
             </div>
           </div>
         )}
@@ -463,26 +465,26 @@ const AcademyTab = ({
       <Dialog open={isAddingTarea} onOpenChange={(e, d) => setIsAddingTarea(d.open)}>
          <DialogSurface>
             <DialogBody>
-               <DialogTitle>{isEditingTarea ? 'Editar Tarea' : 'Nueva Tarea'}</DialogTitle>
+               <DialogTitle>{isEditingTarea ? t("admin_edit_task") : t("admin_new_task")}</DialogTitle>
                <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-                  <Field label="Título de la Tarea" required>
-                     <Input value={newTarea.titulo} onChange={(e, d) => setNewTarea({ ...newTarea, titulo: d.value })} placeholder="Ej: Proyecto Final de Módulo" />
+                  <Field label={t("admin_task_title")} required>
+                     <Input value={newTarea.titulo} onChange={(e, d) => setNewTarea({ ...newTarea, titulo: d.value })} placeholder={t("admin_task_title_placeholder")} />
                   </Field>
-                  <Field label="Instrucciones Detalladas" required>
-                     <Textarea value={newTarea.instrucciones} onChange={(e, d) => setNewTarea({ ...newTarea, instrucciones: d.value })} placeholder="Describe qué debe entregar el alumno..." rows={4} />
+                  <Field label={t("admin_detailed_instructions")} required>
+                     <Textarea value={newTarea.instrucciones} onChange={(e, d) => setNewTarea({ ...newTarea, instrucciones: d.value })} placeholder={t("admin_instructions_placeholder")} rows={4} />
                   </Field>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                     <Field label="Puntos Máximos">
+                     <Field label={t("admin_max_points")}>
                         <Input type="number" value={newTarea.puntos_max} onChange={(e, d) => setNewTarea({ ...newTarea, puntos_max: d.value })} />
                      </Field>
-                     <Field label="Fecha Límite">
+                     <Field label={t("admin_deadline")}>
                         <Input type="date" value={newTarea.fecha_entrega_limite} onChange={(e, d) => setNewTarea({ ...newTarea, fecha_entrega_limite: d.value })} />
                      </Field>
                   </div>
                </DialogContent>
                <DialogActions>
-                  <MEHButton appearance="primary" icon={<Save24Regular />} onClick={handleSaveTarea}>Guardar Tarea</MEHButton>
-                  <Button appearance="subtle" onClick={() => setIsAddingTarea(false)}>Cancelar</Button>
+                  <MEHButton appearance="primary" icon={<Save24Regular />} onClick={handleSaveTarea}>{t("admin_save_task")}</MEHButton>
+                  <Button appearance="subtle" onClick={() => setIsAddingTarea(false)}>{t("cancel")}</Button>
                </DialogActions>
             </DialogBody>
          </DialogSurface>
@@ -492,34 +494,34 @@ const AcademyTab = ({
       <Dialog open={showEntregas} onOpenChange={(e, d) => setShowEntregas(d.open)}>
          <DialogSurface style={{ maxWidth: '900px', width: '90%' }}>
             <DialogBody>
-               <DialogTitle>Entregas de Alumnos</DialogTitle>
+               <DialogTitle>{t("admin_student_submissions")}</DialogTitle>
                <DialogContent style={{ marginTop: '16px' }}>
                   <Table size="extra-small">
                      <TableHeader>
                         <TableRow>
-                           <TableHeaderCell>Alumno</TableHeaderCell>
-                           <TableHeaderCell>Fecha Envío</TableHeaderCell>
-                           <TableHeaderCell>Archivo</TableHeaderCell>
-                           <TableHeaderCell>Nota</TableHeaderCell>
-                           <TableHeaderCell>Acciones</TableHeaderCell>
+                           <TableHeaderCell>{t("student")}</TableHeaderCell>
+                           <TableHeaderCell>{t("admin_submission_date")}</TableHeaderCell>
+                           <TableHeaderCell>{t("file")}</TableHeaderCell>
+                           <TableHeaderCell>{t("grade")}</TableHeaderCell>
+                           <TableHeaderCell>{t("admin_grade_action")}</TableHeaderCell>
                         </TableRow>
                      </TableHeader>
                      <TableBody>
                         {entregas.map(ent => (
                            <TableRow key={ent.id_entrega}>
-                              <TableCell>Usuario ID: {ent.id_usuario}</TableCell>
+                              <TableCell>{t("admin_user_id")}: {ent.id_usuario}</TableCell>
                               <TableCell>{new Date(ent.fecha_envio).toLocaleString()}</TableCell>
                               <TableCell>
-                                 <Link href={ent.archivo_url} target="_blank">Ver Entrega</Link>
+                                 <Link href={ent.archivo_url} target="_blank">{t("admin_view_submission")}</Link>
                               </TableCell>
                               <TableCell>
-                                 <Badge color={ent.nota ? "success" : "neutral"}>{ent.nota || 'Pendiente'} / 100</Badge>
+                                 <Badge color={ent.nota ? "success" : "neutral"}>{ent.nota || t("pending")} / 100</Badge>
                               </TableCell>
                               <TableCell>
                                  <MEHButton size="small" appearance="subtle" icon={<Checkmark24Regular />} onClick={() => {
                                     setGradingEntrega(ent);
                                     setGradeData({ nota: ent.nota || 100, comentario_docente: ent.comentario_docente || '' });
-                                 }}>Calificar</MEHButton>
+                                 }}>{t("grade")}</MEHButton>
                               </TableCell>
                            </TableRow>
                         ))}
@@ -528,24 +530,24 @@ const AcademyTab = ({
 
                   {gradingEntrega && (
                      <div className={styles.gradingArea}>
-                        <MEHTypography variant="h4">Calificar a Alumno</MEHTypography>
+                        <MEHTypography variant="h4">{t("admin_grade_student")}</MEHTypography>
                         <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: '16px', marginTop: '12px' }}>
-                           <Field label="Nota">
+                           <Field label={t("grade")}>
                               <Input type="number" value={gradeData.nota} onChange={(e, d) => setGradeData({ ...gradeData, nota: d.value })} />
                            </Field>
-                           <Field label="Feedback del Docente">
-                              <Textarea value={gradeData.comentario_docente} onChange={(e, d) => setGradeData({ ...gradeData, comentario_docente: d.value })} placeholder="Buen trabajo, pero falta..." />
+                           <Field label={t("admin_teacher_feedback")}>
+                              <Textarea value={gradeData.comentario_docente} onChange={(e, d) => setGradeData({ ...gradeData, comentario_docente: d.value })} placeholder={t("admin_feedback_placeholder")} />
                            </Field>
                         </div>
                         <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
-                           <MEHButton appearance="primary" size="small" onClick={handleCalificar}>Confirmar Nota</MEHButton>
-                           <Button appearance="subtle" size="small" onClick={() => setGradingEntrega(null)}>Cerrar</Button>
+                           <MEHButton appearance="primary" size="small" onClick={handleCalificar}>{t("admin_confirm_grade")}</MEHButton>
+                           <Button appearance="subtle" size="small" onClick={() => setGradingEntrega(null)}>{t("close")}</Button>
                         </div>
                      </div>
                   )}
                </DialogContent>
                <DialogActions>
-                  <Button appearance="subtle" onClick={() => setShowEntregas(false)}>Cerrar Listado</Button>
+                  <Button appearance="subtle" onClick={() => setShowEntregas(false)}>{t("admin_close_list")}</Button>
                </DialogActions>
             </DialogBody>
          </DialogSurface>

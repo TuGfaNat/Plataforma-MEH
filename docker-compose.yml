@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: meh-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: plataforma_meh
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # Backend FastAPI
+  backend:
+    build: ./backend
+    container_name: meh-backend
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://postgres:password123@db:5432/plataforma_meh
+      - PORT=8000
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/static:/app/static
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:8000
+    container_name: meh-frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  # Documentación (Docusaurus)
+  website:
+    build: ./website
+    container_name: meh-docs
+    restart: always
+    ports:
+      - "3001:80"
+
+volumes:
+  postgres_data:

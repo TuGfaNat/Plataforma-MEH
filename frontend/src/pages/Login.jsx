@@ -6,6 +6,7 @@ import {
   tokens
 } from '@fluentui/react-components';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   LockClosed24Filled, 
   Mail24Filled,
@@ -102,6 +103,7 @@ const Login = () => {
   const styles = useStyles();
   const navigate = useNavigate();
   const { checkAuth } = useAuth();
+  const { t } = useTranslation();
   
   const [formData, setFormData] = useState({ correo: '', password: '' });
   const [errors, setErrors] = useState({ correo: null, password: null });
@@ -119,7 +121,7 @@ const Login = () => {
     
     const newErrors = {
       correo: validateEmail(formData.correo),
-      password: formData.password ? null : "La contraseña es obligatoria"
+      password: formData.password ? null : t("password_required")
     };
 
     setErrors(newErrors);
@@ -141,9 +143,9 @@ const Login = () => {
     } catch (err) {
       setLoading(false);
       if (!err.response) {
-        setErrorApi('No se pudo conectar con el servidor. Verifica tu conexión.');
+        setErrorApi(t("conn_error"));
       } else {
-        setErrorApi(err.response.data.detail || 'Credenciales incorrectas');
+        setErrorApi(err.response.data.detail || t("invalid_creds"));
       }
     }
   };
@@ -159,7 +161,7 @@ const Login = () => {
             Microsoft Education <span style={{ color: tokens.colorBrandForeground1 }}>Hub</span>
           </MEHTypography>
           <MEHTypography variant="body" style={{ opacity: 0.6, textAlign: 'center' }}>
-            Accede a tu centro de aprendizaje y comunidad global.
+            {t("login_access_subtitle")}
           </MEHTypography>
         </div>
 
@@ -167,7 +169,7 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <MEHInput 
-            label="Correo Electrónico"
+            label={t("email_label")}
             type="email"
             contentBefore={<Mail24Filled style={{ opacity: 0.5 }} />}
             value={formData.correo}
@@ -179,7 +181,7 @@ const Login = () => {
           />
 
           <MEHInput 
-            label="Contraseña"
+            label={t("password_label")}
             type={showPassword ? "text" : "password"}
             contentBefore={<LockClosed24Filled style={{ opacity: 0.5 }} />}
             contentAfter={
@@ -200,7 +202,7 @@ const Login = () => {
 
           <div className={styles.forgotLink}>
             <Link to="/forgot-password" className={styles.link} style={{ fontSize: '12px' }}>
-              ¿Olvidaste tu contraseña?
+              {t("forgot_password")}
             </Link>
           </div>
 
@@ -212,13 +214,13 @@ const Login = () => {
             style={{ height: '52px', marginTop: '12px' }}
             disabled={hasErrors(errors)}
           >
-            Ingresar al Portal
+            {t("enter_portal")}
           </MEHButton>
         </form>
 
         <div className={styles.footer}>
           <MEHTypography variant="body" style={{ opacity: 0.7, marginBottom: '16px', display: 'block' }}>
-            ¿Eres un nuevo miembro? <Link to="/register" className={styles.link}>Únete aquí</Link>
+            {t("new_member_prompt")} <Link to="/register" className={styles.link}>{t("join_here")}</Link>
           </MEHTypography>
           
           <MEHButton 
@@ -227,7 +229,7 @@ const Login = () => {
             onClick={() => navigate('/')}
             style={{ marginTop: '8px', opacity: 0.8 }}
           >
-            Volver al Inicio
+            {t("return_home")}
           </MEHButton>
         </div>
       </MEHCard>

@@ -3,6 +3,7 @@ import {
   makeStyles, tokens, Button, Input, Select, Field, Spinner, Text
 } from '@fluentui/react-components';
 import { Add24Regular, Certificate24Regular, Eye24Regular } from '@fluentui/react-icons';
+import { useTranslation } from 'react-i18next';
 import { generateCertificatePDF } from '../../services/certificateGenerator';
 import api from '../../services/api';
 import { useNotify } from '../../App';
@@ -28,6 +29,7 @@ const useStyles = makeStyles({
 });
 
 const GeneradorCertificados = () => {
+  const { t } = useTranslation();
   const styles = useStyles();
   const { notify } = useNotify();
   const [loading, setLoading] = useState(false);
@@ -129,67 +131,67 @@ const GeneradorCertificados = () => {
     <div className={styles.container}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <Certificate24Regular style={{ color: tokens.colorBrandForeground1, fontSize: '32px' }} />
-        <MEHTypography variant="h1">Generador de Certificados</MEHTypography>
+        <MEHTypography variant="h1">{t("admin_cert_generator")}</MEHTypography>
       </div>
 
       <MEHCard>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
           <div className={styles.formRow}>
-            <Field label="Tipo de Referencia" style={{ flex: 1 }}>
+            <Field label={t("admin_ref_type")} style={{ flex: 1 }}>
               <Select value={formData.tipo} onChange={(e, data) => handleChange('tipo', data.value)}>
-                <option value="EVENTO">Evento</option>
-                <option value="CURSO">Curso</option>
+                <option value="EVENTO">{t("event")}</option>
+                <option value="CURSO">{t("course")}</option>
               </Select>
             </Field>
 
-            <Field label="ID de Referencia (Evento o Curso)" style={{ flex: 1 }}>
+            <Field label={t("admin_ref_id")} style={{ flex: 1 }}>
               <Input type="number" value={formData.id_referencia} onChange={(e, data) => handleChange('id_referencia', data.value)} />
             </Field>
           </div>
 
-          <Field label="Criterio de Emisión">
+          <Field label={t("admin_emission_criteria")}>
             <Select value={formData.criterio} onChange={(e, data) => handleChange('criterio', data.value)}>
               {formData.tipo === 'EVENTO' && (
                 <>
-                  <option value="TODOS">Inscritos Confirmados (Sin filtrar asistencia)</option>
-                  <option value="ASISTIERON">Solo Asistentes Confirmados</option>
-                  <option value="SPEAKERS">A todos los Speakers del Evento</option>
+                  <option value="TODOS">{t("admin_confirmed_inscribed")}</option>
+                  <option value="ASISTIERON">{t("admin_only_confirmed_attendees")}</option>
+                  <option value="SPEAKERS">{t("admin_all_event_speakers")}</option>
                 </>
               )}
               {formData.tipo === 'CURSO' && (
                 <>
-                  <option value="TODOS">Todos los Inscritos</option>
-                  <option value="APROBADOS">Solo Aprobados (Completados)</option>
+                  <option value="TODOS">{t("admin_all_inscribed")}</option>
+                  <option value="APROBADOS">{t("admin_only_passed")}</option>
                 </>
               )}
             </Select>
           </Field>
 
-          <Field label="Título del Certificado">
-            <Input value={formData.titulo} onChange={(e, data) => handleChange('titulo', data.value)} placeholder="Ej. Taller de IA con Python" />
+          <Field label={t("admin_cert_title")}>
+            <Input value={formData.titulo} onChange={(e, data) => handleChange('titulo', data.value)} placeholder={t("admin_cert_title_placeholder")} />
           </Field>
 
-          <Field label="Imagen de Fondo (Plantilla vacía)">
+          <Field label={t("admin_background_image")}>
             <input type="file" accept="image/*" onChange={(e) => handleFileChange('background', e.target.files[0])} className={styles.fileInput} />
           </Field>
 
-          <Text weight="semibold">Firmas (Hasta 4 - PNG Transparente)</Text>
+          <Text weight="semibold">{t("admin_signatures_help")}</Text>
           <div className={styles.formRow}>
-            <input type="file" accept="image/png" onChange={(e) => handleFileChange('firma1', e.target.files[0])} className={styles.fileInput} title="Firma 1" />
-            <input type="file" accept="image/png" onChange={(e) => handleFileChange('firma2', e.target.files[0])} className={styles.fileInput} title="Firma 2" />
+            <input type="file" accept="image/png" onChange={(e) => handleFileChange('firma1', e.target.files[0])} className={styles.fileInput} title={`${t("admin_signature")} 1`} />
+            <input type="file" accept="image/png" onChange={(e) => handleFileChange('firma2', e.target.files[0])} className={styles.fileInput} title={`${t("admin_signature")} 2`} />
           </div>
           <div className={styles.formRow}>
-            <input type="file" accept="image/png" onChange={(e) => handleFileChange('firma3', e.target.files[0])} className={styles.fileInput} title="Firma 3" />
-            <input type="file" accept="image/png" onChange={(e) => handleFileChange('firma4', e.target.files[0])} className={styles.fileInput} title="Firma 4" />
+            <input type="file" accept="image/png" onChange={(e) => handleFileChange('firma3', e.target.files[0])} className={styles.fileInput} title={`${t("admin_signature")} 3`} />
+            <input type="file" accept="image/png" onChange={(e) => handleFileChange('firma4', e.target.files[0])} className={styles.fileInput} title={`${t("admin_signature")} 4`} />
           </div>
 
           <div style={{ display: 'flex', gap: '12px' }}>
             <Button appearance="outline" icon={<Eye24Regular />} onClick={handlePreview} disabled={loading}>
-              Vista Previa
+              {t("preview")}
             </Button>
             <Button appearance="primary" icon={loading ? <Spinner size="tiny" /> : <Add24Regular />} onClick={handleSubmit} disabled={loading}>
-              Generar Certificados
+              {t("admin_generate_certs")}
             </Button>
           </div>
 

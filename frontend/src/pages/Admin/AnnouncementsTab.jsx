@@ -17,6 +17,7 @@ import {
   Select,
   Spinner
 } from '@fluentui/react-components';
+import { useTranslation } from 'react-i18next';
 import { 
   Edit24Regular, 
   Delete24Regular, 
@@ -32,6 +33,7 @@ import api from '../../services/api';
 import { useNotify } from '../../App';
 
 const useStyles = makeStyles({
+// ... (rest of styles same)
   container: { display: 'flex', flexDirection: 'column', gap: '24px' },
   toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   grid: { display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '24px', marginTop: '16px' },
@@ -44,6 +46,7 @@ const useStyles = makeStyles({
 const AnnouncementsTab = () => {
   const styles = useStyles();
   const { notify } = useNotify();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -66,7 +69,7 @@ const AnnouncementsTab = () => {
       const res = await api.get('/comunidad/anuncios/all');
       setAnnouncements(res.data || []);
     } catch (err) {
-      notify("Error", "No se pudieron cargar los anuncios", "error");
+      notify("Error", t("no_announcements_load_error"), "error");
     } finally {
       setLoading(false);
     }
@@ -109,13 +112,13 @@ const AnnouncementsTab = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("¿Estás seguro de eliminar este anuncio permanentemente?")) return;
+    if (!window.confirm(t("confirm_delete_announcement"))) return;
     try {
       await api.delete(`/comunidad/anuncios/${id}`);
-      notify("Eliminado", "Anuncio borrado correctamente", "success");
+      notify(t("deleted"), t("announcement_deleted_success"), "success");
       fetchAnnouncements();
     } catch (err) {
-      notify("Error", "No se pudo eliminar el anuncio", "error");
+      notify("Error", t("announcement_delete_error"), "error");
     }
   };
 
@@ -128,9 +131,9 @@ const AnnouncementsTab = () => {
       form.append('file', file);
       const res = await api.post('/files/upload', form);
       setFormData(prev => ({ ...prev, url_imagen: res.data.url }));
-      notify("Éxito", "Imagen cargada", "success");
+      notify(t("success"), t("image_uploaded_success"), "success");
     } catch (err) {
-      notify("Error", "Fallo al subir imagen", "error");
+      notify("Error", t("image_upload_error"), "error");
     } finally {
       setUploading(false);
     }
@@ -141,15 +144,15 @@ const AnnouncementsTab = () => {
     try {
       if (isEditing) {
         await api.put(`/comunidad/anuncios/${currentId}`, formData);
-        notify("Actualizado", "Anuncio guardado", "success");
+        notify(t("updated"), t("announcement_saved_success"), "success");
       } else {
         await api.post('/comunidad/anuncios', formData);
-        notify("Publicado", "Anuncio creado con éxito", "success");
+        notify(t("published"), t("announcement_created_success"), "success");
       }
       resetForm();
       fetchAnnouncements();
     } catch (err) {
-      notify("Error", "No se pudo procesar el anuncio", "error");
+      notify("Error", t("announcement_process_error"), "error");
     }
   };
 
@@ -166,24 +169,24 @@ const AnnouncementsTab = () => {
       <div className={styles.toolbar}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <MegaphoneLoud24Regular style={{ color: tokens.colorBrandForeground1 }} />
-          <MEHTypography variant="h2">Gestión de Anuncios</MEHTypography>
+          <MEHTypography variant="h2">{t("admin_announcements_management")}</MEHTypography>
         </div>
-        <MEHButton appearance="subtle" icon={<Add24Regular />} onClick={resetForm}>Nuevo Anuncio</MEHButton>
+        <MEHButton appearance="subtle" icon={<Add24Regular />} onClick={resetForm}>{t("admin_new_announcement")}</MEHButton>
       </div>
 
       <div className={styles.grid}>
         <div className={styles.tableWrapper}>
           {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center' }}><Spinner label="Cargando noticias..." /></div>
+            <div style={{ padding: '40px', textAlign: 'center' }}><Spinner label={t("admin_loading_news")} /></div>
           ) : (
             <Table size="extra-small">
               <TableHeader>
                 <TableRow>
-                  <TableHeaderCell>Estado</TableHeaderCell>
-                  <TableHeaderCell>Título</TableHeaderCell>
-                  <TableHeaderCell>Tipo</TableHeaderCell>
-                  <TableHeaderCell>Fecha</TableHeaderCell>
-                  <TableHeaderCell>Acciones</TableHeaderCell>
+                  <TableHeaderCell>{t("admin_status_col")}</TableHeaderCell>
+                  <TableHeaderCell>{t("admin_title")}</TableHeaderCell>
+                  <TableHeaderCell>{t("admin_type_col")}</TableHeaderCell>
+                  <TableHeaderCell>{t("admin_date_col")}</TableHeaderCell>
+                  <TableHeaderCell>{t("admin_actions_col")}</TableHeaderCell>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -191,7 +194,7 @@ const AnnouncementsTab = () => {
                   <TableRow key={ann.id_anuncio}>
                     <TableCell>
                       <Badge color={ann.activo ? "success" : "neutral"} appearance="tint">
-                        {ann.activo ? "Activo" : "Oculto"}
+                        {ann.activo ? t("active") : t("hidden")}
                       </Badge>
                     </TableCell>
                     <TableCell style={{ fontWeight: 'bold' }}>{ann.titulo}</TableCell>
@@ -208,7 +211,7 @@ const AnnouncementsTab = () => {
                   </TableRow>
                 ))}
                 {announcements.length === 0 && (
-                   <TableRow><TableCell colSpan={5} style={{textAlign: 'center', padding: '20px'}}>No hay anuncios publicados.</TableCell></TableRow>
+                   <TableRow><TableCell colSpan={5} style={{textAlign: 'center', padding: '20px'}}>{t("admin_no_announcements")}</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -216,33 +219,33 @@ const AnnouncementsTab = () => {
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
-          <MEHTypography variant="h3">{isEditing ? "Editar Anuncio" : "Crear Anuncio"}</MEHTypography>
+          <MEHTypography variant="h3">{isEditing ? t("admin_edit_announcement") : t("admin_create_announcement")}</MEHTypography>
           
-          <Field label="Título del Anuncio" required>
-            <Input value={formData.titulo} onChange={(e, d) => handleInputChange('titulo', d.value)} placeholder="Ej: Nueva Certificación Disponible" required />
+          <Field label={t("admin_announcement_title")} required>
+            <Input value={formData.titulo} onChange={(e, d) => handleInputChange('titulo', d.value)} placeholder={t("admin_announcement_title_placeholder")} required />
           </Field>
 
-          <Field label="Contenido / Mensaje" required>
-            <Textarea value={formData.contenido} onChange={(e, d) => handleInputChange('contenido', d.value)} placeholder="Escribe aquí el detalle del anuncio..." rows={5} required />
+          <Field label={t("admin_announcement_content")} required>
+            <Textarea value={formData.contenido} onChange={(e, d) => handleInputChange('contenido', d.value)} placeholder={t("admin_announcement_content_placeholder")} rows={5} required />
           </Field>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <Field label="Tipo de Anuncio">
+            <Field label={t("admin_announcement_type")}>
               <Select value={formData.tipo} onChange={(e, d) => handleInputChange('tipo', d.value)}>
-                <option value="INFO">Información</option>
-                <option value="EVENTO">Evento Próximo</option>
-                <option value="ALERTA">Alerta / Crítico</option>
+                <option value="INFO">{t("admin_info")}</option>
+                <option value="EVENTO">{t("admin_upcoming_event")}</option>
+                <option value="ALERTA">{t("admin_alert_critical")}</option>
               </Select>
             </Field>
-            <Field label="Acción (Link)">
+            <Field label={t("admin_action_link")}>
               <Input value={formData.link_accion} onChange={(e, d) => handleInputChange('link_accion', d.value)} placeholder="https://..." />
             </Field>
           </div>
 
           <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-            <Switch label="Visible" checked={formData.activo} onChange={(e, d) => handleInputChange('activo', d.checked)} />
+            <Switch label={t("visible")} checked={formData.activo} onChange={(e, d) => handleInputChange('activo', d.checked)} />
             {!isEditing && (
-              <Field label="Notificar por Email">
+              <Field label={t("admin_notify_email")}>
                 <Switch checked={formData.enviar_email} onChange={(e, d) => handleInputChange('enviar_email', d.checked)} />
               </Field>
             )}
@@ -252,7 +255,7 @@ const AnnouncementsTab = () => {
              {uploading ? <Spinner size="tiny" /> : (
                <>
                 <Image24Regular />
-                <MEHTypography variant="caption">{formData.url_imagen ? "Cambiar Imagen" : "Subir Portada"}</MEHTypography>
+                <MEHTypography variant="caption">{formData.url_imagen ? t("admin_change_image") : t("admin_upload_cover")}</MEHTypography>
                 <input id="ann-file" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
                </>
              )}
@@ -261,9 +264,9 @@ const AnnouncementsTab = () => {
 
           <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
             <MEHButton type="submit" appearance="primary" style={{ flexGrow: 1 }} icon={isEditing ? <Save24Regular /> : <Send24Regular />}>
-              {isEditing ? "Guardar Cambios" : "Publicar Ahora"}
+              {isEditing ? t("admin_save_changes") : t("admin_publish_now")}
             </MEHButton>
-            <MEHButton appearance="subtle" icon={<Dismiss24Regular />} onClick={resetForm}>Cancelar</MEHButton>
+            <MEHButton appearance="subtle" icon={<Dismiss24Regular />} onClick={resetForm}>{t("cancel")}</MEHButton>
           </div>
         </form>
       </div>

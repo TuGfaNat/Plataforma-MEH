@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
   Divider, Badge, Field, Input, Textarea, Select, Switch, Button, tokens, makeStyles, shorthands,
   Avatar, Tooltip, Tag, TagGroup, InteractionTag, InteractionTagPrimary
@@ -66,6 +67,7 @@ const EventsTab = ({
   isEditingEvento, setIsEditingEvento, newEvento, setNewEvento, handleSaveEvento, 
   handleEditEvento, confirmDelete
 }) => {
+  const { t } = useTranslation();
   const styles = useStyles();
   const [agenda, setAgenda] = useState([]);
   const [selectedSpeakers, setSelectedSpeakers] = useState([]);
@@ -86,10 +88,10 @@ const EventsTab = ({
 
   const validateForm = () => {
     const newErrors = {};
-    if (!newEvento.titulo) newErrors.titulo = "El título es obligatorio";
-    if (!newEvento.fecha_inicio) newErrors.fecha_inicio = "La fecha es obligatoria";
-    if (!newEvento.hora_inicio) newErrors.hora_inicio = "La hora es obligatoria";
-    if (!newEvento.ubicacion) newErrors.ubicacion = "La ubicación es obligatoria";
+    if (!newEvento.titulo) newErrors.titulo = t("admin_event_title_required");
+    if (!newEvento.fecha_inicio) newErrors.fecha_inicio = t("admin_event_date_required");
+    if (!newEvento.hora_inicio) newErrors.hora_inicio = t("admin_event_time_required");
+    if (!newEvento.ubicacion) newErrors.ubicacion = t("admin_event_location_required");
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -131,7 +133,7 @@ const EventsTab = ({
   return (
     <div className={styles.grid}>
       <div className={styles.sidebar}>
-        <MEHTypography variant="h3">Eventos Activos</MEHTypography>
+        <MEHTypography variant="h3">{t("admin_active_events")}</MEHTypography>
         <Divider />
         {eventosList.map(ev => (
           <div 
@@ -149,64 +151,64 @@ const EventsTab = ({
           </div>
         ))}
         <MEHButton size="small" icon={<Add24Regular />} appearance="subtle" onClick={() => { setIsAddingEvento(true); setIsEditingEvento(false); setNewEvento({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', link_mapas: '', capacidad_max: 50, refrigerio_incluido: false }); setAgenda([]); setSelectedSpeakers([]); }}>
-          Nuevo Evento
+          {t("admin_new_event")}
         </MEHButton>
       </div>
       
       <div className={styles.detailsContainer}>
         {isAddingEvento ? (
           <div className={styles.formPanel}>
-            <MEHTypography variant="h2">{isEditingEvento ? 'Editar' : 'Programar'} Evento</MEHTypography>
+            <MEHTypography variant="h2">{isEditingEvento ? t("edit") : t("admin_schedule")} {t("event")}</MEHTypography>
             
-            <Field label="Título del Evento" required validationState={errors.titulo ? "error" : "none"} validationMessage={errors.titulo}>
+            <Field label={t("admin_event_title")} required validationState={errors.titulo ? "error" : "none"} validationMessage={errors.titulo}>
               <Input value={newEvento.titulo} onChange={(e, d) => setNewEvento({...newEvento, titulo: d.value})} />
             </Field>
 
-            <Field label="Descripción">
-              <Textarea rows={3} value={newEvento.descripcion} onChange={(e, d) => setNewEvento({...newEvento, descripcion: d.value})} placeholder="¿De qué trata este evento?" />
+            <Field label={t("admin_description")}>
+              <Textarea rows={3} value={newEvento.descripcion} onChange={(e, d) => setNewEvento({...newEvento, descripcion: d.value})} placeholder={t("admin_event_description_placeholder")} />
             </Field>
 
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
-              <Field label="Tipo">
+              <Field label={t("type")}>
                 <Select value={newEvento.tipo_evento} onChange={(e) => setNewEvento({...newEvento, tipo_evento: e.target.value})}>
-                  <option value="CONFERENCIA">CONFERENCIA</option>
-                  <option value="HACKATHON">HACKATHON</option>
-                  <option value="TALLER">TALLER</option>
-                  <option value="BOOTCAMP">BOOTCAMP</option>
-                  <option value="NETWORKING">NETWORKING</option>
+                  <option value="CONFERENCIA">{t("CONFERENCIA")}</option>
+                  <option value="HACKATHON">{t("HACKATHON")}</option>
+                  <option value="TALLER">{t("TALLER")}</option>
+                  <option value="BOOTCAMP">{t("BOOTCAMP")}</option>
+                  <option value="NETWORKING">{t("NETWORKING")}</option>
                 </Select>
               </Field>
-              <Field label="Modalidad">
+              <Field label={t("admin_modality")}>
                 <Select value={newEvento.modalidad} onChange={(e) => setNewEvento({...newEvento, modalidad: e.target.value})}>
-                  <option value="PRESENCIAL">PRESENCIAL</option>
-                  <option value="VIRTUAL">VIRTUAL</option>
-                  <option value="HIBRIDO">HÍBRIDO</option>
+                  <option value="PRESENCIAL">{t("PRESENCIAL")}</option>
+                  <option value="VIRTUAL">{t("VIRTUAL")}</option>
+                  <option value="HIBRIDO">{t("HIBRIDO")}</option>
                 </Select>
               </Field>
             </div>
 
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px'}}>
-              <Field label="Fecha de Inicio" required validationState={errors.fecha_inicio ? "error" : "none"} validationMessage={errors.fecha_inicio}>
+              <Field label={t("admin_start_date")} required validationState={errors.fecha_inicio ? "error" : "none"} validationMessage={errors.fecha_inicio}>
                 <Input type="date" value={newEvento.fecha_inicio} onChange={(e, d) => setNewEvento({...newEvento, fecha_inicio: d.value})} />
               </Field>
-              <Field label="Hora de Inicio" required validationState={errors.hora_inicio ? "error" : "none"} validationMessage={errors.hora_inicio}>
+              <Field label={t("admin_start_time")} required validationState={errors.hora_inicio ? "error" : "none"} validationMessage={errors.hora_inicio}>
                 <Input type="time" value={newEvento.hora_inicio} onChange={(e, d) => setNewEvento({...newEvento, hora_inicio: d.value})} />
               </Field>
-              <Field label="Cupos Máximos">
+              <Field label={t("admin_max_capacity")}>
                 <Input type="number" value={newEvento.capacidad_max} onChange={(e, d) => setNewEvento({...newEvento, capacidad_max: d.value})} />
               </Field>
             </div>
 
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
-              <Field label="Dirección / Ubicación" required validationState={errors.ubicacion ? "error" : "none"} validationMessage={errors.ubicacion}>
-                <Input contentBefore={<Map24Regular />} value={newEvento.ubicacion} onChange={(e, d) => setNewEvento({...newEvento, ubicacion: d.value})} placeholder="Ej: Auditorio UMSA" />
+              <Field label={t("admin_location")} required validationState={errors.ubicacion ? "error" : "none"} validationMessage={errors.ubicacion}>
+                <Input contentBefore={<Map24Regular />} value={newEvento.ubicacion} onChange={(e, d) => setNewEvento({...newEvento, ubicacion: d.value})} placeholder={t("admin_location_placeholder")} />
               </Field>
-              <Field label="Link Google Maps">
-                <Input contentBefore={<Link24Regular />} value={newEvento.link_mapas} onChange={(e, d) => setNewEvento({...newEvento, link_mapas: d.value})} placeholder="https://goo.gl/maps/..." />
+              <Field label={t("admin_maps_link")}>
+                <Input contentBefore={<Link24Regular />} value={newEvento.link_mapas} onChange={(e, d) => setNewEvento({...newEvento, link_mapas: d.value})} placeholder={t("admin_maps_link_placeholder")} />
               </Field>
             </div>
 
-            <Divider>Speakers Invitados</Divider>
+            <Divider>{t("admin_invited_speakers")}</Divider>
             <div className={styles.speakerSelection}>
               {speakersList.map(s => (
                 <Tooltip content={s.nombre} relationship="label" key={s.id_speaker}>
@@ -225,14 +227,14 @@ const EventsTab = ({
               ))}
             </div>
 
-            <Divider>Agenda del Evento</Divider>
+            <Divider>{t("admin_event_agenda")}</Divider>
             <div>
               {agenda.map((item, idx) => (
                 <div key={idx} className={styles.agendaItem}>
                   <Input type="time" value={item.hora} onChange={(e, d) => updateAgendaItem(idx, 'hora', d.value)} style={{ width: '100px' }} />
-                  <Input value={item.actividad} onChange={(e, d) => updateAgendaItem(idx, 'actividad', d.value)} placeholder="Actividad o Charla" style={{ flexGrow: 1 }} />
+                  <Input value={item.actividad} onChange={(e, d) => updateAgendaItem(idx, 'actividad', d.value)} placeholder={t("admin_activity_placeholder")} style={{ flexGrow: 1 }} />
                   <Select value={item.id_speaker || ''} onChange={(e) => updateAgendaItem(idx, 'id_speaker', e.target.value)} style={{ width: '150px' }}>
-                    <option value="">Sin Speaker</option>
+                    <option value="">{t("admin_no_speaker")}</option>
                     {speakersList.filter(s => selectedSpeakers.includes(s.id_speaker)).map(s => (
                       <option key={s.id_speaker} value={s.id_speaker}>{s.nombre}</option>
                     ))}
@@ -240,14 +242,14 @@ const EventsTab = ({
                   <Button icon={<Dismiss24Regular />} appearance="subtle" onClick={() => removeAgendaItem(idx)} />
                 </div>
               ))}
-              <MEHButton icon={<Add24Regular />} appearance="subtle" onClick={addAgendaItem}>Agregar bloque a la agenda</MEHButton>
+              <MEHButton icon={<Add24Regular />} appearance="subtle" onClick={addAgendaItem}>{t("admin_add_agenda_block")}</MEHButton>
             </div>
 
-            <Switch label="Incluye Refrigerio / Catering" checked={newEvento.refrigerio_incluido} onChange={(e, d) => setNewEvento({...newEvento, refrigerio_incluido: d.checked})} />
+            <Switch label={t("admin_includes_catering")} checked={newEvento.refrigerio_incluido} onChange={(e, d) => setNewEvento({...newEvento, refrigerio_incluido: d.checked})} />
             
             <div style={{display: 'flex', gap: '12px', marginTop: '20px'}}>
-              <MEHButton onClick={onSave} appearance="primary" size="large">Guardar Evento</MEHButton>
-              <Button onClick={() => setIsAddingEvento(false)} size="large">Cancelar</Button>
+              <MEHButton onClick={onSave} appearance="primary" size="large">{t("admin_save_event")}</MEHButton>
+              <Button onClick={() => setIsAddingEvento(false)} size="large">{t("cancel")}</Button>
             </div>
           </div>
         ) : selectedEventoId && currentEvent ? (
@@ -256,7 +258,7 @@ const EventsTab = ({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <MEHTypography variant="h1">{currentEvent.titulo}</MEHTypography>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <Badge color="brand" appearance="filled">{currentEvent.tipo_evento}</Badge>
+                  <Badge color="brand" appearance="filled">{t(currentEvent.tipo_evento)}</Badge>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.7 }}>
                     <CalendarLtr24Regular fontSize="16px" />
                     <span>{new Date(currentEvent.fecha_inicio).toLocaleDateString()}</span>
@@ -272,13 +274,13 @@ const EventsTab = ({
                         {currentEvent.ubicacion}
                     </MEHTypography>
                     {currentEvent.link_mapas && (
-                        <MEHButton size="small" icon={<Link24Regular />} onClick={() => window.open(currentEvent.link_mapas, '_blank')}>Ver en Maps</MEHButton>
+                        <MEHButton size="small" icon={<Link24Regular />} onClick={() => window.open(currentEvent.link_mapas, '_blank')}>{t("admin_view_in_maps")}</MEHButton>
                     )}
                 </div>
               </div>
               <div style={{display: 'flex', gap: '8px'}}>
-                <MEHButton size="small" icon={<Edit24Regular />} onClick={() => handleEditEvento(currentEvent)}>Editar</MEHButton>
-                <Button icon={<Delete24Regular />} size="small" appearance="subtle" style={{color: tokens.colorPaletteRedForeground1}} onClick={() => confirmDelete('evento', selectedEventoId, 'este evento')} />
+                <MEHButton size="small" icon={<Edit24Regular />} onClick={() => handleEditEvento(currentEvent)}>{t("edit")}</MEHButton>
+                <Button icon={<Delete24Regular />} size="small" appearance="subtle" style={{color: tokens.colorPaletteRedForeground1}} onClick={() => confirmDelete('evento', selectedEventoId, t("event").toLowerCase())} />
               </div>
             </div>
             
@@ -286,27 +288,27 @@ const EventsTab = ({
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
                 <div className={styles.infoCard}>
-                    <MEHTypography variant="h3"><Mic24Regular /> Speakers</MEHTypography>
+                    <MEHTypography variant="h3"><Mic24Regular /> {t("speakers")}</MEHTypography>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         {currentEvent.speakers?.length > 0 ? currentEvent.speakers.map(s => (
                             <Tooltip content={s.nombre} relationship="label" key={s.id_speaker}>
                                 <Avatar size={48} name={s.nombre} image={{src: resolveApiFileUrl(s.foto_url)}} />
                             </Tooltip>
-                        )) : <MEHTypography variant="caption">No hay speakers asignados.</MEHTypography>}
+                        )) : <MEHTypography variant="caption">{t("admin_no_speakers_assigned")}</MEHTypography>}
                     </div>
                 </div>
                 <div className={styles.infoCard}>
-                    <MEHTypography variant="h3"><PeopleTeam24Regular /> Gestión</MEHTypography>
+                    <MEHTypography variant="h3"><PeopleTeam24Regular /> {t("management")}</MEHTypography>
                     <div style={{ display: 'flex', gap: '12px' }}>
-                        <MEHButton icon={<QrCode24Regular />} appearance="primary">Escanear QR</MEHButton>
-                        <MEHButton appearance="outline">Lista de Asistencia</MEHButton>
+                        <MEHButton icon={<QrCode24Regular />} appearance="primary">{t("admin_scan_qr")}</MEHButton>
+                        <MEHButton appearance="outline">{t("admin_attendance_list")}</MEHButton>
                     </div>
                 </div>
             </div>
 
             {currentEvent.agenda && (
                 <div className={styles.infoCard} style={{ backgroundColor: tokens.colorNeutralBackground2 }}>
-                    <MEHTypography variant="h3">Agenda</MEHTypography>
+                    <MEHTypography variant="h3">{t("agenda")}</MEHTypography>
                     {JSON.parse(currentEvent.agenda).map((item, idx) => (
                         <div key={idx} style={{ display: 'flex', gap: '16px', padding: '8px 0', borderBottom: `1px solid ${tokens.colorNeutralBackground3}` }}>
                             <b style={{ minWidth: '60px', color: tokens.colorBrandForeground1 }}>{item.hora}</b>
@@ -314,7 +316,7 @@ const EventsTab = ({
                                 <MEHTypography variant="body"><b>{item.actividad}</b></MEHTypography>
                                 {item.id_speaker && (
                                     <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
-                                        Con: {speakersList.find(s => s.id_speaker == item.id_speaker)?.nombre}
+                                        {t("admin_with_speaker")}: {speakersList.find(s => s.id_speaker == item.id_speaker)?.nombre}
                                     </MEHTypography>
                                 )}
                             </div>
@@ -326,7 +328,7 @@ const EventsTab = ({
         ) : (
           <div style={{textAlign: 'center', padding: '100px', opacity: 0.5}}>
             <CalendarLtr24Regular style={{fontSize: '64px'}} />
-            <MEHTypography variant="h3">Selecciona un evento para ver los detalles</MEHTypography>
+            <MEHTypography variant="h3">{t("admin_select_event_details")}</MEHTypography>
           </div>
         )}
       </div>

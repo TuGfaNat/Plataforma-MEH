@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   makeStyles,
   tokens,
@@ -237,6 +238,7 @@ const useStyles = makeStyles({
 
 const EcosystemDirectory = () => {
   const styles = useStyles();
+  const { t } = useTranslation();
   const { notify } = useNotify();
   const [selectedTab, setSelectedTab] = useState("speakers");
   const [loading, setLoading] = useState(false);
@@ -267,7 +269,7 @@ const EcosystemDirectory = () => {
       const response = await api.get(`/admin-directories/${selectedTab}`);
       setData(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
-      notify("Error", "No se pudo cargar el directorio", "error");
+      notify("Error", t("admin_no_data"), "error");
     } finally {
       setLoading(false);
     }
@@ -298,7 +300,7 @@ const EcosystemDirectory = () => {
       setErrors((prev) => ({ ...prev, [field]: error }));
     }
     if (field === 'correo_contacto' && value) {
-        const emailError = !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? "Correo inválido" : null;
+        const emailError = !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? t("admin_email_placeholder") : null;
         setErrors(prev => ({ ...prev, correo_contacto: emailError }));
     }
   };
@@ -322,13 +324,13 @@ const EcosystemDirectory = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("¿Estás seguro de eliminar este registro?")) return;
+    if (!window.confirm(t("confirm_delete_announcement"))) return; 
     try {
       await api.delete(`/admin-directories/${selectedTab}/${id}`);
-      notify("Eliminado", "Registro removido correctamente", "success");
+      notify(t("deleted"), t("announcement_deleted_success"), "success");
       fetchData();
     } catch (err) {
-      notify("Error", "No se pudo eliminar", "error");
+      notify("Error", t("announcement_delete_error"), "error");
     }
   };
 
@@ -342,9 +344,9 @@ const EcosystemDirectory = () => {
       const res = await api.post("/files/upload", uploadData);
       setFormData((prev) => ({ ...prev, [field]: res.data.url }));
       setPreviewUrl(`${resolveApiFileUrl(res.data.url)}?t=${new Date().getTime()}`);
-      notify("Éxito", "Imagen cargada", "success");
+      notify(t("success"), t("image_uploaded_success"), "success");
     } catch (err) {
-      notify("Error", "Fallo al subir archivo", "error");
+      notify("Error", t("image_upload_error"), "error");
     } finally {
       setUploading(false);
     }
@@ -353,22 +355,22 @@ const EcosystemDirectory = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (Object.values(errors).some((e) => e !== null)) {
-      notify("Validación", "Corrige los errores antes de guardar", "warning");
+      notify(t("admin_info"), t("admin_announcement_content_placeholder"), "warning");
       return;
     }
     setSubmitting(true);
     try {
       if (isEditing) {
         await api.put(`/admin-directories/${selectedTab}/${currentId}`, formData);
-        notify("Actualizado", "Cambios guardados con éxito", "success");
+        notify(t("updated"), t("announcement_saved_success"), "success");
       } else {
         await api.post(`/admin-directories/${selectedTab}`, formData);
-        notify("Creado", "Nuevo registro añadido al ecosistema", "success");
+        notify(t("success"), t("announcement_created_success"), "success");
       }
       setIsModalOpen(false);
       fetchData();
     } catch (err) {
-      notify("Error", "No se pudo procesar la solicitud", "error");
+      notify("Error", t("announcement_process_error"), "error");
     } finally {
       setSubmitting(false);
     }
@@ -376,11 +378,11 @@ const EcosystemDirectory = () => {
 
   const getFriendlyName = () => {
     const names = {
-        'speakers': 'Speaker',
-        'auspiciadores': 'Auspiciador',
-        'comunidades': 'Comunidad Aliada'
+        'speakers': t("speaker"),
+        'auspiciadores': t("sponsor"),
+        'comunidades': t("allied_community")
     };
-    return names[selectedTab] || 'Registro';
+    return names[selectedTab] || t("entry");
   };
 
   const getImageUrl = (url) => {
@@ -402,14 +404,14 @@ const EcosystemDirectory = () => {
             style={{ color: tokens.colorBrandForeground1, fontSize: "42px" }}
           />
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <MEHTypography variant="h1">Ecosistema y Alianzas</MEHTypography>
+            <MEHTypography variant="h1">{t("admin_ecosystem_alliances")}</MEHTypography>
             <MEHTypography variant="body" style={{ opacity: 0.7 }}>
-              Líderes, marcas y comunidades que impulsan el MEH.
+              {t("admin_ecosystem_desc")}
             </MEHTypography>
           </div>
         </div>
         <MEHButton appearance="primary" size="large" icon={<Add24Regular />} onClick={handleAdd}>
-          Añadir Nuevo
+          {t("admin_add_new")}
         </MEHButton>
       </div>
 
@@ -417,14 +419,14 @@ const EcosystemDirectory = () => {
         selectedValue={selectedTab}
         onTabSelect={(e, d) => setSelectedTab(d.value)}
       >
-        <Tab value="speakers" icon={<Mic24Regular />}>Speakers</Tab>
-        <Tab value="auspiciadores" icon={<Reward24Regular />}>Auspiciadores</Tab>
-        <Tab value="comunidades" icon={<PeopleCommunity24Regular />}>Comunidades Aliadas</Tab>
+        <Tab value="speakers" icon={<Mic24Regular />}>{t("speakers")}</Tab>
+        <Tab value="auspiciadores" icon={<Reward24Regular />}>{t("sponsors")}</Tab>
+        <Tab value="comunidades" icon={<PeopleCommunity24Regular />}>{t("allied_communities")}</Tab>
       </TabList>
 
       {loading ? (
         <div style={{ display: "flex", justifyContent: "center", padding: "100px" }}>
-          <Spinner label="Sincronizando con la red..." />
+          <Spinner label={t("admin_syncing_network")} />
         </div>
       ) : (
         <div className={styles.grid}>
@@ -442,27 +444,27 @@ const EcosystemDirectory = () => {
                 <div className={styles.cardBody}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <Subtitle1 style={{ fontWeight: "bold", fontSize: '18px' }}>{s.nombre}</Subtitle1>
-                    <Badge color="brand" appearance="tint">Speaker</Badge>
+                    <Badge color="brand" appearance="tint">{t("speaker")}</Badge>
                   </div>
                   
                   <Caption1 style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.8 }}>
-                    <Briefcase24Regular style={{ fontSize: "14px" }} /> {s.trabajo_actual || "Líder de Comunidad"}
+                    <Briefcase24Regular style={{ fontSize: "14px" }} /> {s.trabajo_actual || t("community_leader")}
                   </Caption1>
 
-                  <Body1 className={styles.bio}>{s.bio || "Sin biografía disponible."}</Body1>
+                  <Body1 className={styles.bio}>{s.bio || t("admin_no_bio_available")}</Body1>
                   
                   <div className={styles.contactBadges}>
                       {s.correo_contacto && (
-                          <Tooltip content="Enviar Correo" relationship="label">
+                          <Tooltip content={t("admin_send_email")} relationship="label">
                             <div className={`${styles.actionChip} ${styles.emailChip}`} onClick={() => window.location.href=`mailto:${s.correo_contacto}`}>
-                                <Mail24Regular style={{fontSize: '16px'}} /> Correo
+                                <Mail24Regular style={{fontSize: '16px'}} /> {t("email")}
                             </div>
                           </Tooltip>
                       )}
                       {s.whatsapp_contacto && (
-                          <Tooltip content="Chat Directo" relationship="label">
+                          <Tooltip content={t("admin_direct_chat")} relationship="label">
                             <div className={`${styles.actionChip} ${styles.whatsappChip}`} onClick={() => openWhatsApp(s.whatsapp_contacto)}>
-                                <Phone24Regular style={{fontSize: '16px'}} /> WhatsApp
+                                <Phone24Regular style={{fontSize: '16px'}} /> {t("whatsapp")}
                             </div>
                           </Tooltip>
                       )}
@@ -470,13 +472,13 @@ const EcosystemDirectory = () => {
 
                   <Divider style={{ marginTop: "4px" }} />
                   <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
-                    <strong>Trayectoria:</strong> {s.trayectoria || "No especificada"}
+                    <strong>{t("admin_career")}</strong> {s.trayectoria || t("not_specified")}
                   </MEHTypography>
                 </div>
 
                 <div className={styles.footerActions}>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <Button icon={<Edit24Regular />} appearance="subtle" size="small" onClick={() => handleEdit(s)}>Editar</Button>
+                        <Button icon={<Edit24Regular />} appearance="subtle" size="small" onClick={() => handleEdit(s)}>{t("edit")}</Button>
                         <Button icon={<Delete24Regular />} appearance="subtle" size="small" style={{ color: tokens.colorPaletteRedForeground1 }} onClick={() => handleDelete(s.id_speaker)} />
                     </div>
                     <div className={styles.socialButtons}>
@@ -508,12 +510,12 @@ const EcosystemDirectory = () => {
                     <div className={styles.contactBadges}>
                         {a.correo_contacto && (
                             <div className={`${styles.actionChip} ${styles.emailChip}`} onClick={() => window.location.href=`mailto:${a.correo_contacto}`}>
-                                <Mail24Regular style={{fontSize: '16px'}} /> Contacto
+                                <Mail24Regular style={{fontSize: '16px'}} /> {t("contact")}
                             </div>
                         )}
                         {a.whatsapp_contacto && (
                             <div className={`${styles.actionChip} ${styles.whatsappChip}`} onClick={() => openWhatsApp(a.whatsapp_contacto)}>
-                                <Phone24Regular style={{fontSize: '16px'}} /> WhatsApp
+                                <Phone24Regular style={{fontSize: '16px'}} /> {t("whatsapp")}
                             </div>
                         )}
                     </div>
@@ -525,7 +527,7 @@ const EcosystemDirectory = () => {
                         <Button icon={<Delete24Regular />} appearance="subtle" size="small" style={{ color: tokens.colorPaletteRedForeground1 }} onClick={() => handleDelete(a.id_auspiciador)} />
                     </div>
                     <MEHButton size="small" icon={<Globe24Regular />} onClick={() => window.open(a.sitio_web, '_blank')}>
-                        Sitio Web
+                        {t("admin_website")}
                     </MEHButton>
                 </div>
               </div>
@@ -548,12 +550,12 @@ const EcosystemDirectory = () => {
                   <div className={styles.contactBadges}>
                         {c.correo_contacto && (
                             <div className={`${styles.actionChip} ${styles.emailChip}`} onClick={() => window.location.href=`mailto:${c.correo_contacto}`}>
-                                <Mail24Regular style={{fontSize: '16px'}} /> Correo
+                                <Mail24Regular style={{fontSize: '16px'}} /> {t("email")}
                             </div>
                         )}
                         {c.whatsapp_contacto && (
                             <div className={`${styles.actionChip} ${styles.whatsappChip}`} onClick={() => openWhatsApp(c.whatsapp_contacto)}>
-                                <Phone24Regular style={{fontSize: '16px'}} /> WhatsApp
+                                <Phone24Regular style={{fontSize: '16px'}} /> {t("whatsapp")}
                             </div>
                         )}
                     </div>
@@ -565,7 +567,7 @@ const EcosystemDirectory = () => {
                         <Button icon={<Delete24Regular />} appearance="subtle" size="small" style={{ color: tokens.colorPaletteRedForeground1 }} onClick={() => handleDelete(c.id_comunidad)} />
                     </div>
                     <MEHButton size="small" icon={<ShareAndroid24Regular />} onClick={() => window.open(c.link_contacto, '_blank')}>
-                        Link
+                        {t("admin_contact_link")}
                     </MEHButton>
                 </div>
               </div>
@@ -579,54 +581,54 @@ const EcosystemDirectory = () => {
           <form onSubmit={handleSubmit}>
             <DialogBody>
               <DialogTitle>
-                {isEditing ? `Editar ${getFriendlyName()}` : `Nuevo ${getFriendlyName()}`}
+                {isEditing ? t("admin_edit_entry", { name: getFriendlyName() }) : t("admin_new_entry", { name: getFriendlyName() })}
               </DialogTitle>
               <DialogContent className={styles.form}>
-                <Field label="Nombre / Razón Social" required>
+                <Field label={t("admin_name_business_name")} required>
                   <Input value={formData.nombre} onChange={(e, d) => handleInputChange("nombre", d.value)} required />
                 </Field>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                    <Field label="Correo de Contacto" validationState={errors.correo_contacto ? "error" : "none"} validationMessage={errors.correo_contacto}>
-                        <Input type="email" value={formData.correo_contacto} onChange={(e, d) => handleInputChange("correo_contacto", d.value)} placeholder="ejemplo@correo.com" />
+                    <Field label={t("admin_contact_email")} validationState={errors.correo_contacto ? "error" : "none"} validationMessage={errors.correo_contacto}>
+                        <Input type="email" value={formData.correo_contacto} onChange={(e, d) => handleInputChange("correo_contacto", d.value)} placeholder={t("admin_email_placeholder")} />
                     </Field>
-                    <Field label="WhatsApp (591...)">
-                        <Input value={formData.whatsapp_contacto} onChange={(e, d) => handleInputChange("whatsapp_contacto", d.value)} placeholder="591..." />
+                    <Field label={`${t("whatsapp")} (${t("admin_whatsapp_placeholder")})`}>
+                        <Input value={formData.whatsapp_contacto} onChange={(e, d) => handleInputChange("whatsapp_contacto", d.value)} placeholder={t("admin_whatsapp_placeholder")} />
                     </Field>
                 </div>
 
                 {selectedTab === "speakers" && (
                   <>
-                    <Field label="Biografía Profesional">
+                    <Field label={t("admin_professional_bio")}>
                       <Textarea value={formData.bio} onChange={(e, d) => handleInputChange("bio", d.value)} rows={3} />
                     </Field>
-                    <Field label="Resumen de Trayectoria">
-                        <Input value={formData.trayectoria} onChange={(e, d) => handleInputChange("trayectoria", d.value)} placeholder="Ej: Microsoft MVP, 10 años en Azure..." />
+                    <Field label={t("admin_career_summary")}>
+                        <Input value={formData.trayectoria} onChange={(e, d) => handleInputChange("trayectoria", d.value)} placeholder={t("admin_career_placeholder")} />
                     </Field>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                      <Field label="Trabajo Actual">
+                      <Field label={t("admin_current_job")}>
                         <Input value={formData.trabajo_actual} onChange={(e, d) => handleInputChange("trabajo_actual", d.value)} />
                       </Field>
                       <Field label="LinkedIn URL" validationState={errors.linkedin_url ? "error" : "none"} validationMessage={errors.linkedin_url}>
-                        <Input value={formData.linkedin_url} onChange={(e, d) => handleInputChange("linkedin_url", d.value)} placeholder="https://..." />
+                        <Input value={formData.linkedin_url} onChange={(e, d) => handleInputChange("linkedin_url", d.value)} placeholder={t("admin_url_placeholder")} />
                       </Field>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                       <Field label="Facebook URL" validationState={errors.facebook_url ? "error" : "none"} validationMessage={errors.facebook_url}>
-                        <Input value={formData.facebook_url} onChange={(e, d) => handleInputChange("facebook_url", d.value)} placeholder="https://..." />
+                        <Input value={formData.facebook_url} onChange={(e, d) => handleInputChange("facebook_url", d.value)} placeholder={t("admin_url_placeholder")} />
                       </Field>
                       <Field label="Instagram URL" validationState={errors.instagram_url ? "error" : "none"} validationMessage={errors.instagram_url}>
-                        <Input value={formData.instagram_url} onChange={(e, d) => handleInputChange("instagram_url", d.value)} placeholder="https://..." />
+                        <Input value={formData.instagram_url} onChange={(e, d) => handleInputChange("instagram_url", d.value)} placeholder={t("admin_url_placeholder")} />
                       </Field>
                     </div>
                     <div className={styles.fieldGroup}>
-                      <Label>Foto del Speaker</Label>
+                      <Label>{t("admin_speaker_photo")}</Label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '8px' }}>
                           <div className={styles.uploadAction} style={{ flexGrow: 1 }} onClick={() => document.getElementById("ecosys-file").click()}>
                             {uploading ? <Spinner size="tiny" /> : (
                               <>
                                 <Image24Regular />
-                                <MEHTypography variant="caption">{formData.foto_url ? "Cambiar Foto" : "Cargar Foto"}</MEHTypography>
+                                <MEHTypography variant="caption">{formData.foto_url ? t("admin_change_photo") : t("admin_upload_photo")}</MEHTypography>
                                 <input id="ecosys-file" type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "foto_url")} style={{ display: "none" }} />
                               </>
                             )}
@@ -644,10 +646,10 @@ const EcosystemDirectory = () => {
                 {selectedTab === "auspiciadores" && (
                   <>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                      <Field label="Sitio Web" validationState={errors.sitio_web ? "error" : "none"} validationMessage={errors.sitio_web}>
-                        <Input value={formData.sitio_web} onChange={(e, d) => handleInputChange("sitio_web", d.value)} placeholder="https://..." />
+                      <Field label={t("admin_website")} validationState={errors.sitio_web ? "error" : "none"} validationMessage={errors.sitio_web}>
+                        <Input value={formData.sitio_web} onChange={(e, d) => handleInputChange("sitio_web", d.value)} placeholder={t("admin_url_placeholder")} />
                       </Field>
-                      <Field label="Tipo de Tier">
+                      <Field label={t("admin_tier_type")}>
                         <Select value={formData.tipo} onChange={(e, d) => handleInputChange("tipo", d.value)}>
                           <option value="GOLD">GOLD</option>
                           <option value="SILVER">SILVER</option>
@@ -657,13 +659,13 @@ const EcosystemDirectory = () => {
                       </Field>
                     </div>
                     <div className={styles.fieldGroup}>
-                      <Label>Logo de la Marca</Label>
+                      <Label>{t("admin_brand_logo")}</Label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '8px' }}>
                           <div className={styles.uploadAction} style={{ flexGrow: 1 }} onClick={() => document.getElementById("ecosys-file").click()}>
                             {uploading ? <Spinner size="tiny" /> : (
                               <>
                                 <Image24Regular />
-                                <MEHTypography variant="caption">Subir Logo</MEHTypography>
+                                <MEHTypography variant="caption">{t("admin_upload_logo")}</MEHTypography>
                                 <input id="ecosys-file" type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "logo_url")} style={{ display: "none" }} />
                               </>
                             )}
@@ -680,20 +682,20 @@ const EcosystemDirectory = () => {
 
                 {selectedTab === "comunidades" && (
                   <>
-                    <Field label="Descripción">
+                    <Field label={t("admin_description")}>
                       <Textarea value={formData.descripcion} onChange={(e, d) => handleInputChange("descripcion", d.value)} rows={3} />
                     </Field>
-                    <Field label="Link de Contacto" validationState={errors.link_contacto ? "error" : "none"} validationMessage={errors.link_contacto}>
-                        <Input value={formData.link_contacto} onChange={(e, d) => handleInputChange("link_contacto", d.value)} placeholder="https://..." />
+                    <Field label={t("admin_contact_link")} validationState={errors.link_contacto ? "error" : "none"} validationMessage={errors.link_contacto}>
+                        <Input value={formData.link_contacto} onChange={(e, d) => handleInputChange("link_contacto", d.value)} placeholder={t("admin_url_placeholder")} />
                     </Field>
                     <div className={styles.fieldGroup}>
-                      <Label>Logo de Comunidad</Label>
+                      <Label>{t("admin_community_logo")}</Label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '8px' }}>
                           <div className={styles.uploadAction} style={{ flexGrow: 1 }} onClick={() => document.getElementById("ecosys-file").click()}>
                             {uploading ? <Spinner size="tiny" /> : (
                               <>
                                 <Image24Regular />
-                                <MEHTypography variant="caption">Subir Logo</MEHTypography>
+                                <MEHTypography variant="caption">{t("admin_upload_logo")}</MEHTypography>
                                 <input id="ecosys-file" type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "logo_url")} style={{ display: "none" }} />
                               </>
                             )}
@@ -709,9 +711,9 @@ const EcosystemDirectory = () => {
                 )}
               </DialogContent>
               <DialogActions>
-                <Button appearance="secondary" icon={<Dismiss24Regular />} onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                <Button appearance="secondary" icon={<Dismiss24Regular />} onClick={() => setIsModalOpen(false)}>{t("cancel")}</Button>
                 <MEHButton type="submit" appearance="primary" icon={<Save24Regular />} loading={submitting}>
-                  {isEditing ? "Guardar Cambios" : "Registrar"}
+                  {isEditing ? t("admin_save_changes") : t("register")}
                 </MEHButton>
               </DialogActions>
             </DialogBody>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   makeStyles,
   shorthands,
@@ -160,6 +161,7 @@ const fmtMoney = (n) => Number(n || 0).toLocaleString('es-BO', { minimumFraction
 
 const Analytics = () => {
   const styles = useStyles();
+  const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -177,8 +179,8 @@ const Analytics = () => {
     fetchStats();
   }, []);
 
-  if (loading) return <Spinner label="Procesando métricas de impacto..." />;
-  if (!data) return <MEHTypography>No hay datos disponibles.</MEHTypography>;
+  if (loading) return <Spinner label={t("admin_processing_metrics")} />;
+  if (!data) return <MEHTypography>{t("admin_no_data")}</MEHTypography>;
 
   const k = data.kpis || {};
   const asistenciaSeries = data.asistencia_series || [];
@@ -186,25 +188,25 @@ const Analytics = () => {
   const rendimientoCursos = data.rendimiento_cursos || [];
 
   const coreKpis = [
-    { icon: <PeopleCommunity24Regular />, color: tokens.colorBrandForeground1, value: fmtNumber(k.total_miembros), label: 'Usuarios Totales' },
-    { icon: <CheckmarkCircle24Regular />, color: '#107c10', value: fmtNumber(k.miembros_activos), label: 'Usuarios Activos' },
-    { icon: <CalendarLtr24Regular />, color: '#0078d4', value: fmtNumber(k.total_eventos), label: 'Talleres / Eventos' },
-    { icon: <HatGraduation24Regular />, color: '#7f13ec', value: fmtNumber(k.total_cursos), label: 'Cursos Activos' },
-    { icon: <Money24Regular />, color: '#107c10', value: `$${fmtMoney(k.ingresos_totales)}`, label: 'Ingresos Aprobados' },
-    { icon: <Cart24Regular />, color: '#d83b01', value: fmtNumber(k.total_compras), label: 'Compras Registradas' },
-    { icon: <LeafTwo24Regular />, color: tokens.colorPaletteGoldForeground1, value: fmtNumber(k.ventas_souvenirs), label: 'Items Vendidos' },
-    { icon: <Trophy24Regular />, color: '#ffb900', value: fmtNumber(k.total_badges_otorgados), label: 'Badges Otorgados' },
+    { icon: <PeopleCommunity24Regular />, color: tokens.colorBrandForeground1, value: fmtNumber(k.total_miembros), label: t('admin_total_users') },
+    { icon: <CheckmarkCircle24Regular />, color: '#107c10', value: fmtNumber(k.miembros_activos), label: t('admin_active_users') },
+    { icon: <CalendarLtr24Regular />, color: '#0078d4', value: fmtNumber(k.total_eventos), label: t('admin_workshops_events') },
+    { icon: <HatGraduation24Regular />, color: '#7f13ec', value: fmtNumber(k.total_cursos), label: t('admin_active_courses') },
+    { icon: <Money24Regular />, color: '#107c10', value: `$${fmtMoney(k.ingresos_totales)}`, label: t('admin_approved_revenue') },
+    { icon: <Cart24Regular />, color: '#d83b01', value: fmtNumber(k.total_compras), label: t('admin_registered_purchases') },
+    { icon: <LeafTwo24Regular />, color: tokens.colorPaletteGoldForeground1, value: fmtNumber(k.ventas_souvenirs), label: t('admin_sold_items') },
+    { icon: <Trophy24Regular />, color: '#ffb900', value: fmtNumber(k.total_badges_otorgados), label: t('admin_awarded_badges') },
   ];
 
   const secondaryKpis = [
-    { value: fmtNumber(k.total_inscripciones_eventos), label: 'Inscripciones Eventos' },
-    { value: fmtNumber(k.total_asistencias_eventos), label: 'Asistencias Confirmadas' },
-    { value: `${k.tasa_conversion_asistencia || 0}%`, label: 'Tasa Asistencia Evento' },
-    { value: fmtNumber(k.total_inscripciones_cursos), label: 'Inscripciones Cursos' },
-    { value: `${k.tasa_finalizacion_cursos || 0}%`, label: 'Tasa Finalización Curso' },
-    { value: fmtNumber(k.horas_formacion_ofertadas), label: 'Horas de Formación (Oferta)' },
-    { value: fmtNumber(k.horas_formacion_estimadas), label: 'Horas Estimadas Consumidas' },
-    { value: `$${fmtMoney(k.ticket_promedio_compra)}`, label: 'Ticket Promedio Compra' },
+    { value: fmtNumber(k.total_inscripciones_eventos), label: t('admin_event_inscriptions') },
+    { value: fmtNumber(k.total_asistencias_eventos), label: t('admin_confirmed_attendances') },
+    { value: `${k.tasa_conversion_asistencia || 0}%`, label: t('admin_event_attendance_rate') },
+    { value: fmtNumber(k.total_inscripciones_cursos), label: t('admin_course_inscriptions') },
+    { value: `${k.tasa_finalizacion_cursos || 0}%`, label: t('admin_course_completion_rate') },
+    { value: fmtNumber(k.horas_formacion_ofertadas), label: t('admin_offered_training_hours') },
+    { value: fmtNumber(k.horas_formacion_estimadas), label: t('admin_consumed_estimated_hours') },
+    { value: `$${fmtMoney(k.ticket_promedio_compra)}`, label: t('admin_average_purchase_ticket') },
   ];
 
   return (
@@ -215,21 +217,21 @@ const Analytics = () => {
             <div className={styles.heroIcon}>
               <DataTrending24Filled style={{ color: tokens.colorBrandForeground1, fontSize: '24px' }} />
             </div>
-            <MEHTypography variant="h1">Panel de Analíticas</MEHTypography>
+            <MEHTypography variant="h1">{t("admin_analytics_panel")}</MEHTypography>
           </div>
           <div className={styles.chipRow}>
-            <span className={styles.chip}>Eventos: {fmtNumber(k.total_eventos)}</span>
-            <span className={styles.chip}>Cursos: {fmtNumber(k.total_cursos)}</span>
-            <span className={styles.chip}>Ingresos: ${fmtMoney(k.ingresos_totales)}</span>
+            <span className={styles.chip}>{t("admin_events_count", { count: fmtNumber(k.total_eventos) })}</span>
+            <span className={styles.chip}>{t("admin_courses_count", { count: fmtNumber(k.total_cursos) })}</span>
+            <span className={styles.chip}>{t("admin_revenue_amount", { amount: fmtMoney(k.ingresos_totales) })}</span>
           </div>
         </div>
         <MEHTypography variant="body" style={{ opacity: 0.78 }}>
-          Resumen ejecutivo de crecimiento, monetización, participación y rendimiento académico.
+          {t("admin_analytics_summary")}
         </MEHTypography>
       </div>
 
       <div className={styles.sectionTitle}>
-        <MEHTypography variant="h3">KPIs Clave</MEHTypography>
+        <MEHTypography variant="h3">{t("admin_key_kpis")}</MEHTypography>
       </div>
       <div className={styles.kpiGrid}>
         {coreKpis.map((item, idx) => (
@@ -244,7 +246,7 @@ const Analytics = () => {
       </div>
 
       <div className={styles.sectionTitle}>
-        <MEHTypography variant="h3">KPIs Operativos</MEHTypography>
+        <MEHTypography variant="h3">{t("admin_operative_kpis")}</MEHTypography>
       </div>
       <div className={styles.kpiGrid}>
         {secondaryKpis.map((item, idx) => (
@@ -256,13 +258,13 @@ const Analytics = () => {
       </div>
 
       <div className={styles.sectionTitle}>
-        <MEHTypography variant="h3">Visualizaciones Estratégicas</MEHTypography>
+        <MEHTypography variant="h3">{t("admin_strategic_visualizations")}</MEHTypography>
       </div>
       <div className={styles.chartGrid}>
         <MEHCard className={styles.chartCard}>
           <div className={styles.chartHead}>
-            <MEHTypography variant="h3">Inscripciones y Asistencias por Evento</MEHTypography>
-            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Comparativa directa por evento</MEHTypography>
+            <MEHTypography variant="h3">{t("admin_inscriptions_attendances_event")}</MEHTypography>
+            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>{t("admin_direct_comparative_event")}</MEHTypography>
           </div>
           <div className={styles.chartBody}>
             <ResponsiveContainer width="100%" height="100%">
@@ -272,8 +274,8 @@ const Analytics = () => {
                 <YAxis stroke="white" />
                 <Tooltip contentStyle={{ backgroundColor: '#1A1A1A', border: 'none' }} />
                 <Legend />
-                <Bar dataKey="inscritos" fill="#0078d4" name="Inscritos" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="asistentes" fill="#7f13ec" name="Asistieron" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="inscritos" fill="#0078d4" name={t("inscribed")} radius={[6, 6, 0, 0]} />
+                <Bar dataKey="asistentes" fill="#7f13ec" name={t("attended")} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -281,8 +283,8 @@ const Analytics = () => {
 
         <MEHCard className={styles.chartCard}>
           <div className={styles.chartHead}>
-            <MEHTypography variant="h3">Tasa de Asistencia y Ocupación</MEHTypography>
-            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Eficiencia de convocatoria y capacidad</MEHTypography>
+            <MEHTypography variant="h3">{t("admin_attendance_occupation_rate")}</MEHTypography>
+            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>{t("admin_call_capacity_efficiency")}</MEHTypography>
           </div>
           <div className={styles.chartBody}>
             <ResponsiveContainer width="100%" height="100%">
@@ -292,8 +294,8 @@ const Analytics = () => {
                 <YAxis stroke="white" domain={[0, 100]} />
                 <Tooltip contentStyle={{ backgroundColor: '#1A1A1A', border: 'none' }} />
                 <Legend />
-                <Line type="monotone" dataKey="tasa" stroke="#7f13ec" strokeWidth={2.5} name="Asistencia %" />
-                <Line type="monotone" dataKey="ocupacion" stroke="#ffb900" strokeWidth={2.5} name="Ocupación %" />
+                <Line type="monotone" dataKey="tasa" stroke="#7f13ec" strokeWidth={2.5} name={t("admin_attendance_percent")} />
+                <Line type="monotone" dataKey="ocupacion" stroke="#ffb900" strokeWidth={2.5} name={t("admin_occupation_percent")} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -301,8 +303,8 @@ const Analytics = () => {
 
         <MEHCard className={styles.chartCard}>
           <div className={styles.chartHead}>
-            <MEHTypography variant="h3">Actividad Mensual</MEHTypography>
-            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Usuarios, inscripciones y compras</MEHTypography>
+            <MEHTypography variant="h3">{t("admin_monthly_activity")}</MEHTypography>
+            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>{t("admin_users_inscriptions_purchases")}</MEHTypography>
           </div>
           <div className={styles.chartBody}>
             <ResponsiveContainer width="100%" height="100%">
@@ -312,9 +314,9 @@ const Analytics = () => {
                 <YAxis stroke="white" />
                 <Tooltip contentStyle={{ backgroundColor: '#1A1A1A', border: 'none' }} />
                 <Legend />
-                <Bar dataKey="usuarios_nuevos" fill="#7f13ec" name="Usuarios nuevos" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="inscripciones_eventos" fill="#0078d4" name="Inscripciones eventos" radius={[6, 6, 0, 0]} />
-                <Line dataKey="compras" stroke="#ffb900" strokeWidth={2.5} name="Compras" />
+                <Bar dataKey="usuarios_nuevos" fill="#7f13ec" name={t("admin_new_users")} radius={[6, 6, 0, 0]} />
+                <Bar dataKey="inscripciones_eventos" fill="#0078d4" name={t("admin_event_inscriptions_series")} radius={[6, 6, 0, 0]} />
+                <Line dataKey="compras" stroke="#ffb900" strokeWidth={2.5} name={t("admin_purchases")} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -322,8 +324,8 @@ const Analytics = () => {
 
         <MEHCard className={styles.chartCard}>
           <div className={styles.chartHead}>
-            <MEHTypography variant="h3">Ingresos Aprobados por Mes</MEHTypography>
-            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Flujo económico consolidado</MEHTypography>
+            <MEHTypography variant="h3">{t("admin_approved_revenue_monthly")}</MEHTypography>
+            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>{t("admin_consolidated_economic_flow")}</MEHTypography>
           </div>
           <div className={styles.chartBody}>
             <ResponsiveContainer width="100%" height="100%">
@@ -346,8 +348,8 @@ const Analytics = () => {
 
         <MEHCard className={styles.chartCard}>
           <div className={styles.chartHead}>
-            <MEHTypography variant="h3">Métodos de Pago (Aprobados)</MEHTypography>
-            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Participación por canal de pago</MEHTypography>
+            <MEHTypography variant="h3">{t("admin_payment_methods_approved")}</MEHTypography>
+            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>{t("admin_participation_payment_channel")}</MEHTypography>
           </div>
           <div className={styles.chartBody}>
             <ResponsiveContainer width="100%" height="100%">
@@ -373,8 +375,8 @@ const Analytics = () => {
 
         <MEHCard className={styles.chartCard}>
           <div className={styles.chartHead}>
-            <MEHTypography variant="h3">Estado de Pagos</MEHTypography>
-            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Distribución por estado administrativo</MEHTypography>
+            <MEHTypography variant="h3">{t("admin_payment_status")}</MEHTypography>
+            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>{t("admin_distribution_administrative_status")}</MEHTypography>
           </div>
           <div className={styles.chartBody}>
             <ResponsiveContainer width="100%" height="100%">
@@ -400,8 +402,8 @@ const Analytics = () => {
 
         <MEHCard className={styles.chartCard}>
           <div className={styles.chartHead}>
-            <MEHTypography variant="h3">Top Productos Vendidos</MEHTypography>
-            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Ranking por unidades</MEHTypography>
+            <MEHTypography variant="h3">{t("admin_top_sold_products")}</MEHTypography>
+            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>{t("admin_ranking_by_units")}</MEHTypography>
           </div>
           <div className={styles.chartBody}>
             <ResponsiveContainer width="100%" height="100%">
@@ -410,7 +412,7 @@ const Analytics = () => {
                 <XAxis type="number" stroke="white" />
                 <YAxis dataKey="producto" type="category" stroke="white" width={140} />
                 <Tooltip contentStyle={{ backgroundColor: '#1A1A1A', border: 'none' }} />
-                <Bar dataKey="unidades" fill="#d83b01" name="Unidades" radius={[0, 6, 6, 0]} />
+                <Bar dataKey="unidades" fill="#d83b01" name={t("admin_units")} radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -418,8 +420,8 @@ const Analytics = () => {
 
         <MEHCard className={styles.chartCard}>
           <div className={styles.chartHead}>
-            <MEHTypography variant="h3">Talleres por Modalidad</MEHTypography>
-            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Virtual, presencial e híbrido</MEHTypography>
+            <MEHTypography variant="h3">{t("admin_workshops_by_modality")}</MEHTypography>
+            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>{t("admin_virtual_presential_hybrid")}</MEHTypography>
           </div>
           <div className={styles.chartBody}>
             <ResponsiveContainer width="100%" height="100%">
@@ -437,9 +439,9 @@ const Analytics = () => {
         <MEHCard className={styles.chartCard} style={{ gridColumn: '1 / -1', minHeight: '470px' }}>
           <div className={styles.chartHead}>
             <MEHTypography variant="h3">
-              <HatGraduation24Regular /> Cursos: Inscritos, Finalizados y Progreso
+              <HatGraduation24Regular /> {t("admin_courses_progress")}
             </MEHTypography>
-            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Avance académico por programa</MEHTypography>
+            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>{t("admin_academic_advance_program")}</MEHTypography>
           </div>
           <div className={styles.chartBody}>
             <ResponsiveContainer width="100%" height="100%">
@@ -450,9 +452,9 @@ const Analytics = () => {
                 <YAxis yAxisId="right" orientation="right" stroke="#ffb900" domain={[0, 100]} />
                 <Tooltip contentStyle={{ backgroundColor: '#1A1A1A', border: 'none' }} />
                 <Legend />
-                <Bar yAxisId="left" dataKey="inscritos" fill="#0078d4" name="Inscritos" radius={[6, 6, 0, 0]} />
-                <Bar yAxisId="left" dataKey="finalizados" fill="#107c10" name="Finalizados" radius={[6, 6, 0, 0]} />
-                <Line yAxisId="right" type="monotone" dataKey="progreso_promedio" stroke="#ffb900" strokeWidth={2.5} name="Progreso %" />
+                <Bar yAxisId="left" dataKey="inscritos" fill="#0078d4" name={t("inscribed")} radius={[6, 6, 0, 0]} />
+                <Bar yAxisId="left" dataKey="finalizados" fill="#107c10" name={t("finished")} radius={[6, 6, 0, 0]} />
+                <Line yAxisId="right" type="monotone" dataKey="progreso_promedio" stroke="#ffb900" strokeWidth={2.5} name={t("progress_percent")} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -460,8 +462,8 @@ const Analytics = () => {
 
         <MEHCard className={styles.chartCard}>
           <div className={styles.chartHead}>
-            <MEHTypography variant="h3">Segmentación de Usuarios</MEHTypography>
-            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Composición del ecosistema</MEHTypography>
+            <MEHTypography variant="h3">{t("admin_user_segmentation")}</MEHTypography>
+            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>{t("admin_ecosystem_composition")}</MEHTypography>
           </div>
           <div className={styles.chartBody}>
             <ResponsiveContainer width="100%" height="100%">
@@ -488,9 +490,9 @@ const Analytics = () => {
         <MEHCard className={styles.chartCard}>
           <div className={styles.chartHead}>
             <MEHTypography variant="h3">
-              <Map24Regular /> Miembros por Departamento
+              <Map24Regular /> {t("admin_members_by_department")}
             </MEHTypography>
-            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Distribución territorial Bolivia</MEHTypography>
+            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>{t("admin_territorial_distribution_bolivia")}</MEHTypography>
           </div>
           <div className={styles.chartBody}>
             <ResponsiveContainer width="100%" height="100%">

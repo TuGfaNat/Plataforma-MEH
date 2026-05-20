@@ -339,9 +339,7 @@ const Sidebar = ({ onClose }) => {
                 label="Generador Certificados"
               />
             )}
-            {canManageEvents && (
-              <NavItem to="/admin/generador-certificados" icon={Print24Regular} activeIcon={Print24Filled} label="Generador Certificados" />
-            )}
+
             {canReadAllPayments && (
               <NavItem
                 to="/gestion-pagos"
@@ -448,10 +446,15 @@ const Sidebar = ({ onClose }) => {
             size="small"
             className={styles.themeButton}
             icon={
-              currentTheme === 'light' ? <WeatherMoon24Regular /> : 
-              currentTheme === 'dark' ? <WeatherSunny24Regular /> :
-              currentTheme === 'ash' ? <Library24Regular /> :
-              <Globe24Regular />
+              currentTheme === "light" ? (
+                <WeatherMoon24Regular />
+              ) : currentTheme === "dark" ? (
+                <WeatherSunny24Regular />
+              ) : currentTheme === "ash" ? (
+                <Library24Regular />
+              ) : (
+                <Globe24Regular />
+              )
             }
             onClick={toggleTheme}
             style={{ color: tokens.colorNeutralForeground1 }}

@@ -3,12 +3,14 @@ import {
   Table, TableHeader, TableRow, TableHeaderCell, TableBody, TableCell,
   Input, Spinner, Avatar, Badge, Select, tokens, makeStyles, shorthands
 } from '@fluentui/react-components';
+import { useTranslation } from 'react-i18next';
 import { Search24Regular, ArrowDownload24Regular, Info24Regular, PersonDelete24Regular } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import authService from '../../services/authService';
 import { resolveApiFileUrl } from '../../services/api';
 
 const useStyles = makeStyles({
+// ... (rest of styles same)
   infoPanel: { 
     padding: '24px', 
     backgroundColor: tokens.colorBrandBackground2, 
@@ -42,6 +44,7 @@ const useStyles = makeStyles({
 
 const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, currentUser, confirmDelete, fetchData }) => {
   const styles = useStyles();
+  const { t } = useTranslation();
   const filteredUsers = data.filter(u => 
     `${u.nombres} ${u.apellidos} ${u.correo} ${u.alias}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -51,36 +54,36 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
       <div className={styles.infoPanel}>
         <Info24Regular style={{ fontSize: '36px', color: tokens.colorBrandForeground1 }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <MEHTypography variant="h3" style={{ color: tokens.colorBrandForeground1, fontWeight: 'bold' }}>Panel de Miembros</MEHTypography>
-          <MEHTypography variant="body" style={{ opacity: 0.9 }}>Control de identidades, roles y auditoría de la comunidad.</MEHTypography>
+          <MEHTypography variant="h3" style={{ color: tokens.colorBrandForeground1, fontWeight: 'bold' }}>{t("admin_members_panel")}</MEHTypography>
+          <MEHTypography variant="body" style={{ opacity: 0.9 }}>{t("admin_members_panel_desc")}</MEHTypography>
         </div>
       </div>
 
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
         <Input 
-          placeholder="Buscar..." 
+          placeholder={t("search_placeholder")} 
           contentBefore={<Search24Regular />} 
           value={searchTerm} 
           onChange={(e, d) => setSearchBox(d.value)} 
           style={{ width: '420px', height: '45px' }} 
         />
         <MEHButton size="small" icon={<ArrowDownload24Regular />} appearance="primary" onClick={handleExportCSV}>
-          Exportar Excel
+          {t("admin_export_excel")}
         </MEHButton>
       </div>
 
       <div className={styles.tableContainer}>
         {loading ? (
-          <div style={{padding: '60px', textAlign: 'center'}}><Spinner label="Cargando..." /></div>
+          <div style={{padding: '60px', textAlign: 'center'}}><Spinner label={t("loading")} /></div>
         ) : (
           <Table size="extra-small">
             <TableHeader>
               <TableRow>
-                <TableHeaderCell>Miembro</TableHeaderCell>
-                <TableHeaderCell>Union</TableHeaderCell>
-                <TableHeaderCell>Inversión</TableHeaderCell>
-                <TableHeaderCell>Rol</TableHeaderCell>
-                <TableHeaderCell>Acción</TableHeaderCell>
+                <TableHeaderCell>{t("admin_member_col")}</TableHeaderCell>
+                <TableHeaderCell>{t("admin_join_col")}</TableHeaderCell>
+                <TableHeaderCell>{t("admin_investment_col")}</TableHeaderCell>
+                <TableHeaderCell>{t("admin_role_col")}</TableHeaderCell>
+                <TableHeaderCell>{t("admin_action_col")}</TableHeaderCell>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -100,16 +103,16 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
                       size="small" 
                       onChange={(e) => authService.updateUserRole(u.id_usuario, e.target.value).then(() => fetchData())}
                     >
-                      <option value="ADMIN">ADMINISTRADOR</option>
-                      <option value="ORGANIZADOR">ORGANIZADOR</option>
-                      <option value="MIEMBRO">MIEMBRO</option>
+                      <option value="ADMIN">{t("role_admin_caps")}</option>
+                      <option value="ORGANIZADOR">{t("role_organizer_caps")}</option>
+                      <option value="MIEMBRO">{t("role_member_caps")}</option>
                     </Select>
                   </TableCell>
                   <TableCell>
                     {u.id_usuario !== currentUser?.id_usuario ? (
                       <MEHButton size="small" icon={<PersonDelete24Regular />} onClick={() => confirmDelete('user', u.id_usuario, u.nombres)} />
                     ) : (
-                      <Badge>Tú</Badge>
+                      <Badge>{t("admin_you")}</Badge>
                     )}
                   </TableCell>
                 </TableRow>

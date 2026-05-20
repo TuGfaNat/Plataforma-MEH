@@ -3,6 +3,7 @@ import {
   Table, TableBody, TableRow, TableCell, Badge, Spinner, Field, Input, tokens, makeStyles, shorthands, 
   Avatar, Button, Tooltip, Textarea
 } from '@fluentui/react-components';
+import { useTranslation } from 'react-i18next';
 import { 
   Add24Regular, ArrowUpload24Regular, Edit20Regular, Delete20Regular, 
   Box24Filled, Money20Regular, Info20Regular 
@@ -10,6 +11,7 @@ import {
 import { MEHButton, MEHTypography } from '../../components/ui';
 
 const useStyles = makeStyles({
+// ... (rest of styles same)
   grid: { 
     display: 'grid', 
     gridTemplateColumns: '1fr 1.5fr', 
@@ -86,6 +88,7 @@ const SouvenirsTab = ({
   handleFileUpload, handleSaveSouvenir, handleEditSouvenir, confirmDelete
 }) => {
   const styles = useStyles();
+  const { t } = useTranslation();
 
   return (
     <div className={styles.grid}>
@@ -95,28 +98,28 @@ const SouvenirsTab = ({
             <Add24Regular />
           </div>
           <MEHTypography variant="h3">
-            {isEditingSouvenir ? 'Ajustar' : 'Nuevo'} Producto
+            {isEditingSouvenir ? t("admin_adjust") : t("admin_new")} {t("admin_product")}
           </MEHTypography>
         </div>
 
-        <Field label="Nombre del Producto" required>
+        <Field label={t("admin_product_name")} required>
           <Input 
-            placeholder="Ej: Camiseta Oficial MEH"
+            placeholder={t("admin_product_name_placeholder")}
             value={newSouvenir.nombre} 
             onChange={(e, d) => setNewSouvenir({...newSouvenir, nombre: d.value})} 
           />
         </Field>
 
-        <Field label="Descripción">
+        <Field label={t("admin_description")}>
           <Input 
-            placeholder="Breve detalle del producto..."
+            placeholder={t("admin_description_placeholder")}
             value={newSouvenir.descripcion} 
             onChange={(e, d) => setNewSouvenir({...newSouvenir, descripcion: d.value})} 
           />
         </Field>
 
         <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
-          <Field label="Precio (Bs)" required>
+          <Field label={t("admin_price")} required>
             <Input 
               type="number" 
               contentBefore={<Money20Regular />} 
@@ -124,7 +127,7 @@ const SouvenirsTab = ({
               onChange={(e, d) => setNewSouvenir({...newSouvenir, precio: d.value})} 
             />
           </Field>
-          <Field label="Stock Inicial" required>
+          <Field label={t("admin_initial_stock")} required>
             <Input 
               type="number" 
               contentBefore={<Box24Filled fontSize="16px" />}
@@ -134,10 +137,10 @@ const SouvenirsTab = ({
           </Field>
         </div>
 
-        <Field label="Imagen del Producto">
+        <Field label={t("admin_product_image")}>
           <div className={styles.uploadBox} onClick={() => document.getElementById('souv-file').click()}>
             {uploading ? (
-              <Spinner size="medium" label="Subiendo..." />
+              <Spinner size="medium" label={t("uploading")} />
             ) : (
               <>
                 {newSouvenir.imagen_url && (
@@ -146,7 +149,7 @@ const SouvenirsTab = ({
                 <div className={styles.uploadContent}>
                   <ArrowUpload24Regular /> 
                   <MEHTypography variant="caption">
-                    {newSouvenir.imagen_url ? 'Cambiar Imagen' : 'Subir Imagen'}
+                    {newSouvenir.imagen_url ? t("admin_change_image") : t("admin_upload_image")}
                   </MEHTypography>
                 </div>
                 <input 
@@ -168,7 +171,7 @@ const SouvenirsTab = ({
           onClick={handleSaveSouvenir}
           style={{ marginTop: '10px' }}
         >
-          {isEditingSouvenir ? 'Actualizar Producto' : 'Registrar Producto'}
+          {isEditingSouvenir ? t("admin_update_product") : t("admin_register_product")}
         </MEHButton>
 
         {isEditingSouvenir && (
@@ -179,15 +182,15 @@ const SouvenirsTab = ({
               setIsEditingSouvenir(false);
             }}
           >
-            Cancelar Edición
+            {t("admin_cancel_edit")}
           </Button>
         )}
       </div>
 
       <div className={styles.tableWrapper}>
         <div style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${tokens.colorNeutralBackground3}` }}>
-          <MEHTypography variant="h3">Inventario de Souvenirs</MEHTypography>
-          <Badge appearance="filled" color="brand">{data.length} Productos</Badge>
+          <MEHTypography variant="h3">{t("admin_souvenirs_inventory")}</MEHTypography>
+          <Badge appearance="filled" color="brand">{t("admin_count_products", { count: data.length })}</Badge>
         </div>
         
         <Table size="medium">
@@ -195,7 +198,7 @@ const SouvenirsTab = ({
             {data.length === 0 ? (
               <TableRow>
                 <TableCell colspan={3} style={{ textAlign: 'center', padding: '40px' }}>
-                  <MEHTypography variant="body">No hay productos registrados aún.</MEHTypography>
+                  <MEHTypography variant="body">{t("admin_no_products")}</MEHTypography>
                 </TableCell>
               </TableRow>
             ) : (
@@ -213,7 +216,7 @@ const SouvenirsTab = ({
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <MEHTypography variant="bold">{i.nombre}</MEHTypography>
                         <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
-                          {i.descripcion || 'Sin descripción'}
+                          {i.descripcion || t("admin_no_description")}
                         </MEHTypography>
                       </div>
                     </div>
@@ -224,20 +227,20 @@ const SouvenirsTab = ({
                         Bs. {i.precio}
                       </MEHTypography>
                       <Badge appearance="outline" color={i.stock < 5 ? 'important' : 'success'}>
-                        {i.stock} disponibles
+                        {t("admin_count_available", { count: i.stock })}
                       </Badge>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className={styles.actionsCell}>
-                      <Tooltip content="Editar" relationship="label">
+                      <Tooltip content={t("edit")} relationship="label">
                         <Button 
                           appearance="subtle" 
                           icon={<Edit20Regular />} 
                           onClick={() => handleEditSouvenir(i)}
                         />
                       </Tooltip>
-                      <Tooltip content="Eliminar" relationship="label">
+                      <Tooltip content={t("delete")} relationship="label">
                         <Button 
                           appearance="subtle" 
                           icon={<Delete20Regular style={{ color: tokens.colorPaletteRedForeground1 }} />} 
