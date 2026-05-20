@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
   makeStyles, 
   shorthands, 
@@ -13,8 +13,10 @@ import {
   CalendarLtr24Regular,
   Person24Regular,
   Ribbon24Regular,
-  ShieldCheckmark24Regular
+  ShieldCheckmark24Regular,
+  ArrowLeft24Regular
 } from '@fluentui/react-icons';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { MEHCard, MEHTypography, MEHButton } from '../components/ui';
 import { designTokens } from '../theme/theme';
@@ -42,6 +44,8 @@ const useStyles = makeStyles({
       to: { opacity: 1, transform: 'translateY(0)' },
     },
     animationDuration: '0.8s',
+    position: 'relative',
+    overflow: 'hidden'
   },
   statusIcon: {
     fontSize: '80px',
@@ -69,6 +73,8 @@ const useStyles = makeStyles({
 const VerificarCertificado = () => {
   const styles = useStyles();
   const { uuid } = useParams();
+  const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [cert, setCert] = useState(null);
   const [error, setError] = useState(false);
@@ -97,6 +103,16 @@ const VerificarCertificado = () => {
 
   return (
     <div className={styles.container}>
+      <div style={{ position: 'absolute', top: '40px', left: '40px' }}>
+          <MEHButton 
+            appearance="subtle" 
+            icon={<ArrowLeft24Regular />} 
+            onClick={() => navigate('/validador-publico')}
+          >
+            Nueva Verificación
+          </MEHButton>
+      </div>
+
       <MEHCard className={styles.card}>
         <div style={{ marginBottom: '16px' }}>
           <img src={designTokens.logo} alt="MEH Logo" style={{ width: '64px', marginBottom: '12px' }} />
@@ -164,8 +180,8 @@ const VerificarCertificado = () => {
           Microsoft Education Hub - Empoderando a la próxima generación de líderes tecnológicos.
         </MEHTypography>
         
-        <MEHButton appearance="subtle" onClick={() => window.location.href = '/'}>
-          Ir al sitio oficial
+        <MEHButton appearance="primary" onClick={() => navigate('/')}>
+          {t('return_home')}
         </MEHButton>
       </MEHCard>
     </div>

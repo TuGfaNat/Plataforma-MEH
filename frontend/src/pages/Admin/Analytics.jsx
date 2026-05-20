@@ -192,7 +192,7 @@ const Analytics = () => {
     { icon: <CheckmarkCircle24Regular />, color: '#107c10', value: fmtNumber(k.miembros_activos), label: t('admin_active_users') },
     { icon: <CalendarLtr24Regular />, color: '#0078d4', value: fmtNumber(k.total_eventos), label: t('admin_workshops_events') },
     { icon: <HatGraduation24Regular />, color: '#7f13ec', value: fmtNumber(k.total_cursos), label: t('admin_active_courses') },
-    { icon: <Money24Regular />, color: '#107c10', value: `$${fmtMoney(k.ingresos_totales)}`, label: t('admin_approved_revenue') },
+    { icon: <Money24Regular />, color: '#107c10', value: `Bs. ${fmtMoney(k.ingresos_totales)}`, label: t('admin_approved_revenue') },
     { icon: <Cart24Regular />, color: '#d83b01', value: fmtNumber(k.total_compras), label: t('admin_registered_purchases') },
     { icon: <LeafTwo24Regular />, color: tokens.colorPaletteGoldForeground1, value: fmtNumber(k.ventas_souvenirs), label: t('admin_sold_items') },
     { icon: <Trophy24Regular />, color: '#ffb900', value: fmtNumber(k.total_badges_otorgados), label: t('admin_awarded_badges') },
@@ -206,7 +206,7 @@ const Analytics = () => {
     { value: `${k.tasa_finalizacion_cursos || 0}%`, label: t('admin_course_completion_rate') },
     { value: fmtNumber(k.horas_formacion_ofertadas), label: t('admin_offered_training_hours') },
     { value: fmtNumber(k.horas_formacion_estimadas), label: t('admin_consumed_estimated_hours') },
-    { value: `$${fmtMoney(k.ticket_promedio_compra)}`, label: t('admin_average_purchase_ticket') },
+    { value: `Bs. ${fmtMoney(k.ticket_promedio_compra)}`, label: t('admin_average_purchase_ticket') },
   ];
 
   return (
@@ -222,7 +222,7 @@ const Analytics = () => {
           <div className={styles.chipRow}>
             <span className={styles.chip}>{t("admin_events_count", { count: fmtNumber(k.total_eventos) })}</span>
             <span className={styles.chip}>{t("admin_courses_count", { count: fmtNumber(k.total_cursos) })}</span>
-            <span className={styles.chip}>{t("admin_revenue_amount", { amount: fmtMoney(k.ingresos_totales) })}</span>
+            <span className={styles.chip}>{t("admin_revenue_amount", { amount: `Bs. ${fmtMoney(k.ingresos_totales)}` })}</span>
           </div>
         </div>
         <MEHTypography variant="body" style={{ opacity: 0.78 }}>

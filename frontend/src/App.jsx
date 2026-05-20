@@ -148,12 +148,15 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/validador" element={<ValidadorTalento />} />
                 <Route path="/verificar/:uuid" element={<VerificarCertificado />} />
+                
+                {/* Validador Público (Sin Sidebar) */}
+                <Route path="/validador-publico" element={<ValidadorTalento />} />
                 
                 {/* Rutas con Sidebar Persistente */}
                 <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/validador" element={<ValidadorTalento />} />
                   <Route path="/dashboard/users" element={<Users />} />
                   <Route path="/dashboard/events-master" element={<EventsMaster />} />
                   <Route path="/dashboard/analytics" element={<Analytics />} />

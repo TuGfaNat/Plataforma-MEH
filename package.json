@@ -1,0 +1,23 @@
+{
+  "name": "plataforma-meh",
+  "version": "1.0.0",
+  "description": "🚀 **Sistema Integral de Gestión para Comunidades Tecnológicas**",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TuGfaNat/Plataforma-MEH.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/TuGfaNat/Plataforma-MEH/issues"
+  },
+  "homepage": "https://github.com/TuGfaNat/Plataforma-MEH#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^25.9.1"
+  }
+}

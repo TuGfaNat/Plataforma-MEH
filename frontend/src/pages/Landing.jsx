@@ -52,7 +52,7 @@ const useStyles = makeStyles({
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundImage: `linear-gradient(rgba(127, 19, 236, 0.15) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(127, 19, 236, 0.15) 1.5px, transparent 1.5px)`,
+      backgroundImage: `linear-gradient(rgba(127, 19, 236, 0.8) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(127, 19, 236, 0.8) 1.5px, transparent 1.5px)`,
       backgroundSize: "60px 60px",
       zIndex: -1,
       pointerEvents: "none",
@@ -106,7 +106,7 @@ const useStyles = makeStyles({
     height: "100vh",
     pointerEvents: "none",
     zIndex: 1,
-    background: `radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(127, 19, 236, 0.28), transparent 40%)`,
+    background: `radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(127, 19, 236, 0.42), transparent 40%)`,
   },
   header: {
     ...shorthands.padding("24px", "40px"),
@@ -286,35 +286,6 @@ const useStyles = makeStyles({
     fontWeight: "bold",
     boxShadow: "0 8px 20px -5px rgba(0,0,0,0.3)",
   },
-  validatorSection: {
-    background: `linear-gradient(to bottom, transparent, rgba(127, 19, 236, 0.05), transparent)`,
-    ...shorthands.padding("150px", "24px"),
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    textAlign: "center",
-    gap: "24px",
-    ...shorthands.borderTop("1px", "solid", "rgba(255, 255, 255, 0.03)"),
-    ...shorthands.borderBottom("1px", "solid", "rgba(255, 255, 255, 0.03)"),
-    position: "relative",
-    zIndex: 2,
-  },
-  validatorBox: {
-    width: "100%",
-    maxWidth: "700px",
-    display: "flex",
-    gap: "15px",
-    marginTop: "32px",
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
-    ...shorthands.padding("12px"),
-    ...shorthands.borderRadius("24px"),
-    ...shorthands.border("1px", "solid", "rgba(255, 255, 255, 0.08)"),
-    backdropFilter: "blur(10px)",
-    boxShadow: "0 20px 40px -15px rgba(0,0,0,0.4)",
-    [designTokens.breakpoints.sm]: {
-      flexDirection: "column",
-    },
-  },
 });
 
 const Landing = () => {
@@ -326,7 +297,6 @@ const Landing = () => {
   const [eventos, setEventos] = useState([]);
   const [cursos, setCursos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [certCode, setCertCode] = useState("");
 
   // Seguimiento de mouse para el efecto spotlight
   useEffect(() => {
@@ -420,7 +390,7 @@ const Landing = () => {
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <MEHButton
             appearance="subtle"
-            onClick={() => navigate("/validador")}
+            onClick={() => navigate("/validador-publico")}
             style={{ marginRight: "8px" }}
           >
             {t("verificar_talento")}
@@ -431,22 +401,32 @@ const Landing = () => {
             onClick={changeLanguage}
             title="Cambiar Idioma / Change Language"
           />
-          <MEHButton 
-            appearance="subtle" 
+          <MEHButton
+            appearance="subtle"
             icon={
-              currentTheme === 'light' ? <WeatherMoon24Regular /> : 
-              currentTheme === 'dark' ? <WeatherSunny24Regular /> :
-              currentTheme === 'blue' ? <Globe24Regular /> :
-              currentTheme === 'ash' ? <Library24Regular /> :
-              <ShieldCheckmark24Filled />
-            } 
+              currentTheme === "light" ? (
+                <WeatherMoon24Regular />
+              ) : currentTheme === "dark" ? (
+                <WeatherSunny24Regular />
+              ) : currentTheme === "blue" ? (
+                <Globe24Regular />
+              ) : currentTheme === "ash" ? (
+                <Library24Regular />
+              ) : (
+                <ShieldCheckmark24Filled />
+              )
+            }
             onClick={toggleTheme}
             title={
-              currentTheme === 'dark' ? "Cambiar a Modo Claro" :
-              currentTheme === 'light' ? "Cambiar a Modo Blue" :
-              currentTheme === 'blue' ? "Cambiar a Modo Ceniza" :
-              currentTheme === 'ash' ? "Cambiar a Modo Alto Contraste" :
-              "Cambiar a Modo Oscuro"
+              currentTheme === "dark"
+                ? "Cambiar a Modo Claro"
+                : currentTheme === "light"
+                  ? "Cambiar a Modo Blue"
+                  : currentTheme === "blue"
+                    ? "Cambiar a Modo Ceniza"
+                    : currentTheme === "ash"
+                      ? "Cambiar a Modo Alto Contraste"
+                      : "Cambiar a Modo Oscuro"
             }
           />
           <Link
@@ -695,36 +675,6 @@ const Landing = () => {
             ))}
           </div>
         )}
-      </section>
-
-      {/* Validador de Certificados */}
-      <section id="validator" className={styles.validatorSection}>
-        <ShieldCheckmark24Filled
-          style={{ fontSize: "48px", color: tokens.colorBrandForeground1 }}
-        />
-        <MEHTypography variant="h2">{t("verificar_talento")}</MEHTypography>
-        <MEHTypography
-          variant="body"
-          style={{ maxWidth: "600px", opacity: 0.8, fontSize: "1.1rem" }}
-        >
-          ¿Deseas verificar la autenticidad de una credencial emitida por MEH?
-          Ingresa el código único del certificado a continuación.
-        </MEHTypography>
-
-        <div className={styles.validatorBox}>
-          <Input
-            size="large"
-            placeholder="Ej: 550e8400-e29b..."
-            style={{ flexGrow: 1, backgroundColor: "transparent" }}
-            contentBefore={<Search24Regular />}
-            value={certCode}
-            onChange={(e, data) => setCertCode(data.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleVerify()}
-          />
-          <MEHButton appearance="primary" size="large" onClick={handleVerify}>
-            {t("verificar_ahora")}
-          </MEHButton>
-        </div>
       </section>
 
       <MEHFooter />

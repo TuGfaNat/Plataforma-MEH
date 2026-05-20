@@ -45,6 +45,7 @@ import {
   DataTrending24Filled,
   PeopleCommunity24Regular,
   PeopleCommunity24Filled,
+  Globe24Regular,
 } from "@fluentui/react-icons";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -230,6 +231,7 @@ const Sidebar = ({ onClose }) => {
       </Link>
 
       <nav className={styles.navSection}>
+        {/* SECTION 1: PERSONAL / MEMBER SPACE */}
         <div className={styles.sectionTitle}>
           {t("menu_personal") || "Mi Espacio"}
         </div>
@@ -237,39 +239,73 @@ const Sidebar = ({ onClose }) => {
           to="/dashboard"
           icon={Home24Regular}
           activeIcon={Home24Filled}
-          label={t("dashboard") || "Panel de Control"}
+          label={t("dashboard")}
         />
         <NavItem
           to="/validador"
           icon={Certificate24Regular}
           activeIcon={Certificate24Filled}
-          label={t("validador") || "Validador de Talentos"}
+          label={t("verificar_talento")}
         />
         <NavItem
           to="/insignias"
           icon={Trophy24Regular}
           activeIcon={Trophy24Filled}
-          label={t("badges") || "Insignias"}
+          label={t("badges")}
         />
         <NavItem
           to="/finanzas"
           icon={Payment24Regular}
           activeIcon={Payment24Filled}
-          label={t("finances") || "Mis Pagos"}
+          label={t("finances")}
         />
         <NavItem
           to="/learning"
           icon={Library24Regular}
           activeIcon={Library24Filled}
-          label={t("learning_hub") || "Centro de Aprendizaje"}
+          label={t("learning_hub")}
         />
         <NavItem
           to="/comunidad"
           icon={People24Regular}
           activeIcon={People24Filled}
-          label={t("community") || "Comunidad"}
+          label={t("community")}
         />
 
+        {/* SECTION 2: OPERATIONS CENTER (STAFF) */}
+        {(canManageEvents || canReadAllPayments || canScanAttendance) && (
+          <>
+            <div className={styles.sectionTitle}>
+              {t("menu_operations") || "Centro de Operaciones"}
+            </div>
+            {canScanAttendance && (
+              <NavItem
+                to="/escaneo-qr"
+                icon={QrCode24Regular}
+                activeIcon={QrCode24Filled}
+                label={t("qr_scan")}
+              />
+            )}
+            {canReadAllPayments && (
+              <NavItem
+                to="/gestion-pagos"
+                icon={ReceiptMoney24Regular}
+                activeIcon={ReceiptMoney24Filled}
+                label={t("manage_payments")}
+              />
+            )}
+            {canManageEvents && (
+              <NavItem
+                to="/admin/ecosistema"
+                icon={PeopleCommunity24Regular}
+                activeIcon={PeopleCommunity24Filled}
+                label={t("menu_ecosystem")}
+              />
+            )}
+          </>
+        )}
+
+        {/* SECTION 3: LEADERSHIP & VIP */}
         {(canAccessVip || canAccessSpeakerKit) && (
           <>
             <div className={styles.sectionTitle}>
@@ -280,7 +316,7 @@ const Sidebar = ({ onClose }) => {
                 to="/recursos-vip"
                 icon={BookToolbox24Regular}
                 activeIcon={BookToolbox24Filled}
-                label={t("ambassador_resources") || "Recursos VIP"}
+                label={t("ambassador_resources")}
               />
             )}
             {canAccessSpeakerKit && (
@@ -288,88 +324,61 @@ const Sidebar = ({ onClose }) => {
                 to="/speaker-kit"
                 icon={MegaphoneLoud24Regular}
                 activeIcon={MegaphoneLoud24Filled}
-                label={t("speaker_kit") || "Speaker Kit"}
+                label={t("speaker_kit")}
               />
             )}
           </>
         )}
 
-        {(canManageEvents || canReadAllPayments || canScanAttendance) && (
+        {/* SECTION 4: ACADEMIC & CONTENT (MANAGEMENT) */}
+        {canManageEvents && (
           <>
             <div className={styles.sectionTitle}>
-              {t("menu_gestion") || "Gestión"}
+              {t("menu_academic") || "Academia y Contenido"}
+            </div>
+            <NavItem
+              to="/admin"
+              icon={ShieldSettings24Regular}
+              activeIcon={ShieldSettings24Filled}
+              label={t("admin_panel")}
+            />
+            <NavItem
+              to="/admin/notificaciones"
+              icon={MegaphoneLoud24Regular}
+              activeIcon={MegaphoneLoud24Filled}
+              label={t("admin_announcements_management")}
+            />
+            <NavItem
+              to="/admin/generador-certificados"
+              icon={Print24Regular}
+              activeIcon={Print24Filled}
+              label={t("admin_cert_generator")}
+            />
+          </>
+        )}
+
+        {/* SECTION 5: INTELLIGENCE & SYSTEM (ADMIN) */}
+        {(canManageEvents || canReadAudit) && (
+          <>
+            <div className={styles.sectionTitle}>
+              {t("menu_intelligence") || "Inteligencia y Sistema"}
             </div>
             {canManageEvents && (
               <NavItem
                 to="/dashboard/analytics"
                 icon={DataTrending24Regular}
                 activeIcon={DataTrending24Filled}
-                label={t("analytics") || "Analítica Estratégica"}
+                label={t("analytics")}
               />
             )}
-            {canManageEvents && (
+            {canReadAudit && (
               <NavItem
-                to="/admin"
-                icon={ShieldSettings24Regular}
-                activeIcon={ShieldSettings24Filled}
-                label={t("admin_panel") || "Panel Maestro"}
+                to="/auditoria"
+                icon={ShieldLock24Regular}
+                activeIcon={ShieldLock24Filled}
+                label={t("audit")}
               />
             )}
-            {canManageEvents && (
-              <NavItem
-                to="/admin/ecosistema"
-                icon={PeopleCommunity24Regular}
-                activeIcon={PeopleCommunity24Filled}
-                label="Directorio de Red"
-              />
-            )}
-            {canManageEvents && (
-              <NavItem
-                to="/admin/notificaciones"
-                icon={MegaphoneLoud24Regular}
-                activeIcon={MegaphoneLoud24Filled}
-                label="Notificaciones"
-              />
-            )}
-            {canManageEvents && (
-              <NavItem
-                to="/admin/generador-certificados"
-                icon={Print24Regular}
-                activeIcon={Print24Filled}
-                label="Generador Certificados"
-              />
-            )}
-
-            {canReadAllPayments && (
-              <NavItem
-                to="/gestion-pagos"
-                icon={ReceiptMoney24Regular}
-                activeIcon={ReceiptMoney24Filled}
-                label={t("manage_payments") || "Validar Pagos"}
-              />
-            )}
-            {canScanAttendance && (
-              <NavItem
-                to="/escaneo-qr"
-                icon={QrCode24Regular}
-                activeIcon={QrCode24Filled}
-                label={t("qr_scan") || "Escaneo QR"}
-              />
-            )}
-          </>
-        )}
-
-        {canReadAudit && (
-          <>
-            <div className={styles.sectionTitle}>
-              {t("menu_admin") || "Sistema"}
-            </div>
-            <NavItem
-              to="/auditoria"
-              icon={ShieldLock24Regular}
-              activeIcon={ShieldLock24Filled}
-              label={t("audit") || "Auditoría de Logs"}
-            />
           </>
         )}
       </nav>

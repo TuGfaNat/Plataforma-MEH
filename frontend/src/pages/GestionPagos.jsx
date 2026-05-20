@@ -171,7 +171,7 @@ const GestionPagos = () => {
                     <TableRow key={idx}>
                       <TableCell>{match.fecha_banco}</TableCell>
                       <TableCell>{match.descripcion_banco}</TableCell>
-                      <TableCell>${match.monto_banco}</TableCell>
+                      <TableCell>Bs. {match.monto_banco}</TableCell>
                       <TableCell>
                         {match.match_encontrado ? (
                           <Badge appearance="filled" color="success">
@@ -228,7 +228,7 @@ const GestionPagos = () => {
                   <TableRow key={pago.id_pago}>
                     <TableCell>Member #{pago.id_usuario}</TableCell>
                     <TableCell>{pago.tipo_referencia} #{pago.id_referencia}</TableCell>
-                    <TableCell><b>${pago.monto}</b></TableCell>
+                    <TableCell><b>Bs. {pago.monto}</b></TableCell>
                     <TableCell>{new Date(pago.fecha_pago).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <MEHButton 

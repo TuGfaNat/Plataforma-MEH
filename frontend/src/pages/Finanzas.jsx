@@ -180,7 +180,7 @@ const Finanzas = () => {
                         <TableCell><MEHTypography variant="caption" style={{ fontFamily: 'monospace' }}>#{item.id_pago}</MEHTypography></TableCell>
                         <TableCell>{new Date(item.fecha_pago).toLocaleDateString()}</TableCell>
                         <TableCell>{item.tipo_referencia} #{item.id_referencia}</TableCell>
-                        <TableCell><b>${item.monto}</b></TableCell>
+                        <TableCell><b>Bs. {item.monto}</b></TableCell>
                         <TableCell>
                           <div style={{ 
                             display: 'inline-flex', alignItems: 'center', gap: '4px',
@@ -246,9 +246,9 @@ const Finanzas = () => {
                     onOptionSelect={(e, data) => setMonto(data.optionValue)}
                     style={{ width: '100%' }}
                 >
-                    <Option value="50">Básico - $50.00</Option>
-                    <Option value="100">VIP - $100.00</Option>
-                    <Option value="150">Speaker Kit - $150.00</Option>
+                    <Option value="50">Básico - Bs. 50.00</Option>
+                    <Option value="100">VIP - Bs. 100.00</Option>
+                    <Option value="150">Speaker Kit - Bs. 150.00</Option>
                 </Dropdown>
               </div>
           )}
@@ -256,7 +256,7 @@ const Finanzas = () => {
           <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
               {monto && (
                   <div style={{ textAlign: 'center', flex: 1, minWidth: '200px', backgroundColor: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px' }}>
-                      <MEHTypography variant="body" style={{ display: 'block', marginBottom: '16px', fontWeight: 'bold' }}>Escanea para pagar: ${monto}</MEHTypography>
+                      <MEHTypography variant="body" style={{ display: 'block', marginBottom: '16px', fontWeight: 'bold' }}>Escanea para pagar: Bs. {monto}</MEHTypography>
                       <div style={{ display: 'inline-block', padding: '16px', backgroundColor: 'white', borderRadius: '8px' }}>
                           {/* Usando qrcode.react estático para el pago bancario */}
                           <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=bank_transfer_meh_${monto}`} alt="QR Bancario" />

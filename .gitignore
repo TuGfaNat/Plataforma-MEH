@@ -46,3 +46,10 @@ backend/static/comprobantes/*
 !backend/static/comprobantes/.gitkeep
 backend/static/uploads/*
 !backend/static/uploads/.gitkeep
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
