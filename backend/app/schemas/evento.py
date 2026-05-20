@@ -74,3 +74,22 @@ class EventoResponse(EventoBase):
     comunidades: List[ComunidadSimple] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+# --- CHECKPOINTS ---
+class CheckpointBase(BaseModel):
+    nombre_checkpoint: str
+    tipo_checkpoint: Optional[str] = "ASISTENCIA"
+    orden: int = 1
+
+class CheckpointCreate(CheckpointBase):
+    pass
+
+class CheckpointResponse(CheckpointBase):
+    id_checkpoint: int
+    id_evento: int
+    activo: bool
+    model_config = ConfigDict(from_attributes=True)
+
+class QRScanRequest(BaseModel):
+    codigo_qr: str
+    id_checkpoint: Optional[int] = None

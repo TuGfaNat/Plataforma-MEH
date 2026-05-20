@@ -339,6 +339,9 @@ const Sidebar = ({ onClose }) => {
                 label="Generador Certificados"
               />
             )}
+            {canManageEvents && (
+              <NavItem to="/admin/generador-certificados" icon={Print24Regular} activeIcon={Print24Filled} label="Generador Certificados" />
+            )}
             {canReadAllPayments && (
               <NavItem
                 to="/gestion-pagos"
