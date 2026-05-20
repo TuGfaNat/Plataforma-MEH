@@ -11,8 +11,7 @@ import { useTranslation } from "react-i18next";
 import { MEHTypography, MEHButton } from "../ui";
 import { Link } from "react-router-dom";
 import { designTokens } from "../../theme/theme";
-import { useTheme } from "../../App";
-import { getGlassEffect } from "../../theme/effects";
+import { effectMixins } from "../../theme/effects";
 import {
   Mail24Regular,
   Chat24Regular,
@@ -33,6 +32,7 @@ const useStyles = makeStyles({
     position: "relative",
     overflow: "hidden",
   },
+  glass: effectMixins.glass,
   glow: {
     position: 'absolute',
     width: '400px',
@@ -136,9 +136,6 @@ const useStyles = makeStyles({
 
 export const MEHFooter = () => {
   const styles = useStyles();
-  const { currentTheme } = useTheme();
-
-  const glassStyle = getGlassEffect(currentTheme);
 
   const socialLinks = [
     {
@@ -174,7 +171,7 @@ export const MEHFooter = () => {
   ];
 
   return (
-    <footer className={mergeClasses(styles.footer)} style={glassStyle}>
+    <footer className={mergeClasses(styles.footer, styles.glass)}>
       <div className={styles.glow}></div>
 
       <div className={styles.contentWrapper}>

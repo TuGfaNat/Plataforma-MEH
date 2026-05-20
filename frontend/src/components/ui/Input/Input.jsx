@@ -49,6 +49,8 @@ export const MEHInput = ({
         value={value}
         onChange={onChange}
         required={required}
+        className={error ? 'error' : ''}
+        style={error ? { borderColor: tokens.colorPaletteRedBorder1 } : {}}
         {...props}
       />
       {error && <span className={styles.errorText}>{error}</span>}
