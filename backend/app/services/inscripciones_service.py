@@ -63,6 +63,25 @@ def inscribir_evento(
         valor_nuevo={"id_evento": id_evento, "estado": "PENDIENTE"},
         ip_direccion=ip_address
     )
+
+    # Enviar correo con el QR recien generado
+    try:
+        from . import email_service
+        import os
+        usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == user_id).first()
+        if usuario:
+            email_service.notify_ticket_qr(
+                email=usuario.correo,
+                nombre=usuario.nombres,
+                titulo_evento=evento.titulo,
+                fecha=str(evento.fecha_inicio.date()) if evento.fecha_inicio else "",
+                codigo_qr=token_qr,
+                frontend_url=os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+            )
+    except Exception as e:
+        print("Error enviando QR", e)
+        pass
+
     return nueva_inscripcion
 
 def list_mis_inscripciones_eventos(db: Session, user_id: int) -> List[models.InscripcionEvento]:

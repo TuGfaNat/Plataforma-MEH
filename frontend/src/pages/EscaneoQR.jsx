@@ -21,7 +21,7 @@ import {
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { QRCodeSVG } from 'qrcode.react';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
-import { Select } from '@fluentui/react-components';
+
 import asistenciaService from '../services/asistenciaService';
 
 const useStyles = makeStyles({

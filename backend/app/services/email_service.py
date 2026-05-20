@@ -216,3 +216,35 @@ def notify_nuevo_anuncio(email: str, nombre: str, titulo_anuncio: str, contenido
     </div>
     """
     return send_email(email, subject, html)
+def notify_ticket_qr(email: str, nombre: str, titulo_evento: str, fecha: str, codigo_qr: str, frontend_url: str) -> bool:
+    """Notifica al usuario con su ticket QR para un evento"""
+    subject = f"🎟️ Tu Ticket de Ingreso - {titulo_evento}"
+    validation_url = f"{frontend_url}/verificar/{codigo_qr}"
+    qr_img_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={validation_url}"
+
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px; text-align: center;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <span style="background: #7f13ec; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">TICKET OFICIAL MEH</span>
+        </div>
+        <h2 style="color: #333;">Hola {nombre},</h2>
+        <p>Tu inscripción ha sido procesada con éxito. Aquí tienes tu código QR de ingreso para el evento:</p>
+        <div style="background: #f9f9f9; border-left: 4px solid #7f13ec; padding: 15px; margin: 20px 0; text-align: left;">
+            <h3 style="margin-top: 0; color: #7f13ec;">{titulo_evento}</h3>
+            <p style="color: #555; line-height: 1.6;"><strong>Fecha de inicio:</strong> {fecha}</p>
+        </div>
+        <div style="margin: 30px 0;">
+            <p>Muestra este código QR en el ingreso del evento:</p>
+            <img src="{qr_img_url}" alt="Tu Código QR" style="border: 2px solid #eee; border-radius: 10px; padding: 10px;"/>
+            <p style="font-size: 0.85rem; color: #777; margin-top: 10px;">Código: {codigo_qr}</p>
+        </div>
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{frontend_url}/dashboard" style="display: inline-block; background: #7f13ec; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ir a mi Portal</a>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <footer style="font-size: 0.8rem; color: #888; text-align: center;">
+            Plataforma Microsoft Education Hub - Innovando el futuro, juntos.
+        </footer>
+    </div>
+    """
+    return send_email(email, subject, html)
