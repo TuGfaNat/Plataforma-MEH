@@ -8,7 +8,7 @@ const config = {
   favicon: "img/favicon.ico",
 
   url: "https://TuGfaNat.github.io",
-  baseUrl: "/",
+  baseUrl: "/docs/",
   trailingSlash: false,
 
   organizationName: "TuGfaNat",
@@ -56,7 +56,7 @@ const config = {
           {
             type: "html",
             position: "left",
-            value: '<img src="/img/logo.png" alt="MEH Logo" style="height: 32px; vertical-align: middle; margin-right: 8px; cursor: default;" />',
+            value: '<img src="/docs/img/logo.png" alt="MEH Logo" style="height: 32px; vertical-align: middle; margin-right: 8px; cursor: default;" />',
           },
           {
             type: "html",
