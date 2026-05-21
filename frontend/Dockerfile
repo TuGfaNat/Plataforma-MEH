@@ -23,6 +23,9 @@ FROM nginx:stable-alpine as production-stage
 # Copiar los archivos construidos al directorio de nginx
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
+# Copiar configuración personalizada de nginx con SPA fallback
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 # Exponer puerto 80
 EXPOSE 80
 

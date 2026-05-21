@@ -12,34 +12,41 @@ services:
       POSTGRES_DB: plataforma_meh
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # Solo comunicación interna — no exponer puerto
+    expose:
+      - "5432"
 
   # Backend FastAPI
   backend:
     build: ./backend
     container_name: meh-backend
     restart: always
+    env_file: backend/.env.docker
     environment:
-      - DATABASE_URL=postgresql://postgres:password123@db:5432/plataforma_meh
-      - PORT=8000
+      # RUN_SEED: "" (vacío/no seteado => solo migraciones, sin seed)
+      #           "basic" => seed con usuarios staff
+      #           "super" => seed completo (20 miembros, eventos, cursos, etc.)
+      - RUN_SEED=basic
     depends_on:
       - db
-    ports:
-      - "8000:8000"
+    # Solo comunicación interna — no exponer puerto
+    expose:
+      - "8000"
     volumes:
       - ./backend/static:/app/static
 
-  # Frontend React
+  # Frontend React (SPA con nginx)
   frontend:
     build:
       context: ./frontend
       args:
-        - VITE_API_URL=http://localhost:8000
+        # En desarrollo/proxy, la API se accede por mismo origen: /api/
+        - VITE_API_URL=/api/
     container_name: meh-frontend
     restart: always
-    ports:
-      - "3000:80"
+    # Solo comunicación interna — no exponer puerto
+    expose:
+      - "80"
     depends_on:
       - backend
 
@@ -48,8 +55,21 @@ services:
     build: ./website
     container_name: meh-docs
     restart: always
+    # Solo comunicación interna — no exponer puerto
+    expose:
+      - "80"
+
+  # Reverse proxy Nginx — único punto de entrada
+  nginx-proxy:
+    build: ./nginx
+    container_name: meh-proxy
+    restart: always
     ports:
-      - "3001:80"
+      - "8099:80"
+    depends_on:
+      - backend
+      - frontend
+      - website
 
 volumes:
   postgres_data:
