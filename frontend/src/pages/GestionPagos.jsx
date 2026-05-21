@@ -241,15 +241,21 @@ const GestionPagos = () => {
                     </TableCell>
                     <TableCell>
                       <Badge 
-                        appearance="tint" 
-                        color={pago.estado_pago === 'APROBADO' ? 'success' : pago.estado_pago === 'RECHAZADO' ? 'danger' : 'warning'}
+                        appearance={pago.estado_pago === 'VERIFICADO_AUTOMATICO' ? 'filled' : 'tint'}
+                        color={
+                          pago.estado_pago === 'VERIFICADO_AUTOMATICO' ? 'success' :
+                          pago.estado_pago === 'APROBADO' ? 'success' :
+                          pago.estado_pago === 'REVISION_MANUAL' ? 'warning' :
+                          pago.estado_pago === 'PENDIENTE' ? 'danger' :
+                          pago.estado_pago === 'RECHAZADO' ? 'danger' : 'warning'
+                        }
                       >
                         {t(`payment_${pago.estado_pago.toLowerCase()}`)}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        {pago.estado_pago === 'PENDIENTE' && canValidatePayments && (
+                        {(pago.estado_pago === 'PENDIENTE' || pago.estado_pago === 'REVISION_MANUAL') && canValidatePayments && (
                           <>
                             <MEHButton 
                               size="small" 

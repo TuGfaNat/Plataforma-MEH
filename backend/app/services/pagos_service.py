@@ -1,5 +1,6 @@
 import os
 import uuid
+import random
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
@@ -74,6 +75,70 @@ async def process_comprobante_upload(
         tabla_afectada="pagos",
         id_registro_afectado=nuevo_pago.id_pago,
         valor_nuevo={"referencia": id_referencia, "monto": str(monto)},
+        ip_direccion=ip_address
+    )
+    return nuevo_pago
+
+
+async def process_comprobante_upload_ocr(
+    db: Session,
+    user_id: int,
+    id_referencia: int,
+    tipo_referencia: str,
+    monto: Decimal,
+    metodo_pago: str,
+    file_content: bytes,
+    file_extension: str,
+    ip_address: Optional[str] = None
+) -> models.Pago:
+    """Procesa la subida física del comprobante, realiza simulación de OCR y registra el pago en la DB."""
+    file_name = f"comprobante_ocr_{user_id}_{datetime.now().timestamp()}{file_extension}"
+    file_path = os.path.join(UPLOAD_DIR, file_name)
+
+    with open(file_path, "wb") as output_file:
+        output_file.write(file_content)
+
+    # Simulación de extracción de texto y cálculo de coincidencia OCR
+    porcentaje_simulado = Decimal(random.randint(80, 100))
+    texto_simulado = f"Comprobante analizado. Monto detectado: {monto}. Confianza: {porcentaje_simulado}%"
+
+    estado_asignado = "VERIFICADO_AUTOMATICO" if porcentaje_simulado >= 95 else "REVISION_MANUAL"
+
+    nuevo_pago = models.Pago(
+        id_usuario=user_id,
+        id_referencia=id_referencia,
+        tipo_referencia=tipo_referencia,
+        monto=monto,
+        metodo_pago=metodo_pago,
+        url_comprobante=file_path,
+        estado_pago=estado_asignado,
+        porcentaje_ocr=porcentaje_simulado,
+        texto_ocr=texto_simulado,
+        fecha_pago=datetime.utcnow(),
+        creado_por=user_id,
+        fecha_creacion=datetime.utcnow()
+    )
+    db.add(nuevo_pago)
+    db.commit()
+    db.refresh(nuevo_pago)
+
+    # Vincular automáticamente a la inscripción si es un evento
+    if tipo_referencia == "EVENTO":
+        inscripcion = db.query(models.InscripcionEvento).filter(
+            models.InscripcionEvento.id_usuario == user_id,
+            models.InscripcionEvento.id_evento == id_referencia
+        ).first()
+        if inscripcion:
+            inscripcion.id_pago = nuevo_pago.id_pago
+            db.commit()
+
+    registrar_log(
+        db=db,
+        id_admin=user_id,
+        accion=f"SUBIR_COMPROBANTE_OCR_{estado_asignado}",
+        tabla_afectada="pagos",
+        id_registro_afectado=nuevo_pago.id_pago,
+        valor_nuevo={"referencia": id_referencia, "monto": str(monto), "ocr": str(porcentaje_simulado)},
         ip_direccion=ip_address
     )
     return nuevo_pago

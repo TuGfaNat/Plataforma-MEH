@@ -10,6 +10,15 @@ const pagoService = {
     return response.data;
   },
 
+  uploadComprobanteOcr: async (formData) => {
+    const response = await api.post('/pagos/upload-comprobante-ocr', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
   getMisPagos: async () => {
     const response = await api.get('/pagos/mis-pagos');
     return response.data;
