@@ -101,12 +101,12 @@ const ValidadorTalento = () => {
 
   const handleVerify = () => {
     if (code.trim()) {
-      navigate(`/verificar/${code.trim()}`);
+      navigate(`/verificar/${encodeURIComponent(code.trim())}`);
     }
   };
 
   // Verificamos si estamos en la ruta pública por la URL, no por si está logueado o no
-  const isPublicRoute = location.pathname === '/validador-publico';
+  const isPublicRoute = location.pathname && location.pathname.startsWith('/validador-publico');
 
   if (isPublicRoute) {
     return (
@@ -175,12 +175,12 @@ const ValidadorTalento = () => {
     <div className={styles.containerPrivate}>
       <MEHCard className={styles.card}>
         <div className={styles.glowEffect} />
-        <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <ShieldCheckmark48Filled className={styles.iconHeader} />
-          <MEHTypography variant="h1" style={{ display: 'block', fontSize: '2.5rem', fontWeight: tokens.fontWeightBlack, letterSpacing: '-0.5px' }}>
+          <MEHTypography variant="h1" style={{ display: 'block', fontSize: '2.5rem', fontWeight: tokens.fontWeightBlack, letterSpacing: '-0.5px', textAlign: 'center' }}>
             {t('verificar_talento')}
           </MEHTypography>
-          <MEHTypography variant="body" style={{ opacity: 0.7, maxWidth: '550px', margin: '16px auto', lineHeight: '1.6' }}>
+          <MEHTypography variant="body" style={{ opacity: 0.7, maxWidth: '550px', margin: '16px auto', lineHeight: '1.6', textAlign: 'center' }}>
             Protegemos la integridad de los logros de nuestra comunidad. Ingresa el código alfanumérico o UUID para validar una credencial oficial.
           </MEHTypography>
         </div>

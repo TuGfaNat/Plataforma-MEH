@@ -336,12 +336,6 @@ const Landing = () => {
     fetchData();
   }, []);
 
-  const handleVerify = () => {
-    if (certCode.trim()) {
-      navigate(`/verificar/${certCode.trim()}`);
-    }
-  };
-
   const formatDate = (dateStr) => {
     const d = new Date(dateStr);
     const months = [

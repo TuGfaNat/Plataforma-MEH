@@ -103,7 +103,7 @@ const useStyles = makeStyles({
   }
 });
 
-const DashboardLayout = () => {
+const DashboardLayout = ({ children }) => {
   const styles = useStyles();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
@@ -149,7 +149,7 @@ const DashboardLayout = () => {
       </header>
 
       <main className={styles.content}>
-        <Outlet />
+        {children || <Outlet />}
       </main>
     </div>
   );

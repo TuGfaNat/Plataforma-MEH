@@ -61,7 +61,28 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   return children;
 };
 
-function App() {
+// Componente para manejar la verificación tanto pública como privada
+const UniversalVerification = () => {
+  const { user, loading } = useAuth();
+  
+  if (loading) return (
+    <div style={{ display: 'flex', height: '100vh', width: '100vw', justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+      <Spinner size="huge" label="Verificando sesión..." />
+    </div>
+  );
+
+  if (user) {
+    return (
+      <DashboardLayout>
+        <VerificarCertificado />
+      </DashboardLayout>
+    );
+  }
+
+  return <VerificarCertificado />;
+};
+
+export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -148,7 +169,7 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/verificar/:uuid" element={<VerificarCertificado />} />
+                <Route path="/verificar/:uuid" element={<UniversalVerification />} />
                 
                 {/* Validador Público (Sin Sidebar) */}
                 <Route path="/validador-publico" element={<ValidadorTalento />} />
@@ -187,5 +208,3 @@ function App() {
     </AuthContext.Provider>
   );
 }
-
-export default App;
