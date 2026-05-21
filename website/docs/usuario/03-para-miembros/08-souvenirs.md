@@ -1,1 +1,0 @@
-# Comprar Souvenirs\n\nVisita la tienda oficial y canjea tus puntos o paga por productos.\n\n![Comprar Souvenirs](pathname:///img/placeholder.png)

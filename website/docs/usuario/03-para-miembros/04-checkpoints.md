@@ -1,1 +1,0 @@
-# Puntos de Control\n\nEscanea los códigos en el evento para validar tu asistencia en tiempo real.\n\n![Puntos de Control](pathname:///img/placeholder.png)

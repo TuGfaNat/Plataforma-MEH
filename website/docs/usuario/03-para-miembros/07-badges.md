@@ -1,1 +1,0 @@
-# Tus Insignias\n\nGana medallas por tus logros. Revísalas en tu perfil público.\n\n![Tus Insignias](pathname:///img/placeholder.png)

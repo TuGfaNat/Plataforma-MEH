@@ -1,1 +1,0 @@
-# Explorar Eventos\n\nVe a la sección Comunidad > Eventos y filtra por fecha.\n\n![Explorar Eventos](pathname:///img/placeholder.png)

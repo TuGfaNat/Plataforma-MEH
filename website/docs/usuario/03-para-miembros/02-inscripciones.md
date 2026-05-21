@@ -1,1 +1,0 @@
-# Inscribirse a Evento\n\nSelecciona un evento y presiona 'Inscribirme'. Sube tu comprobante si es de pago.\n\n![Inscribirse a Evento](pathname:///img/placeholder.png)
