@@ -44,6 +44,36 @@ async def upload_comprobante(
         ip_address=ip_address
     )
 
+@router.post("/upload-comprobante-ocr", response_model=pago_schema.PagoResponse, status_code=status.HTTP_201_CREATED)
+async def upload_comprobante_ocr(
+    request: Request,
+    id_referencia: int = Form(...),
+    tipo_referencia: str = Form(...),
+    monto: Decimal = Form(...),
+    metodo_pago: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Sube un comprobante de pago para validación automática vía OCR."""
+    ip_address = request.client.host if request.client else None
+
+    file_content = await file.read()
+    file_extension = os.path.splitext(file.filename)[1]
+
+    return await pagos_service.process_comprobante_upload_ocr(
+        db=db,
+        user_id=current_user.id_usuario,
+        id_referencia=id_referencia,
+        tipo_referencia=tipo_referencia,
+        monto=monto,
+        metodo_pago=metodo_pago,
+        file_content=file_content,
+        file_extension=file_extension,
+        ip_address=ip_address
+    )
+
+
 @router.get("/mis-pagos", response_model=List[pago_schema.PagoResponse])
 def get_mis_pagos(
     db: Session = Depends(get_db),

@@ -384,6 +384,9 @@ class Pago(Base, AuditMixin):
     fecha_validacion = Column(DateTime, nullable=True)
     notas_admin = Column(TEXT, nullable=True)
 
+    porcentaje_ocr = Column(Numeric(5, 2), nullable=True)
+    texto_ocr = Column(TEXT, nullable=True)
+
     usuario = relationship("Usuario", back_populates="pagos", foreign_keys="[Pago.id_usuario]")
     validador = relationship("Usuario", foreign_keys="[Pago.validado_por]")
 

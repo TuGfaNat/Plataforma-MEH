@@ -129,7 +129,7 @@ const Finanzas = () => {
     formData.append('file', file);
 
     try {
-      await pagoService.uploadComprobante(formData);
+      await pagoService.uploadComprobanteOcr(formData);
       setSuccess(true);
       setFile(null);
       setMonto('');

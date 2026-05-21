@@ -24,5 +24,7 @@ class PagoResponse(PagoBase):
     fecha_pago: datetime
     validado_por: Optional[int] = None
     fecha_validacion: Optional[datetime] = None
+    porcentaje_ocr: Optional[Decimal] = None
+    texto_ocr: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)
