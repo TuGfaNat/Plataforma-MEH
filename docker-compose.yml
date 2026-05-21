@@ -65,7 +65,7 @@ services:
     container_name: meh-proxy
     restart: always
     ports:
-      - "80:80"
+      - "8099:80"
     depends_on:
       - backend
       - frontend
