@@ -873,17 +873,71 @@ La trazabilidad inmutable se consolida a través del sistema de bitácoras persi
 
 Para dar soporte a la comunicación del backend con servicios externos —específicamente el envío de notificaciones por correo electrónico y la generación automatizada de tickets QR al aprobar transacciones— el sistema implementa una arquitectura desacoplada de variables de configuración. El principio fundamental de esta arquitectura es la inyección en tiempo de ejecución de las variables de entorno, evitando estrictamente la persistencia de datos sensibles o credenciales en texto plano (*zero hardcoding*) dentro del repositorio Git.
 
-##### A. Estructura de Variables de Entorno
-La parametrización de la lógica del backend se gobierna a través del archivo de configuración de entorno `.env` en local, o `.env.docker` en entornos basados en contenedores, estructurado bajo las siguientes variables:
-- **Persistencia Relacional (`DATABASE_URL`):** Define la cadena de conexión del motor PostgreSQL, incluyendo host, puerto, base de datos y credenciales de acceso físicas.
-- **Autenticación y Criptografía (`SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`):** Controla el comportamiento del token JWT, estableciendo la llave simétrica secreta de firma criptográfica y el tiempo máximo de sesión activa.
-- **Servicio de Notificación por Correo Electrónico (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM_NAME`):** Configura los extremos del servidor de envío de correos (típicamente `smtp.gmail.com` en puerto síncrono `587`). Para el uso seguro de Gmail, se documenta el empleo obligatorio de *Contraseñas de Aplicación (App Passwords)* generadas en las cuentas de Google vinculadas con autenticación de dos factores (2FA), impidiendo el uso de la contraseña maestra del correo de administración de la comunidad tecnológica.
-- **Ruteo de Enlaces Dinámicos (`FRONTEND_URL`, `FRONTEND_DASHBOARD`, `FRONTEND_LEARNING`):** Establece el mapeo de dominios de la SPA en el frontend para estructurar las rutas y enlaces integrados en el cuerpo de los correos electrónicos.
+##### A. Matriz y Estructura de Variables de Entorno
+La parametrización de la lógica del backend se gobierna de manera centralizada. En la Tabla 3.2 se describe detalladamente cada variable del sistema, su propósito operativo y sus valores correspondientes según el entorno:
 
-##### B. Aislamiento y Gobernanza de Secretos en Despliegue
-Para asegurar que las claves transaccionales no se expongan en el repositorio Git, el archivo local `.env` y el archivo del contenedor `backend/.env` se encuentran expresamente ignorados en la base del control de versiones mediante reglas declaradas en el archivo `.gitignore`. 
+| Variable | Tipo de Dato | Entorno Local (`.env`) | Entorno Docker (`.env.docker`) | Propósito Técnico en el Backend |
+| :--- | :--- | :--- | :--- | :--- |
+| `DATABASE_URL` | `string` | `postgresql://postgres:postgres@localhost/MEH` | `postgresql://postgres:password123@db:5432/plataforma_meh` | Cadena de conexión física del pool de conexiones de SQLAlchemy hacia PostgreSQL. |
+| `SECRET_KEY` | `string` | `mlsa_super_secret_key...` | `mlsa_super_secret_key...` | Clave simétrica robusta empleada por el algoritmo HS256 para firmar y verificar tokens JWT. |
+| `SMTP_HOST` | `string` | `smtp.gmail.com` | `smtp.gmail.com` | Dirección del host del servidor de correo saliente. |
+| `SMTP_PORT` | `int` | `587` | `587` | Puerto de escucha SMTP seguro (uso obligado de encriptación StartTLS). |
+| `SMTP_USER` | `string` | `meh.bolivia@gmail.com` | `meh.bolivia@gmail.com` | Dirección de correo emisora oficial de la organización. |
+| `SMTP_PASSWORD`| `string` | `ejhsvkatcxcrnocf` | `ejhsvkatcxcrnocf` | Token de seguridad / Contraseña de Aplicación de 16 caracteres de Google (Gmail 2FA). |
+| `FRONTEND_URL` | `string` | `http://localhost:5173` | `http://localhost` | URL del origen de la SPA para armar enlaces de redirección en notificaciones de correo. |
 
-Al realizar el despliegue del sistema en servidores de producción (tales como Render, AWS o contenedores Docker Compose de taquilla), las variables de entorno no son cargadas mediante archivos del repositorio, sino que son inyectadas dinámicamente como secretos de infraestructura a través de la consola del hosting o el gestor de secretos de la nube, aislando por completo las llaves criptográficas de la capa de desarrollo local del software.
+**Tabla 3.2: Especificación y Contratos de Variables de Entorno del Backend**  
+*Nota.* Tabla estructurada de parámetros requeridos para la inicialización y conexión del sistema. Elaboración propia.
+
+##### B. Carga Lógica y Validación en Código (SMTPConfig)
+Para mitigar fallos silenciosos por variables de entorno corruptas o no declaradas, el backend expone la clase síncrona `SMTPConfig` en `app/core/email_config.py`. Este módulo lee los parámetros al arrancar la aplicación e implementa reglas de aserción rígidas:
+
+```python
+# app/core/email_config.py
+import os
+
+class SMTPConfig:
+    HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    PORT = int(os.getenv("SMTP_PORT", "587"))
+    USER = os.getenv("SMTP_USER", "").strip()
+    PASSWORD = os.getenv("SMTP_PASSWORD", "").strip()
+    FROM_NAME = os.getenv("EMAIL_FROM_NAME", "Plataforma MEH")
+    
+    @classmethod
+    def is_configured(cls) -> bool:
+        """Verifica si SMTP posee credenciales declaradas"""
+        return bool(cls.USER and cls.PASSWORD)
+    
+    @classmethod
+    def validate(cls) -> tuple[bool, str]:
+        """Valida rigurosamente la coherencia de los tipos de datos"""
+        if not cls.USER or not cls.PASSWORD:
+            return False, "❌ SMTP_USER o SMTP_PASSWORD no configurados en .env"
+        try:
+            if cls.PORT < 1 or cls.PORT > 65535:
+                return False, "❌ Puerto SMTP fuera de rango (1-65535)"
+        except (ValueError, TypeError):
+            return False, "❌ Puerto SMTP debe ser un entero válido"
+        return True, "✅ Configuración SMTP válida"
+```
+
+##### C. Flujo de Inyección y Aislamiento de Secretos
+El aislamiento físico de las credenciales de producción sigue un ciclo estructurado que impide la filtración de claves hacia repositorios remotos:
+
+```
+[Desarrollo Local]
+  ├── .gitignore ───────► (Excluye backend/.env)
+  └── backend/.env ─────► Inyecta variables locales ──► Uvicorn (Puerto 8000)
+
+[Despliegue Contenedores]
+  └── .env.docker ──────► Inyectado vía env_file ─────► Docker Compose (Puerto 80)
+
+[Despliegue Producción (Render / Cloud)]
+  └── Panel de Control ──► Inyección directa en RAM ──► Gunicorn/Uvicorn (Producción)
+```
+
+1. **Gobernanza Git (`.gitignore`):** Se declaran explícitamente reglas para omitir cualquier archivo `.env` o `backend/.env` de los commits. En el repositorio únicamente persiste el archivo de plantilla `.env.example`, el cual provee la estructura sintáctica pero sin datos reales de conexión.
+2. **Despliegue Cloud Seguro:** Al desplegarse en servidores externos (tales como la nube de Render o un VPS corporativo), el archivo físico `.env` es descartado. Las variables de entorno son inyectadas directamente en la memoria del contenedor de producción a través de la sección de *Environment Variables* cifradas del proveedor, impidiendo que programadores o atacantes con acceso de lectura al repositorio de Git recuperen las credenciales críticas del correo y base de datos de la UMSA.
 
 ---
 
