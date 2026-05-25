@@ -85,3 +85,46 @@ Para evitar la aleatoriedad en el procesamiento del comprobante, el endpoint de 
 * **Comprobante Digital Válido**: Si el archivo posee un tamaño superior a 5 KB y extensiones `.pdf`, `.png`, `.jpg` o `.jpeg`, el backend asume lectura correcta, registrando un **98% de confianza** y asignando el estado `'VERIFICADO_AUTOMATICO'`.
 * **Comprobante Sospechoso/Pequeño**: Si el tamaño es menor, el sistema registra una confianza del **50%** y asocia el estado `'REVISION_MANUAL'` para audición humana del staff.
 
+---
+
+## 6. Variables de Entorno y Configuración de Correo (SMTP)
+
+Para garantizar la seguridad de las credenciales y el aislamiento de claves transaccionales, la Plataforma MEH utiliza variables de entorno inyectadas en tiempo de ejecución. 
+
+### A. Estructura del Archivo `.env` (Desarrollo Local)
+El archivo `backend/.env` (ignorado en Git por seguridad) se utiliza para ejecutar el sistema en local sin Docker. Contiene las siguientes claves:
+
+```env
+# PERSISTENCIA Y BASE DE DATOS
+DATABASE_URL=postgresql://postgres:postgres@localhost/MEH
+
+# SEGURIDAD Y JWT
+SECRET_KEY=mlsa_super_secret_key_2026_thesis_project
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+
+# CONFIGURACIÓN SMTP (Notificaciones de correo)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=meh.bolivia@gmail.com
+SMTP_PASSWORD=ejhsvkatcxcrnocf
+EMAIL_FROM_NAME=Plataforma MEH
+
+# REDIRECCIONAMIENTO FRONTEND
+FRONTEND_URL=https://plataforma-meh.vercel.app
+FRONTEND_DASHBOARD=/dashboard
+FRONTEND_LEARNING=/learning
+FRONTEND_FINANZAS=/finanzas
+```
+
+### B. Uso de Gmail App Passwords
+Para el envío de correos, la plataforma utiliza el servidor SMTP de Gmail. Debido a las políticas de seguridad de Google, no se debe utilizar la contraseña maestra de la cuenta. En su lugar:
+1. Se habilita la **Autenticación en Dos Pasos (2FA)** en la cuenta de Google.
+2. Se genera una **Contraseña de Aplicación** (App Password) de 16 caracteres.
+3. Se asigna este token de 16 caracteres a la variable `SMTP_PASSWORD`.
+
+### C. Configuración en Docker y Producción
+- **Docker Compose:** Las variables se declaran en el archivo `backend/.env.docker` y se inyectan directamente en el contenedor mediante la directiva `env_file` en `docker-compose.yml`.
+- **Producción (Render / AWS / VPS):** Por motivos de seguridad y soberanía de datos, el archivo `.env` nunca debe ser subido a Git. En su lugar, estas variables deben configurarse directamente en el panel de administración del proveedor de hosting (ej. sección *Environment Variables* de Render), garantizando que las credenciales permanezcan cifradas e inaccesibles en repositorios públicos.
+
+

@@ -869,6 +869,22 @@ Estas políticas de restricción de accesos se evalúan síncronamente en los en
 
 La trazabilidad inmutable se consolida a través del sistema de bitácoras persistido en la tabla relacional de auditoría `logs_sistema`. Cualquier mutación física de registros críticos en base de datos gatillada por usuarios administradores (tales como la alteración manual de roles, suspensión física de cuentas, edición del inventario financiero o aprobación de vouchers de pago) invoca de manera secuencial y atómica la inserción de un registro descriptivo que detalla la marca temporal UTC, la dirección IP física del cliente HTTP capturada desde la cabecera de la petición, el nombre del operador y una representación JSON comparativa (*diff*) que contrasta el estado anterior con el nuevo estado del registro, brindando un marco forense y de auditoría robusto e inalterable ante intentos de intrusión o fraude.
 
+#### 3.4.4. Arquitectura de Configuración y Seguridad de Credenciales (SMTP y Variables de Entorno)
+
+Para dar soporte a la comunicación del backend con servicios externos —específicamente el envío de notificaciones por correo electrónico y la generación automatizada de tickets QR al aprobar transacciones— el sistema implementa una arquitectura desacoplada de variables de configuración. El principio fundamental de esta arquitectura es la inyección en tiempo de ejecución de las variables de entorno, evitando estrictamente la persistencia de datos sensibles o credenciales en texto plano (*zero hardcoding*) dentro del repositorio Git.
+
+##### A. Estructura de Variables de Entorno
+La parametrización de la lógica del backend se gobierna a través del archivo de configuración de entorno `.env` en local, o `.env.docker` en entornos basados en contenedores, estructurado bajo las siguientes variables:
+- **Persistencia Relacional (`DATABASE_URL`):** Define la cadena de conexión del motor PostgreSQL, incluyendo host, puerto, base de datos y credenciales de acceso físicas.
+- **Autenticación y Criptografía (`SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`):** Controla el comportamiento del token JWT, estableciendo la llave simétrica secreta de firma criptográfica y el tiempo máximo de sesión activa.
+- **Servicio de Notificación por Correo Electrónico (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM_NAME`):** Configura los extremos del servidor de envío de correos (típicamente `smtp.gmail.com` en puerto síncrono `587`). Para el uso seguro de Gmail, se documenta el empleo obligatorio de *Contraseñas de Aplicación (App Passwords)* generadas en las cuentas de Google vinculadas con autenticación de dos factores (2FA), impidiendo el uso de la contraseña maestra del correo de administración de la comunidad tecnológica.
+- **Ruteo de Enlaces Dinámicos (`FRONTEND_URL`, `FRONTEND_DASHBOARD`, `FRONTEND_LEARNING`):** Establece el mapeo de dominios de la SPA en el frontend para estructurar las rutas y enlaces integrados en el cuerpo de los correos electrónicos.
+
+##### B. Aislamiento y Gobernanza de Secretos en Despliegue
+Para asegurar que las claves transaccionales no se expongan en el repositorio Git, el archivo local `.env` y el archivo del contenedor `backend/.env` se encuentran expresamente ignorados en la base del control de versiones mediante reglas declaradas en el archivo `.gitignore`. 
+
+Al realizar el despliegue del sistema en servidores de producción (tales como Render, AWS o contenedores Docker Compose de taquilla), las variables de entorno no son cargadas mediante archivos del repositorio, sino que son inyectadas dinámicamente como secretos de infraestructura a través de la consola del hosting o el gestor de secretos de la nube, aislando por completo las llaves criptográficas de la capa de desarrollo local del software.
+
 ---
 
 # CAPÍTULO 4
