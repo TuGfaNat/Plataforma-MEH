@@ -86,7 +86,7 @@ const CATEGORIES_INFO = {
   recursos: { label: 'Recursos Biblioteca', icon: <Library24Regular />, color: tokens.colorPaletteBerryBorderActive, roles: ['ADMIN', 'MODERADOR'] },
   productos: { label: 'POS & Productos', icon: <Box24Regular />, color: tokens.colorPaletteGoldBorderActive, roles: ['ADMIN'] },
   speakers: { label: 'Speakers', icon: <PersonBoard24Regular />, color: tokens.colorPaletteLavenderBorderActive, roles: ['ADMIN', 'ORGANIZADOR'] },
-  auspiciadores: { label: 'Auspiciadores', icon: <Award24Regular />, color: tokens.colorPalettePumpkinBorderActive, roles: ['ADMIN', 'ORGANIZADOR'] },
+  auspiciadores: { label: 'Auspiciadores', icon: <Reward24Regular />, color: tokens.colorPalettePumpkinBorderActive, roles: ['ADMIN', 'ORGANIZADOR'] },
   comunidades: { label: 'Comunidades Aliadas', icon: <Globe24Regular />, color: tokens.colorPaletteGrapeBorderActive, roles: ['ADMIN', 'ORGANIZADOR'] }
 };
 
