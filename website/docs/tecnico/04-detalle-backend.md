@@ -67,13 +67,12 @@ Para dar soporte a la validación e integración automática de inscripciones a 
 ### A. Algoritmo Jaro-Winkler Puro en Python (`similarity.py`)
 El motor de comparación difusa implementa de forma nativa la distancia de Jaro-Winkler para tolerar errores ortográficos en los nombres transcritos por transferencias (ej. "Mamani" vs "Mamany"):
 * **Jaro Distance**: Computa la proporción de caracteres coincidentes ($m$) y las transposiciones necesarias ($t$):
-  ```
-  d_j = (1/3) * (m / |s1| + m / |s2| + (m - t) / m)
-  ```
+
+  `d_j = (1/3) * (m / len(s1) + m / len(s2) + (m - t) / m)`
+
 * **Winkler Adjustment**: Incrementa la similitud en función de la longitud del prefijo común $l$ (máximo 4 caracteres) y un factor de escala constante $p = 0.1$:
-  ```
-  d_w = d_j + l * p * (1 - d_j)
-  ```
+
+  `d_w = d_j + l * p * (1 - d_j)`
 * **Fuzzy Word Check**: El método `check_name_in_description_fuzzy` normaliza el texto (removiendo acentos y caracteres especiales), tokeniza el nombre completo omitiendo palabras de enlace de 2 letras o menos, y compara cada palabra contra los términos del extracto bancario con un umbral de coincidencia del **85%**.
 
 ### B. Conciliación Multivariable y Desambiguación de IDs (`ocrm_service.py`)

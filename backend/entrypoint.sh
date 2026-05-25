@@ -32,6 +32,13 @@ alembic upgrade head
 echo "✅ Migraciones ejecutadas correctamente"
 
 # ─────────────────────────────────────────────
+# 2b. Ejecutar saneamiento estructural de base de datos
+# ─────────────────────────────────────────────
+echo "🛠️ Ejecutando saneamiento estructural de base de datos..."
+python -m app.sanitize_db
+echo "✅ Saneamiento estructural completado"
+
+# ─────────────────────────────────────────────
 # 3. Seed opcional según variable RUN_SEED
 # ─────────────────────────────────────────────
 if [ "$RUN_SEED" = "super" ]; then
