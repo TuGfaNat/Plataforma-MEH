@@ -36,7 +36,8 @@ def seed_complete_ecosystem():
                     password_hash=password_hash,
                     fecha_registro=datetime.utcnow(),
                     fecha_creacion=datetime.utcnow(),
-                    tipo_entidad="Profesional" if r["rol"] != "MIEMBRO" else "Estudiante"
+                    tipo_entidad="Profesional" if r["rol"] != "MIEMBRO" else "Estudiante",
+                    es_nuevo=False
                 )
                 db.add(db_user)
                 db.commit()

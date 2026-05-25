@@ -30,7 +30,8 @@ def add_nataly():
                 bio="Líder y visionaria de la Plataforma MEH. Impulsando la tecnología en Bolivia.",
                 tipo_entidad="Profesional",
                 preferencia_tema="dark",
-                fecha_registro=datetime.utcnow()
+                fecha_registro=datetime.utcnow(),
+                es_nuevo=False
                 # Nota: La tabla usuarios según models.py no tiene columna 'celular' directamente, 
                 # pero se puede guardar en la bio o campos de contacto si existieran.
                 # Como no existe 'telefono' en el modelo Usuario, lo omito para evitar errores de SQL.

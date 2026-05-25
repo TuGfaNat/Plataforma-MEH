@@ -78,7 +78,8 @@ def generate_super_seed():
                     alias=f"{role}_MEH",
                     institucion="MEH Core Team",
                     tipo_entidad="Profesional",
-                    preferencia_tema="dark"
+                    preferencia_tema="dark",
+                    es_nuevo=False
                 )
                 db.add(user)
                 db.commit()
@@ -105,7 +106,8 @@ def generate_super_seed():
                     departamento=random.choice(CIUDADES),
                     tipo_entidad=random.choice(["Estudiante", "Profesional"]),
                     bio=f"Soy un desarrollador apasionado por la tecnología número {i}.",
-                    fecha_registro=datetime.utcnow() - timedelta(days=random.randint(1, 100))
+                    fecha_registro=datetime.utcnow() - timedelta(days=random.randint(1, 100)),
+                    es_nuevo=False
                 )
                 db.add(user)
                 db.commit()
