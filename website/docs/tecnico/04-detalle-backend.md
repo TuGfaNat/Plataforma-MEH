@@ -67,17 +67,21 @@ Para dar soporte a la validación e integración automática de inscripciones a 
 ### A. Algoritmo Jaro-Winkler Puro en Python (`similarity.py`)
 El motor de comparación difusa implementa de forma nativa la distancia de Jaro-Winkler para tolerar errores ortográficos en los nombres transcritos por transferencias (ej. "Mamani" vs "Mamany"):
 * **Jaro Distance**: Computa la proporción de caracteres coincidentes ($m$) y las transposiciones necesarias ($t$):
-  $$d_j = \frac{1}{3} \left( \frac{m}{|s_1|} + \frac{m}{|s_2|} + \frac{m - t}{m} \right)$$
+  ```
+  d_j = (1/3) * (m / |s1| + m / |s2| + (m - t) / m)
+  ```
 * **Winkler Adjustment**: Incrementa la similitud en función de la longitud del prefijo común $l$ (máximo 4 caracteres) y un factor de escala constante $p = 0.1$:
-  $$d_w = d_j + l \cdot p \cdot (1 - d_j)$$
+  ```
+  d_w = d_j + l * p * (1 - d_j)
+  ```
 * **Fuzzy Word Check**: El método `check_name_in_description_fuzzy` normaliza el texto (removiendo acentos y caracteres especiales), tokeniza el nombre completo omitiendo palabras de enlace de 2 letras o menos, y compara cada palabra contra los términos del extracto bancario con un umbral de coincidencia del **85%**.
 
 ### B. Conciliación Multivariable y Desambiguación de IDs (`ocrm_service.py`)
 La función `procesar_extracto_bancario` busca de forma estructurada los pagos que se encuentran en estado `'PENDIENTE'` cruzándolos contra las filas del archivo CSV de banco:
 1. **Coincidencia por ID Exacto**: Para evitar colisiones por substring en identificadores cortos (ej. ID de pago `2` dentro de una descripción con `29`), el motor normaliza y divide la descripción en palabras completas. Si el string `id_pago` existe como palabra exacta, se asigna automáticamente una confianza del **100%**.
 2. **Ventanas de Fecha de Pago (±3 días)**: Se calcula la diferencia temporal absoluta entre la fecha del extracto bancario y la registrada por el alumno:
-   * Diferencia $\le 1$ día: Se suma un **+15.0%** de confianza.
-   * Diferencia $\le 3$ días: Se suma un **+5.0%** de confianza.
+   * Diferencia ≤ 1 día: Se suma un **+15.0%** de confianza.
+   * Diferencia ≤ 3 días: Se suma un **+5.0%** de confianza.
 3. **Corte de Similitud**: Las tuplas que superan un umbral consolidado de **60.0%** son emparejadas y vinculadas para aprobación rápida del administrador.
 
 ### C. Clasificación Determinística de Vouchers (`pagos_service.py`)
