@@ -46,9 +46,7 @@ def inscribir_evento(
         id_evento=id_evento,
         fecha_inscripcion=datetime.utcnow(),
         estado_inscripcion="PENDIENTE",
-        codigo_qr=token_qr,
-        creado_por=user_id,
-        fecha_creacion=datetime.utcnow()
+        codigo_qr=token_qr
     )
     db.add(nueva_inscripcion)
     db.commit()
@@ -108,7 +106,7 @@ def cancelar_inscripcion_evento(
     if inscripcion.estado_inscripcion == "CONFIRMADA":
         raise ValidacionNegocioError("No puedes cancelar una inscripción ya confirmada/pagada. Contacta a soporte.")
 
-    db.delete(inscripcion)
+    inscripcion.id_estado = 0
     db.commit()
 
     registrar_log(
@@ -145,9 +143,7 @@ def inscribir_curso(
         fecha_inscripcion=datetime.utcnow(),
         progreso=0,
         finalizado=False,
-        estado_inscripcion="PENDIENTE", # Los cursos pueden requerir pago
-        creado_por=user_id,
-        fecha_creacion=datetime.utcnow()
+        estado_inscripcion="PENDIENTE" # Los cursos pueden requerir pago
     )
     db.add(nueva_inscripcion)
     db.commit()

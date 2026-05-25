@@ -33,23 +33,25 @@ sequenceDiagram
     end
 ```
 
-### 1.1. Procedimiento de Control de Asistencia Física
+### 1.1. Procedimiento de Control de Asistencia Física (Modo Online y Offline-First)
 El día de la conferencia, seminario o taller, el personal de soporte ejecuta el siguiente protocolo síncrono en la puerta de acceso:
 
 1.  **Ingresar a la Vista de Escaneo (Ruta: `/escaneo-qr`):**
     *   Inicia sesión con tu cuenta de Soporte autorizada.
     *   Haz clic en la opción **Escanear QR** en el menú superior o lateral de Fluent UI.
     *   El navegador te solicitará permisos de cámara. Concede el acceso a la cámara trasera (en dispositivos móviles) o delantera (en laptops).
-2.  **Iniciar Escaneo del Asistente:**
-    *   El asistente mostrará en su pantalla de teléfono el ticket QR provisto por la plataforma (o su impresión en papel bond).
-    *   Apunta la cámara del dispositivo hacia el código de barras bidimensional QR.
-    *   El motor de decodificación incorporado en el frontend de Fluent UI procesará la matriz de píxeles en milisegundos.
-3.  **Visualizar Resultados del Checkpoint:**
-    *   **Alerta Verde (Éxito):** La pantalla parpadea en verde y muestra el nombre completo del estudiante, el departamento y el mensaje *"Ingreso Autorizado"*. El backend registra síncronamente el ingreso en la base de datos de control.
-    *   **Alerta Roja (Denegado):** Se despliega una advertencia en rojo. Los motivos comunes son:
-        *   El ticket ya fue escaneado anteriormente (prevención de duplicación o fraude).
-        *   El estudiante no está inscrito formalmente en este congreso o evento en particular.
-        *   El ticket QR es inválido o no corresponde a la Plataforma MEH.
+2.  **Preparación y Caché Local (Si no hay red en puerta):**
+    *   **Antes de ingresar al recinto (Con conexión activa)**: Selecciona el Evento de la lista desplegable y el Checkpoint correspondiente (ej. "Entrada General", "Entrega de Kits"). Haz clic en el botón **"Descargar Registrados"** para descargar y cachear localmente toda la nómina de inscritos en IndexedDB.
+    *   **Activar Modo Offline Manual**: Si la señal de internet es inestable o nula, activa el interruptor **"Modo Offline Manual"**. El indicador de conexión cambiará de estado a *"Offline Forzado"*.
+3.  **Iniciar Escaneo del Asistente:**
+    *   Apunta la cámara del dispositivo hacia el código QR de la credencial.
+    *   **En Modo Online**: La aplicación despacha una petición REST directa al servidor FastAPI.
+    *   **En Modo Offline**: El sistema busca y valida el token QR localmente en IndexedDB.
+        *   **Alerta Verde (Éxito)**: La pantalla parpadea en verde y muestra el nombre completo del estudiante con el mensaje *"Ingreso Autorizado (Offline)"*. La marca se añade a la cola local y se actualiza el caché de registrados.
+        *   **Alerta Roja (Denegado)**: Se despliega si el QR no está en la base local, si ya fue escaneado anteriormente (prevención de fraude) o si corresponde a otro evento.
+4.  **Sincronización de Marcas Pendientes:**
+    *   Al retornar a un área con cobertura de red, haz clic en el botón **"Sincronizar Cola"**.
+    *   La aplicación subirá una a una las marcas registradas en IndexedDB al servidor FastAPI. Observarás una barra de progreso que indica el estado del lote en tiempo real. Cada marca subida exitosamente será removida de la cola local.
 
 ---
 

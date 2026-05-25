@@ -10,6 +10,8 @@ from ..schemas import user as user_schema
 from ..core import auth as auth_core
 from ..core.exceptions import CredencialesInvalidasError
 from ..services import auth_service
+from ..core.context import current_user_id
+
 
 router = APIRouter(
     prefix="/auth",
@@ -32,6 +34,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if user is None:
         raise CredencialesInvalidasError("El usuario de la sesión ya no existe")
     
+    current_user_id.set(user.id_usuario)
     return user
 
 @router.post("/register", response_model=user_schema.UserResponse, status_code=status.HTTP_201_CREATED)

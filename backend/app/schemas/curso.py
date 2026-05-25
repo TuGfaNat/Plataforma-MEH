@@ -75,6 +75,14 @@ class CursoBase(BaseModel):
 class CursoCreate(CursoBase):
     pass
 
+class CursoUpdate(BaseModel):
+    nombre_curso: Optional[str] = None
+    descripcion: Optional[str] = None
+    horas_academicas: Optional[int] = None
+    imagen_url: Optional[str] = None
+    estado: Optional[str] = None
+    id_estado: Optional[int] = None
+
 class CursoResponse(CursoBase):
     id_curso: int
     id_instructor: Optional[int] = None

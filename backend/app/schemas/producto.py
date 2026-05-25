@@ -24,6 +24,7 @@ class ProductoUpdate(BaseModel):
     es_kit_evento: Optional[bool] = None
     imagen_url: Optional[str] = None
     categoria: Optional[str] = None
+    id_estado: Optional[int] = None
 
 class ProductoResponse(ProductoBase):
     id_producto: int

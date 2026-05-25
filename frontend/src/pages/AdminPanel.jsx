@@ -5,7 +5,8 @@ import {
 } from '@fluentui/react-components';
 import { 
   Settings24Filled, Library24Regular, People24Regular, Box24Regular,
-  HatGraduation24Regular, CalendarLtr24Regular, MegaphoneLoud24Regular
+  HatGraduation24Regular, CalendarLtr24Regular, MegaphoneLoud24Regular,
+  DeleteDismiss24Regular
 } from '@fluentui/react-icons';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 
@@ -22,6 +23,7 @@ import EventsTab from './Admin/EventsTab';
 import SouvenirsTab from './Admin/SouvenirsTab';
 import LibraryTab from './Admin/LibraryTab';
 import AcademyTab from './Admin/AcademyTab';
+import PapeleraTab from './Admin/PapeleraTab';
 
 const useStyles = makeStyles({
   container: {
@@ -66,30 +68,53 @@ const AdminPanel = () => {
   const [selectedEventoId, setSelectedEventoId] = useState(null);
   const [isAddingEvento, setIsAddingEvento] = useState(false);
   const [isEditingEvento, setIsEditingEvento] = useState(false);
-  const [newEvento, setNewEvento] = useState({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', capacidad_max: 50, refrigerio_incluido: false });
+  const [newEvento, setNewEvento] = useState({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', capacidad_max: 50, refrigerio_incluido: false, id_estado: 2 });
 
   // Souvenirs & POS
   const [isEditingSouvenir, setIsEditingSouvenir] = useState(false);
   const [currentSouvenirId, setCurrentSouvenirId] = useState(null);
-  const [newSouvenir, setNewSouvenir] = useState({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', categoria: 'SOUVENIR' });
+  const [newSouvenir, setNewSouvenir] = useState({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', categoria: 'SOUVENIR', id_estado: 2 });
 
   // Biblioteca
   const [isEditingRecurso, setIsEditingRecurso] = useState(false);
   const [currentRecursoId, setCurrentRecursoId] = useState(null);
-  const [newRecurso, setNewRecurso] = useState({ titulo: '', descripcion: '', motivo: '', autor_nombre: '', url_descarga: '', portada_url: '', tipo_archivo: '', tipo_recurso: 'ARCHIVO', contenido_md: '', categoria: 'GENERAL', id_curso: null, id_evento: null });
+  const [newRecurso, setNewRecurso] = useState({ titulo: '', descripcion: '', motivo: '', autor_nombre: '', url_descarga: '', portada_url: '', tipo_archivo: '', tipo_recurso: 'ARCHIVO', contenido_md: '', categoria: 'GENERAL', id_curso: null, id_evento: null, id_estado: 2 });
 
   // Academia LMS
   const [selectedCursoId, setSelectedCursoId] = useState(null);
   const [isAddingCurso, setIsAddingCurso] = useState(false);
   const [isEditingCurso, setIsEditingCurso] = useState(false);
-  const [newCurso, setNewCurso] = useState({ nombre_curso: '', descripcion: '', horas_academicas: 10, imagen_url: '' });
+  const [newCurso, setNewCurso] = useState({ nombre_curso: '', descripcion: '', horas_academicas: 10, imagen_url: '', id_estado: 2 });
   const [lecciones, setLecciones] = useState([]);
   const [isAddingLeccion, setIsAddingLeccion] = useState(false);
   const [isEditingLeccion, setIsEditingLeccion] = useState(false);
   const [currentLeccionId, setCurrentLeccionId] = useState(null);
   const [newLeccion, setNewLeccion] = useState({ titulo: '', contenido_video_url: '', contenido_texto: '', orden: 1 });
 
+  const getDefaultTab = () => {
+    if (currentUser?.rol === 'ADMIN') return 'usuarios';
+    if (currentUser?.rol === 'ORGANIZADOR') return 'eventos';
+    if (currentUser?.rol === 'MODERADOR') return 'academia';
+    return 'usuarios';
+  };
+
+  useEffect(() => {
+    if (currentUser?.rol) {
+      setSelectedTab(getDefaultTab());
+    }
+  }, [currentUser]);
+
   const fetchData = async () => {
+    if (!selectedTab) return;
+    
+    // Validar permisos del tab actual
+    if (selectedTab === 'usuarios' && currentUser?.rol !== 'ADMIN') return;
+    if (selectedTab === 'eventos' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR') return;
+    if (selectedTab === 'souvenirs' && currentUser?.rol !== 'ADMIN') return;
+    if (selectedTab === 'biblioteca' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'MODERADOR') return;
+    if (selectedTab === 'academia' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'MODERADOR') return;
+    if (selectedTab === 'papelera') return;
+    
     setData([]);
     setLoading(true);
     try {
@@ -121,7 +146,7 @@ const AdminPanel = () => {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchData(); }, [selectedTab]);
+  useEffect(() => { fetchData(); }, [selectedTab, currentUser]);
 
   const fetchLecciones = async (id) => {
       try {
@@ -168,7 +193,7 @@ const AdminPanel = () => {
               await api.post('/eventos/', dataToSave);
               notify("Éxito", "Evento publicado", "success");
           }
-          setNewEvento({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', link_mapas: '', capacidad_max: 50, refrigerio_incluido: false });
+          setNewEvento({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', link_mapas: '', capacidad_max: 50, refrigerio_incluido: false, id_estado: 2 });
           setIsAddingEvento(false); setIsEditingEvento(false); fetchData();
       } catch (e) { notify("Error", "Fallo al guardar evento", "error"); }
   };
@@ -184,7 +209,8 @@ const AdminPanel = () => {
           ubicacion: ev.ubicacion || '', 
           link_mapas: ev.link_mapas || '',
           capacidad_max: ev.capacidad_max, 
-          refrigerio_incluido: ev.refrigerio_incluido 
+          refrigerio_incluido: ev.refrigerio_incluido,
+          id_estado: ev.id_estado ?? 2
       });
       setIsEditingEvento(true); setIsAddingEvento(true);
   };
@@ -199,7 +225,7 @@ const AdminPanel = () => {
               await api.post('/cursos/', newCurso);
               notify("Éxito", "Programa lanzado", "success");
           }
-          setNewCurso({ nombre_curso: '', descripcion: '', horas_academicas: 10, imagen_url: '' });
+          setNewCurso({ nombre_curso: '', descripcion: '', horas_academicas: 10, imagen_url: '', id_estado: 2 });
           setIsAddingCurso(false); setIsEditingCurso(false); fetchData();
       } catch (e) { notify("Error", "Fallo al guardar curso", "error"); }
   };
@@ -209,7 +235,8 @@ const AdminPanel = () => {
         nombre_curso: c.nombre_curso, 
         descripcion: c.descripcion || '', 
         horas_academicas: c.horas_academicas || 10, 
-        imagen_url: c.imagen_url || '' 
+        imagen_url: c.imagen_url || '',
+        id_estado: c.id_estado ?? 2
     });
     setSelectedCursoId(c.id_curso);
     setIsEditingCurso(true);
@@ -246,7 +273,7 @@ const AdminPanel = () => {
               await recursoService.createRecurso(newRecurso);
               notify("Éxito", "Recurso publicado", "success");
           }
-          setNewRecurso({ titulo: '', descripcion: '', motivo: '', autor_nombre: '', url_descarga: '', portada_url: '', tipo_archivo: '', tipo_recurso: 'ARCHIVO', contenido_md: '', categoria: 'GENERAL', id_curso: null, id_evento: null });
+          setNewRecurso({ titulo: '', descripcion: '', motivo: '', autor_nombre: '', url_descarga: '', portada_url: '', tipo_archivo: '', tipo_recurso: 'ARCHIVO', contenido_md: '', categoria: 'GENERAL', id_curso: null, id_evento: null, id_estado: 2 });
           setIsEditingRecurso(false); fetchData();
       } catch (e) { notify("Error", "Fallo al guardar recurso", "error"); }
   };
@@ -264,7 +291,8 @@ const AdminPanel = () => {
         contenido_md: r.contenido_md || '', 
         categoria: r.categoria || 'GENERAL', 
         id_curso: r.id_curso, 
-        id_evento: r.id_evento 
+        id_evento: r.id_evento,
+        id_estado: r.id_estado ?? 2
     });
     setCurrentRecursoId(r.id_recurso);
     setIsEditingRecurso(true);
@@ -280,7 +308,7 @@ const AdminPanel = () => {
               await adminService.createSouvenir(newSouvenir);
               notify("Éxito", "Producto agregado", "success");
           }
-          setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', categoria: 'SOUVENIR' });
+          setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', categoria: 'SOUVENIR', id_estado: 2 });
           setIsEditingSouvenir(false); fetchData();
       } catch (e) { notify("Error", "Fallo al guardar producto", "error"); }
   };
@@ -292,7 +320,8 @@ const AdminPanel = () => {
         precio: s.precio, 
         stock: s.stock, 
         imagen_url: s.imagen_url || '', 
-        categoria: s.categoria || 'SOUVENIR' 
+        categoria: s.categoria || 'SOUVENIR',
+        id_estado: s.id_estado ?? 2
     });
     setCurrentSouvenirId(s.id_producto);
     setIsEditingSouvenir(true);
@@ -313,11 +342,12 @@ const AdminPanel = () => {
       </div>
 
       <TabList selectedValue={selectedTab} onTabSelect={(e, d) => { setData([]); setSelectedTab(d.value); }} style={{ overflowX: 'auto' }}>
-        <Tab value="usuarios" icon={<People24Regular />}>Miembros</Tab>
-        <Tab value="eventos" icon={<CalendarLtr24Regular />}>Eventos</Tab>
-        <Tab value="souvenirs" icon={<Box24Regular />}>POS & Stock</Tab>
-        <Tab value="biblioteca" icon={<Library24Regular />}>Biblioteca</Tab>
-        <Tab value="academia" icon={<HatGraduation24Regular />}>Aula Virtual</Tab>
+        {currentUser?.rol === 'ADMIN' && <Tab value="usuarios" icon={<People24Regular />}>Miembros</Tab>}
+        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR') && <Tab value="eventos" icon={<CalendarLtr24Regular />}>Eventos</Tab>}
+        {currentUser?.rol === 'ADMIN' && <Tab value="souvenirs" icon={<Box24Regular />}>POS & Stock</Tab>}
+        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="biblioteca" icon={<Library24Regular />}>Biblioteca</Tab>}
+        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="academia" icon={<HatGraduation24Regular />}>Aula Virtual</Tab>}
+        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="papelera" icon={<DeleteDismiss24Regular />}>Papelera</Tab>}
       </TabList>
 
       <MEHCard>
@@ -341,6 +371,7 @@ const AdminPanel = () => {
             handleEditEvento={handleEditEvento} confirmDelete={confirmDelete} styles={styles}
             handleFileUpload={handleFileUpload}
             uploading={uploading}
+            fetchData={fetchData}
           />
         )}
 
@@ -352,6 +383,7 @@ const AdminPanel = () => {
             handleFileUpload={handleFileUpload} handleSaveSouvenir={handleSaveSouvenir}
             handleEditSouvenir={handleEditSouvenir} confirmDelete={confirmDelete}
             styles={styles} 
+            fetchData={fetchData}
           />
         )}
 
@@ -359,6 +391,9 @@ const AdminPanel = () => {
           <LibraryTab 
             data={data} newRecurso={newRecurso} setNewRecurso={setNewRecurso} 
             handleSaveRecurso={handleSaveRecurso} styles={styles} 
+            isEditingRecurso={isEditingRecurso} setIsEditingRecurso={setIsEditingRecurso}
+            handleEditRecurso={handleEditRecurso} confirmDelete={confirmDelete}
+            fetchData={fetchData}
           />
         )}
 
@@ -378,11 +413,16 @@ const AdminPanel = () => {
             handleFileUpload={handleFileUpload} uploading={uploading}
             styles={styles} 
             quillModules={quillModules} 
+            fetchData={fetchData}
           />
         )}
 
         {selectedTab === 'anuncios' && (
           <AnnouncementsTab />
+        )}
+
+        {selectedTab === 'papelera' && (
+          <PapeleraTab currentUser={currentUser} notify={notify} />
         )}
       </MEHCard>
 

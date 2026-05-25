@@ -31,6 +31,7 @@ class SpeakerUpdate(BaseModel):
     instagram_url: Optional[str] = None
     correo_contacto: Optional[str] = None
     whatsapp_contacto: Optional[str] = None
+    id_estado: Optional[int] = None
 
 class SpeakerResponse(SpeakerBase):
     id_speaker: int
@@ -55,6 +56,7 @@ class AuspiciadorUpdate(BaseModel):
     tipo: Optional[str] = None
     correo_contacto: Optional[str] = None
     whatsapp_contacto: Optional[str] = None
+    id_estado: Optional[int] = None
 
 class AuspiciadorResponse(AuspiciadorBase):
     id_auspiciador: int
@@ -79,6 +81,7 @@ class ComunidadUpdate(BaseModel):
     link_contacto: Optional[str] = None
     correo_contacto: Optional[str] = None
     whatsapp_contacto: Optional[str] = None
+    id_estado: Optional[int] = None
 
 class ComunidadResponse(ComunidadBase):
     id_comunidad: int

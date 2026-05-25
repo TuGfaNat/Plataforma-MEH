@@ -30,6 +30,7 @@ class RecursoUpdate(BaseModel):
     categoria: Optional[str] = None
     id_curso: Optional[int] = None
     id_evento: Optional[int] = None
+    id_estado: Optional[int] = None
 
 class RecursoResponse(RecursoBase):
     id_recurso: int

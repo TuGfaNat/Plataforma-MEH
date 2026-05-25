@@ -23,7 +23,12 @@ const asistenciaService = {
   createCheckpoint: async (idEvento, data) => {
     const response = await api.post(`/eventos/${idEvento}/checkpoints`, data);
     return response.data;
+  },
+  getInscritosConfirmados: async (idEvento) => {
+    const response = await api.get(`/eventos/${idEvento}/inscritos-confirmados`);
+    return response.data;
   }
 };
 
 export default asistenciaService;
+

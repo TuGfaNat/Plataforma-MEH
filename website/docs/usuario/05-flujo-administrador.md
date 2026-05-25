@@ -30,27 +30,38 @@ La pestaña de **Analytics** consolida métricas críticas del estado del Hub me
 
 ---
 
-## 🔍 3. Consola Financiera y Automatización OCR (`GestionPagos.jsx`)
-Una de las innovaciones tecnológicas de la suite es la **Conciliación de Vouchers Financieros mediante Visión Artificial OCR**:
+## 🔍 3. Consola Financiera y Conciliación Bancaria con Jaro-Winkler (`GestionPagos.jsx`)
+Una de las innovaciones tecnológicas de la suite es la **Conciliación de Vouchers Financieros mediante Similitud Difusa de Jaro-Winkler y OCR Determinístico**:
 
 ```mermaid
 flowchart TD
-    A[Voucher Subido por Alumno] --> B[Motor OCR del Backend FastAPI]
-    B --> C{Extracción de Metadatos}
-    C -->|Éxito - Datos Coinciden| D[Aprobación Automatizada de Transacción]
-    C -->|Fallo - Ruido o Ilegible| E[Alerta en Bandeja de Administrador]
-    E --> F[Revisión Visual en Consola]
-    F -->|Clic Aprobación| G[Desbloqueo Síncrono de Acceso Académico]
-    F -->|Clic Rechazo| H[Notificación de Rechazo por Correo]
+    A[Voucher Subido por Alumno] --> B[Motor de OCR Determinístico]
+    B -->|PDF/Imagen > 5 KB| C[Confianza 98% - VERIFICADO_AUTOMATICO]
+    B -->|Archivo pequeño < 5 KB| D[Confianza 50% - REVISION_MANUAL]
+    
+    E[Cargar Extracto Bancario CSV] --> F[Motor de Conciliación Bancaria]
+    F --> G[Fuzzy Matching Jaro-Winkler de Nombres]
+    F --> H[Búsqueda de ID Exacto como Palabra Completa]
+    F --> I[Bonus por Ventana Temporal de Fecha ±3 días]
+    G & H & I --> J{¿Similitud >= 60.0%?}
+    J -->|Sí| K[Emparejar y Autocompletar Conciliación]
+    J -->|No| L[Mantener Pendiente]
 ```
 
-### Guía de Operación Financiera:
-1.  **Ingresar a Conciliación OCR:** Accede a la subpestaña **Pagos**.
-2.  **Verificar Bandeja de Pendientes:** El sistema muestra una cuadrícula reactiva con los registros cuyo estado es `EN_REVISION`.
-3.  **Extracción por Visión Artificial:** El backend procesa las imágenes mediante bibliotecas OCR, extrayendo metadatos como *número de transacción*, *fecha* y *monto depositado*.
-4.  **Decisión Operativa:**
-    *   Si los metadatos se validan automáticamente con las API bancarias integradas, la plataforma aprueba el registro de manera síncrona sin intervención humana.
-    *   En caso de discrepancias (ruido en imagen, voucher borroso), el administrador visualiza la imagen original al lado de los campos detectados, pudiendo aprobar o rechazar manualmente con un solo clic.
+### Guía de Operación Financiera y Carga de Extractos:
+1.  **Ingresar a Conciliación OCR:** Accede a la subpestaña **Pagos** en la consola del Administrador.
+2.  **Validación Inicial Determinística**: Cada vez que un estudiante sube un comprobante, el sistema evalúa sus propiedades físicas. Si es un archivo válido (PDF o Imagen de tamaño realista), se registra automáticamente una confianza del **98%** y se marca como `VERIFICADO_AUTOMATICO`. Si es sospechosamente pequeño o de formato no apto, se le asigna un **50% de confianza** y se deriva a la bandeja de `REVISION_MANUAL`.
+3.  **Carga del Extracto Bancario (Reconciliación en Lote)**:
+    *   Haz clic en el botón **"Cargar Extracto Bancario (CSV)"** en la esquina superior de la consola de administración.
+    *   Selecciona el archivo `.csv` descargado de la banca por internet oficial (Banco Unión, BNB, Mercantil Santa Cruz, etc.). El archivo debe contener al menos las columnas `Fecha`, `Descripcion` y `Monto`.
+    *   El motor procesará en lote el extracto, contrastando las transacciones de depósito contra los registros `PENDIENTES` de los alumnos.
+4.  **Criterio de Emparejamiento Inteligente (Jaro-Winkler)**:
+    *   El sistema evalúa el nombre del estudiante y busca variaciones o errores ortográficos en la descripción de la transferencia utilizando una tolerancia de distancia del **85%** por palabra (ej. "Mamani" contra "Mamany").
+    *   Aplica una regla de proximidad temporal: si la fecha declarada del pago y el depósito del extracto difieren en $\le 1$ día se inyecta un **+15.0%** de similitud; si difieren en $\le 3$ días se inyecta un **+5.0%**.
+    *   Busca de forma exacta el código identificador del pago como término completo (ej. `"PAGO 29"`), asignando un **100.0% de confianza instantánea** si lo encuentra.
+5.  **Aprobación y Desbloqueo Académico**:
+    *   En la rejilla interactiva de Fluent UI se listan las transacciones emparejadas con su respectivo porcentaje de similitud computado (ej. "Coincidencia: 97.5% - Jose Mamani Quispe").
+    *   Para aprobar la conciliación, haz clic en **"Confirmar Conciliación"**. Esto actualiza instantáneamente el estado del pago a `APROBADO`, matricula al alumno en el curso o evento correspondiente de forma síncrona en la base de datos PostgreSQL, y le otorga sus respectivos puntos de experiencia y medallas.
 
 ---
 

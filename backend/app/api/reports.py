@@ -7,7 +7,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..api.auth import get_current_user
-from ..core.permissions import PERMISSION_AUDIT_READ, has_permission
+from ..core.permissions import PERMISSION_AUDIT_READ, has_permission, ensure_permission
 from ..database import get_db
 from ..models import models
 
@@ -39,24 +39,10 @@ def get_dashboard_stats(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user),
 ):
-    if not has_permission(current_user.rol, PERMISSION_AUDIT_READ):
-        return {
-            "kpis": {
-                "total_miembros": 0, "miembros_activos": 0, "total_eventos": 0, "total_cursos": 0,
-                "total_badges_otorgados": 0, "ingresos_totales": 0, "total_pagos": 0,
-                "tasa_conversion_asistencia": 0, "total_inscripciones_eventos": 0,
-                "total_asistencias_eventos": 0, "total_inscripciones_cursos": 0, "cursos_finalizados": 0,
-                "tasa_finalizacion_cursos": 0, "total_compras": 0, "ingresos_souvenirs": 0,
-                "ticket_promedio_compra": 0, "ventas_souvenirs": 0, "horas_formacion_ofertadas": 0,
-                "horas_formacion_estimadas": 0,
-            },
-            "segmentacion": [], "roles": [], "geografia": [], "rendimiento_cursos": [],
-            "asistencia_series": [], "inscripciones_por_evento": [], "talleres_por_modalidad": [],
-            "eventos_por_estado": [], "pagos_por_estado": [], "compras_por_metodo": [],
-            "top_productos": [], "actividad_mensual": [], "crecimiento_comunidad": [],
-        }
+    ensure_permission(current_user.rol, PERMISSION_AUDIT_READ, "No tienes privilegios para consultar reportes estratégicos")
 
     total_miembros = int(_safe_value(lambda: db.query(func.count(models.Usuario.id_usuario)).scalar(), 0))
+
     miembros_activos = int(_safe_value(lambda: db.query(func.count(models.Usuario.id_usuario)).filter(models.Usuario.activo.is_(True)).scalar(), total_miembros))
     total_eventos = int(_safe_value(lambda: db.query(func.count(models.Evento.id_evento)).scalar(), 0))
     total_cursos = int(_safe_value(lambda: db.query(func.count(models.Curso.id_curso)).scalar(), 0))

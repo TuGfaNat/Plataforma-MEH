@@ -10,7 +10,7 @@ import {
   Clock24Regular, Dismiss24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
-import { resolveApiFileUrl } from '../../services/api';
+import api, { resolveApiFileUrl } from '../../services/api';
 
 const useStyles = makeStyles({
   grid: { display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', marginTop: '24px', alignItems: 'start' },
@@ -65,7 +65,7 @@ const useStyles = makeStyles({
 const EventsTab = ({ 
   eventosList, speakersList, selectedEventoId, setSelectedEventoId, isAddingEvento, setIsAddingEvento,
   isEditingEvento, setIsEditingEvento, newEvento, setNewEvento, handleSaveEvento, 
-  handleEditEvento, confirmDelete
+  handleEditEvento, confirmDelete, fetchData
 }) => {
   const { t } = useTranslation();
   const styles = useStyles();
@@ -141,12 +141,17 @@ const EventsTab = ({
             className={`${styles.selectableCard} ${selectedEventoId === ev.id_evento ? styles.activeItem : ''}`} 
             onClick={() => setSelectedEventoId(ev.id_evento)}
           >
-            <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-              <Badge color={ev.tipo_evento === 'HACKATHON' ? 'important' : 'brand'}>{ev.tipo_evento?.charAt(0)}</Badge>
-              <div>
-                <b>{ev.titulo}</b><br/>
-                <MEHTypography variant="caption">{new Date(ev.fecha_inicio).toLocaleDateString()}</MEHTypography>
+            <div style={{display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between', width: '100%'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                <Badge color={ev.tipo_evento === 'HACKATHON' ? 'important' : 'brand'}>{ev.tipo_evento?.charAt(0)}</Badge>
+                <div>
+                  <b>{ev.titulo}</b><br/>
+                  <MEHTypography variant="caption">{new Date(ev.fecha_inicio).toLocaleDateString()}</MEHTypography>
+                </div>
               </div>
+              <Badge color={ev.id_estado === 1 ? 'warning' : 'success'} appearance="tint">
+                {ev.id_estado === 1 ? 'Inactivo' : 'Activo'}
+              </Badge>
             </div>
           </div>
         ))}
@@ -245,7 +250,14 @@ const EventsTab = ({
               <MEHButton icon={<Add24Regular />} appearance="subtle" onClick={addAgendaItem}>{t("admin_add_agenda_block")}</MEHButton>
             </div>
 
-            <Switch label={t("admin_includes_catering")} checked={newEvento.refrigerio_incluido} onChange={(e, d) => setNewEvento({...newEvento, refrigerio_incluido: d.checked})} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <Switch label={t("admin_includes_catering")} checked={newEvento.refrigerio_incluido} onChange={(e, d) => setNewEvento({...newEvento, refrigerio_incluido: d.checked})} />
+              <Switch 
+                label="Evento Publicado (Activo en Plataforma)" 
+                checked={newEvento.id_estado !== 1} 
+                onChange={(e, d) => setNewEvento({...newEvento, id_estado: d.checked ? 2 : 1})} 
+              />
+            </div>
             
             <div style={{display: 'flex', gap: '12px', marginTop: '20px'}}>
               <MEHButton onClick={onSave} appearance="primary" size="large">{t("admin_save_event")}</MEHButton>
@@ -256,8 +268,13 @@ const EventsTab = ({
           <div>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px'}}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <MEHTypography variant="h1">{currentEvent.titulo}</MEHTypography>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <MEHTypography variant="h1" style={{ margin: 0 }}>{currentEvent.titulo}</MEHTypography>
+                  <Badge color={currentEvent.id_estado === 1 ? 'warning' : 'success'} appearance="filled">
+                    {currentEvent.id_estado === 1 ? 'INACTIVO' : 'ACTIVO'}
+                  </Badge>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <Badge color="brand" appearance="filled">{t(currentEvent.tipo_evento)}</Badge>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.7 }}>
                     <CalendarLtr24Regular fontSize="16px" />
@@ -267,6 +284,20 @@ const EventsTab = ({
                     <Clock24Regular fontSize="16px" />
                     <span>{currentEvent.hora_inicio}</span>
                   </div>
+                  <Divider vertical style={{ height: '16px' }} />
+                  <Switch 
+                    label={currentEvent.id_estado === 1 ? "Activar Evento" : "Desactivar Evento"} 
+                    checked={currentEvent.id_estado !== 1} 
+                    onChange={async (e, d) => {
+                      try {
+                        const newStatus = d.checked ? 2 : 1;
+                        await api.put(`/eventos/${selectedEventoId}`, { id_estado: newStatus });
+                        fetchData();
+                      } catch (err) {
+                        console.error("Error al cambiar estado del evento", err);
+                      }
+                    }} 
+                  />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <MEHTypography variant="body" style={{ opacity: 0.8 }}>

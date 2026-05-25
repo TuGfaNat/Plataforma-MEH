@@ -19,6 +19,7 @@ class AnuncioUpdate(BaseModel):
     url_imagen: Optional[str] = None
     link_accion: Optional[str] = None
     activo: Optional[bool] = None
+    id_estado: Optional[int] = None
 
 class AnuncioResponse(AnuncioBase):
     id_anuncio: int

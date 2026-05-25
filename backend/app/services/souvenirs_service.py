@@ -12,7 +12,7 @@ def list_productos(db: Session, categoria: Optional[str] = None):
     return query.all()
 
 def create_producto(db: Session, data: dict, user_id: int):
-    db_obj = models.Producto(**data, creado_por=user_id, fecha_creacion=datetime.utcnow())
+    db_obj = models.Producto(**data)
     db.add(db_obj)
     db.commit()
     db.refresh(db_obj)
@@ -37,8 +37,6 @@ def update_producto(db: Session, id_producto: int, data: dict, user_id: int):
     for key, value in data.items():
         setattr(db_obj, key, value)
     
-    db_obj.modificado_por = user_id
-    db_obj.fecha_modificacion = datetime.utcnow()
     db.commit()
     db.refresh(db_obj)
     
@@ -59,7 +57,7 @@ def delete_producto(db: Session, id_producto: int, user_id: int):
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
     nombre_prod = db_obj.nombre
-    db.delete(db_obj)
+    db_obj.id_estado = 0
     db.commit()
     
     registrar_log(
@@ -112,8 +110,7 @@ def create_pedido(db: Session, id_usuario: int, items: List[dict], admin_id: int
         id_referencia=0, # Venta manual
         tipo_referencia="SOUVENIR",
         validado_por=admin_id,
-        fecha_validacion=datetime.utcnow(),
-        creado_por=admin_id
+        fecha_validacion=datetime.utcnow()
     )
     db.add(db_pago)
     db.flush()
@@ -124,7 +121,6 @@ def create_pedido(db: Session, id_usuario: int, items: List[dict], admin_id: int
         id_pago=db_pago.id_pago,
         total=total,
         estado="COMPLETADO",
-        creado_por=admin_id,
         fecha_pedido=datetime.utcnow()
     )
     db.add(db_pedido)

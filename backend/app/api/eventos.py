@@ -4,9 +4,10 @@ from typing import List, Optional
 from ..database import get_db
 from ..models import models
 from ..schemas import evento as evento_schema
-from ..schemas.evento import QRScanRequest, CheckpointCreate, CheckpointResponse
+from ..schemas.evento import QRScanRequest, CheckpointCreate, CheckpointResponse, InscriptoConfirmadoResponse
 from ..services import eventos_service
 from .auth import get_current_user
+
 
 router = APIRouter(
     prefix="/eventos",
@@ -94,3 +95,25 @@ def create_checkpoint(
     current_user: models.Usuario = Depends(get_current_user)
 ):
     return eventos_service.create_checkpoint(db, current_user, id_evento, data)
+
+@router.delete("/{id_evento}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_evento(
+    request: Request,
+    id_evento: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Elimina lógicamente un evento (Solo Staff)."""
+    ip_address = request.client.host if request.client else None
+    eventos_service.delete_evento(db, id_evento, current_user, ip_address)
+
+@router.get("/{id_evento}/inscritos-confirmados", response_model=List[InscriptoConfirmadoResponse])
+def get_inscritos_confirmados(
+    id_evento: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Obtiene la lista de inscritos confirmados para descargarlos localmente para escaneo offline."""
+    return eventos_service.get_inscritos_confirmados(db, id_evento, current_user)
+
+

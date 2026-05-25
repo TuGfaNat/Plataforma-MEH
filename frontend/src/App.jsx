@@ -32,6 +32,7 @@ import GeneradorCertificados from './pages/Admin/GeneradorCertificados.jsx';
 import EcosystemDirectory from './pages/Admin/EcosystemDirectory.jsx';
 import NotificacionesAdmin from './pages/NotificacionesAdmin.jsx';
 import DashboardLayout from './components/layout/DashboardLayout.jsx';
+import CursoAula from './pages/CursoAula.jsx';
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
@@ -178,25 +179,26 @@ export default function App() {
                 <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/validador" element={<ValidadorTalento />} />
-                  <Route path="/dashboard/users" element={<Users />} />
-                  <Route path="/dashboard/events-master" element={<EventsMaster />} />
-                  <Route path="/dashboard/analytics" element={<Analytics />} />
+                  <Route path="/dashboard/users" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'SOPORTE']}><Users /></ProtectedRoute>} />
+                  <Route path="/dashboard/events-master" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}><EventsMaster /></ProtectedRoute>} />
+                  <Route path="/dashboard/analytics" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}><Analytics /></ProtectedRoute>} />
                   
                   <Route path="/insignias" element={<Insignias />} />
                   <Route path="/finanzas" element={<Finanzas />} />
                   <Route path="/learning" element={<LearningHub />} />
+                  <Route path="/learning/curso/:idCurso" element={<CursoAula />} />
                   <Route path="/comunidad" element={<Comunidad />} />
                   <Route path="/configuracion" element={<Configuracion />} />
                   
-                  <Route path="/recursos-vip" element={<RecursosVIP />} />
-                  <Route path="/speaker-kit" element={<SpeakerKit />} />
-                  <Route path="/admin" element={<AdminPanel />} />
-                  <Route path="/admin/ecosistema" element={<EcosystemDirectory />} />
-                  <Route path="/admin/generador-certificados" element={<GeneradorCertificados />} />
-                  <Route path="/admin/notificaciones" element={<NotificacionesAdmin />} />
-                  <Route path="/gestion-pagos" element={<GestionPagos />} />
-                  <Route path="/escaneo-qr" element={<EscaneoQR />} />
-                  <Route path="/auditoria" element={<Auditoria />} />
+                  <Route path="/recursos-vip" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR', 'EMBAJADOR']}><RecursosVIP /></ProtectedRoute>} />
+                  <Route path="/speaker-kit" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR']}><SpeakerKit /></ProtectedRoute>} />
+                  <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR']}><AdminPanel /></ProtectedRoute>} />
+                  <Route path="/admin/ecosistema" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}><EcosystemDirectory /></ProtectedRoute>} />
+                  <Route path="/admin/generador-certificados" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR']}><GeneradorCertificados /></ProtectedRoute>} />
+                  <Route path="/admin/notificaciones" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR']}><NotificacionesAdmin /></ProtectedRoute>} />
+                  <Route path="/gestion-pagos" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'SOPORTE']}><GestionPagos /></ProtectedRoute>} />
+                  <Route path="/escaneo-qr" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}><EscaneoQR /></ProtectedRoute>} />
+                  <Route path="/auditoria" element={<ProtectedRoute allowedRoles={['ADMIN']}><Auditoria /></ProtectedRoute>} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />

@@ -62,6 +62,7 @@ class EventoUpdate(BaseModel):
     id_speakers: Optional[List[int]] = None
     id_auspiciadores: Optional[List[int]] = None
     id_comunidades: Optional[List[int]] = None
+    id_estado: Optional[int] = None
 
 class EventoResponse(EventoBase):
     id_evento: int
@@ -93,3 +94,12 @@ class CheckpointResponse(CheckpointBase):
 class QRScanRequest(BaseModel):
     codigo_qr: str
     id_checkpoint: Optional[int] = None
+
+class InscriptoConfirmadoResponse(BaseModel):
+    id_inscripcion: int
+    id_usuario: int
+    codigo_qr: str
+    asistio: bool
+    nombre_completo: str
+    model_config = ConfigDict(from_attributes=True)
+

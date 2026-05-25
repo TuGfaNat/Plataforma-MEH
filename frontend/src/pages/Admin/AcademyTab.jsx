@@ -43,7 +43,8 @@ const AcademyTab = ({
   handleSaveCurso, handleEditCurso, lecciones, 
   isAddingLeccion, setIsAddingLeccion, isEditingLeccion, setIsEditingLeccion,
   newLeccion, setNewLeccion, handleSaveLeccion, handleEditLeccion,
-  confirmDelete, fetchLecciones, handleFileUpload, uploading, quillModules 
+  confirmDelete, fetchLecciones, handleFileUpload, uploading, quillModules,
+  fetchData
 }) => {
   const styles = useStyles();
   const { t } = useTranslation();
@@ -131,28 +132,35 @@ const AcademyTab = ({
               className={`${styles.selectableCard} ${selectedCursoId === c.id_curso ? styles.activeItem : ''}`} 
               onClick={() => { setSelectedCursoId(c.id_curso); setIsAddingCurso(false); fetchLecciones(c.id_curso); }}
             >
-              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                <Avatar 
-                  name={c.nombre_curso} 
-                  image={{src: resolveApiFileUrl(c.imagen_url)}} 
-                  shape="rounded" 
-                  size={32} 
-                />
-                <MEHTypography variant="bold" style={{ fontSize: '14px' }}>{c.nombre_curso}</MEHTypography>
-              </div>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <Button 
-                  icon={<Edit20Regular />} 
-                  appearance="subtle" 
-                  size="small"
-                  onClick={(e) => { e.stopPropagation(); handleEditCurso(c); }} 
-                />
-                <Button 
-                  icon={<Delete20Regular color={tokens.colorPaletteRedForeground1} />} 
-                  appearance="subtle" 
-                  size="small"
-                  onClick={(e) => { e.stopPropagation(); confirmDelete('curso', c.id_curso, c.nombre_curso); }} 
-                />
+              <div style={{display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between', width: '100%'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                  <Avatar 
+                    name={c.nombre_curso} 
+                    image={{src: resolveApiFileUrl(c.imagen_url)}} 
+                    shape="rounded" 
+                    size={32} 
+                  />
+                  <div>
+                    <MEHTypography variant="bold" style={{ fontSize: '14px' }}>{c.nombre_curso}</MEHTypography>
+                    <Badge size="small" color={c.id_estado === 1 ? 'warning' : 'success'} appearance="tint" style={{ marginTop: '2px' }}>
+                      {c.id_estado === 1 ? 'Inactivo' : 'Activo'}
+                    </Badge>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <Button 
+                    icon={<Edit20Regular />} 
+                    appearance="subtle" 
+                    size="small"
+                    onClick={(e) => { e.stopPropagation(); handleEditCurso(c); }} 
+                  />
+                  <Button 
+                    icon={<Delete20Regular color={tokens.colorPaletteRedForeground1} />} 
+                    appearance="subtle" 
+                    size="small"
+                    onClick={(e) => { e.stopPropagation(); confirmDelete('curso', c.id_curso, c.nombre_curso); }} 
+                  />
+                </div>
               </div>
             </div>
           ))}
@@ -243,8 +251,15 @@ const AcademyTab = ({
                   />
                 </div>
               </Field>
+              <Field label="Estado del Programa">
+                <Switch 
+                  label="Programa Habilitado y visible en la plataforma" 
+                  checked={newCurso.id_estado !== 1} 
+                  onChange={(e, d) => setNewCurso({...newCurso, id_estado: d.checked ? 2 : 1})} 
+                />
+              </Field>
             </div>
-
+            
             <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
               <MEHButton 
                 appearance="primary" 
@@ -278,15 +293,33 @@ const AcademyTab = ({
                   name={currentCourse.nombre_curso}
                 />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <MEHTypography variant="h1">{currentCourse.nombre_curso}</MEHTypography>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <Badge color="success" appearance="tint">{t("admin_virtual_classroom_active")}</Badge>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <MEHTypography variant="h1" style={{ margin: 0 }}>{currentCourse.nombre_curso}</MEHTypography>
+                    <Badge color={currentCourse.id_estado === 1 ? 'warning' : 'success'} appearance="filled">
+                      {currentCourse.id_estado === 1 ? 'INACTIVO' : 'ACTIVO'}
+                    </Badge>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.6, fontSize: '12px' }}>
                       <Clock24Regular fontSize={14} /> {currentCourse.horas_academicas} {t("admin_hours_count")}
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.6, fontSize: '12px' }}>
                       <DocumentText24Regular fontSize={14} /> {lecciones.length} {t("admin_lessons_count")}
                     </span>
+                    <Divider vertical style={{ height: '12px' }} />
+                    <Switch 
+                      label={currentCourse.id_estado === 1 ? "Activar Programa" : "Desactivar Programa"} 
+                      checked={currentCourse.id_estado !== 1} 
+                      onChange={async (e, d) => {
+                        try {
+                          const newStatus = d.checked ? 2 : 1;
+                          await api.put(`/cursos/${selectedCursoId}`, { id_estado: newStatus });
+                          fetchData();
+                        } catch (err) {
+                          console.error("Error al cambiar estado del curso", err);
+                        }
+                      }} 
+                    />
                   </div>
                 </div>
               </div>

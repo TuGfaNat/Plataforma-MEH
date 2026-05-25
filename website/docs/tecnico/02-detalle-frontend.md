@@ -75,3 +75,20 @@ Para evitar la inyección manual de encabezados de seguridad en cada llamada de 
 Para cumplir con las exigencias académicas y permitir un despliegue internacional, la interfaz incluye soporte multiidioma (español e inglés) administrado a través del archivo centralizado `frontend/src/i18n.js`. 
 
 Este módulo carga diccionarios en formato JSON para cada idioma y proporciona el hook reactivo `useTranslation()`, permitiendo traducir al vuelo etiquetas de texto, encabezados de tablas, e íconos sin alterar la velocidad de pintado de componentes ni forzar refrescos en el navegador.
+
+---
+
+## 5. Arquitectura de Almacenamiento Local Offline-First (IndexedDB)
+
+Para dar soporte a la toma de marcas de asistencia en auditorios subterráneos con deficiente o nula conectividad a internet, el frontend incorpora una base de datos local **IndexedDB** administrada por la utilidad `offlineDb.js` y el componente `EscaneoQR.jsx`.
+
+### Estructura de Persistencia Local (meh_offline_db):
+* **`registrados` store**: Almacena el listado de participantes inscritos confirmados recuperado mediante `GET /eventos/{id}/inscritos-confirmados`. Contiene `id_usuario`, `nombre_completo`, `codigo_qr` y `asistio`.
+* **`checkpoints` store**: Almacena los checkpoints correspondientes al evento activo, permitiendo cambiar dinámicamente de punto de control localmente. Contiene `id_checkpoint`, `nombre_checkpoint`, `id_evento`.
+* **`cola_asistencia` store**: Almacena de forma ordenada las marcas de asistencia registradas localmente en modo offline. Contiene `id_marca` (auto-incremental), `codigo_qr`, `id_checkpoint`, `fecha_marca`.
+
+### Protocolo de Sincronización Asíncrona Secuencial:
+1. **Detección de Red**: El componente frontend monitorea los eventos globales `window.addEventListener('online')` y `window.addEventListener('offline')` combinados con un Switch de control manual.
+2. **Registro Offline**: Las lecturas QR exitosas se insertan en `cola_asistencia` en lugar de despacharse por HTTP. El registro del alumno en `registrados` se actualiza a `asistio = true` en la base de datos local de IndexedDB para evitar marcas duplicadas.
+3. **Vaciado de Cola**: Al restablecerse el internet, se ejecuta un despachador secuencial que consume la cola mediante un bucle transaccional FIFO. Se extrae un registro, se realiza la llamada `POST /api/v1/eventos/asistencia-qr` y ante la confirmación exitosa (`HTTP 200/201`), se elimina de `cola_asistencia`. Si hay un error de red, el ciclo de vaciado se pausa de forma preventiva.
+

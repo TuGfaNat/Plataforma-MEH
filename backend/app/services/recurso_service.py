@@ -23,9 +23,7 @@ def create_recurso(
     ensure_permission(current_user.rol, PERMISSION_EVENTS_MANAGE, "No tienes permisos para gestionar recursos")
     
     db_recurso = models.Recurso(
-        **recurso.model_dump(),
-        creado_por=current_user.id_usuario,
-        fecha_creacion=datetime.utcnow()
+        **recurso.model_dump()
     )
     db.add(db_recurso)
     db.commit()
@@ -62,9 +60,6 @@ def update_recurso(
     for key, value in update_data.items():
         setattr(db_recurso, key, value)
     
-    db_recurso.modificado_por = current_user.id_usuario
-    db_recurso.fecha_modificacion = datetime.utcnow()
-    
     db.commit()
     db.refresh(db_recurso)
     
@@ -89,7 +84,7 @@ def delete_recurso(db: Session, current_user: models.Usuario, id_recurso: int, i
         raise RecursoNoEncontradoError()
     
     titulo_eliminado = db_recurso.titulo
-    db.delete(db_recurso)
+    db_recurso.id_estado = 0
     db.commit()
     
     registrar_log(

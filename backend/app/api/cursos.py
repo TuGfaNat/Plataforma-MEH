@@ -77,3 +77,26 @@ def assign_instructor(
     from ..core.permissions import ensure_admin
     ensure_admin(current_user.rol)
     return cursos_service.assign_instructor(db, id_curso, id_instructor)
+
+@router.put("/{id_curso}", response_model=curso_schema.CursoResponse)
+def update_curso(
+    request: Request,
+    id_curso: int,
+    curso: curso_schema.CursoUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    ip_address = request.client.host if request.client else None
+    return cursos_service.update_curso(db, current_user, id_curso, curso, ip_address)
+
+@router.delete("/{id_curso}", status_code=204)
+def delete_curso(
+    request: Request,
+    id_curso: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Elimina lógicamente un curso (Solo Staff)."""
+    ip_address = request.client.host if request.client else None
+    cursos_service.delete_curso(db, id_curso, current_user, ip_address)
+

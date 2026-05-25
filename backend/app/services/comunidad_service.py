@@ -53,9 +53,7 @@ def create_anuncio(
 
     db_anuncio = models.Anuncio(
         **anuncio_data, 
-        id_autor=current_user.id_usuario,
-        creado_por=current_user.id_usuario,
-        fecha_creacion=datetime.utcnow()
+        id_autor=current_user.id_usuario
     )
     db.add(db_anuncio)
     db.commit()
@@ -117,9 +115,6 @@ def update_anuncio(
     for key, value in update_data.items():
         setattr(db_anuncio, key, value)
     
-    db_anuncio.modificado_por = admin_user.id_usuario
-    db_anuncio.fecha_modificacion = datetime.utcnow()
-    
     db.commit()
     db.refresh(db_anuncio)
 
@@ -145,7 +140,7 @@ def delete_anuncio(db: Session, id_anuncio: int, admin_user: models.Usuario) -> 
     if not db_anuncio:
         raise RecursoNoEncontradoError("Anuncio no encontrado")
     
-    db.delete(db_anuncio)
+    db_anuncio.id_estado = 0
     db.commit()
 
     registrar_log(

@@ -80,8 +80,7 @@ def create_curso(
     ensure_permission(current_user.rol, PERMISSION_COURSES_MANAGE, "No tienes permisos para crear cursos")
 
     db_curso = models.Curso(
-        **curso.model_dump(),
-        creado_por=current_user.id_usuario # MIXIN
+        **curso.model_dump()
     )
     db.add(db_curso)
     db.commit()
@@ -137,8 +136,7 @@ def update_nota(db: Session, id_inscripcion: int, nota: float, current_user_id: 
             id_curso=inscripcion.id_curso,
             codigo_verificacion=f"MEH-CUR-{inscripcion.id_inscripcion}-{datetime.utcnow().strftime('%Y%m%d')}",
             url_pdf=curso.plantilla_certificado_url if hasattr(curso, 'plantilla_certificado_url') else "https://ejemplo.com/default-cert.pdf",
-            fecha_emision=datetime.utcnow(),
-            creado_por=current_user_id
+            fecha_emision=datetime.utcnow()
         )
         db.add(nuevo_cert)
         # NOTIFICACION EMAIL
@@ -147,10 +145,6 @@ def update_nota(db: Session, id_inscripcion: int, nota: float, current_user_id: 
             email_service.notify_nuevo_certificado(inscripcion.usuario.correo, inscripcion.usuario.nombres, curso.nombre_curso)
         except Exception as e:
             print(f"Error al enviar email de certificado: {str(e)}")
-    
-    # MIXIN AUDITORIA
-    inscripcion.modificado_por = current_user_id
-    inscripcion.fecha_modificacion = datetime.utcnow()
     
     db.commit()
     return {"message": "Nota actualizada", "id_inscripcion": id_inscripcion, "nota": nota}
@@ -167,3 +161,59 @@ def assign_instructor(db: Session, id_curso: int, id_instructor: int):
     curso.id_instructor = id_instructor
     db.commit()
     return {"message": f"Instructor {instructor.nombres} asignado al curso {curso.nombre_curso}"}
+
+def update_curso(
+    db: Session,
+    current_user: models.Usuario,
+    id_curso: int,
+    curso_update: curso_schema.CursoUpdate,
+    ip_address: Optional[str] = None
+) -> models.Curso:
+    ensure_permission(current_user.rol, PERMISSION_COURSES_MANAGE, "No tienes permisos para modificar cursos")
+    db_curso = get_curso(db, id_curso)
+    
+    valor_anterior = {
+        "nombre_curso": db_curso.nombre_curso,
+        "descripcion": db_curso.descripcion,
+        "horas_academicas": db_curso.horas_academicas,
+        "imagen_url": db_curso.imagen_url,
+        "estado": db_curso.estado,
+        "id_estado": db_curso.id_estado
+    }
+    
+    update_data = curso_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_curso, key, value)
+        
+    db.commit()
+    db.refresh(db_curso)
+    
+    registrar_log(
+        db=db,
+        id_admin=current_user.id_usuario,
+        accion="MODIFICAR_CURSO",
+        tabla_afectada="cursos",
+        id_registro_afectado=id_curso,
+        valor_anterior=valor_anterior,
+        valor_nuevo=update_data,
+        ip_direccion=ip_address
+    )
+    return db_curso
+
+def delete_curso(db: Session, id_curso: int, current_user: models.Usuario, ip_address: Optional[str] = None):
+    ensure_permission(current_user.rol, PERMISSION_COURSES_MANAGE, "No tienes permisos para eliminar cursos")
+    db_curso = get_curso(db, id_curso)
+    db_curso.id_estado = 0  # ELIMINADO
+    db.commit()
+    registrar_log(
+        db=db,
+        id_admin=current_user.id_usuario,
+        accion="ELIMINAR_CURSO",
+        tabla_afectada="cursos",
+        id_registro_afectado=id_curso,
+        valor_anterior={"nombre": db_curso.nombre_curso},
+        valor_nuevo={"id_estado": 0},
+        ip_direccion=ip_address
+    )
+    return True
+

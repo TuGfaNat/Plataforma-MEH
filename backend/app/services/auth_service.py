@@ -40,10 +40,7 @@ def register_user(db: Session, user_data: user_schema.UserCreate) -> models.Usua
         correo=user_data.correo,
         password_hash=auth_core.get_password_hash(user_data.password),
         rol=ROLE_MIEMBRO,
-        fecha_registro=datetime.utcnow(),
-        # Auditoría inicial
-        creado_por=None, 
-        fecha_creacion=datetime.utcnow()
+        fecha_registro=datetime.utcnow()
     )
     db.add(new_user)
     db.commit()
@@ -147,9 +144,7 @@ def login_with_google(db: Session, google_jwt: str, ip_address: Optional[str] = 
                 correo=email,
                 password_hash="google_oauth_no_password",
                 rol=ROLE_MIEMBRO,
-                fecha_registro=datetime.utcnow(),
-                creado_por=None,
-                fecha_creacion=datetime.utcnow()
+                fecha_registro=datetime.utcnow()
             )
             db.add(user)
             db.commit()
@@ -211,9 +206,6 @@ def update_profile(
 
     for key, value in update_data.items():
         setattr(user, key, value)
-
-    user.modificado_por = user.id_usuario
-    user.fecha_modificacion = datetime.utcnow()
     
     db.commit()
     db.refresh(user)
@@ -284,9 +276,6 @@ def update_user_role(
     
     rol_anterior = usuario.rol
     usuario.rol = nuevo_rol
-    
-    usuario.modificado_por = admin_user.id_usuario
-    usuario.fecha_modificacion = datetime.utcnow()
     
     db.commit()
     db.refresh(usuario)

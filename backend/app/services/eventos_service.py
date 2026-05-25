@@ -35,9 +35,7 @@ def create_evento(
 
     db_evento = models.Evento(
         **data,
-        id_organizador=admin_user.id_usuario,
-        creado_por=admin_user.id_usuario,
-        fecha_creacion=datetime.utcnow()
+        id_organizador=admin_user.id_usuario
     )
     
     # Asociar relaciones (Si se proporcionan IDs)
@@ -109,9 +107,6 @@ def update_evento(
     if id_comunidades is not None:
         db_evento.comunidades = db.query(models.ComunidadAliada).filter(models.ComunidadAliada.id_comunidad.in_(id_comunidades)).all()
 
-    db_evento.modificado_por = admin_user.id_usuario
-    db_evento.fecha_modificacion = datetime.utcnow()
-
     db.commit()
     db.refresh(db_evento)
 
@@ -148,38 +143,92 @@ def registrar_asistencia_qr(
     if inscripcion.estado_inscripcion != "CONFIRMADA":
         raise ValidacionNegocioError(f"La inscripción está en estado {inscripcion.estado_inscripcion}. Requiere confirmación de pago.")
 
-    if inscripcion.asistio:
-        raise ValidacionNegocioError("Esta entrada ya fue escaneada anteriormente")
+    checkpoint = None
+    if id_checkpoint is not None:
+        checkpoint = db.query(models.Checkpoint).filter(
+            models.Checkpoint.id_checkpoint == id_checkpoint,
+            models.Checkpoint.activo == True
+        ).first()
+        if not checkpoint:
+            raise ValidacionNegocioError("El checkpoint seleccionado no existe o está inactivo")
+        
+        if checkpoint.id_evento != inscripcion.id_evento:
+            raise ValidacionNegocioError("El checkpoint seleccionado no pertenece a este evento")
+            
+        # Evitar doble escaneo para el mismo checkpoint
+        asistencia_existente = db.query(models.AsistenciaDetalle).filter(
+            models.AsistenciaDetalle.id_inscripcion == inscripcion.id_inscripcion,
+            models.AsistenciaDetalle.id_checkpoint == id_checkpoint
+        ).first()
+        if asistencia_existente:
+            raise ValidacionNegocioError(f"Ya se registró asistencia en el checkpoint '{checkpoint.nombre_checkpoint}' para este miembro.")
+            
+        # Registrar detalle físico de la asistencia al checkpoint
+        nueva_asistencia = models.AsistenciaDetalle(
+            id_inscripcion=inscripcion.id_inscripcion,
+            id_checkpoint=id_checkpoint,
+            fecha_escaneo=datetime.utcnow(),
+            escaneado_por=staff_user.id_usuario,
+            id_estado=2
+        )
+        db.add(nueva_asistencia)
+        
+        # Marcar asistencia general al evento si no está marcada
+        if not inscripcion.asistio:
+            inscripcion.asistio = True
+            inscripcion.fecha_validacion = datetime.utcnow()
+    else:
+        # Entrada General
+        if inscripcion.asistio:
+            raise ValidacionNegocioError("Esta entrada ya fue escaneada anteriormente")
+            
+        inscripcion.asistio = True
+        inscripcion.fecha_validacion = datetime.utcnow()
 
-    inscripcion.asistio = True
-    inscripcion.fecha_validacion = datetime.utcnow()
-    inscripcion.modificado_por = staff_user.id_usuario
-    inscripcion.fecha_modificacion = datetime.utcnow()
-    
     # Obtener info para el log y respuesta
     usuario = inscripcion.usuario
     evento = inscripcion.evento
 
+    # Definir valores de log adaptados
+    log_accion = "REGISTRO_ASISTENCIA_QR"
+    log_tabla = "inscripciones_eventos"
+    log_id_afectado = inscripcion.id_inscripcion
+    log_valor_nuevo = {
+        "id_usuario": inscripcion.id_usuario,
+        "id_evento": inscripcion.id_evento,
+        "nombre_usuario": f"{usuario.nombres} {usuario.apellidos}"
+    }
+
+    if checkpoint:
+        log_accion = "REGISTRO_ASISTENCIA_CHECKPOINT"
+        log_tabla = "asistencia_detalles"
+        log_id_afectado = nueva_asistencia.id_asistencia if 'nueva_asistencia' in locals() else None
+        log_valor_nuevo["id_checkpoint"] = id_checkpoint
+        log_valor_nuevo["nombre_checkpoint"] = checkpoint.nombre_checkpoint
+
     registrar_log(
         db=db,
         id_admin=staff_user.id_usuario,
-        accion="REGISTRO_ASISTENCIA_QR",
-        tabla_afectada="inscripciones_eventos",
-        id_registro_afectado=inscripcion.id_inscripcion,
-        valor_nuevo={
-            "id_usuario": inscripcion.id_usuario,
-            "id_evento": inscripcion.id_evento,
-            "nombre_usuario": f"{usuario.nombres} {usuario.apellidos}"
-        },
+        accion=log_accion,
+        tabla_afectada=log_tabla,
+        id_registro_afectado=log_id_afectado,
+        valor_nuevo=log_valor_nuevo,
         ip_direccion=ip_address
     )
     
     db.commit()
+    
+    # Combinar título del evento con checkpoint para una visualización premium en el frontend
+    ret_evento_titulo = evento.titulo
+    if checkpoint:
+        ret_evento_titulo = f"{evento.titulo} - Checkpoint: {checkpoint.nombre_checkpoint}"
+
     return {
         "message": "Asistencia registrada con éxito", 
         "usuario": {"nombre": f"{usuario.nombres} {usuario.apellidos}"},
-        "evento": {"titulo": evento.titulo}
+        "evento": {"titulo": ret_evento_titulo}
     }
+
 
 def get_checkpoints(db: Session, id_evento: int):
     return db.query(models.Checkpoint).filter(
@@ -205,3 +254,49 @@ def create_checkpoint(db: Session, admin_user: models.Usuario, id_evento: int, c
     db.commit()
     db.refresh(nuevo)
     return nuevo
+
+def delete_evento(db: Session, id_evento: int, admin_user: models.Usuario, ip_address: Optional[str] = None):
+    if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError("No tienes permisos para eliminar eventos")
+    db_evento = get_evento_by_id(db, id_evento)
+    db_evento.id_estado = 0  # ELIMINADO
+    db.commit()
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="ELIMINAR_EVENTO",
+        tabla_afectada="eventos",
+        id_registro_afectado=id_evento,
+        valor_anterior={"titulo": db_evento.titulo},
+        valor_nuevo={"id_estado": 0},
+        ip_direccion=ip_address
+    )
+    return True
+
+def get_inscritos_confirmados(db: Session, id_evento: int, staff_user: models.Usuario):
+    if not has_permission(staff_user.rol, PERMISSION_ATTENDANCE_SCAN):
+        raise PermisoDenegadoError("No tienes permisos para descargar los inscritos de este evento")
+        
+    evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
+    if not evento:
+        raise ValidacionNegocioError("Evento no encontrado")
+        
+    inscripciones = db.query(models.InscripcionEvento).join(
+        models.Usuario, models.InscripcionEvento.id_usuario == models.Usuario.id_usuario
+    ).filter(
+        models.InscripcionEvento.id_evento == id_evento,
+        models.InscripcionEvento.estado_inscripcion == "CONFIRMADA"
+    ).all()
+    
+    resultado = []
+    for ins in inscripciones:
+        resultado.append({
+            "id_inscripcion": ins.id_inscripcion,
+            "id_usuario": ins.id_usuario,
+            "codigo_qr": ins.codigo_qr or "",
+            "asistio": ins.asistio,
+            "nombre_completo": f"{ins.usuario.nombres} {ins.usuario.apellidos}"
+        })
+    return resultado
+
+

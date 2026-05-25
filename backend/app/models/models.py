@@ -1,14 +1,28 @@
-from sqlalchemy import Column, Integer, String, TEXT, DateTime, ForeignKey, Boolean, Date, Numeric, CheckConstraint, Table
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, TEXT, DateTime, ForeignKey, Boolean, Date, Numeric, CheckConstraint, Table, event, inspect
+from sqlalchemy.orm import relationship, Query
 from datetime import datetime
 import uuid
 from ..database import Base
+from ..core.context import current_user_id
 
 class AuditMixin:
     creado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
     modificado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
     fecha_modificacion = Column(DateTime, nullable=True)
+
+class EstadoRegistro(Base):
+    __tablename__ = "estados_registro"
+    id_estado = Column(Integer, primary_key=True)
+    nombre_estado = Column(String(50), unique=True, nullable=False)
+    descripcion = Column(TEXT, nullable=True)
+
+class EstadoLifecycleMixin:
+    id_estado = Column(Integer, ForeignKey("estados_registro.id_estado"), default=2, nullable=False)
+    fecha_modificacion_estado = Column(DateTime, nullable=True)
+
+
+
 
 # Tablas Intermedias (Asociaciones)
 eventos_speakers = Table(
@@ -32,7 +46,7 @@ eventos_comunidades = Table(
     Column("id_comunidad", Integer, ForeignKey("comunidades_aliadas.id_comunidad", ondelete="CASCADE"))
 )
 
-class Usuario(Base, AuditMixin):
+class Usuario(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "usuarios"
 
     id_usuario = Column(Integer, primary_key=True, index=True)
@@ -83,7 +97,7 @@ class Usuario(Base, AuditMixin):
         ),
     )
 
-class Speaker(Base, AuditMixin):
+class Speaker(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "speakers"
     id_speaker = Column(Integer, primary_key=True, index=True)
     nombre = Column(String)
@@ -100,7 +114,7 @@ class Speaker(Base, AuditMixin):
 
     eventos = relationship("Evento", secondary=eventos_speakers, back_populates="speakers")
 
-class Auspiciador(Base, AuditMixin):
+class Auspiciador(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "auspiciadores"
     id_auspiciador = Column(Integer, primary_key=True, index=True)
     nombre = Column(String)
@@ -112,7 +126,7 @@ class Auspiciador(Base, AuditMixin):
 
     eventos = relationship("Evento", secondary=eventos_auspiciadores, back_populates="auspiciadores")
 
-class ComunidadAliada(Base, AuditMixin):
+class ComunidadAliada(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "comunidades_aliadas"
     id_comunidad = Column(Integer, primary_key=True, index=True)
     nombre = Column(String)
@@ -124,14 +138,14 @@ class ComunidadAliada(Base, AuditMixin):
 
     eventos = relationship("Evento", secondary=eventos_comunidades, back_populates="comunidades")
 
-class ConfiguracionGlobal(Base, AuditMixin):
+class ConfiguracionGlobal(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "configuracion_global"
     id_config = Column(Integer, primary_key=True)
     clave = Column(String, unique=True)
     valor = Column(TEXT)
     descripcion = Column(String, nullable=True)
 
-class Badge(Base, AuditMixin):
+class Badge(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "badges"
     id_badge = Column(Integer, primary_key=True, index=True)
     nombre_badge = Column(String)
@@ -142,7 +156,7 @@ class Badge(Base, AuditMixin):
     puntos = Column(Integer, default=10)
     requisito_nivel = Column(String, default="Beginner")
 
-class UsuarioBadge(Base, AuditMixin):
+class UsuarioBadge(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "usuarios_badges"
     id_usuario_badge = Column(Integer, primary_key=True, index=True)
     id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"))
@@ -152,7 +166,7 @@ class UsuarioBadge(Base, AuditMixin):
     usuario = relationship("Usuario", back_populates="badges", foreign_keys=[id_usuario])
     badge = relationship("Badge", foreign_keys=[id_badge])
 
-class Producto(Base, AuditMixin):
+class Producto(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "productos"
     id_producto = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(100))
@@ -169,7 +183,7 @@ class Producto(Base, AuditMixin):
         CheckConstraint("stock >= 0", name="check_producto_stock_positivo"),
     )
 
-class Pedido(Base, AuditMixin):
+class Pedido(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "pedidos"
     id_pedido = Column(Integer, primary_key=True, index=True)
     id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario"), index=True)
@@ -185,7 +199,7 @@ class Pedido(Base, AuditMixin):
         CheckConstraint("total >= 0", name="check_pedido_total_positivo"),
     )
 
-class PedidoDetalle(Base):
+class PedidoDetalle(Base, EstadoLifecycleMixin):
     __tablename__ = "pedido_detalles"
     id_detalle = Column(Integer, primary_key=True, index=True)
     id_pedido = Column(Integer, ForeignKey("pedidos.id_pedido", ondelete="CASCADE"), index=True)
@@ -201,7 +215,7 @@ class PedidoDetalle(Base):
         CheckConstraint("precio_unitario >= 0", name="check_detalle_precio_positivo"),
     )
 
-class Evento(Base, AuditMixin):
+class Evento(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "eventos"
 
     id_evento = Column(Integer, primary_key=True, index=True)
@@ -235,7 +249,7 @@ class Evento(Base, AuditMixin):
         CheckConstraint("capacidad_max > 0", name="check_evento_capacidad_positiva"),
     )
 
-class InscripcionEvento(Base, AuditMixin):
+class InscripcionEvento(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "inscripciones_eventos"
 
     id_inscripcion = Column(Integer, primary_key=True, index=True)
@@ -252,7 +266,7 @@ class InscripcionEvento(Base, AuditMixin):
     evento = relationship("Evento", back_populates="inscripciones")
     asistencia = relationship("AsistenciaDetalle", back_populates="inscripcion", uselist=False)
 
-class Checkpoint(Base, AuditMixin):
+class Checkpoint(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "checkpoints"
 
     id_checkpoint = Column(Integer, primary_key=True, index=True)
@@ -267,7 +281,7 @@ class Checkpoint(Base, AuditMixin):
     evento = relationship("Evento", back_populates="checkpoints")
     asistencias = relationship("AsistenciaDetalle", back_populates="checkpoint")
 
-class AsistenciaDetalle(Base, AuditMixin):
+class AsistenciaDetalle(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "asistencia_detalles"
 
     id_asistencia = Column(Integer, primary_key=True, index=True)
@@ -280,7 +294,7 @@ class AsistenciaDetalle(Base, AuditMixin):
     checkpoint = relationship("Checkpoint", back_populates="asistencias")
     escaneador = relationship("Usuario", foreign_keys="[AsistenciaDetalle.escaneado_por]")
 
-class Curso(Base, AuditMixin):
+class Curso(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "cursos"
 
     id_curso = Column(Integer, primary_key=True, index=True)
@@ -300,7 +314,7 @@ class Curso(Base, AuditMixin):
     lecciones = relationship("Leccion", back_populates="curso", cascade="all, delete-orphan")
     posts_foro = relationship("PostForo", back_populates="curso")
 
-class Leccion(Base, AuditMixin):
+class Leccion(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "lecciones"
     id_leccion = Column(Integer, primary_key=True, index=True)
     id_curso = Column(Integer, ForeignKey("cursos.id_curso", ondelete="CASCADE"))
@@ -312,7 +326,7 @@ class Leccion(Base, AuditMixin):
     curso = relationship("Curso", back_populates="lecciones")
     tareas = relationship("Tarea", back_populates="leccion")
 
-class Tarea(Base, AuditMixin):
+class Tarea(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "tareas"
     id_tarea = Column(Integer, primary_key=True, index=True)
     id_leccion = Column(Integer, ForeignKey("lecciones.id_leccion", ondelete="CASCADE"))
@@ -325,7 +339,7 @@ class Tarea(Base, AuditMixin):
     leccion = relationship("Leccion", back_populates="tareas")
     entregas = relationship("EntregaTarea", back_populates="tarea")
 
-class EntregaTarea(Base, AuditMixin):
+class EntregaTarea(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "entregas_tareas"
     id_entrega = Column(Integer, primary_key=True, index=True)
     id_tarea = Column(Integer, ForeignKey("tareas.id_tarea", ondelete="CASCADE"))
@@ -339,7 +353,7 @@ class EntregaTarea(Base, AuditMixin):
     tarea = relationship("Tarea", back_populates="entregas")
     usuario = relationship("Usuario", foreign_keys="[EntregaTarea.id_usuario]")
 
-class PostForo(Base, AuditMixin):
+class PostForo(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "posts_foro"
     id_post = Column(Integer, primary_key=True, index=True)
     id_curso = Column(Integer, ForeignKey("cursos.id_curso", ondelete="CASCADE"))
@@ -350,7 +364,7 @@ class PostForo(Base, AuditMixin):
     curso = relationship("Curso", back_populates="posts_foro")
     usuario = relationship("Usuario", foreign_keys="[PostForo.id_usuario]")
 
-class InscripcionCurso(Base, AuditMixin):
+class InscripcionCurso(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "inscripciones_cursos"
 
     id_inscripcion_curso = Column(Integer, primary_key=True, index=True)
@@ -366,7 +380,7 @@ class InscripcionCurso(Base, AuditMixin):
     usuario = relationship("Usuario", back_populates="inscripciones_cursos", foreign_keys="[InscripcionCurso.id_usuario]")
     curso = relationship("Curso", back_populates="inscripciones")
 
-class Pago(Base, AuditMixin):
+class Pago(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "pagos"
 
     id_pago = Column(Integer, primary_key=True, index=True)
@@ -394,7 +408,7 @@ class Pago(Base, AuditMixin):
         CheckConstraint("monto >= 0", name="check_pago_monto_positivo"),
     )
 
-class LogSistema(Base):
+class LogSistema(Base, EstadoLifecycleMixin):
     __tablename__ = "logs_sistema"
 
     id_log = Column(Integer, primary_key=True, index=True)
@@ -409,7 +423,7 @@ class LogSistema(Base):
 
     admin = relationship("Usuario", back_populates="logs", foreign_keys="[LogSistema.id_admin]")
 
-class Certificado(Base, AuditMixin):
+class Certificado(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "certificados"
 
     id_certificado = Column(Integer, primary_key=True, index=True)
@@ -431,7 +445,7 @@ class Certificado(Base, AuditMixin):
         CheckConstraint("formato IN ('DIGITAL', 'FISICO', 'AMBOS')", name="certificados_formato_check"),
     )
 
-class Recurso(Base, AuditMixin):
+class Recurso(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "recursos"
 
     id_recurso = Column(Integer, primary_key=True, index=True)
@@ -452,7 +466,7 @@ class Recurso(Base, AuditMixin):
     curso = relationship("Curso", foreign_keys=[id_curso])
     evento = relationship("Evento", foreign_keys=[id_evento])
 
-class Anuncio(Base, AuditMixin):
+class Anuncio(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "anuncios"
 
     id_anuncio = Column(Integer, primary_key=True, index=True)
@@ -466,3 +480,35 @@ class Anuncio(Base, AuditMixin):
     activo = Column(Boolean, default=True)
 
     autor = relationship("Usuario", foreign_keys="[Anuncio.id_autor]")
+
+@event.listens_for(Base, "before_insert", propagate=True)
+def receive_before_insert(mapper, connection, target):
+    if hasattr(target, "creado_por") and target.creado_por is None:
+        target.creado_por = current_user_id.get()
+    if hasattr(target, "fecha_creacion") and target.fecha_creacion is None:
+        target.fecha_creacion = datetime.utcnow()
+
+@event.listens_for(Base, "before_update", propagate=True)
+def receive_before_update(mapper, connection, target):
+    if hasattr(target, "modificado_por"):
+        target.modificado_por = current_user_id.get()
+    if hasattr(target, "fecha_modificacion"):
+        target.fecha_modificacion = datetime.utcnow()
+    if hasattr(target, "id_estado") and hasattr(target, "fecha_modificacion_estado"):
+        inspected = inspect(target)
+        history = inspected.attrs.id_estado.history
+        if history.has_changes():
+            target.fecha_modificacion_estado = datetime.utcnow()
+
+
+
+@event.listens_for(Query, "before_compile", retval=True)
+def before_compile_filter(query):
+    if query.get_execution_options().get("include_deleted", False):
+        return query
+    for desc in query.column_descriptions:
+        entity = desc.get("entity")
+        if entity and hasattr(entity, "id_estado"):
+            query = query.enable_assertions(False).filter(entity.id_estado != 0).enable_assertions(True)
+    return query
+

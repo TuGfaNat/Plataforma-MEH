@@ -331,7 +331,7 @@ const Sidebar = ({ onClose }) => {
         )}
 
         {/* SECTION 4: ACADEMIC & CONTENT (MANAGEMENT) */}
-        {canManageEvents && (
+        {(canManageEvents || user?.rol === 'MODERADOR') && (
           <>
             <div className={styles.sectionTitle}>
               {t("menu_academic") || "Academia y Contenido"}

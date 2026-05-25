@@ -10,8 +10,7 @@ def get_all_badges(db: Session) -> List[models.Badge]:
 
 def create_badge(db: Session, badge: badge_schema.BadgeCreate, id_admin: int) -> models.Badge:
     db_badge = models.Badge(
-        **badge.model_dump(),
-        creado_por=id_admin
+        **badge.model_dump()
     )
     db.add(db_badge)
     db.commit()
@@ -44,9 +43,6 @@ def update_badge(db: Session, id_badge: int, badge_update: badge_schema.BadgeUpd
     for key, value in badge_update.model_dump(exclude_unset=True).items():
         setattr(db_badge, key, value)
     
-    db_badge.modificado_por = id_admin
-    db_badge.fecha_modificacion = datetime.utcnow()
-    
     db.commit()
     db.refresh(db_badge)
 
@@ -67,7 +63,7 @@ def delete_badge(db: Session, id_badge: int, id_admin: int) -> bool:
     if not db_badge:
         return False
     
-    db.delete(db_badge)
+    db_badge.id_estado = 0
     db.commit()
     
     registrar_log(
@@ -95,8 +91,7 @@ def assign_badge_to_user(db: Session, id_usuario: int, id_badge: int, id_admin: 
 
     db_user_badge = models.UsuarioBadge(
         id_usuario=id_usuario, 
-        id_badge=id_badge,
-        creado_por=id_admin
+        id_badge=id_badge
     )
     db.add(db_user_badge)
     db.commit()

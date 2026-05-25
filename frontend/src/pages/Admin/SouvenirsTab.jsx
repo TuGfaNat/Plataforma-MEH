@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Table, TableBody, TableRow, TableCell, Badge, Spinner, Field, Input, tokens, makeStyles, shorthands, 
-  Avatar, Button, Tooltip, Textarea
+  Avatar, Button, Tooltip, Textarea, Switch
 } from '@fluentui/react-components';
 import { useTranslation } from 'react-i18next';
 import { 
@@ -9,9 +9,9 @@ import {
   Box24Filled, Money20Regular, Info20Regular 
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
+import adminService from '../../services/adminService';
 
 const useStyles = makeStyles({
-// ... (rest of styles same)
   grid: { 
     display: 'grid', 
     gridTemplateColumns: '1fr 1.5fr', 
@@ -85,7 +85,7 @@ const useStyles = makeStyles({
 
 const SouvenirsTab = ({ 
   data, newSouvenir, setNewSouvenir, isEditingSouvenir, setIsEditingSouvenir, uploading, 
-  handleFileUpload, handleSaveSouvenir, handleEditSouvenir, confirmDelete
+  handleFileUpload, handleSaveSouvenir, handleEditSouvenir, confirmDelete, fetchData
 }) => {
   const styles = useStyles();
   const { t } = useTranslation();
@@ -164,6 +164,14 @@ const SouvenirsTab = ({
           </div>
         </Field>
 
+        <div style={{ margin: '4px 0' }}>
+          <Switch 
+            label={newSouvenir.id_estado === 1 ? "Inactivo (Oculto en catálogo)" : "Activo (Visible en catálogo)"} 
+            checked={newSouvenir.id_estado !== 1} 
+            onChange={(e, d) => setNewSouvenir({...newSouvenir, id_estado: d.checked ? 2 : 1})} 
+          />
+        </div>
+
         <MEHButton 
           appearance="primary" 
           size="large"
@@ -178,7 +186,7 @@ const SouvenirsTab = ({
           <Button 
             appearance="subtle" 
             onClick={() => {
-              setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', categoria: 'SOUVENIR' });
+              setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', categoria: 'SOUVENIR', id_estado: 2 });
               setIsEditingSouvenir(false);
             }}
           >
@@ -214,7 +222,12 @@ const SouvenirsTab = ({
                         badge={{ status: i.stock > 0 ? 'available' : 'busy' }}
                       />
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <MEHTypography variant="bold">{i.nombre}</MEHTypography>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <MEHTypography variant="bold">{i.nombre}</MEHTypography>
+                          <Badge color={i.id_estado === 1 ? 'warning' : 'success'} appearance="filled">
+                            {i.id_estado === 1 ? 'INACTIVO' : 'ACTIVO'}
+                          </Badge>
+                        </div>
                         <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
                           {i.descripcion || t("admin_no_description")}
                         </MEHTypography>
@@ -233,6 +246,20 @@ const SouvenirsTab = ({
                   </TableCell>
                   <TableCell>
                     <div className={styles.actionsCell}>
+                      <Tooltip content={i.id_estado === 1 ? "Activar" : "Desactivar"} relationship="label">
+                        <Switch 
+                          checked={i.id_estado !== 1} 
+                          onChange={async (e, d) => {
+                            try {
+                              const newStatus = d.checked ? 2 : 1;
+                              await adminService.updateSouvenir(i.id_producto, { ...i, id_estado: newStatus });
+                              if (fetchData) fetchData();
+                            } catch (err) {
+                              console.error("Error al actualizar estado del souvenir:", err);
+                            }
+                          }} 
+                        />
+                      </Tooltip>
                       <Tooltip content={t("edit")} relationship="label">
                         <Button 
                           appearance="subtle" 

@@ -8,7 +8,7 @@ from ..core.permissions import ensure_permission, PERMISSION_EVENTS_MANAGE
 
 # --- LECCIONES ---
 def create_leccion(db: Session, data: schema.LeccionCreate, user_id: int):
-    obj = models.Leccion(**data.model_dump(), creado_por=user_id, fecha_creacion=datetime.utcnow())
+    obj = models.Leccion(**data.model_dump())
     db.add(obj)
     db.commit()
     db.refresh(obj)
@@ -23,8 +23,6 @@ def update_leccion(db: Session, id_leccion: int, data: dict, user_id: int):
     for key, value in data.items():
         setattr(obj, key, value)
     
-    obj.modificado_por = user_id
-    obj.fecha_modificacion = datetime.utcnow()
     db.commit()
     db.refresh(obj)
     registrar_log(db, user_id, "ACTUALIZAR_LECCION", "lecciones", id_leccion, valor_anterior=old_data, valor_nuevo=data)
@@ -33,7 +31,7 @@ def update_leccion(db: Session, id_leccion: int, data: dict, user_id: int):
 def delete_leccion(db: Session, id_leccion: int, user_id: int):
     obj = db.query(models.Leccion).filter(models.Leccion.id_leccion == id_leccion).first()
     if not obj: return None
-    db.delete(obj)
+    obj.id_estado = 0
     db.commit()
     registrar_log(db, user_id, "BORRAR_LECCION", "lecciones", id_leccion)
     return True
@@ -46,7 +44,7 @@ def list_tareas_leccion(db: Session, id_leccion: int):
 
 # --- TAREAS ---
 def create_tarea(db: Session, data: schema.TareaCreate, user_id: int):
-    obj = models.Tarea(**data.model_dump(), creado_por=user_id, fecha_creacion=datetime.utcnow())
+    obj = models.Tarea(**data.model_dump())
     db.add(obj)
     db.commit()
     db.refresh(obj)
@@ -61,8 +59,6 @@ def update_tarea(db: Session, id_tarea: int, data: dict, user_id: int):
     for key, value in data.items():
         setattr(obj, key, value)
     
-    obj.modificado_por = user_id
-    obj.fecha_modificacion = datetime.utcnow()
     db.commit()
     db.refresh(obj)
     registrar_log(db, user_id, "ACTUALIZAR_TAREA", "tareas", id_tarea, valor_anterior=old_data, valor_nuevo=data)
@@ -71,7 +67,7 @@ def update_tarea(db: Session, id_tarea: int, data: dict, user_id: int):
 def delete_tarea(db: Session, id_tarea: int, user_id: int):
     obj = db.query(models.Tarea).filter(models.Tarea.id_tarea == id_tarea).first()
     if not obj: return None
-    db.delete(obj)
+    obj.id_estado = 0
     db.commit()
     registrar_log(db, user_id, "BORRAR_TAREA", "tareas", id_tarea)
     return True
@@ -107,8 +103,6 @@ def calificar_entrega(db: Session, id_entrega: int, data: schema.EntregaTareaCal
     old_nota = obj.nota
     obj.nota = data.nota
     obj.comentario_docente = data.comentario_docente
-    obj.modificado_por = admin_id
-    obj.fecha_modificacion = datetime.utcnow()
     
     db.commit()
     db.refresh(obj)
@@ -117,7 +111,7 @@ def calificar_entrega(db: Session, id_entrega: int, data: schema.EntregaTareaCal
 
 # --- FOROS ---
 def create_post_foro(db: Session, data: schema.PostForoCreate, user_id: int):
-    obj = models.PostForo(**data.model_dump(), id_usuario=user_id, creado_por=user_id, fecha_creacion=datetime.utcnow())
+    obj = models.PostForo(**data.model_dump(), id_usuario=user_id)
     db.add(obj)
     db.commit()
     db.refresh(obj)

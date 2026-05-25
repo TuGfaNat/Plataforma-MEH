@@ -39,9 +39,6 @@ def registrar_asistencia_universal(
         
         inscripcion.asistio = True
         inscripcion.fecha_validacion = datetime.utcnow()
-        # AUDITORIA MIXIN
-        inscripcion.modificado_por = current_user.id_usuario
-        inscripcion.fecha_modificacion = datetime.utcnow()
         
     elif tipo == 'CURSO':
         inscripcion = db.query(models.InscripcionCurso).filter(
@@ -55,9 +52,6 @@ def registrar_asistencia_universal(
         inscripcion.progreso = 100.00
         inscripcion.fecha_completado = datetime.utcnow()
         inscripcion.completado = True
-        # AUDITORIA MIXIN
-        inscripcion.modificado_por = current_user.id_usuario
-        inscripcion.fecha_modificacion = datetime.utcnow()
 
     db.commit()
     

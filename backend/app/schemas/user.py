@@ -59,6 +59,7 @@ class UserUpdate(BaseModel):
     rol: Optional[str] = None
     activo: Optional[bool] = None
     modificado_por: Optional[int] = None
+    id_estado: Optional[int] = None
 
 class UserLogin(BaseModel):
     correo: EmailStr

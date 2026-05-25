@@ -9,6 +9,7 @@ import {
   TabList,
   Tab,
   Select,
+  Switch,
 } from '@fluentui/react-components';
 import {
   CheckmarkCircle24Filled,
@@ -17,12 +18,17 @@ import {
   QrCode24Regular,
   ScanCamera24Regular,
   Keyboard24Regular,
+  ArrowUpload24Regular,
+  ArrowDownload24Regular,
+  Wifi124Regular,
+  WifiOff24Regular,
 } from '@fluentui/react-icons';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { QRCodeSVG } from 'qrcode.react';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 
 import asistenciaService from '../services/asistenciaService';
+import * as offlineDb from '../utils/offlineDb';
 
 const useStyles = makeStyles({
   container: {
@@ -86,6 +92,45 @@ const useStyles = makeStyles({
     gap: '12px',
     backgroundColor: tokens.colorNeutralBackground1,
   },
+  connectionBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 16px',
+    borderRadius: '20px',
+    alignSelf: 'center',
+    fontWeight: 'bold',
+  },
+  onlineBadge: {
+    backgroundColor: 'rgba(16, 124, 65, 0.15)',
+    color: tokens.colorPaletteGreenForeground1,
+    border: `1px solid rgba(16, 124, 65, 0.3)`,
+  },
+  offlineBadge: {
+    backgroundColor: 'rgba(216, 59, 1, 0.15)',
+    color: tokens.colorPaletteRedForeground1,
+    border: `1px solid rgba(216, 59, 1, 0.3)`,
+  },
+  syncContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    backgroundColor: tokens.colorNeutralBackground3,
+    ...shorthands.padding('16px'),
+    ...shorthands.borderRadius('12px'),
+    marginTop: '8px',
+    border: `1px solid ${tokens.colorNeutralBackground3}`,
+  },
+  syncActions: {
+    display: 'flex',
+    gap: '12px',
+    flexWrap: 'wrap',
+  },
+  syncSuccess: {
+    color: tokens.colorPaletteGreenForeground1,
+    fontSize: '0.95rem',
+    fontWeight: 'bold',
+  }
 });
 
 const EscaneoQR = () => {
@@ -102,6 +147,22 @@ const EscaneoQR = () => {
   const [selectedCheckpoint, setSelectedCheckpoint] = useState('');
   const scannerRef = useRef(null);
 
+  // Estados Offline-First
+  const [forceOffline, setForceOffline] = useState(false);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [offlineQueueCount, setOfflineQueueCount] = useState(0);
+  const [syncingStatus, setSyncingStatus] = useState('');
+  const [localSyncMessage, setLocalSyncMessage] = useState('');
+
+  const updateQueueCount = async () => {
+    try {
+      const cola = await offlineDb.obtenerColaAsistencia();
+      setOfflineQueueCount(cola.length);
+    } catch (err) {
+      console.error('Error al leer el tamaño de la cola offline', err);
+    }
+  };
+
   useEffect(() => {
     const fetchActividades = async () => {
       try {
@@ -112,15 +173,51 @@ const EscaneoQR = () => {
       }
     };
     fetchActividades();
+    updateQueueCount();
   }, []);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      if (!forceOffline) {
+        setIsOfflineMode(false);
+      }
+    };
+    const handleOffline = () => {
+      setIsOfflineMode(true);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    setIsOfflineMode(!navigator.onLine || forceOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [forceOffline]);
 
   const handleEventoChange = async (e, data) => {
     setSelectedEvento(data.value);
     setSelectedCheckpoint('');
     if (data.value) {
       try {
-        const cpData = await asistenciaService.getCheckpoints(data.value);
-        setCheckpoints(cpData);
+        if (isOfflineMode || forceOffline) {
+          const db = await offlineDb.abrirDB();
+          const transaction = db.transaction(['eventos'], 'readonly');
+          const store = transaction.objectStore('eventos');
+          const req = store.get(parseInt(data.value));
+          req.onsuccess = (ev) => {
+            if (ev.target.result) {
+              setCheckpoints(ev.target.result.checkpoints || []);
+            } else {
+              setCheckpoints([]);
+            }
+          };
+        } else {
+          const cpData = await asistenciaService.getCheckpoints(data.value);
+          setCheckpoints(cpData);
+        }
       } catch (err) {
         console.error("Error cargando checkpoints", err);
       }
@@ -182,7 +279,7 @@ const EscaneoQR = () => {
         scannerRef.current = null;
       }
     };
-  }, [mode, loading]);
+  }, [mode, loading, isOfflineMode]);
 
   const handleAsistencia = async (codigoQR) => {
     const normalizedCode = normalizeQrPayload(codigoQR);
@@ -195,6 +292,34 @@ const EscaneoQR = () => {
     setError(null);
     setScanResult(null);
 
+    // MODO OFFLINE
+    if (isOfflineMode) {
+      try {
+        if (!selectedEvento) {
+          setError('Debe seleccionar un evento para validar en modo Offline');
+          setTimeout(() => setError(null), 4000);
+          return;
+        }
+        const res = await offlineDb.validarQROffline(normalizedCode, selectedCheckpoint, selectedEvento);
+        if (res.success) {
+          setScanResult(`${res.message}: ${res.usuario.nombre}`);
+          setTimeout(() => setScanResult(null), 4000);
+          updateQueueCount();
+        } else {
+          setError(res.message);
+          setTimeout(() => setError(null), 4500);
+        }
+      } catch (err) {
+        console.error(err);
+        setError('Error al acceder a la base de datos IndexedDB local');
+        setTimeout(() => setError(null), 4500);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // MODO ONLINE
     try {
       const result = await asistenciaService.registrarPorQR(normalizedCode, selectedCheckpoint ? parseInt(selectedCheckpoint) : null);
       setScanResult(`Asistencia de ${result.usuario.nombre} confirmada para ${result.evento.titulo}`);
@@ -211,16 +336,115 @@ const EscaneoQR = () => {
     await handleAsistencia(manualCode);
   };
 
+  const handleDownloadOfflineData = async () => {
+    if (!selectedEvento) {
+      setError('Debe seleccionar un evento para descargar su base local');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setLocalSyncMessage('');
+    try {
+      const registrados = await asistenciaService.getInscritosConfirmados(selectedEvento);
+      const ev = eventos.find(e => e.id_evento === parseInt(selectedEvento));
+      const nombre = ev ? ev.titulo : 'Evento';
+      
+      await offlineDb.guardarInscritos(parseInt(selectedEvento), nombre, registrados, checkpoints);
+      
+      setLocalSyncMessage(`¡Caché Sincronizada! ${registrados.length} registrados y ${checkpoints.length} checkpoints guardados para uso Offline.`);
+      setTimeout(() => setLocalSyncMessage(''), 6000);
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.detail || 'Error al descargar datos del evento');
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSyncQueue = async () => {
+    setLoading(true);
+    setError(null);
+    setLocalSyncMessage('');
+    setSyncingStatus('Iniciando sincronización...');
+    try {
+      const cola = await offlineDb.obtenerColaAsistencia();
+      if (cola.length === 0) {
+        setSyncingStatus('');
+        setLoading(false);
+        return;
+      }
+
+      let exitosos = 0;
+      let fallidos = 0;
+
+      for (const item of cola) {
+        setSyncingStatus(`Subiendo ${exitosos + fallidos + 1}/${cola.length}: ${item.nombre_completo}...`);
+        try {
+          await asistenciaService.registrarPorQR(item.codigo_qr, item.id_checkpoint);
+          await offlineDb.eliminarDeCola(item.id);
+          exitosos++;
+        } catch (err) {
+          console.error('Error al sincronizar registro offline:', item, err);
+          fallidos++;
+          const detail = err.response?.data?.detail || '';
+          if (detail.includes('ya fue escaneada') || detail.includes('Ya se registró asistencia')) {
+            await offlineDb.eliminarDeCola(item.id);
+          } else {
+            setError(`Fallo de conexión al sincronizar a ${item.nombre_completo}: ${detail || 'Servidor no disponible'}`);
+            break;
+          }
+        }
+      }
+
+      setSyncingStatus('');
+      await updateQueueCount();
+      if (exitosos > 0) {
+        setLocalSyncMessage(`Sincronización finalizada. Éxito: ${exitosos}, Fallos/Duplicados: ${fallidos}.`);
+        setTimeout(() => setLocalSyncMessage(''), 6000);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Error general durante la sincronización de asistencia');
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setLoading(false);
+      setSyncingStatus('');
+    }
+  };
+
   return (
     <div className={styles.container}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '8px' }}>
+      <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
           <PersonAvailable24Regular style={{ color: tokens.colorBrandForeground1, fontSize: '32px' }} />
           <MEHTypography variant="h1">Escaneo QR de Asistencia</MEHTypography>
         </div>
         <MEHTypography variant="body" style={{ opacity: 0.7 }}>
-          Flujo local para eventos: escaneo por cámara, ingreso manual y generación de QR para pruebas en celular/computadora.
+          Flujo local para eventos: escaneo por cámara, ingreso manual y sincronización offline en campus.
         </MEHTypography>
+        
+        {/* Connection Status Badge & Forced Switch */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginTop: '8px' }}>
+          <div className={`${styles.connectionBadge} ${isOfflineMode ? styles.offlineBadge : styles.onlineBadge}`}>
+            {isOfflineMode ? (
+              <>
+                <WifiOff24Regular />
+                <span>MODO OFFLINE ACTIVADO</span>
+              </>
+            ) : (
+              <>
+                <Wifi124Regular />
+                <span>SISTEMA EN LÍNEA</span>
+              </>
+            )}
+          </div>
+          <Switch
+            label="Forzar Modo Offline"
+            checked={forceOffline}
+            onChange={(e, d) => setForceOffline(d.checked)}
+          />
+        </div>
       </div>
 
       <MEHCard className={styles.panel}>
@@ -230,7 +454,39 @@ const EscaneoQR = () => {
           <Tab value="generator" icon={<QrCode24Regular />}>Generador QR Evento</Tab>
         </TabList>
 
-        <div style={{ width: '100%', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+        {/* Offline Management Panel */}
+        <div className={styles.syncContainer}>
+          <MEHTypography variant="h3">Gestión de Asistencia Offline (IndexedDB)</MEHTypography>
+          <MEHTypography variant="body" style={{ opacity: 0.8 }}>
+            Descarga la base de registrados mientras tengas red. Podrás escanear en sótanos sin internet y sincronizar la cola después.
+          </MEHTypography>
+          <div className={styles.syncActions}>
+            <MEHButton
+              appearance={isOfflineMode ? 'outline' : 'primary'}
+              disabled={isOfflineMode || !selectedEvento || loading}
+              icon={<ArrowDownload24Regular />}
+              onClick={handleDownloadOfflineData}
+            >
+              Descargar Datos para Offline
+            </MEHButton>
+            
+            {offlineQueueCount > 0 && (
+              <MEHButton
+                appearance="primary"
+                disabled={isOfflineMode || loading}
+                icon={<ArrowUpload24Regular />}
+                onClick={handleSyncQueue}
+                style={{ backgroundColor: tokens.colorPaletteGreenBackground }}
+              >
+                Sincronizar Cola ({offlineQueueCount} pendientes)
+              </MEHButton>
+            )}
+          </div>
+          {syncingStatus && <Spinner size="tiny" label={syncingStatus} />}
+          {localSyncMessage && <span className={styles.syncSuccess}>{localSyncMessage}</span>}
+        </div>
+
+        <div style={{ width: '100%', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
           <Field label="Evento Actual">
             <Select value={selectedEvento} onChange={handleEventoChange}>
               <option value="">-- Seleccionar Evento --</option>
@@ -271,7 +527,7 @@ const EscaneoQR = () => {
                   placeholder="Pega aquí el código o URL"
                 />
               </Field>
-              <MEHButton appearance="primary" onClick={handleManualSubmit}>
+              <MEHButton appearance="primary" onClick={handleManualSubmit} disabled={loading}>
                 Registrar Asistencia
               </MEHButton>
             </div>
@@ -321,7 +577,7 @@ const EscaneoQR = () => {
           </div>
         )}
 
-        {loading && !scanResult && <Spinner label="Procesando..." style={{ marginTop: '8px' }} />}
+        {loading && !scanResult && !syncingStatus && <Spinner label="Procesando..." style={{ marginTop: '8px' }} />}
 
         {scanResult && (
           <div className={styles.resultOk}>
