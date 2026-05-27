@@ -5,7 +5,16 @@ sidebar_label: 02. Detalle de Frontend React
 
 # Arquitectura Interna del Frontend (React 18 & Fluent UI v9)
 
-El frontend de la Plataforma MEH está diseñado como una **Single Page Application (SPA)** de alto rendimiento que se ejecuta del lado del cliente. Se ha implementado utilizando **React 18 con JSX estándar** (sin TypeScript) y el sistema de empaquetado ultra-rápido **Vite**, maximizando la velocidad de compilación y optimizando los tiempos de recarga en caliente del navegador (HMR).
+:::info METADATOS DEL DOCUMENTO
+* **Propietario del Documento:** Nataly Gemio Morales (MLSA Ambassador / Carrera de Informática UMSA)
+* **Versión:** 1.2.0
+* **Última Actualización:** 2026-05-25
+* **Audiencia Destinataria:** Desarrolladores Backend/Frontend, Administradores de Sistemas, Evaluadores Académicos de la UMSA.
+:::
+
+## 🎯 Propósito y Ámbito
+
+Este documento describe la arquitectura técnica interna de la interfaz de usuario de la **Plataforma MEH**, detallando el framework de componentes, la gestión de estilos Griffel, el ruteo adaptativo (RBAC), el consumo HTTP centralizado de Axios, el motor i18next y la persistencia local IndexedDB para soporte sin conexión a internet (Offline-First).
 
 ---
 
@@ -66,7 +75,7 @@ Toda la comunicación de datos hacia el backend de FastAPI se realiza de forma c
 Para evitar la inyección manual de encabezados de seguridad en cada llamada de Axios, se han configurado interceptores de solicitud y respuesta a nivel global:
 
 * **Interceptor de Solicitud (Request Interceptor):** Intercepta de forma automática cada petición HTTP saliente. Extrae el Token JWT de seguridad guardado en el storage del navegador y lo adjunta síncronamente en los encabezados HTTP bajo el formato estándar `Authorization: Bearer <TOKEN>`.
-* **Interceptor de Respuesta (Response Interceptor):** Monitorea cada respuesta entrante del servidor. Si el backend retorna un código de error de seguridad (por ejemplo, `HTTP 401 Unauthorized` indicando que el token ha expirado), el interceptor captura la excepción, destruye la sesión en el `AuthContext` del frontend, borra los datos persistidos y redirige de forma inmediata al usuario a la pantalla de `/login` para resguardar la seguridad de la cuenta.
+* **Interceptor de Respuesta (Response Interceptor):** Monitorea cada respuesta entrante del servidor. Si el backend retorna un código de error de seguridad (por ejemplo, `HTTP 401 Unauthorized` indicando que el token ha expirado), el interceptor de respuesta captura la excepción, destruye la sesión en el `AuthContext` del frontend, borra los datos persistidos y redirige de forma inmediata al usuario a la pantalla de `/login` para resguardar la seguridad de la cuenta.
 
 ---
 
@@ -92,3 +101,11 @@ Para dar soporte a la toma de marcas de asistencia en auditorios subterráneos c
 2. **Registro Offline**: Las lecturas QR exitosas se insertan en `cola_asistencia` en lugar de despacharse por HTTP. El registro del alumno en `registrados` se actualiza a `asistio = true` en la base de datos local de IndexedDB para evitar marcas duplicadas.
 3. **Vaciado de Cola**: Al restablecerse el internet, se ejecuta un despachador secuencial que consume la cola mediante un bucle transaccional FIFO. Se extrae un registro, se realiza la llamada `POST /api/v1/eventos/asistencia-qr` y ante la confirmación exitosa (`HTTP 200/201`), se elimina de `cola_asistencia`. Si hay un error de red, el ciclo de vaciado se pausa de forma preventiva.
 
+---
+
+## 🔗 Recursos y Artículos Relacionados
+
+* [01. Arquitectura y Contexto C4](file:///f:/Plataforma-MEH/website/docs/tecnico/01-arquitectura-contexto.md)
+* [03. Mapeo de Componentes .jsx](file:///f:/Plataforma-MEH/website/docs/tecnico/03-mapeo-paginas-jsx.md)
+* [04. Detalle de Backend FastAPI](file:///f:/Plataforma-MEH/website/docs/tecnico/04-detalle-backend.md)
+* [05. Base de Datos y Seguridad](file:///f:/Plataforma-MEH/website/docs/tecnico/05-base-datos-seguridad.md)

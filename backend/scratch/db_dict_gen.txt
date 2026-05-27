@@ -1,0 +1,1055 @@
+# GENERATED DATABASE DOCUMENTATION
+
+## 1. Diagrama Entidad-Relación Lógico (Mermaid ERD)
+
+```mermaid
+erDiagram
+    ESTADOS_REGISTRO {
+        INTEGER id_estado PK
+        VARCHAR(50) nombre_estado 
+        TEXT descripcion 
+    }
+    EVENTOS_SPEAKERS {
+        INTEGER id_evento FK
+        INTEGER id_speaker FK
+    }
+    EVENTOS_AUSPICIADORES {
+        INTEGER id_evento FK
+        INTEGER id_auspiciador FK
+    }
+    EVENTOS_COMUNIDADES {
+        INTEGER id_evento FK
+        INTEGER id_comunidad FK
+    }
+    USUARIOS {
+        INTEGER id_usuario PK
+        VARCHAR nombres 
+        VARCHAR apellidos 
+        VARCHAR alias 
+        VARCHAR foto_url 
+        VARCHAR preferencia_tema 
+        VARCHAR correo 
+        TEXT password_hash 
+        VARCHAR rol 
+        DATETIME fecha_registro 
+        TEXT bio 
+        VARCHAR institucion 
+        VARCHAR estudia_en 
+        VARCHAR tipo_entidad 
+        VARCHAR pais 
+        VARCHAR departamento 
+        VARCHAR linkedin_url 
+        VARCHAR github_url 
+        VARCHAR facebook_url 
+        VARCHAR instagram_url 
+        VARCHAR tiktok_url 
+        VARCHAR learning_path_url 
+        BOOLEAN perfil_publico 
+        BOOLEAN activo 
+        BOOLEAN es_nuevo 
+        VARCHAR reset_token 
+        DATETIME reset_token_exp 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    SPEAKERS {
+        INTEGER id_speaker PK
+        VARCHAR nombre 
+        TEXT bio 
+        TEXT trayectoria 
+        VARCHAR foto_url 
+        VARCHAR trabajo_actual 
+        VARCHAR linkedin_url 
+        VARCHAR twitter_url 
+        VARCHAR facebook_url 
+        VARCHAR instagram_url 
+        VARCHAR correo_contacto 
+        VARCHAR whatsapp_contacto 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    AUSPICIADORES {
+        INTEGER id_auspiciador PK
+        VARCHAR nombre 
+        VARCHAR logo_url 
+        VARCHAR sitio_web 
+        VARCHAR tipo 
+        VARCHAR correo_contacto 
+        VARCHAR whatsapp_contacto 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    COMUNIDADES_ALIADAS {
+        INTEGER id_comunidad PK
+        VARCHAR nombre 
+        TEXT descripcion 
+        VARCHAR logo_url 
+        VARCHAR link_contacto 
+        VARCHAR correo_contacto 
+        VARCHAR whatsapp_contacto 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    CONFIGURACION_GLOBAL {
+        INTEGER id_config PK
+        VARCHAR clave 
+        TEXT valor 
+        VARCHAR descripcion 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    BADGES {
+        INTEGER id_badge PK
+        VARCHAR nombre_badge 
+        TEXT descripcion 
+        TEXT imagen_url 
+        INTEGER id_evento_origen FK
+        INTEGER id_curso_origen FK
+        INTEGER puntos 
+        VARCHAR requisito_nivel 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    USUARIOS_BADGES {
+        INTEGER id_usuario_badge PK
+        INTEGER id_usuario FK
+        INTEGER id_badge FK
+        DATETIME fecha_obtencion 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    PRODUCTOS {
+        INTEGER id_producto PK
+        VARCHAR(100) nombre 
+        TEXT descripcion 
+        NUMERIC(10,_2) precio 
+        INTEGER stock 
+        BOOLEAN es_kit_evento 
+        TEXT imagen_url 
+        VARCHAR categoria 
+        BOOLEAN activo 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    PEDIDOS {
+        INTEGER id_pedido PK
+        INTEGER id_usuario FK
+        INTEGER id_pago FK
+        VARCHAR estado 
+        DATETIME fecha_pedido 
+        NUMERIC(10,_2) total 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    PEDIDO_DETALLES {
+        INTEGER id_detalle PK
+        INTEGER id_pedido FK
+        INTEGER id_producto FK
+        INTEGER cantidad 
+        NUMERIC(10,_2) precio_unitario 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    EVENTOS {
+        INTEGER id_evento PK
+        VARCHAR titulo 
+        TEXT descripcion 
+        VARCHAR tipo_evento 
+        DATETIME fecha_inicio 
+        DATETIME fecha_fin 
+        VARCHAR hora_inicio 
+        VARCHAR hora_fin 
+        VARCHAR modalidad 
+        VARCHAR ubicacion 
+        VARCHAR link_mapas 
+        TEXT agenda 
+        INTEGER capacidad_max 
+        VARCHAR estado 
+        VARCHAR imagen_url 
+        BOOLEAN refrigerio_incluido 
+        VARCHAR token_qr 
+        INTEGER id_organizador FK
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    INSCRIPCIONES_EVENTOS {
+        INTEGER id_inscripcion PK
+        INTEGER id_usuario FK
+        INTEGER id_evento FK
+        DATETIME fecha_inscripcion 
+        VARCHAR estado_inscripcion 
+        VARCHAR codigo_qr 
+        BOOLEAN asistio 
+        DATETIME fecha_validacion 
+        INTEGER id_pago FK
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    CHECKPOINTS {
+        INTEGER id_checkpoint PK
+        INTEGER id_evento FK
+        VARCHAR nombre_checkpoint 
+        DATETIME hora_apertura 
+        DATETIME hora_cierre 
+        VARCHAR tipo_checkpoint 
+        INTEGER orden 
+        BOOLEAN activo 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    ASISTENCIA_DETALLES {
+        INTEGER id_asistencia PK
+        INTEGER id_inscripcion FK
+        INTEGER id_checkpoint FK
+        DATETIME fecha_escaneo 
+        INTEGER escaneado_por FK
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    CURSOS {
+        INTEGER id_curso PK
+        VARCHAR nombre_curso 
+        TEXT descripcion 
+        INTEGER horas_academicas 
+        VARCHAR estado 
+        VARCHAR imagen_url 
+        INTEGER id_instructor FK
+        BOOLEAN es_ms_learning 
+        VARCHAR external_url 
+        VARCHAR uid_ms 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    LECCIONES {
+        INTEGER id_leccion PK
+        INTEGER id_curso FK
+        VARCHAR titulo 
+        VARCHAR contenido_video_url 
+        TEXT contenido_texto 
+        INTEGER orden 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    TAREAS {
+        INTEGER id_tarea PK
+        INTEGER id_leccion FK
+        VARCHAR titulo 
+        TEXT instrucciones 
+        INTEGER puntos_max 
+        DATETIME fecha_entrega_limite 
+        VARCHAR archivo_adjunto_url 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    ENTREGAS_TAREAS {
+        INTEGER id_entrega PK
+        INTEGER id_tarea FK
+        INTEGER id_usuario FK
+        VARCHAR archivo_url 
+        TEXT comentario_alumno 
+        INTEGER nota 
+        TEXT comentario_docente 
+        DATETIME fecha_envio 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    POSTS_FORO {
+        INTEGER id_post PK
+        INTEGER id_curso FK
+        INTEGER id_usuario FK
+        TEXT mensaje 
+        BOOLEAN es_pregunta_docente 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    INSCRIPCIONES_CURSOS {
+        INTEGER id_inscripcion_curso PK
+        INTEGER id_usuario FK
+        INTEGER id_curso FK
+        DATETIME fecha_inscripcion 
+        INTEGER progreso 
+        NUMERIC(5,_2) nota_final 
+        BOOLEAN finalizado 
+        INTEGER id_pago FK
+        VARCHAR estado_inscripcion 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    PAGOS {
+        INTEGER id_pago PK
+        INTEGER id_usuario FK
+        NUMERIC(10,_2) monto 
+        DATETIME fecha_pago 
+        VARCHAR metodo_pago 
+        VARCHAR estado_pago 
+        TEXT comprobante_url 
+        INTEGER id_referencia 
+        VARCHAR tipo_referencia 
+        INTEGER validado_por FK
+        VARCHAR url_comprobante 
+        DATETIME fecha_validacion 
+        TEXT notas_admin 
+        NUMERIC(5,_2) porcentaje_ocr 
+        TEXT texto_ocr 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    LOGS_SISTEMA {
+        INTEGER id_log PK
+        INTEGER id_admin FK
+        VARCHAR accion 
+        VARCHAR tabla_afectada 
+        INTEGER id_registro_afectado 
+        TEXT valor_anterior 
+        TEXT valor_nuevo 
+        DATETIME fecha_hora 
+        VARCHAR ip_direccion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    CERTIFICADOS {
+        INTEGER id_certificado PK
+        INTEGER id_usuario FK
+        INTEGER id_curso FK
+        INTEGER id_evento FK
+        VARCHAR uuid_verificacion 
+        VARCHAR codigo_verificacion 
+        DATETIME fecha_emision 
+        VARCHAR url_pdf 
+        VARCHAR formato 
+        BOOLEAN entregado_fisico 
+        BOOLEAN es_ruta_linkedin 
+        TEXT metadata_adicional 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    RECURSOS {
+        INTEGER id_recurso PK
+        VARCHAR titulo 
+        TEXT descripcion 
+        VARCHAR motivo 
+        VARCHAR autor_nombre 
+        VARCHAR url_descarga 
+        VARCHAR portada_url 
+        VARCHAR tipo_archivo 
+        VARCHAR tipo_recurso 
+        TEXT contenido_md 
+        VARCHAR categoria 
+        INTEGER id_curso FK
+        INTEGER id_evento FK
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    ANUNCIOS {
+        INTEGER id_anuncio PK
+        VARCHAR titulo 
+        TEXT contenido 
+        VARCHAR url_imagen 
+        VARCHAR link_accion 
+        VARCHAR tipo 
+        DATETIME fecha_publicacion 
+        INTEGER id_autor FK
+        BOOLEAN activo 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
+    AUSPICIADORES ||--o{ EVENTOS_AUSPICIADORES : "fk"
+    BADGES ||--o{ USUARIOS_BADGES : "fk"
+    CHECKPOINTS ||--o{ ASISTENCIA_DETALLES : "fk"
+    COMUNIDADES_ALIADAS ||--o{ EVENTOS_COMUNIDADES : "fk"
+    CURSOS ||--o{ BADGES : "fk"
+    CURSOS ||--o{ CERTIFICADOS : "fk"
+    CURSOS ||--o{ INSCRIPCIONES_CURSOS : "fk"
+    CURSOS ||--o{ LECCIONES : "fk"
+    CURSOS ||--o{ POSTS_FORO : "fk"
+    CURSOS ||--o{ RECURSOS : "fk"
+    ESTADOS_REGISTRO ||--o{ ANUNCIOS : "fk"
+    ESTADOS_REGISTRO ||--o{ ASISTENCIA_DETALLES : "fk"
+    ESTADOS_REGISTRO ||--o{ AUSPICIADORES : "fk"
+    ESTADOS_REGISTRO ||--o{ BADGES : "fk"
+    ESTADOS_REGISTRO ||--o{ CERTIFICADOS : "fk"
+    ESTADOS_REGISTRO ||--o{ CHECKPOINTS : "fk"
+    ESTADOS_REGISTRO ||--o{ COMUNIDADES_ALIADAS : "fk"
+    ESTADOS_REGISTRO ||--o{ CONFIGURACION_GLOBAL : "fk"
+    ESTADOS_REGISTRO ||--o{ CURSOS : "fk"
+    ESTADOS_REGISTRO ||--o{ ENTREGAS_TAREAS : "fk"
+    ESTADOS_REGISTRO ||--o{ EVENTOS : "fk"
+    ESTADOS_REGISTRO ||--o{ INSCRIPCIONES_CURSOS : "fk"
+    ESTADOS_REGISTRO ||--o{ INSCRIPCIONES_EVENTOS : "fk"
+    ESTADOS_REGISTRO ||--o{ LECCIONES : "fk"
+    ESTADOS_REGISTRO ||--o{ LOGS_SISTEMA : "fk"
+    ESTADOS_REGISTRO ||--o{ PAGOS : "fk"
+    ESTADOS_REGISTRO ||--o{ PEDIDOS : "fk"
+    ESTADOS_REGISTRO ||--o{ PEDIDO_DETALLES : "fk"
+    ESTADOS_REGISTRO ||--o{ POSTS_FORO : "fk"
+    ESTADOS_REGISTRO ||--o{ PRODUCTOS : "fk"
+    ESTADOS_REGISTRO ||--o{ RECURSOS : "fk"
+    ESTADOS_REGISTRO ||--o{ SPEAKERS : "fk"
+    ESTADOS_REGISTRO ||--o{ TAREAS : "fk"
+    ESTADOS_REGISTRO ||--o{ USUARIOS : "fk"
+    ESTADOS_REGISTRO ||--o{ USUARIOS_BADGES : "fk"
+    EVENTOS ||--o{ BADGES : "fk"
+    EVENTOS ||--o{ CERTIFICADOS : "fk"
+    EVENTOS ||--o{ CHECKPOINTS : "fk"
+    EVENTOS ||--o{ EVENTOS_AUSPICIADORES : "fk"
+    EVENTOS ||--o{ EVENTOS_COMUNIDADES : "fk"
+    EVENTOS ||--o{ EVENTOS_SPEAKERS : "fk"
+    EVENTOS ||--o{ INSCRIPCIONES_EVENTOS : "fk"
+    EVENTOS ||--o{ RECURSOS : "fk"
+    INSCRIPCIONES_EVENTOS ||--o{ ASISTENCIA_DETALLES : "fk"
+    LECCIONES ||--o{ TAREAS : "fk"
+    PAGOS ||--o{ INSCRIPCIONES_CURSOS : "fk"
+    PAGOS ||--o{ INSCRIPCIONES_EVENTOS : "fk"
+    PAGOS ||--o{ PEDIDOS : "fk"
+    PEDIDOS ||--o{ PEDIDO_DETALLES : "fk"
+    PRODUCTOS ||--o{ PEDIDO_DETALLES : "fk"
+    SPEAKERS ||--o{ EVENTOS_SPEAKERS : "fk"
+    TAREAS ||--o{ ENTREGAS_TAREAS : "fk"
+    USUARIOS ||--o{ ANUNCIOS : "fk"
+    USUARIOS ||--o{ ASISTENCIA_DETALLES : "fk"
+    USUARIOS ||--o{ AUSPICIADORES : "fk"
+    USUARIOS ||--o{ BADGES : "fk"
+    USUARIOS ||--o{ CERTIFICADOS : "fk"
+    USUARIOS ||--o{ CHECKPOINTS : "fk"
+    USUARIOS ||--o{ COMUNIDADES_ALIADAS : "fk"
+    USUARIOS ||--o{ CONFIGURACION_GLOBAL : "fk"
+    USUARIOS ||--o{ CURSOS : "fk"
+    USUARIOS ||--o{ ENTREGAS_TAREAS : "fk"
+    USUARIOS ||--o{ EVENTOS : "fk"
+    USUARIOS ||--o{ INSCRIPCIONES_CURSOS : "fk"
+    USUARIOS ||--o{ INSCRIPCIONES_EVENTOS : "fk"
+    USUARIOS ||--o{ LECCIONES : "fk"
+    USUARIOS ||--o{ LOGS_SISTEMA : "fk"
+    USUARIOS ||--o{ PAGOS : "fk"
+    USUARIOS ||--o{ PEDIDOS : "fk"
+    USUARIOS ||--o{ POSTS_FORO : "fk"
+    USUARIOS ||--o{ PRODUCTOS : "fk"
+    USUARIOS ||--o{ RECURSOS : "fk"
+    USUARIOS ||--o{ SPEAKERS : "fk"
+    USUARIOS ||--o{ TAREAS : "fk"
+    USUARIOS ||--o{ USUARIOS : "fk"
+    USUARIOS ||--o{ USUARIOS_BADGES : "fk"
+```
+
+## 2. Diccionario de Datos Relacional Completo
+
+### estados_registro
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_estado` | `INTEGER` | **PK** | NOT NULL |
+| `nombre_estado` | `VARCHAR(50)` |  | NOT NULL, UNIQUE |
+| `descripcion` | `TEXT` |  | NULL |
+
+### eventos_speakers
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_evento` | `INTEGER` | **FK** (eventos.id_evento) | NULL |
+| `id_speaker` | `INTEGER` | **FK** (speakers.id_speaker) | NULL |
+
+### eventos_auspiciadores
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_evento` | `INTEGER` | **FK** (eventos.id_evento) | NULL |
+| `id_auspiciador` | `INTEGER` | **FK** (auspiciadores.id_auspiciador) | NULL |
+
+### eventos_comunidades
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_evento` | `INTEGER` | **FK** (eventos.id_evento) | NULL |
+| `id_comunidad` | `INTEGER` | **FK** (comunidades_aliadas.id_comunidad) | NULL |
+
+### usuarios
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_usuario` | `INTEGER` | **PK** | NOT NULL |
+| `nombres` | `VARCHAR` |  | NULL |
+| `apellidos` | `VARCHAR` |  | NULL |
+| `alias` | `VARCHAR` |  | NULL |
+| `foto_url` | `VARCHAR` |  | NULL |
+| `preferencia_tema` | `VARCHAR` |  | NULL, DEFAULT: dark |
+| `correo` | `VARCHAR` |  | NULL, UNIQUE |
+| `password_hash` | `TEXT` |  | NULL |
+| `rol` | `VARCHAR` |  | NULL, DEFAULT: MIEMBRO |
+| `fecha_registro` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA00054E0> |
+| `bio` | `TEXT` |  | NULL |
+| `institucion` | `VARCHAR` |  | NULL |
+| `estudia_en` | `VARCHAR` |  | NULL |
+| `tipo_entidad` | `VARCHAR` |  | NULL, DEFAULT: Estudiante |
+| `pais` | `VARCHAR` |  | NULL, DEFAULT: Bolivia |
+| `departamento` | `VARCHAR` |  | NULL |
+| `linkedin_url` | `VARCHAR` |  | NULL |
+| `github_url` | `VARCHAR` |  | NULL |
+| `facebook_url` | `VARCHAR` |  | NULL |
+| `instagram_url` | `VARCHAR` |  | NULL |
+| `tiktok_url` | `VARCHAR` |  | NULL |
+| `learning_path_url` | `VARCHAR` |  | NULL |
+| `perfil_publico` | `BOOLEAN` |  | NULL, DEFAULT: True |
+| `activo` | `BOOLEAN` |  | NULL, DEFAULT: True |
+| `es_nuevo` | `BOOLEAN` |  | NULL, DEFAULT: True |
+| `reset_token` | `VARCHAR` |  | NULL |
+| `reset_token_exp` | `DATETIME` |  | NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### speakers
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_speaker` | `INTEGER` | **PK** | NOT NULL |
+| `nombre` | `VARCHAR` |  | NULL |
+| `bio` | `TEXT` |  | NULL |
+| `trayectoria` | `TEXT` |  | NULL |
+| `foto_url` | `VARCHAR` |  | NULL |
+| `trabajo_actual` | `VARCHAR` |  | NULL |
+| `linkedin_url` | `VARCHAR` |  | NULL |
+| `twitter_url` | `VARCHAR` |  | NULL |
+| `facebook_url` | `VARCHAR` |  | NULL |
+| `instagram_url` | `VARCHAR` |  | NULL |
+| `correo_contacto` | `VARCHAR` |  | NULL |
+| `whatsapp_contacto` | `VARCHAR` |  | NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### auspiciadores
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_auspiciador` | `INTEGER` | **PK** | NOT NULL |
+| `nombre` | `VARCHAR` |  | NULL |
+| `logo_url` | `VARCHAR` |  | NULL |
+| `sitio_web` | `VARCHAR` |  | NULL |
+| `tipo` | `VARCHAR` |  | NULL, DEFAULT: GENERAL |
+| `correo_contacto` | `VARCHAR` |  | NULL |
+| `whatsapp_contacto` | `VARCHAR` |  | NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### comunidades_aliadas
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_comunidad` | `INTEGER` | **PK** | NOT NULL |
+| `nombre` | `VARCHAR` |  | NULL |
+| `descripcion` | `TEXT` |  | NULL |
+| `logo_url` | `VARCHAR` |  | NULL |
+| `link_contacto` | `VARCHAR` |  | NULL |
+| `correo_contacto` | `VARCHAR` |  | NULL |
+| `whatsapp_contacto` | `VARCHAR` |  | NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### configuracion_global
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_config` | `INTEGER` | **PK** | NOT NULL |
+| `clave` | `VARCHAR` |  | NULL, UNIQUE |
+| `valor` | `TEXT` |  | NULL |
+| `descripcion` | `VARCHAR` |  | NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### badges
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_badge` | `INTEGER` | **PK** | NOT NULL |
+| `nombre_badge` | `VARCHAR` |  | NULL |
+| `descripcion` | `TEXT` |  | NULL |
+| `imagen_url` | `TEXT` |  | NULL |
+| `id_evento_origen` | `INTEGER` | **FK** (eventos.id_evento) | NULL |
+| `id_curso_origen` | `INTEGER` | **FK** (cursos.id_curso) | NULL |
+| `puntos` | `INTEGER` |  | NULL, DEFAULT: 10 |
+| `requisito_nivel` | `VARCHAR` |  | NULL, DEFAULT: Beginner |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### usuarios_badges
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_usuario_badge` | `INTEGER` | **PK** | NOT NULL |
+| `id_usuario` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `id_badge` | `INTEGER` | **FK** (badges.id_badge) | NULL |
+| `fecha_obtencion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA00A8180> |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### productos
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_producto` | `INTEGER` | **PK** | NOT NULL |
+| `nombre` | `VARCHAR(100)` |  | NULL |
+| `descripcion` | `TEXT` |  | NULL |
+| `precio` | `NUMERIC(10, 2)` |  | NULL, DEFAULT: 0 |
+| `stock` | `INTEGER` |  | NULL, DEFAULT: 0 |
+| `es_kit_evento` | `BOOLEAN` |  | NULL, DEFAULT: False |
+| `imagen_url` | `TEXT` |  | NULL |
+| `categoria` | `VARCHAR` |  | NULL, DEFAULT: SOUVENIR |
+| `activo` | `BOOLEAN` |  | NULL, DEFAULT: True |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### pedidos
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_pedido` | `INTEGER` | **PK** | NOT NULL |
+| `id_usuario` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `id_pago` | `INTEGER` | **FK** (pagos.id_pago) | NULL |
+| `estado` | `VARCHAR` |  | NULL, DEFAULT: PENDIENTE |
+| `fecha_pedido` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA00AB740> |
+| `total` | `NUMERIC(10, 2)` |  | NULL, DEFAULT: 0 |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### pedido_detalles
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_detalle` | `INTEGER` | **PK** | NOT NULL |
+| `id_pedido` | `INTEGER` | **FK** (pedidos.id_pedido) | NULL |
+| `id_producto` | `INTEGER` | **FK** (productos.id_producto) | NULL |
+| `cantidad` | `INTEGER` |  | NULL, DEFAULT: 1 |
+| `precio_unitario` | `NUMERIC(10, 2)` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### eventos
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_evento` | `INTEGER` | **PK** | NOT NULL |
+| `titulo` | `VARCHAR` |  | NULL |
+| `descripcion` | `TEXT` |  | NULL |
+| `tipo_evento` | `VARCHAR` |  | NULL, DEFAULT: CONFERENCIA |
+| `fecha_inicio` | `DATETIME` |  | NULL |
+| `fecha_fin` | `DATETIME` |  | NULL |
+| `hora_inicio` | `VARCHAR` |  | NULL |
+| `hora_fin` | `VARCHAR` |  | NULL |
+| `modalidad` | `VARCHAR` |  | NULL |
+| `ubicacion` | `VARCHAR` |  | NULL |
+| `link_mapas` | `VARCHAR` |  | NULL |
+| `agenda` | `TEXT` |  | NULL |
+| `capacidad_max` | `INTEGER` |  | NULL |
+| `estado` | `VARCHAR` |  | NULL, DEFAULT: PROGRAMADO |
+| `imagen_url` | `VARCHAR` |  | NULL |
+| `refrigerio_incluido` | `BOOLEAN` |  | NULL, DEFAULT: False |
+| `token_qr` | `VARCHAR` |  | NULL |
+| `id_organizador` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### inscripciones_eventos
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_inscripcion` | `INTEGER` | **PK** | NOT NULL |
+| `id_usuario` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `id_evento` | `INTEGER` | **FK** (eventos.id_evento) | NULL |
+| `fecha_inscripcion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA0111760> |
+| `estado_inscripcion` | `VARCHAR` |  | NULL, DEFAULT: PENDIENTE |
+| `codigo_qr` | `VARCHAR` |  | NULL, UNIQUE |
+| `asistio` | `BOOLEAN` |  | NULL, DEFAULT: False |
+| `fecha_validacion` | `DATETIME` |  | NULL |
+| `id_pago` | `INTEGER` | **FK** (pagos.id_pago) | NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### checkpoints
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_checkpoint` | `INTEGER` | **PK** | NOT NULL |
+| `id_evento` | `INTEGER` | **FK** (eventos.id_evento) | NULL |
+| `nombre_checkpoint` | `VARCHAR` |  | NULL |
+| `hora_apertura` | `DATETIME` |  | NULL |
+| `hora_cierre` | `DATETIME` |  | NULL |
+| `tipo_checkpoint` | `VARCHAR` |  | NULL |
+| `orden` | `INTEGER` |  | NULL |
+| `activo` | `BOOLEAN` |  | NULL, DEFAULT: True |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### asistencia_detalles
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_asistencia` | `INTEGER` | **PK** | NOT NULL |
+| `id_inscripcion` | `INTEGER` | **FK** (inscripciones_eventos.id_inscripcion) | NULL |
+| `id_checkpoint` | `INTEGER` | **FK** (checkpoints.id_checkpoint) | NULL |
+| `fecha_escaneo` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA0131BC0> |
+| `escaneado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### cursos
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_curso` | `INTEGER` | **PK** | NOT NULL |
+| `nombre_curso` | `VARCHAR` |  | NULL |
+| `descripcion` | `TEXT` |  | NULL |
+| `horas_academicas` | `INTEGER` |  | NULL |
+| `estado` | `VARCHAR` |  | NULL, DEFAULT: ACTIVO |
+| `imagen_url` | `VARCHAR` |  | NULL |
+| `id_instructor` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `es_ms_learning` | `BOOLEAN` |  | NULL, DEFAULT: False |
+| `external_url` | `VARCHAR` |  | NULL |
+| `uid_ms` | `VARCHAR` |  | NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### lecciones
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_leccion` | `INTEGER` | **PK** | NOT NULL |
+| `id_curso` | `INTEGER` | **FK** (cursos.id_curso) | NULL |
+| `titulo` | `VARCHAR` |  | NULL |
+| `contenido_video_url` | `VARCHAR` |  | NULL |
+| `contenido_texto` | `TEXT` |  | NULL |
+| `orden` | `INTEGER` |  | NULL, DEFAULT: 1 |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### tareas
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_tarea` | `INTEGER` | **PK** | NOT NULL |
+| `id_leccion` | `INTEGER` | **FK** (lecciones.id_leccion) | NULL |
+| `titulo` | `VARCHAR` |  | NULL |
+| `instrucciones` | `TEXT` |  | NULL |
+| `puntos_max` | `INTEGER` |  | NULL, DEFAULT: 100 |
+| `fecha_entrega_limite` | `DATETIME` |  | NULL |
+| `archivo_adjunto_url` | `VARCHAR` |  | NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### entregas_tareas
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_entrega` | `INTEGER` | **PK** | NOT NULL |
+| `id_tarea` | `INTEGER` | **FK** (tareas.id_tarea) | NULL |
+| `id_usuario` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `archivo_url` | `VARCHAR` |  | NULL |
+| `comentario_alumno` | `TEXT` |  | NULL |
+| `nota` | `INTEGER` |  | NULL |
+| `comentario_docente` | `TEXT` |  | NULL |
+| `fecha_envio` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA0181260> |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### posts_foro
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_post` | `INTEGER` | **PK** | NOT NULL |
+| `id_curso` | `INTEGER` | **FK** (cursos.id_curso) | NULL |
+| `id_usuario` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `mensaje` | `TEXT` |  | NULL |
+| `es_pregunta_docente` | `BOOLEAN` |  | NULL, DEFAULT: False |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### inscripciones_cursos
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_inscripcion_curso` | `INTEGER` | **PK** | NOT NULL |
+| `id_usuario` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `id_curso` | `INTEGER` | **FK** (cursos.id_curso) | NULL |
+| `fecha_inscripcion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA01B0C20> |
+| `progreso` | `INTEGER` |  | NULL, DEFAULT: 0 |
+| `nota_final` | `NUMERIC(5, 2)` |  | NULL |
+| `finalizado` | `BOOLEAN` |  | NULL, DEFAULT: False |
+| `id_pago` | `INTEGER` | **FK** (pagos.id_pago) | NULL |
+| `estado_inscripcion` | `VARCHAR` |  | NULL, DEFAULT: PENDIENTE |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### pagos
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_pago` | `INTEGER` | **PK** | NOT NULL |
+| `id_usuario` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `monto` | `NUMERIC(10, 2)` |  | NULL |
+| `fecha_pago` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA01B2DE0> |
+| `metodo_pago` | `VARCHAR` |  | NULL |
+| `estado_pago` | `VARCHAR` |  | NULL, DEFAULT: PENDIENTE |
+| `comprobante_url` | `TEXT` |  | NULL |
+| `id_referencia` | `INTEGER` |  | NULL |
+| `tipo_referencia` | `VARCHAR` |  | NULL |
+| `validado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `url_comprobante` | `VARCHAR` |  | NULL |
+| `fecha_validacion` | `DATETIME` |  | NULL |
+| `notas_admin` | `TEXT` |  | NULL |
+| `porcentaje_ocr` | `NUMERIC(5, 2)` |  | NULL |
+| `texto_ocr` | `TEXT` |  | NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### logs_sistema
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_log` | `INTEGER` | **PK** | NOT NULL |
+| `id_admin` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `accion` | `VARCHAR` |  | NULL |
+| `tabla_afectada` | `VARCHAR` |  | NULL |
+| `id_registro_afectado` | `INTEGER` |  | NULL |
+| `valor_anterior` | `TEXT` |  | NULL |
+| `valor_nuevo` | `TEXT` |  | NULL |
+| `fecha_hora` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA01D1120> |
+| `ip_direccion` | `VARCHAR` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### certificados
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_certificado` | `INTEGER` | **PK** | NOT NULL |
+| `id_usuario` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `id_curso` | `INTEGER` | **FK** (cursos.id_curso) | NULL |
+| `id_evento` | `INTEGER` | **FK** (eventos.id_evento) | NULL |
+| `uuid_verificacion` | `VARCHAR` |  | NULL, UNIQUE, DEFAULT: <function Certificado.<lambda> at 0x0000022CA01D28E0> |
+| `codigo_verificacion` | `VARCHAR` |  | NULL, UNIQUE |
+| `fecha_emision` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA01D2980> |
+| `url_pdf` | `VARCHAR` |  | NULL |
+| `formato` | `VARCHAR` |  | NULL, DEFAULT: DIGITAL |
+| `entregado_fisico` | `BOOLEAN` |  | NULL, DEFAULT: False |
+| `es_ruta_linkedin` | `BOOLEAN` |  | NULL, DEFAULT: False |
+| `metadata_adicional` | `TEXT` |  | NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### recursos
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_recurso` | `INTEGER` | **PK** | NOT NULL |
+| `titulo` | `VARCHAR` |  | NULL |
+| `descripcion` | `TEXT` |  | NULL |
+| `motivo` | `VARCHAR` |  | NULL |
+| `autor_nombre` | `VARCHAR` |  | NULL |
+| `url_descarga` | `VARCHAR` |  | NULL |
+| `portada_url` | `VARCHAR` |  | NULL |
+| `tipo_archivo` | `VARCHAR` |  | NULL |
+| `tipo_recurso` | `VARCHAR` |  | NULL, DEFAULT: ARCHIVO |
+| `contenido_md` | `TEXT` |  | NULL |
+| `categoria` | `VARCHAR` |  | NULL |
+| `id_curso` | `INTEGER` | **FK** (cursos.id_curso) | NULL |
+| `id_evento` | `INTEGER` | **FK** (eventos.id_evento) | NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### anuncios
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_anuncio` | `INTEGER` | **PK** | NOT NULL |
+| `titulo` | `VARCHAR` |  | NULL |
+| `contenido` | `TEXT` |  | NULL |
+| `url_imagen` | `VARCHAR` |  | NULL |
+| `link_accion` | `VARCHAR` |  | NULL |
+| `tipo` | `VARCHAR` |  | NULL, DEFAULT: INFO |
+| `fecha_publicacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA020EC00> |
+| `id_autor` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `activo` | `BOOLEAN` |  | NULL, DEFAULT: True |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+

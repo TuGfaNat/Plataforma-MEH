@@ -5,7 +5,16 @@ sidebar_label: 03. Mapeo de Componentes .jsx
 
 # Mapeo de Componentes Frontend `.jsx` a la API Backend
 
-El frontend interactúa con el backend de FastAPI de forma síncrona mediante llamadas HTTP de Axios. A continuación se desglosa el mapeo físico formal de las **23 páginas principales** y los **9 componentes lógicos administrativos** de la carpeta `Admin/` con sus respectivos archivos controladores (routers) y servicios en el backend, indicando las tablas relacionales afectadas y el flujo transaccional.
+:::info METADATOS DEL DOCUMENTO
+* **Propietario del Documento:** Nataly Gemio Morales (MLSA Ambassador / Carrera de Informática UMSA)
+* **Versión:** 1.2.0
+* **Última Actualización:** 2026-05-25
+* **Audiencia Destinataria:** Desarrolladores Backend/Frontend, Administradores de Sistemas, Evaluadores Académicos de la UMSA.
+:::
+
+## 🎯 Propósito y Ámbito
+
+Este documento tiene como propósito establecer la trazabilidad física completa entre la capa de presentación (vistas React `.jsx` del frontend) y los servicios/routers expuestos por el backend de FastAPI. Mapea de forma unificada las 23 páginas principales y las 9 pestañas del panel administrativo, detallando las tablas relacionales afectadas y el flujo transaccional.
 
 ---
 
@@ -78,3 +87,12 @@ Estos componentes residen físicamente bajo la carpeta de control `pages/Admin/`
 ### 9. `UsersTab.jsx`
 * **Llamadas Backend:** `GET /api/v1/auth/usuarios/todos`.
 * **Función y Visualización:** Listado tabular dinámico con filtros de búsqueda rápida para auditar perfiles de miembros registrados en el ecosistema.
+
+---
+
+## 🔗 Recursos y Artículos Relacionados
+
+* [01. Arquitectura y Contexto C4](file:///f:/Plataforma-MEH/website/docs/tecnico/01-arquitectura-contexto.md)
+* [02. Detalle de Frontend React](file:///f:/Plataforma-MEH/website/docs/tecnico/02-detalle-frontend.md)
+* [04. Detalle de Backend FastAPI](file:///f:/Plataforma-MEH/website/docs/tecnico/04-detalle-backend.md)
+* [05. Base de Datos y Seguridad](file:///f:/Plataforma-MEH/website/docs/tecnico/05-base-datos-seguridad.md)

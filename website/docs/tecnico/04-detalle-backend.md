@@ -5,7 +5,16 @@ sidebar_label: 04. Detalle de Backend FastAPI
 
 # Arquitectura Interna del Backend (FastAPI síncrono & SQLAlchemy)
 
-El backend de la Plataforma MEH está desarrollado como un servidor de API RESTful estructurado en **FastAPI** ejecutándose bajo **Python 3.11**. La arquitectura prioriza el rendimiento síncrono puro y la robustez transaccional, evitando el uso excesivo de llamadas asíncronas no bloqueantes que puedan inducir a fallas de concurrencia e hilos a nivel de ORM.
+:::info METADATOS DEL DOCUMENTO
+* **Propietario del Documento:** Nataly Gemio Morales (MLSA Ambassador / Carrera de Informática UMSA)
+* **Versión:** 1.2.0
+* **Última Actualización:** 2026-05-25
+* **Audiencia Destinataria:** Desarrolladores Backend/Frontend, Administradores de Sistemas, Evaluadores Académicos de la UMSA.
+:::
+
+## 🎯 Propósito y Ámbito
+
+Este documento describe a profundidad la arquitectura técnica interna del servidor de servicios de la **Plataforma MEH**, detallando la justificación del uso de FastAPI síncrono, los contratos de validación de Pydantic, la lógica transaccional en la capa de servicios, el repositorio relacional PostgreSQL gobernado por SQLAlchemy, los algoritmos de OCR determinístico y similitud difusa (Jaro-Winkler) y la configuración de variables de entorno con persistencia segura (SMTP).
 
 ---
 
@@ -76,7 +85,7 @@ El motor de comparación difusa implementa de forma nativa la distancia de Jaro-
 * **Fuzzy Word Check**: El método `check_name_in_description_fuzzy` normaliza el texto (removiendo acentos y caracteres especiales), tokeniza el nombre completo omitiendo palabras de enlace de 2 letras o menos, y compara cada palabra contra los términos del extracto bancario con un umbral de coincidencia del **85%**.
 
 ### B. Conciliación Multivariable y Desambiguación de IDs (`ocrm_service.py`)
-La función `procesar_extracto_bancario` busca de forma estructurada los pagos que se encuentran en estado `'PENDIENTE'` cruzándolos contra las filas del archivo CSV de banco:
+La función `procesar_extracto_bancario` busca de forma de bloque los pagos que se encuentran en estado `'PENDIENTE'` cruzándolos contra las filas del archivo CSV de banco:
 1. **Coincidencia por ID Exacto**: Para evitar colisiones por substring en identificadores cortos (ej. ID de pago `2` dentro de una descripción con `29`), el motor normaliza y divide la descripción en palabras completas. Si el string `id_pago` existe como palabra exacta, se asigna automáticamente una confianza del **100%**.
 2. **Ventanas de Fecha de Pago (±3 días)**: Se calcula la diferencia temporal absoluta entre la fecha del extracto bancario y la registrada por el alumno:
    * Diferencia ≤ 1 día: Se suma un **+15.0%** de confianza.
@@ -130,4 +139,11 @@ Para el envío de correos, la plataforma utiliza el servidor SMTP de Gmail. Debi
 - **Docker Compose:** Las variables se declaran en el archivo `backend/.env.docker` y se inyectan directamente en el contenedor mediante la directiva `env_file` en `docker-compose.yml`.
 - **Producción (Render / AWS / VPS):** Por motivos de seguridad y soberanía de datos, el archivo `.env` nunca debe ser subido a Git. En su lugar, estas variables deben configurarse directamente en el panel de administración del proveedor de hosting (ej. sección *Environment Variables* de Render), garantizando que las credenciales permanezcan cifradas e inaccesibles en repositorios públicos.
 
+---
 
+## 🔗 Recursos y Artículos Relacionados
+
+* [01. Arquitectura y Contexto C4](file:///f:/Plataforma-MEH/website/docs/tecnico/01-arquitectura-contexto.md)
+* [02. Detalle de Frontend React](file:///f:/Plataforma-MEH/website/docs/tecnico/02-detalle-frontend.md)
+* [03. Mapeo de Componentes .jsx](file:///f:/Plataforma-MEH/website/docs/tecnico/03-mapeo-paginas-jsx.md)
+* [05. Base de Datos y Seguridad](file:///f:/Plataforma-MEH/website/docs/tecnico/05-base-datos-seguridad.md)

@@ -5,9 +5,16 @@ sidebar_label: 01. Arquitectura y Contexto C4
 
 # Arquitectura y Contexto de la Plataforma MEH
 
-La **Plataforma MEH (Microsoft Education Hub)** es un sistema integral e interactivo diseñado para la gestión de comunidades tecnológicas, control de eventos por checkpoints QR, aula virtual (LMS), gamificación con insignias y conciliación automática de pagos utilizando procesamiento OCR.
+:::info METADATOS DEL DOCUMENTO
+* **Propietario del Documento:** Nataly Gemio Morales (MLSA Ambassador / Carrera de Informática UMSA)
+* **Versión:** 1.2.0
+* **Última Actualización:** 2026-05-25
+* **Audiencia Destinataria:** Desarrolladores Backend/Frontend, Administradores de Sistemas, Evaluadores Académicos de la UMSA.
+:::
 
-Esta sección expone la fundamentación teórica y metodológica de la arquitectura de software del sistema, sirviendo como base teórica formal para la tesis de grado en la **Universidad Mayor de San Andrés (UMSA)**.
+## 🎯 Propósito y Ámbito
+
+Este documento expone la fundamentación teórica y metodológica de la arquitectura de software del sistema **Microsoft Education Hub (MEH)**. Define los límites del sistema (Diagrama de Contexto) y su división lógica (Diagrama de Contenedores), sirviendo como base teórica formal para la tesis de grado en la **Universidad Mayor de San Andrés (UMSA)**.
 
 ---
 
@@ -22,7 +29,7 @@ En la defensa académica y auditoría de software, la arquitectura adoptada no s
 1. **Unidad Única de Despliegue Físico:** Todo el backend de la API se compila, empaqueta y ejecuta dentro de un único proceso de servidor (Uvicorn levantando la instancia `app = FastAPI()` en `main.py`). Si este proceso se detiene o sufre una caída física, todas las capacidades y servicios del ecosistema (LMS, finanzas, asistencia, insignias) se detienen sincrónicamente. A nivel de infraestructura, no existe una topología distribuida con múltiples servidores físicos o virtuales independientes para cada dominio del negocio.
 2. **Persistencia Unificada y Base de Datos Compartida:** El sistema se centraliza en un único servidor relacional **PostgreSQL** administrado por una sola instancia de conexión ORM de SQLAlchemy y migrado secuencialmente bajo un único historial de Alembic. Las dependencias entre dominios (por ejemplo, relacionar un pago con un usuario, o un curso con su instructor) se resuelven mediante restricciones de integridad relacional nativas (`ForeignKey` y transacciones ACID atómicas con `db.commit()`), en lugar de APIs distribuidas de comunicación inter-bases de datos que introduzcan latencia o inconsistencia eventual (patrón Saga).
 3. **Comunicación Síncrona en Memoria (In-Memory Calls):** A diferencia de las arquitecturas fragmentadas en red (como los Microservicios) que requieren protocolos de red remotos (como llamadas HTTP REST, gRPC o colas de mensajería asíncrona como RabbitMQ o Kafka) para interactuar, la Plataforma MEH gestiona la intercomunicación entre módulos en el backend mediante llamadas a funciones directas en memoria y paso de la sesión síncrona de base de datos (`db: Session = Depends(get_db)`) a través del inyector de dependencias de FastAPI.
-4. **Modularidad Lógica Estricta:** Aunque comparte la unidad física de despliegue y persistencia relacional, el código no conforma un "monolito bola de lodo (Spaghetti Monolith)". Existe una estricta separación de responsabilidades y bajo acoplamiento por dominios lógicos estructurados en tres capas bien definidas:
+4. **Modularidad Lógica Estricta:** Aunque comparte la unidad física de despliegue y persistencia relacional, el código no conforma un "monolito de lodo (Spaghetti Monolith)". Existe una estricta separación de responsabilidades y bajo acoplamiento por dominios lógicos estructurados en tres capas bien definidas:
    - **Capa de Entrada y Ruteo (API):** Enrutadores independientes en `backend/app/api/` que encapsulan los endpoints HTTP REST específicos de cada dominio de negocio.
    - **Capa de Lógica de Negocio (Servicios):** Archivos de servicio independientes en `backend/app/services/` que albergan la lógica pura y realizan las transacciones sobre la base de datos.
    - **Capa de Estructuras (Esquemas):** Contiene las validaciones de entrada y salida de datos estructurados con Pydantic en `backend/app/schemas/`.
@@ -72,3 +79,12 @@ graph TB
     style API fill:#107c41,stroke:#0b5930,color:#fff
     style DB fill:#a80000,stroke:#7a0000,color:#fff
 ```
+
+---
+
+## 🔗 Recursos y Artículos Relacionados
+
+* [02. Detalle de Frontend React](file:///f:/Plataforma-MEH/website/docs/tecnico/02-detalle-frontend.md)
+* [03. Mapeo de Componentes .jsx](file:///f:/Plataforma-MEH/website/docs/tecnico/03-mapeo-paginas-jsx.md)
+* [04. Detalle de Backend FastAPI](file:///f:/Plataforma-MEH/website/docs/tecnico/04-detalle-backend.md)
+* [05. Base de Datos y Seguridad](file:///f:/Plataforma-MEH/website/docs/tecnico/05-base-datos-seguridad.md)

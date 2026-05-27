@@ -26,7 +26,7 @@ services:
       # RUN_SEED: "" (vacío/no seteado => solo migraciones, sin seed)
       #           "basic" => seed con usuarios staff
       #           "super" => seed completo (20 miembros, eventos, cursos, etc.)
-      - RUN_SEED=basic
+      - RUN_SEED=super
     depends_on:
       - db
     # Solo comunicación interna — no exponer puerto
