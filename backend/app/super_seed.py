@@ -51,18 +51,13 @@ BADGES_DATA = [
 
 def generate_super_seed():
     db = SessionLocal()
-    print("🌟 INICIANDO SUPER SEMILLA - PLATAFORMA MEH 🌟")
+    print("[START] INICIANDO SUPER SEMILLA - PLATAFORMA MEH")
     
     try:
-        # 0. Limpiar tablas (Opcional - Comentado para seguridad)
-        # db.query(models.LogSistema).delete()
-        # db.query(models.InscripcionEvento).delete()
-        # ... etc
-        
         password_hash = auth_core.get_password_hash("password123")
 
         # 1. USUARIOS STAFF
-        print("👥 Creando Staff...")
+        print("[INFO] Creando Staff...")
         staff_roles = ["ADMIN", "ORGANIZADOR", "SOPORTE", "MODERADOR", "EMBAJADOR"]
         staff_users = []
         for role in staff_roles:
@@ -88,8 +83,33 @@ def generate_super_seed():
         
         admin_id = staff_users[0].id_usuario
 
+        # 1.1. REGISTRAR A NATALY GEMIO (ADMIN PRINCIPAL DE LA CREADORA)
+        nataly_email = "natalygemio@gmail.com"
+        nataly_user = db.query(models.Usuario).filter(models.Usuario.correo == nataly_email).first()
+        if not nataly_user:
+            nataly_user = models.Usuario(
+                nombres="Nataly",
+                apellidos="Gemio",
+                correo=nataly_email,
+                password_hash=password_hash,
+                rol="ADMIN",
+                alias="Nataly_Gemio",
+                institucion="Plataforma MEH",
+                bio="Líder y visionaria de la Plataforma MEH. Impulsando la tecnología en Bolivia.",
+                tipo_entidad="Profesional",
+                preferencia_tema="dark",
+                fecha_registro=datetime.utcnow(),
+                es_nuevo=False
+            )
+            db.add(nataly_user)
+            db.commit()
+            db.refresh(nataly_user)
+            print("[SUCCESS] ¡Bienvenida Nataly! Usuario natalygemio@gmail.com creado como ADMIN.")
+        else:
+            print("[INFO] El usuario natalygemio@gmail.com ya existe.")
+
         # 2. USUARIOS MIEMBROS (20 personas)
-        print("👥 Creando 20 Miembros...")
+        print("[INFO] Creando 20 Miembros...")
         miembros = []
         for i in range(20):
             email = f"user{i}@test.com"
@@ -115,213 +135,262 @@ def generate_super_seed():
             miembros.append(user)
 
         # 3. SPEAKERS, AUSPICIADORES Y COMUNIDADES
-        print("📢 Creando Aliados...")
+        print("[INFO] Creando Aliados...")
         speakers = []
         for i in range(5):
-            spk = models.Speaker(
-                nombre=f"Expert {random.choice(NOMBRES)} {random.choice(APELLIDOS)}",
-                bio="Experto internacional en tecnología avanzada.",
-                trayectoria="10+ años en el sector.",
-                trabajo_actual=random.choice(["Google", "Microsoft", "Netflix", "OpenAI"]),
-                linkedin_url="https://linkedin.com/in/expert",
-                creado_por=admin_id
-            )
-            db.add(spk)
+            name = f"Expert {random.choice(NOMBRES)} {random.choice(APELLIDOS)}"
+            spk = db.query(models.Speaker).filter(models.Speaker.nombre == name).first()
+            if not spk:
+                spk = models.Speaker(
+                    nombre=name,
+                    bio="Experto internacional en tecnología avanzada.",
+                    trayectoria="10+ años en el sector.",
+                    trabajo_actual=random.choice(["Google", "Microsoft", "Netflix", "OpenAI"]),
+                    linkedin_url="https://linkedin.com/in/expert",
+                    creado_por=admin_id
+                )
+                db.add(spk)
+                db.commit()
+                db.refresh(spk)
             speakers.append(spk)
 
         auspiciadores = []
         for i in range(5):
-            ausp = models.Auspiciador(
-                nombre=f"Tech Sponsor {i}",
-                tipo=random.choice(["GOLD", "SILVER", "PLATINUM"]),
-                sitio_web="https://sponsor.com",
-                creado_por=admin_id
-            )
-            db.add(ausp)
+            name = f"Tech Sponsor {i}"
+            ausp = db.query(models.Auspiciador).filter(models.Auspiciador.nombre == name).first()
+            if not ausp:
+                ausp = models.Auspiciador(
+                    nombre=name,
+                    tipo=random.choice(["GOLD", "SILVER", "PLATINUM"]),
+                    sitio_web="https://sponsor.com",
+                    creado_por=admin_id
+                )
+                db.add(ausp)
+                db.commit()
+                db.refresh(ausp)
             auspiciadores.append(ausp)
 
         comunidades = []
         for i in range(3):
-            com = models.ComunidadAliada(
-                nombre=f"Comunidad Dev {i}",
-                descripcion="Grupo local de desarrolladores.",
-                link_contacto="https://facebook.com/devgroup",
-                creado_por=admin_id
-            )
-            db.add(com)
-            comunidades.append(com)
-        db.commit()
-
-        # 4. EVENTOS (Pasados y Futuros)
-        print("📅 Creando Eventos...")
-        eventos = []
-        for i, (titulo, tipo, desc) in enumerate(TEMAS_EVENTOS):
-            # i=0,1 (pasados), i=2 (hoy), i=3,4 (futuros)
-            offset = (i - 2) * 10 
-            fecha = datetime.utcnow() + timedelta(days=offset)
-            
-            ev = models.Evento(
-                titulo=titulo,
-                tipo_evento=tipo,
-                descripcion=desc,
-                fecha_inicio=fecha,
-                fecha_fin=fecha + timedelta(hours=4),
-                modalidad=random.choice(["PRESENCIAL", "VIRTUAL", "HIBRIDO"]),
-                ubicacion="Centro de Convenciones MEH" if i != 1 else "Online",
-                capacidad_max=50 + (i * 10),
-                estado="FINALIZADO" if offset < 0 else ("EN_CURSO" if offset == 0 else "PROGRAMADO"),
-                id_organizador=staff_users[1].id_usuario,
-                creado_por=admin_id
-            )
-            # Asignar relaciones aleatorias
-            ev.speakers = random.sample(speakers, 2)
-            ev.auspiciadores = random.sample(auspiciadores, 2)
-            ev.comunidades = random.sample(comunidades, 1)
-            
-            db.add(ev)
-            eventos.append(ev)
-        db.commit()
-
-        # 5. CURSOS, LECCIONES Y TAREAS
-        print("🎓 Creando Academia...")
-        cursos = []
-        for titulo, desc, horas, is_ms in CURSOS_DATA:
-            curso = models.Curso(
-                nombre_curso=titulo,
-                descripcion=desc,
-                horas_academicas=horas,
-                es_ms_learning=is_ms,
-                estado="ACTIVO",
-                id_instructor=staff_users[1].id_usuario,
-                creado_por=admin_id
-            )
-            db.add(curso)
-            db.commit()
-            db.refresh(curso)
-            
-            # Lecciones
-            for l in range(1, 6):
-                leccion = models.Leccion(
-                    id_curso=curso.id_curso,
-                    titulo=f"Módulo {l}: Introducción avanzada",
-                    contenido_texto="En esta lección aprenderemos los conceptos fundamentales...",
-                    orden=l,
+            name = f"Comunidad Dev {i}"
+            com = db.query(models.ComunidadAliada).filter(models.ComunidadAliada.nombre == name).first()
+            if not com:
+                com = models.ComunidadAliada(
+                    nombre=name,
+                    descripcion="Grupo local de desarrolladores.",
+                    link_contacto="https://facebook.com/devgroup",
                     creado_por=admin_id
                 )
-                db.add(leccion)
+                db.add(com)
                 db.commit()
-                db.refresh(leccion)
+                db.refresh(com)
+            comunidades.append(com)
+
+        # 4. EVENTOS (Pasados y Futuros)
+        print("[INFO] Creando Eventos...")
+        eventos = []
+        for i, (titulo, tipo, desc) in enumerate(TEMAS_EVENTOS):
+            ev = db.query(models.Evento).filter(models.Evento.titulo == titulo).first()
+            if not ev:
+                offset = (i - 2) * 10 
+                fecha = datetime.utcnow() + timedelta(days=offset)
                 
-                # Una tarea por cada 2 lecciones
-                if l % 2 == 0:
-                    tarea = models.Tarea(
-                        id_leccion=leccion.id_leccion,
-                        titulo=f"Práctica de Módulo {l}",
-                        instrucciones="Desarrolle el ejercicio propuesto y suba su archivo.",
-                        puntos_max=100,
+                ev = models.Evento(
+                    titulo=titulo,
+                    tipo_evento=tipo,
+                    descripcion=desc,
+                    fecha_inicio=fecha,
+                    fecha_fin=fecha + timedelta(hours=4),
+                    modalidad=random.choice(["PRESENCIAL", "VIRTUAL", "HIBRIDO"]),
+                    ubicacion="Centro de Convenciones MEH" if i != 1 else "Online",
+                    capacidad_max=50 + (i * 10),
+                    estado="FINALIZADO" if offset < 0 else ("EN_CURSO" if offset == 0 else "PROGRAMADO"),
+                    id_organizador=staff_users[1].id_usuario,
+                    creado_por=admin_id
+                )
+                ev.speakers = random.sample(speakers, 2)
+                ev.auspiciadores = random.sample(auspiciadores, 2)
+                ev.comunidades = random.sample(comunidades, 1)
+                
+                db.add(ev)
+                db.commit()
+                db.refresh(ev)
+            eventos.append(ev)
+
+        # 5. CURSOS, LECCIONES Y TAREAS
+        print("[INFO] Creando Academia...")
+        cursos = []
+        for titulo, desc, horas, is_ms in CURSOS_DATA:
+            curso = db.query(models.Curso).filter(models.Curso.nombre_curso == titulo).first()
+            if not curso:
+                curso = models.Curso(
+                    nombre_curso=titulo,
+                    descripcion=desc,
+                    horas_academicas=horas,
+                    es_ms_learning=is_ms,
+                    estado="ACTIVO",
+                    id_instructor=staff_users[1].id_usuario,
+                    creado_por=admin_id
+                )
+                db.add(curso)
+                db.commit()
+                db.refresh(curso)
+                
+                # Lecciones
+                for l in range(1, 6):
+                    leccion = models.Leccion(
+                        id_curso=curso.id_curso,
+                        titulo=f"Módulo {l}: Introducción avanzada",
+                        contenido_texto="En esta lección aprenderemos los conceptos fundamentales...",
+                        orden=l,
                         creado_por=admin_id
                     )
-                    db.add(tarea)
+                    db.add(leccion)
+                    db.commit()
+                    db.refresh(leccion)
+                    
+                    # Una tarea por cada 2 lecciones
+                    if l % 2 == 0:
+                        tarea = models.Tarea(
+                            id_leccion=leccion.id_leccion,
+                            titulo=f"Práctica de Módulo {l}",
+                            instrucciones="Desarrolle el ejercicio propuesto y suba su archivo.",
+                            puntos_max=100,
+                            creado_por=admin_id
+                        )
+                        db.add(tarea)
+                        db.commit()
             cursos.append(curso)
-        db.commit()
 
         # 6. PRODUCTOS
-        print("🛍️ Creando Tienda...")
+        print("[INFO] Creando Tienda...")
         for nombre, desc, precio, stock, cat in PRODUCTOS:
-            prod = models.Producto(
-                nombre=nombre,
-                descripcion=desc,
-                precio=precio,
-                stock=stock,
-                categoria=cat,
-                creado_por=admin_id
-            )
-            db.add(prod)
+            prod = db.query(models.Producto).filter(models.Producto.nombre == nombre).first()
+            if not prod:
+                prod = models.Producto(
+                    nombre=nombre,
+                    descripcion=desc,
+                    precio=precio,
+                    stock=stock,
+                    categoria=cat,
+                    creado_por=admin_id
+                )
+                db.add(prod)
         db.commit()
 
         # 7. INSCRIPCIONES Y PAGOS (Simular actividad)
-        print("💳 Simulando Actividad Económica...")
+        print("[INFO] Simulando Actividad Económica...")
         for m in miembros:
-            # Inscribir a 2 eventos aleatorios
+            # Registrar inscripciones si no existen
             target_evs = random.sample(eventos, 2)
             for ev in target_evs:
-                ins = models.InscripcionEvento(
-                    id_usuario=m.id_usuario,
-                    id_evento=ev.id_evento,
-                    estado_inscripcion="CONFIRMADA" if ev.estado == "FINALIZADO" else "PENDIENTE",
-                    codigo_qr=str(uuid.uuid4()),
-                    asistio=True if ev.estado == "FINALIZADO" else False,
-                    fecha_validacion=datetime.utcnow() if ev.estado == "FINALIZADO" else None,
-                    creado_por=m.id_usuario
-                )
-                db.add(ins)
-                db.commit()
+                ins = db.query(models.InscripcionEvento).filter(
+                    models.InscripcionEvento.id_usuario == m.id_usuario,
+                    models.InscripcionEvento.id_evento == ev.id_evento
+                ).first()
                 
-                # Crear pago para inscripciones confirmadas
-                if ins.estado_inscripcion == "CONFIRMADA":
-                    pago = models.Pago(
+                if not ins:
+                    ins = models.InscripcionEvento(
                         id_usuario=m.id_usuario,
-                        monto=50.00,
-                        metodo_pago="TRANSFERENCIA",
-                        estado_pago="COMPLETADO",
-                        id_referencia=ev.id_evento,
-                        tipo_referencia="EVENTO",
-                        validado_por=staff_users[2].id_usuario,
-                        fecha_validacion=datetime.utcnow(),
+                        id_evento=ev.id_evento,
+                        estado_inscripcion="CONFIRMADA" if ev.estado == "FINALIZADO" else "PENDIENTE",
+                        codigo_qr=str(uuid.uuid4()),
+                        asistio=True if ev.estado == "FINALIZADO" else False,
+                        fecha_validacion=datetime.utcnow() if ev.estado == "FINALIZADO" else None,
                         creado_por=m.id_usuario
                     )
-                    db.add(pago)
+                    db.add(ins)
                     db.commit()
-                    ins.id_pago = pago.id_pago
-                    db.commit()
+                    db.refresh(ins)
+                    
+                    # Crear pago para inscripciones confirmadas
+                    if ins.estado_inscripcion == "CONFIRMADA":
+                        pago = models.Pago(
+                            id_usuario=m.id_usuario,
+                            monto=50.00,
+                            metodo_pago="TRANSFERENCIA",
+                            estado_pago="COMPLETADO",
+                            id_referencia=ev.id_evento,
+                            tipo_referencia="EVENTO",
+                            validado_por=staff_users[2].id_usuario,
+                            fecha_validacion=datetime.utcnow(),
+                            creado_por=m.id_usuario
+                        )
+                        db.add(pago)
+                        db.commit()
+                        db.refresh(pago)
+                        ins.id_pago = pago.id_pago
+                        db.commit()
 
             # Inscribir a 1 curso
             c = random.choice(cursos)
-            insc_c = models.InscripcionCurso(
-                id_usuario=m.id_usuario,
-                id_curso=c.id_curso,
-                progreso=random.randint(0, 100),
-                estado_inscripcion="CONFIRMADA",
-                finalizado=True if random.random() > 0.7 else False,
-                creado_por=m.id_usuario
-            )
-            db.add(insc_c)
-            db.commit()
+            insc_c = db.query(models.InscripcionCurso).filter(
+                models.InscripcionCurso.id_usuario == m.id_usuario,
+                models.InscripcionCurso.id_curso == c.id_curso
+            ).first()
+            if not insc_c:
+                insc_c = models.InscripcionCurso(
+                    id_usuario=m.id_usuario,
+                    id_curso=c.id_curso,
+                    progreso=random.randint(0, 100),
+                    estado_inscripcion="CONFIRMADA",
+                    finalizado=True if random.random() > 0.7 else False,
+                    creado_por=m.id_usuario
+                )
+                db.add(insc_c)
+                db.commit()
 
         # 8. GAMIFICACIÓN (Badges)
-        print("🏆 Distribuyendo Insignias...")
+        print("[INFO] Distribuyendo Insignias...")
         badges = []
         for n, d, img, p in BADGES_DATA:
-            badge = models.Badge(
-                nombre_badge=n,
-                descripcion=d,
-                imagen_url=img,
-                puntos=p,
-                creado_por=admin_id
-            )
-            db.add(badge)
-            db.commit()
-            db.refresh(badge)
+            badge = db.query(models.Badge).filter(models.Badge.nombre_badge == n).first()
+            if not badge:
+                badge = models.Badge(
+                    nombre_badge=n,
+                    descripcion=d,
+                    imagen_url=img,
+                    puntos=p,
+                    creado_por=admin_id
+                )
+                db.add(badge)
+                db.commit()
+                db.refresh(badge)
             badges.append(badge)
 
         for m in miembros:
             # Todos tienen el de primer paso
-            db.add(models.UsuarioBadge(id_usuario=m.id_usuario, id_badge=badges[0].id_badge))
+            ub = db.query(models.UsuarioBadge).filter(
+                models.UsuarioBadge.id_usuario == m.id_usuario,
+                models.UsuarioBadge.id_badge == badges[0].id_badge
+            ).first()
+            if not ub:
+                db.add(models.UsuarioBadge(id_usuario=m.id_usuario, id_badge=badges[0].id_badge))
+            
             # Algunos tienen más
             if random.random() > 0.5:
-                db.add(models.UsuarioBadge(id_usuario=m.id_usuario, id_badge=random.choice(badges[1:]).id_badge))
+                random_badge = random.choice(badges[1:])
+                ub_extra = db.query(models.UsuarioBadge).filter(
+                    models.UsuarioBadge.id_usuario == m.id_usuario,
+                    models.UsuarioBadge.id_badge == random_badge.id_badge
+                ).first()
+                if not ub_extra:
+                    db.add(models.UsuarioBadge(id_usuario=m.id_usuario, id_badge=random_badge.id_badge))
         db.commit()
 
         # 9. ANUNCIOS Y CONFIG
-        print("📢 Publicando Anuncios...")
-        anuncio = models.Anuncio(
-            titulo="Bienvenidos a la nueva Plataforma MEH 2026",
-            contenido="Hemos actualizado todos nuestros sistemas para brindarte la mejor experiencia tecnológica de Bolivia.",
-            tipo="SUCCESS",
-            id_autor=admin_id,
-            creado_por=admin_id
-        )
-        db.add(anuncio)
+        print("[INFO] Publicando Anuncios...")
+        anuncio = db.query(models.Anuncio).filter(models.Anuncio.titulo == "Bienvenidos a la nueva Plataforma MEH 2026").first()
+        if not anuncio:
+            anuncio = models.Anuncio(
+                titulo="Bienvenidos a la nueva Plataforma MEH 2026",
+                contenido="Hemos actualizado todos nuestros sistemas para brindarte la mejor experiencia tecnológica de Bolivia.",
+                tipo="SUCCESS",
+                id_autor=admin_id,
+                creado_por=admin_id
+            )
+            db.add(anuncio)
+            db.commit()
         
         # Configuración Global
         configs = [
@@ -330,21 +399,30 @@ def generate_super_seed():
             ("MAX_FILE_SIZE_MB", "10", "Límite de subida de archivos")
         ]
         for c, v, d in configs:
-            conf = models.ConfiguracionGlobal(clave=c, valor=v, descripcion=d, creado_por=admin_id)
-            db.add(conf)
+            conf = db.query(models.ConfiguracionGlobal).filter(models.ConfiguracionGlobal.clave == c).first()
+            if not conf:
+                conf = models.ConfiguracionGlobal(clave=c, valor=v, descripcion=d, creado_por=admin_id)
+                db.add(conf)
         db.commit()
 
-        print("\n✅ SUPER SEMILLA COMPLETADA EXITOSAMENTE!")
-        print(f"📈 Resumen:")
+        print("\n[SUCCESS] SUPER SEMILLA COMPLETADA EXITOSAMENTE!")
+        print("--------------------------------------------------")
+        print("[INFO] TODAS LAS CONTRASEÑAS SON: password123")
+        print("1. ADMIN CORE: admin@meh.com")
+        print(f"2. TU USUARIO ADMIN: {nataly_email} (Nataly Gemio)")
+        print("3. ORGANIZADOR: organizador@meh.com")
+        print("4. SOPORTE: soporte@meh.com")
+        print("--------------------------------------------------")
+        print("[INFO] Resumen:")
         print(f" - {len(miembros)} Miembros creados.")
         print(f" - {len(eventos)} Eventos generados.")
         print(f" - {len(cursos)} Cursos con lecciones.")
         print(f" - {len(badges)} Badges distribuidos.")
         print(f" - Tienda poblada con productos.")
-        print("\n🚀 El sistema está listo para pruebas de alta carga y visualización.")
+        print("\n[INFO] El sistema está listo para pruebas de alta carga y visualización.")
 
     except Exception as e:
-        print(f"❌ ERROR CRÍTICO: {str(e)}")
+        print(f"[ERROR] ERROR CRÍTICO: {str(e)}")
         db.rollback()
     finally:
         db.close()

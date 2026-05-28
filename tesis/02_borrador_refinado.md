@@ -586,12 +586,20 @@ Figura 2.13: Arquitectura Jerárquica de Componentes y Flujo de Estado en el Fro
 
 Como se muestra en la Figura 2.14, la interfaz del Dashboard del miembro se estructura de forma intuitiva, permitiéndole visualizar de forma centralizada sus insignias ganadas, el control de su avance curricular en el aula LMS y su historial de asistencia validada mediante tecnología QR.
 
+> [!IMPORTANT]
+> **NOTA PARA LA POSTULANTE (CAPTURA DE PANTALLA REQUERIDA):**
+> Reemplazar el archivo `img/img_dashboard.png` con una captura de pantalla real del Dashboard del Miembro en funcionamiento (tema oscuro, mostrando Fluent UI v9).
+
 ![Dashboard del Miembro de la Plataforma MEH](img/img_dashboard.png)
 
 Figura 2.14: Interfaz Visual del Dashboard del Miembro en la Plataforma MEH
 *Nota.* Mockup de alta fidelidad que ilustra el Dashboard de autogestión de membresía, aula virtual y reconocimientos con Fluent UI v9. Elaboración propia.
 
 Asimismo, para los administradores del sistema, se desarrolló un panel de analíticas maestras e inteligencia operativa que permite visualizar en tiempo real gráficos estadísticos de concurrencia e interacción utilizando la biblioteca *Recharts*, como se ilustra en la Figura 2.15.
+
+> [!IMPORTANT]
+> **NOTA PARA LA POSTULANTE (CAPTURA DE PANTALLA REQUERIDA):**
+> Reemplazar el archivo `img/img_admin.png` con una captura de pantalla real del Panel Administrativo de la plataforma (por ejemplo, la pestaña de Directorio de Ecosistema).
 
 ![Panel Administrativo de la Plataforma MEH](img/img_admin.png)
 
@@ -652,6 +660,10 @@ Como se observa en la Figura 3.1, el ecosistema delimita claramente las frontera
 La iteración sobre las interfaces de usuario representó otro hito de alineación crucial. Se crearon y presentaron bocetos preliminares de baja fidelidad en papel y maquetas digitales interactivas (*mockups*) para validar el flujo del Dashboard de los miembros y la Consola de Administración. La retroalimentación de los líderes de la comunidad orientó la integración del lenguaje de diseño oficial de Microsoft (*Fluent UI v9*), exigiendo una estética moderna, limpia y accesible. Asimismo, a solicitud de los delegados de la carrera, se implementó de forma nativa la preferencia estética de tema oscuro en las configuraciones de los perfiles de usuario, almacenando dinámicamente este estado en el almacenamiento local (*localStorage*) del navegador para evitar retardos visuales en el renderizado y optimizar la experiencia del estudiante en pantallas móviles durante los eventos presenciales.
 
 Para materializar y evaluar de manera integral el catálogo de interfaces de la plataforma, se diseñó e implementó la suite completa de pantallas interactivas de la Plataforma MEH, la cual se compone de 23 páginas reactivas principales estructuradas en el frontend React y 9 subcomponentes avanzados de administración integrados en la consola de gestión de eventos y finanzas. Esta infraestructura visual permite dar soporte nativo al viaje completo del usuario desde su acceso anónimo hasta la administración del sistema. Como se expone en la Figura 3.2, la interfaz pública o *Landing Page* del portal institucional actúa como el punto de interacción inicial para el estudiante, ofreciendo un diseño altamente responsivo basado en Fluent UI v9 que facilita a los estudiantes el registro de cuentas, la visualización del catálogo de cursos disponibles y la agenda interactiva de congresos académicos y talleres tecnológicos activos de la comunidad.
+
+> [!IMPORTANT]
+> **NOTA PARA LA POSTULANTE (CAPTURA DE PANTALLA REQUERIDA):**
+> Reemplazar el archivo `img/img_landing.png` con una captura de pantalla real de la Landing Page principal (portal público del Hub) en funcionamiento.
 
 ![Landing Page de la Plataforma MEH](img/img_landing.png)
 
@@ -1225,12 +1237,20 @@ Para constatar la implementación física de las interfaces descritas en el dise
 
 El Dashboard del miembro regular que cursa en la academia e inspecciona sus medallas Open Badges se muestra en la Figura 3.19.
 
+> [!IMPORTANT]
+> **NOTA PARA LA POSTULANTE (CAPTURA DE PANTALLA REQUERIDA):**
+> Reemplazar el archivo `img/img_ui_dashboard.png` con una captura de pantalla detallada del Dashboard de un Estudiante en funcionamiento, mostrando las medallas o insignias obtenidas.
+
 ![Interfaz Gráfica del Dashboard del Miembro - Estudiante](img/img_ui_dashboard.png)
 
 Figura 3.19: Interfaz Gráfica del Dashboard del Miembro - Estudiante  
 *Nota.* Pantalla interactiva en tema oscuro del miembro donde se visualizan sus medallas obtenidas, cursos en el LMS e historial de asistencia validada mediante código QR. Elaboración propia.
 
 Por otro lado, la Consola de Administración Centralizada que permite al Administrador Máster gestionar identidades, roles, souvenirs y auditoría forense se describe en la Figura 3.20.
+
+> [!IMPORTANT]
+> **NOTA PARA LA POSTULANTE (CAPTURA DE PANTALLA REQUERIDA):**
+> Reemplazar el archivo `img/img_ui_admin.png` con una captura de pantalla de la Consola de Administración (por ejemplo, el módulo de Finanzas / Aprobación de Pagos con el switch de validación OCR).
 
 ![Consola Administrativa Centralizada del Panel Maestro](img/img_ui_admin.png)
 
@@ -1365,6 +1385,10 @@ Por otra parte, la suite principal alojada en `test_master_suite.py` se encarga 
 Tabla 4.3: Casos de Prueba Unitaria para Autenticación, Criptografía y Similitud Difusa
 *Nota.* Casos de prueba automatizados desarrollados bajo el framework *PyTest* para la verificación de lógica y algoritmos locales.
 
+> [!IMPORTANT]
+> **NOTA PARA LA POSTULANTE (CAPTURA DE PANTALLA REQUERIDA):**
+> Reemplazar el archivo `img/img_pytest_unit.png` con una captura de pantalla de tu terminal (PowerShell o CMD) ejecutando la suite de pruebas unitarias backend con el comando: `pytest tests/`.
+
 ![Consola PyTest](img/img_pytest_unit.png)
 
 Figura 4.3: Consola de Ejecución de Pruebas Unitarias PyTest
@@ -1423,6 +1447,10 @@ tests\test_state_lifecycle.py .                                          [100%]
 Tabla 4.4: Contratos de Endpoint y Aserciones CRUD en Pruebas de Integración y Conciliación
 *Nota.* Elaboración propia basada en la ejecución de los archivos de prueba `test_api_integration.py`, `test_similarity_and_ocr.py`, `test_checkpoint_attendance.py` y `test_offline_endpoint.py`.
 
+> [!IMPORTANT]
+> **NOTA PARA LA POSTULANTE (CAPTURA DE PANTALLA REQUERIDA):**
+> Reemplazar el archivo `img/img_integration_tests.png` con una captura de pantalla de tu terminal de servidor que muestre las trazas y logs de peticiones HTTP en FastAPI con SQLAlchemy (por ejemplo, los statements SQL SELECT o INSERT).
+
 ![Traza TestClient](img/img_integration_tests.png)
 
 Figura 4.4: Traza de Peticiones y Conexión Relacional del TestClient
@@ -1463,6 +1491,10 @@ La traza de llamadas y la inyección síncrona de base de datos capturada en la 
 
 Tabla 4.5: Escenarios de Prueba E2E para Interacciones y Componentes Reactivos
 *Nota.* Escenarios interactivos de simulación de navegación del usuario sobre navegadores web virtuales con *Playwright*.
+
+> [!IMPORTANT]
+> **NOTA PARA LA POSTULANTE (CAPTURA DE PANTALLA REQUERIDA):**
+> Reemplazar el archivo `img/img_playwright_e2e.png` con una captura de pantalla de la ejecución de Playwright (`npx playwright test`) en tu terminal o del reporte HTML generado por Playwright.
 
 ![Interfaz Playwright](img/img_playwright_e2e.png)
 
@@ -1550,6 +1582,10 @@ Tabla 4.7: Casos de Prueba de Interfaz de Usuario con Selenium WebDriver
 
 El flujo de integración e interacción entre los controladores web locales de Selenium, el servidor de desarrollo Vite y los resultados consolidados de renderizado se describe en la Figura 4.11.
 
+> [!IMPORTANT]
+> **NOTA PARA LA POSTULANTE (CAPTURA DE PANTALLA REQUERIDA):**
+> Reemplazar el archivo `img/img_selenium_tests.png` con una captura de pantalla de la terminal ejecutando las pruebas Selenium o de la ventana ChromeDriver abierta siendo controlada mecánicamente por el script.
+
 ![Panel de Pruebas de Interfaz de Usuario con Selenium WebDriver](img/img_selenium_tests.png)
 
 Figura 4.7: Panel de Pruebas de Interfaz de Usuario con Selenium WebDriver  
@@ -1588,6 +1624,10 @@ Tabla 4.8: Métricas de Calidad Estructural de SonarQube Cloud
 *Nota.* Reporte consolidado de deuda técnica y vulnerabilidades a nivel de código fuente en el backend y frontend. Elaboración propia.
 
 El estado del umbral de calidad (*Quality Gate*) y los indicadores gráficos correspondientes se ilustran en la Figura 4.12.
+
+> [!IMPORTANT]
+> **NOTA PARA LA POSTULANTE (CAPTURA DE PANTALLA REQUERIDA):**
+> Reemplazar el archivo `img/img_sonarqube_metrics.png` con una captura de pantalla real del dashboard de tu proyecto en SonarQube Cloud con los indicadores de Quality Gate (Bugs, Deuda Técnica, Duplicación, etc.).
 
 ![Reporte de Calidad y Seguridad de SonarQube Cloud](img/img_sonarqube_metrics.png)
 
@@ -1635,6 +1675,10 @@ Tabla 4.9: Calificaciones de Google PageSpeed Insights por Canal y Vista
 
 Las calificaciones analíticas e indicadores vectoriales de optimización en la vista del Miembro se ilustran en la Figura 4.9.
 
+> [!IMPORTANT]
+> **NOTA PARA LA POSTULANTE (CAPTURA DE PANTALLA REQUERIDA):**
+> Reemplazar el archivo `img/img_pagespeed_insights.png` con una captura de pantalla del reporte de rendimiento de Google PageSpeed Insights para tu plataforma en móvil o escritorio (las calificaciones 90+).
+
 ![Calificaciones de Rendimiento y UX con Google PageSpeed Insights](img/img_pagespeed_insights.png)
 
 Figura 4.9: Calificaciones de Rendimiento y UX con Google PageSpeed Insights  
@@ -1679,6 +1723,10 @@ Tabla 4.10: Registro de Errores Detectados en Fase Beta y Estado de Corrección
 *Nota.* Errores técnicos reportados por el grupo de usuarios durante la fase de simulación transaccional en caliente y su correspondiente parche. Elaboración propia.
 
 La tasa de resolución de errores y los indicadores de usabilidad percibida (System Usability Scale - SUS) logrados en las encuestas finales se ilustran en la Figura 4.10.
+
+> [!IMPORTANT]
+> **NOTA PARA LA POSTULANTE (CAPTURA DE PANTALLA REQUERIDA):**
+> Reemplazar el archivo `img/img_user_acceptance_bugs.png` con una captura del reporte o tabla de bugs resueltos, o de las encuestas de usabilidad SUS obtenidas del grupo de control.
 
 ![Control de Errores e Indicadores de Aceptación SUS de Usuarios](img/img_user_acceptance_bugs.png)
 
@@ -1745,7 +1793,7 @@ Figura 4.12: Gráfico Comparativo de Eficiencia en Procesos Críticos
 
 ### 5.1. INTRODUCCIÓN AL MODELO COCOMO II Y ENFOQUE DE DESARROLLADOR ÚNICO
 
-La estimación de costos, esfuerzo y tiempo de desarrollo en proyectos de ingeniería de software constituye una práctica indispensable para garantizar la viabilidad y gobernanza económica de la solución. Para la Plataforma MEH, se implementó el modelo cuantitativo estandarizado **COCOMO II** (Constructive Cost Model II) en su submodelo de Post-Arquitectura (Post-Architecture Model), de acuerdo con las directrices de ingeniería de software. Este modelo estima el esfuerzo requerido expresado en Personas-Mes (PM), el tiempo calendario de desarrollo en meses (TDEV) y los costos de personal en base al tamaño físico del código medido en miles de líneas de código fuente (KSLOC), ajustado por factores de escala y multiplicadores de esfuerzo (cost drivers).
+La estimación de costos, esfuerzo y tiempo de desarrollo en proyectos de ingeniería de software constituye una práctica indispensable para garantizar la viabilidad y gobernanza económica de la solución. Para la Plataforma MEH, se implementó el modelo cuantitativo estandarizado **COCOMO II** (Constructive Cost Model II) en su submodelo de Post-Arquitectura (Post-Architecture Model), de acuerdo con las pautas de ingeniería de software. Este modelo estima el esfuerzo requerido expresado en Personas-Mes (PM), el tiempo calendario de desarrollo en meses (TDEV) y los costos de personal en base al tamaño físico del código medido en miles de líneas de código fuente (KSLOC), ajustado por factores de escala y multiplicadores de esfuerzo (cost drivers).
 
 Un aspecto metodológico crítico en esta estimación es que la Plataforma MEH ha sido planificada, diseñada y desarrollada en su totalidad por **un único programador** (el postulante). En la ingeniería de software, el desarrollo individual altera drásticamente la dinámica del proyecto en comparación con los equipos de desarrollo multipersonales:
 * **Eliminación de la Fricción de Comunicación**: No existen reuniones de sincronización, reportes cruzados, malentendidos de diseño ni retrasos por coordinación de ramas en Git. La cohesión del equipo es perfecta.
@@ -1756,18 +1804,20 @@ Estas condiciones particulares de desarrollo individual han sido mapeadas direct
 
 ### 5.2. TAMAÑO FÍSICO DE LA PLATAFORMA
 
-Para alimentar el modelo COCOMO II con datos empíricos de alta fidelidad, se realizó una auditoría física de las líneas de código fuente (Source Lines of Code - SLOC) persistidas en el repositorio real de la Plataforma MEH, excluyendo librerías externas de terceros, código autogenerado y carpetas virtuales. El desglose físico de líneas de código por módulo del sistema se expone en la Tabla 5.1:
+Para alimentar el modelo COCOMO II con datos empíricos de alta fidelidad, se realizó una auditoría del tamaño del código fuente persistido en el repositorio real de la Plataforma MEH. Para garantizar el rigor académico del cálculo, el conteo se basa en **Líneas Lógicas de Código (LSLOC)**, las cuales excluyen líneas en blanco y comentarios explicativos. Asimismo, en estricto cumplimiento con el modelo estándar de COCOMO II, se excluyen los componentes auxiliares de infraestructura y soporte como la suite de pruebas unitarias (`tests/` con 9 archivos) y el historial de scripts de migración de base de datos (`alembic/versions/` con 12 archivos). 
 
-| Módulo del Sistema | Tipo de Archivos / Tecnología | Cantidad de Archivos | Líneas de Código (SLOC) |
+El desglose de líneas lógicas de código de producción por módulo del sistema se expone en la Tabla 5.1:
+
+| Módulo del Sistema | Tipo de Archivos / Tecnología | Cantidad de Archivos | Líneas Lógicas de Producción (LSLOC) |
 | :--- | :--- | :--- | :--- |
-| Backend y Servidor API | Python (`.py`) | 88 | 9.104 |
-| Frontend React Client | Javascript (`.js`, `.jsx`, `.css`) | 81 | 16.693 |
-| **TOTAL ECOSISTEMA** | **Código Fuente Original** | **169** | **25.797** |
+| Backend y Servidor API | Python (`.py` excluyendo tests y alembic) | 64 | 5.440 |
+| Frontend React Client | Javascript (`.js`, `.jsx`, `.css` en src) | 80 | 15.373 |
+| **TOTAL SISTEMA** | **Código de Producción Consolidado** | **144** | **20.813** |
 
-Tabla 5.1: Desglose de Líneas de Código Fuente (SLOC) de la Plataforma MEH  
-*Nota.* Datos obtenidos de la auditoría estática de líneas de código fuente reales del repositorio del sistema. Elaboración propia.
+Tabla 5.1: Desglose de Líneas Lógicas de Producción (LSLOC) de la Plataforma MEH  
+*Nota.* Datos obtenidos de la auditoría estática de líneas lógicas del repositorio, excluyendo comentarios, líneas en blanco, pruebas automatizadas y migraciones. Elaboración propia.
 
-El tamaño total acumulado del sistema se establece en **25.797 SLOC**, lo que equivale a un valor de **25,797 KSLOC** para su aplicación directa en las ecuaciones matemáticas de COCOMO II.
+El tamaño de código de producción del sistema se establece en **20.813 LSLOC**, lo que equivale a un valor de **20,813 KSLOC** para su aplicación directa en las ecuaciones matemáticas de COCOMO II.
 
 ### 5.3. DETERMINACIÓN DE LOS FACTORES DE ESCALA (SF)
 
@@ -1787,11 +1837,11 @@ Tabla 5.2: Factores de Escala (SF) Asignados en el Modelo COCOMO II
 
 El exponente $E$ que modela la economía de escala se calcula mediante la fórmula:
 
-$$E = B + 0.01 \times \sum_{j=1}^{5} SF_j$$
+$$E = B + 0.01 	imes \sum_{j=1}^{5} SF_j$$
 
 Donde $B$ es la constante base establecida por el modelo en $0,91$. Reemplazando los valores del proyecto:
 
-$$E = 0,91 + 0,01 \times 13,26 = 1,0426$$
+$$E = 0,91 + 0,01 	imes 13,26 = 1,0426$$
 
 Debido a que $E = 1,0426$, el proyecto experimenta una economía de escala casi lineal, lo cual es óptimo y se debe a que la ausencia de personal adicional mitiga por completo las deseconomías de comunicación no lineales típicas de los equipos de software.
 
@@ -1805,7 +1855,7 @@ Los multiplicadores de esfuerzo (Cost Drivers) evalúan las características esp
 | | DATA (Tamaño de la base de datos) | Nominal | 1,00 | Relación de bytes y tablas en rangos estándar para bases relacionales. |
 | | CPLX (Complejidad del producto) | Alta | 1,17 | Procesamiento OCR, Jaro-Winkler y algoritmos de inyección de metadatos. |
 | | RUSE (Reusabilidad requerida) | Nominal | 1,00 | Componentes comunes reutilizables estándar en React y FastAPI. |
-| | DOCU (Documentación de ciclo de vida)| Nominal | 1,00 | Documentación equilibrada mediante Docusaurus y bitácoras en markdown. |
+| | DOCU (Documentación de ciclo de vida)| Nominal | 1,00 | Documentación de código y bitácoras en markdown. |
 | **Plataforma**| TIME (Restricción de tiempo de ejec.)| Nominal | 1,00 | Tiempos de procesamiento del servidor holgados en condiciones locales. |
 | | STOR (Restricción de almacenamiento)| Nominal | 1,00 | Consumo de memoria RAM y almacenamiento en disco estándar. |
 | | PVOL (Volatilidad de la plataforma)| Nominal | 1,00 | Entorno de servidor estable (FastAPI, PostgreSQL y Docker). |
@@ -1815,7 +1865,7 @@ Los multiplicadores de esfuerzo (Cost Drivers) evalúan las características esp
 | | APEX (Experiencia en la aplicación) | Muy Alta | 0,81 | Experiencia del desarrollador en sistemas LMS y control logístico con QR. |
 | | PLEX (Experiencia en la plataforma) | Muy Alta | 0,85 | Alta experiencia en entornos Linux y despliegues en contenedores. |
 | | LTEX (Experiencia en herramientas) | Muy Alta | 0,84 | Alta experiencia en el uso de frameworks FastAPI, React y bases SQL. |
-| **Proyecto** | TOOL (Uso de herramientas CASE) | Alta | 0,90 | Uso de IDEs modernos, GitHub, Docusaurus y asistentes locales. |
+| **Proyecto** | TOOL (Uso de herramientas CASE) | Alta | 0,90 | Uso de IDEs modernos, GitHub y asistentes locales. |
 | | SITE (Desarrollo multisitio) | Muy Alta | 0,80 | Al ser **1 solo programador**, el factor de dispersión es nulo; comunicación instantánea y co-localización absoluta. |
 | | SCED (Restricción de cronograma) | Nominal | 1,00 | Cronograma planificado sin presiones de tiempo extremas. |
 | **FACTOR EAF**| **Multiplicador de Ajuste** | -- | **0,2129** | **Producto acumulado de los 17 multiplicadores de esfuerzo.** |
@@ -1837,10 +1887,10 @@ $$Effort = A \times (KSLOC)^E \times EAF$$
 
 Donde $A$ es la constante multiplicativa de calibración del modelo equivalente a $2,94$. Reemplazando con los datos del proyecto:
 
-$$Effort = 2,94 \times (25,797)^{1,0426} \times 0,2129$$
-$$Effort = 2,94 \times 29,66 \times 0,2129 \approx 18,55 \text{ Personas-Mes}$$
+$$Effort = 2,94 \times (20,813)^{1,0426} \times 0,2129$$
+$$Effort = 2,94 \times 23,682 \times 0,2129 \approx 14,83 \text{ Personas-Mes}$$
 
-El esfuerzo total estimado para el proyecto es de **18,55 Personas-Mes**.
+El esfuerzo total estimado para el proyecto es de **14,83 Personas-Mes**.
 
 #### 2. Estimación del Tiempo de Desarrollo (TDEV Nominal y Real)
 
@@ -1855,34 +1905,34 @@ $$F = 0,28 + 0,2 \times (1,0426 - 0,91) = 0,28 + 0,2 \times 0,1326 = 0,3065$$
 
 Reemplazando en la ecuación de tiempo:
 
-$$TDEV_{nominal} = 3,67 \times (18,55)^{0,3065} \approx 8,98 \text{ Meses}$$
+$$TDEV_{nominal} = 3,67 \times (14,83)^{0,3065} \approx 8,39 \text{ Meses}$$
 
-El tiempo calendario nominal estimado es de **8,98 Meses** asumiendo un equipo concurrente promedio de $2,06$ personas.
+El tiempo calendario nominal estimado es de **8,39 Meses** asumiendo un equipo concurrente promedio de $1,77$ personas.
 
 Sin embargo, dado que el desarrollo es individual y se cuenta con un único programador ($Staff = 1,0$ persona), no es posible la concurrencia paralela de personal. Por lo tanto, la duración calendario real del proyecto se calcula mediante la relación directa secuencial:
 
-$$T_{real} = \frac{Effort}{Staff} = \frac{18,55 \text{ PM}}{1,0 \text{ Persona}} = 18,55 \text{ Meses}$$
+$$T_{real} = \frac{Effort}{Staff} = \frac{14,83 \text{ PM}}{1,0 \text{ Persona}} = 14,83 \text{ Meses}$$
 
-La duración calendario real del proyecto de forma individual es de **18,55 Meses**.
+La duración calendario real del proyecto de forma individual es de **14,83 Meses**.
 
 #### 3. Estimación de Costos del Software
 
-Para el cálculo del costo económico total del proyecto, se estableció una tarifa laboral promedio mensual por Persona-Mes que incluye salarios del personal de desarrollo, aportes de ley y costos indirectos de infraestructura física (equipamiento, conectividad, licencias y hosting):
+Para el cálculo del costo económico total del proyecto, se estableció una tarifa laboral promedio mensual por Persona-Mes que incluye salarios del personal de desarrollo, aportes de ley y costos indirectos de infraestructura física en el mercado local:
 
-* **Costo Directo Promedio (Salario):** 8.000 Bs. / Persona-Mes.
-* **Costo Indirecto y Operativo:** 4.000 Bs. / Persona-Mes.
-* **Labor Rate (Tarifa Consolidada):** 12.000 Bs. / Persona-Mes.
+* **Costo Directo Promedio (Salario):** 5.000 Bs. / Persona-Mes.
+* **Costo Indirecto y Operativo:** 3.000 Bs. / Persona-Mes.
+* **Labor Rate (Tarifa Consolidada):** 8.000 Bs. / Persona-Mes.
 
 Aplicando la tarifa al esfuerzo estimado:
 
 $$CostoTotal = Effort \times LaborRate$$
-$$CostoTotal = 18,55 \text{ PM} \times 12.000 \text{ Bs./PM} = 222.581,56 \text{ Bs.}$$
+$$CostoTotal = 14,83 \text{ PM} \times 8.000 \text{ Bs./PM} = 118.629,20 \text{ Bs.}$$
 
 Para fines comparativos en el marco internacional, se realiza la conversión a dólares americanos considerando el tipo de cambio oficial de 6,96 Bs. por 1 USD:
 
-$$CostoTotal_{USD} = \frac{222.581,56 \text{ Bs.}}{6,96} \approx \$31.980,11 \text{ USD}$$
+$$CostoTotal_{USD} = \frac{118.629,20 \text{ Bs.}}{6,96} \approx \$17.044,43 \text{ USD}$$
 
-El costo estimado total de desarrollo del software se cifra en **222.581,56 Bolivianos** (equivalente a **31.980,11 dólares americanos**).
+El costo estimado total de desarrollo del software se cifra en **118.629,20 Bolivianos** (equivalente a **17.044,43 dólares americanos**).
 
 ### 5.6. DISTRIBUCIÓN DE ESFUERZO Y TIEMPO POR FASES
 
@@ -1890,16 +1940,22 @@ El modelo COCOMO II distribuye el esfuerzo y el cronograma del ciclo de vida del
 
 | Fase de Desarrollo | Distribución Esfuerzo (%) | Esfuerzo Estimado (PM) | Distribución Tiempo Nominal (%) | Tiempo Nominal (Meses) | Personal Requerido (FTE) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Inicio (Inception)** | 6% | 1,11 | 12% | 1,08 | 1,03 |
-| **Elaboración (Elaboration)**| 24% | 4,45 | 30% | 2,69 | 1,65 |
-| **Construcción (Construction)**| 50% | 9,27 | 38% | 3,41 | 2,72 |
-| **Transición (Transition)** | 20% | 3,71 | 20% | 1,80 | 2,06 |
-| **TOTAL PROYECTO** | **100%** | **18,55** | **100%** | **8,98** | **2,06 (Promedio)** |
+| **Inicio (Inception)** | 6% | 0,89 | 12% | 1,01 | 0,88 |
+| **Elaboración (Elaboration)**| 24% | 3,56 | 30% | 2,52 | 1,41 |
+| **Construcción (Construction)**| 50% | 7,41 | 38% | 3,18 | 2,33 |
+| **Transición (Transition)** | 20% | 2,97 | 20% | 1,68 | 1,77 |
+| **TOTAL PROYECTO** | **100%** | **14,83** | **100%** | **8,39** | **1,77 (Promedio)** |
 
 Tabla 5.4: Distribución de Esfuerzo y Tiempo por Fases de Desarrollo  
 *Nota.* Valores absolutos calculados a partir de los porcentajes estándar de distribución de fases de COCOMO II. Elaboración propia.
 
 La distribución gráfica comparativa de esfuerzo en Personas-Mes y tiempo calendario nominal en meses para cada una de las fases del ciclo de vida se describe en la Figura 5.1.
+
+La representación gráfica comparativa de esfuerzo en Personas-Mes y tiempo calendario nominal en meses para cada una de las fases del ciclo de vida se describe en la Figura 5.1.
+
+> [!IMPORTANT]
+> **NOTA PARA LA POSTULANTE (CAPTURA DE PANTALLA REQUERIDA):**
+> Opcional: Reemplazar el archivo `img/img_cocomo_breakdown.png` o insertar aquí una captura de pantalla de la interfaz de la web oficial de COCOMO II (softwarecost.org) con tus parámetros reales (20.813 SLOC, TEAM en Extra High, SITE en Very High, etc.) y los resultados de esfuerzo y costo.
 
 ![Distribución de Esfuerzo y Tiempo por Fases de Desarrollo (COCOMO II)](img/img_cocomo_breakdown.png)
 
@@ -1932,12 +1988,12 @@ El éxito operativo y la solidez técnica de la Plataforma MEH se demuestran a t
 
 #### 1. Consolidado Métrico de Construcción y Calidad
 
-El ecosistema monolítico modular de la plataforma se compone de un total de 169 archivos originales de código fuente, sumando un total de 25.797 líneas de código fuente (SLOC) de autoría exclusiva del postulante. La suite completa de control de calidad ha registrado tasas de éxito del 100% en todas las dimensiones de pruebas. El resumen de logros métricos logrados frente a las metas de calidad se detalla en la Tabla 6.1:
+El ecosistema monolítico modular de la plataforma se compone de un total de 144 archivos de código fuente de producción original, sumando un total de 20.813 líneas lógicas de código de producción (LSLOC) de autoría exclusiva del postulante. La suite completa de control de calidad ha registrado tasas de éxito del 100% en todas las dimensiones de pruebas. El resumen de logros métricos logrados frente a las metas de calidad se detalla en la Tabla 6.1:
 
 | Dimensión Evaluada | Indicador / Métrica Técnica | Meta Establecida | Métrica Lograda | Estado de Cumplimiento |
 | :--- | :--- | :--- | :--- | :--- |
-| Tamaño Físico | Líneas de Código Backend (FastAPI) | -- | 9.104 SLOC | Completado (88 archivos) |
-| | Líneas de Código Frontend (React) | -- | 16.693 SLOC | Completado (81 archivos) |
+| Tamaño Físico | Líneas de Código Backend (FastAPI) | -- | 5.440 LSLOC | Completado (64 archivos) |
+| | Líneas de Código Frontend (React) | -- | 15.373 LSLOC | Completado (80 archivos) |
 | Pruebas Unitarias | Tasa de éxito lógica (PyTest) | 100% | 100% (21/21 passed) | SUPERADO |
 | | Cobertura de Código (Coverage) | >= 80% | 86,4% de cobertura | SUPERADO |
 | Pruebas E2E / UI | Pruebas de integración (TestClient)| 100% | 100% (8 endpoints OK)| SUPERADO |
@@ -2004,10 +2060,10 @@ Finalmente, de acuerdo con el modelo cuantitativo COCOMO II ajustado y calculado
 
 | Variable Estimada (COCOMO II) | Valor Nominal (Equipo) | Valor Real (1 Programador) | Impacto y Justificación Metodológica |
 | :--- | :--- | :--- | :--- |
-| Esfuerzo del Proyecto | -- | 18,55 Personas-Mes | Esfuerzo total consolidado requerido para la codificación. |
-| Tiempo Calendario (TDEV)| 8,98 Meses | 18,55 Meses | Al no existir concurrencia (1 FTE), el desarrollo se realiza secuencialmente. |
-| Personal Requerido | 2,06 FTEs | 1,00 Persona | El postulante asume el 100% de la lógica de negocio y UI de forma individual. |
-| Costo Consolidado | -- | 222.581,56 Bs. | Equivale a $31.980,11 USD bajo una tarifa laboral de 12.000 Bs./PM. |
+| Esfuerzo del Proyecto | -- | 14,83 Personas-Mes | Esfuerzo total consolidado requerido para la codificación. |
+| Tiempo Calendario (TDEV)| 8,39 Meses | 14,83 Meses | Al no existir concurrencia (1 FTE), el desarrollo se realiza secuencialmente. |
+| Personal Requerido | 1,77 FTEs | 1,00 Persona | El postulante asume el 100% de la lógica de negocio y UI de forma individual. |
+| Costo Consolidado | -- | 118.629,20 Bs. | Equivale a $17.044,43 USD bajo una tarifa laboral de 8.000 Bs./PM. |
 
 Tabla 6.4: Resumen de Estimación de Esfuerzo, Tiempo y Costo de Software  
 *Nota.* Comparativa de variables nominales del modelo vs. las condiciones físicas del proyecto de desarrollador único. Elaboración propia.
