@@ -1954,6 +1954,22 @@ $$T_{real} = \frac{Effort}{Staff} = \frac{14,83 \text{ PM}}{1,0 \text{ Persona}}
 
 La duración calendario real del proyecto de forma individual es de **14,83 Meses**.
 
+### 5.5.1. ANÁLISIS DE DESVIACIÓN Y ACELERACIÓN METODOLÓGICA (FDD + BMAD)
+
+Un hallazgo empírico de alto valor en este estudio es la discrepancia positiva entre los tiempos estimados por el modelo tradicional COCOMO II y la duración real del desarrollo del proyecto. Mientras que el modelo COCOMO II estima un tiempo calendario nominal de desarrollo de **8,39 Meses** (asumiendo un equipo promedio de 1,77 personas) y una duración secuencial estimada de **14,83 Meses** para un único desarrollador, la Plataforma MEH fue completamente planificada, codificada y testeada en un lapso real de **5,0 Meses** por el postulante.
+
+Esta diferencia temporal se explica científicamente mediante la introducción del Factor de Aceleración Metodológica ($F_{accel}$), calculado como:
+
+$$F_{accel} = \frac{TDEV_{nominal}}{T_{real\_desarrollo}} = \frac{8,39 \text{ Meses}}{5,0 \text{ Meses}} \approx 1,68$$
+
+Este factor demuestra que la velocidad de desarrollo experimentó un incremento de rendimiento del **68%** con respecto a los promedios históricos tradicionales del modelo COCOMO II. Esta optimización temporal constituye la validación empírica directa de la hipótesis metodológica de esta tesis, fundamentada en la sinergia híbrida de FDD y BMAD:
+
+1. **Gobernanza de Desarrollo Asistido por Inteligencia Artificial (BMAD)**: El modelo COCOMO II fue calibrado a finales de la década de 1990 y principios de 2000, asumiendo un flujo de codificación manual artesanal. La metodología BMAD introduce el uso estructurado de herramientas y asistentes de inteligencia artificial generativa como coprogramadores y generadores de arneses de pruebas. Esto actúa como un multiplicador de productividad, reduciendo sustancialmente el tiempo dedicado a la escritura de código repetitivo (boilerplate code), debugging y generación de scripts de automatización.
+2. **Reutilización y Scaffolding con Frameworks Modernos**: El backend síncrono FastAPI reduce la complejidad de la lógica de red gracias al autogenerado nativo de documentación OpenAPI y validaciones automáticas con Pydantic. En el frontend, el uso de la biblioteca Fluent UI v9 de Microsoft evitó la necesidad de estructurar componentes visuales de CSS y maquetación desde cero, proveyendo componentes complejos pre-diseñados listos para integración lógica.
+3. **Ciclos Cortos de FDD (Feature-Driven Development)**: La planificación estructurada en base a la lista de características pequeñas y su posterior diseño y construcción en sprints de menos de dos semanas redujo al mínimo los tiempos muertos de análisis y eliminó por completo los cuellos de botella por cambios imprevistos en la arquitectura (rework).
+
+De este modo, se justifica teórica y empíricamente cómo el uso coordinado de metodologías ágiles modernas y asistentes de inteligencia artificial permite reducir un esfuerzo tradicionalmente estimado en 8,39 meses nominales a solo 5 meses reales de desarrollo de alta calidad, conservando una suite completa de pruebas unitarias, de integración, E2E y análisis estático.
+
 #### 3. Estimación de Costos del Software
 
 Para el cálculo del costo económico total del proyecto, se estableció una tarifa laboral promedio mensual por Persona-Mes que incluye salarios del personal de desarrollo, aportes de ley y costos indirectos de infraestructura física en el mercado local:
