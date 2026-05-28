@@ -1875,6 +1875,45 @@ Tabla 5.3: Multiplicadores de Esfuerzo (Cost Drivers) y Factor de Ajuste EAF
 
 El factor de ajuste de esfuerzo (EAF) resultante es de **0,2129**. La calificación de "Muy Alta" en las capacidades del personal, la continuidad absoluta del programador y el desarrollo individual (SITE = 0,80) actúan como potentes reductores del esfuerzo nominal requerido, disminuyendo la complejidad constructiva.
 
+### 5.4.1. JUSTIFICACIÓN DETALLADA DE LA SELECCIÓN DE PARÁMETROS
+
+Para evitar arbitrariedades en la asignación de las calificaciones del modelo COCOMO II, se detalla a continuación el fundamento de ingeniería de software para cada uno de los factores seleccionados:
+
+#### A. Factores de Escala del Exponente (Scale Factors - SF)
+
+* **PREC (Familiaridad con el proyecto - Calificación: Nominal, 3.72)**: El postulante posee experiencia previa intermedia en sistemas web, control logístico y aulas virtuales, pero es la primera vez que se diseña un ecosistema integrado con OCR difuso y soporte offline.
+* **FLEX (Flexibilidad de desarrollo - Calificación: Alta, 2.03)**: La gobernanza de la metodología BMAD permitió una alta flexibilidad para iterar y adaptar los componentes lógicos a los requisitos locales del Hub sin las rigideces de un contrato comercial cerrado.
+* **RESL (Resolución de riesgos - Calificación: Alta, 2.83)**: Se estructuró un análisis de riesgos riguroso a través de prototipos locales del OCR de visión artificial, pruebas del escáner QR móvil y un diseño estricto de base de datos relacional para mitigar bloqueos arquitectónicos.
+* **TEAM (Cohesión del equipo - Calificación: Extra Alta, 0.00)**: Debido a que el proyecto fue desarrollado de forma individual por una única persona, la cohesión es máxima; no existen retrasos por reuniones de sincronización, conflictos de diseño ni overhead de comunicación inter-personal.
+* **PMAT (Madurez del proceso - Calificación: Nominal, 4.68)**: Procesos de desarrollo estructurados en concordancia con el ciclo de vida del marco ágil híbrido FDD+BMAD.
+
+#### B. Multiplicadores de Esfuerzo de Post-Arquitectura (Cost Drivers - EM)
+
+##### Atributos del Producto (Product)
+* **RELY (Confiabilidad requerida - Calificación: Nominal, 1.00)**: Los posibles fallos en el sistema generan inconvenientes operativos menores (por ejemplo, registro de asistencia manual temporal en puerta) sin riesgo de pérdidas financieras severas o vidas humanas.
+* **DATA (Tamaño de la base de datos - Calificación: Nominal, 1.00)**: La base de datos relacional PostgreSQL consta de 29 tablas físicas con relaciones estándar. La relación de bytes almacenados frente a la memoria de ejecución se mantiene dentro de los límites nominales.
+* **CPLX (Complejidad del producto - Calificación: Alta, 1.17)**: El sistema incluye algoritmos complejos como la extracción de metadatos OCR difusos con regular expressions, emparejamiento de nombres con la distancia Jaro-Winkler, firmas criptográficas HS256 para JWT y sincronización IndexedDB offline.
+* **RUSE (Reusabilidad requerida - Calificación: Nominal, 1.00)**: El software está diseñado con modularidad en el backend y frontend para permitir la reutilización interna de componentes (como loaders y layouts de Fluent UI v9), pero no está destinado a ser una línea de productos reutilizables para terceros.
+* **DOCU (Documentación del ciclo de vida - Calificación: Nominal, 1.00)**: Documentación técnica estructurada mediante un portal interactivo en Docusaurus y bitácoras en formato Markdown, balanceada y adecuada a los requerimientos del ciclo de vida del proyecto.
+
+##### Atributos de la Plataforma (Platform)
+* **TIME (Restricción de tiempo de ejecución - Calificación: Nominal, 1.00)**: El backend de FastAPI consume menos del 15% de la capacidad de CPU en el servidor en entornos normales de uso, operando con latencias holgadas.
+* **STOR (Restricción de almacenamiento - Calificación: Nominal, 1.00)**: El espacio físico en el disco del servidor y la base de datos PostgreSQL se mantienen en rangos mínimos holgados en comparación con el hardware de hosting disponible.
+* **PVOL (Volatilidad de la plataforma - Calificación: Nominal, 1.00)**: El stack tecnológico seleccionado (Python 3.11, React 18, PostgreSQL 15, Docker) es maduro y altamente estable, con nula previsión de cambios de infraestructura durante el desarrollo.
+
+##### Atributos del Personal (Personnel)
+* **ACAP (Capacidad del analista - Calificación: Muy Alta, 0.71)**: El postulante asume de forma individual la elaboración del modelado relacional, diagramas de secuencia UML, especificaciones de caso de uso y diseño de la arquitectura.
+* **PCAP (Capacidad del programador - Calificación: Muy Alta, 0.76)**: Destreza técnica y capacidad demostrada del desarrollador en el manejo de lógica full-stack, APIs asíncronas y frameworks reactivos en el frontend.
+* **PCON (Continuidad del personal - Calificación: Muy Alta, 0.81)**: El índice de rotación de personal es del 0% durante todo el proyecto, ya que el mismo postulante asume el desarrollo de principio a fin de forma permanente.
+* **APEX (Experiencia en la aplicación - Calificación: Muy Alta, 0.81)**: Experiencia previa sólida del desarrollador en el diseño y despliegue de sistemas de asistencia estudiantil, control de pases y aulas virtuales LMS.
+* **PLEX (Experiencia en la plataforma - Calificación: Muy Alta, 0.85)**: Familiaridad avanzada del postulante con el uso de sistemas Linux, entornos de despliegue en la nube, contenedores Docker y configuraciones del proxy Nginx.
+* **LTEX (Experiencia en herramientas y lenguajes - Calificación: Muy Alta, 0.84)**: Dominio excelente de los lenguajes de programación del proyecto (Python y Javascript/JSX) y sus respectivos entornos de ejecución.
+
+##### Atributos del Proyecto (Project)
+* **TOOL (Uso de herramientas de software - Calificación: Alta, 0.90)**: Integración de herramientas CASE e ingeniería de software avanzadas (IDE VS Code, linters Ruff, control de versiones Git, Docusaurus para documentación técnica, suites de PyTest y emuladores de Selenium/Playwright).
+* **SITE (Desarrollo multisitio - Calificación: Muy Alta, 0.80)**: Al ser un único programador trabajando localmente, la comunicación es instantánea con uno mismo, eliminando las pérdidas de tiempo de coordinación geográfica inter-equipos.
+* **SCED (Restricción de cronograma - Calificación: Nominal, 1.00)**: El cronograma de ejecución del proyecto se planificó de forma holgada a lo largo del calendario académico, sin compresiones extremas de tiempo.
+
 ### 5.5. CÁLCULO DE ESFUERZO, TIEMPO Y COSTOS
 
 Una vez determinados los parámetros de entrada, se aplican las ecuaciones matemáticas fundamentales de COCOMO II:
@@ -1919,20 +1958,20 @@ La duración calendario real del proyecto de forma individual es de **14,83 Mese
 
 Para el cálculo del costo económico total del proyecto, se estableció una tarifa laboral promedio mensual por Persona-Mes que incluye salarios del personal de desarrollo, aportes de ley y costos indirectos de infraestructura física en el mercado local:
 
-* **Costo Directo Promedio (Salario):** 5.000 Bs. / Persona-Mes.
-* **Costo Indirecto y Operativo:** 3.000 Bs. / Persona-Mes.
-* **Labor Rate (Tarifa Consolidada):** 8.000 Bs. / Persona-Mes.
+* **Costo Directo Promedio (Salario):** 5.000 Bs. / Persona-Mes (equivalente a 555,56 USD).
+* **Costo Indirecto y Operativo:** 3.000 Bs. / Persona-Mes (equivalente a 333,33 USD).
+* **Labor Rate (Tarifa Consolidada):** 8.000 Bs. / Persona-Mes (equivalente a 888,89 USD).
 
 Aplicando la tarifa al esfuerzo estimado:
 
 $$CostoTotal = Effort \times LaborRate$$
 $$CostoTotal = 14,83 \text{ PM} \times 8.000 \text{ Bs./PM} = 118.629,20 \text{ Bs.}$$
 
-Para fines comparativos en el marco internacional, se realiza la conversión a dólares americanos considerando el tipo de cambio oficial de 6,96 Bs. por 1 USD:
+Para fines comparativos en el marco internacional, se realiza la conversión a dólares americanos considerando una tasa de cambio de mercado ajustada de 9,00 Bs. por 1 USD, la cual refleja con mayor precisión las fluctuaciones y la realidad económica cambiaria actual:
 
-$$CostoTotal_{USD} = \frac{118.629,20 \text{ Bs.}}{6,96} \approx \$17.044,43 \text{ USD}$$
+$$CostoTotal_{USD} = \frac{118.629,20 \text{ Bs.}}{9,00} \approx \$13.181,02 \text{ USD}$$
 
-El costo estimado total de desarrollo del software se cifra en **118.629,20 Bolivianos** (equivalente a **17.044,43 dólares americanos**).
+El costo estimado total de desarrollo del software se cifra en **118.629,20 Bolivianos** (equivalente a **13.181,02 dólares americanos**).
 
 ### 5.6. DISTRIBUCIÓN DE ESFUERZO Y TIEMPO POR FASES
 
@@ -2063,7 +2102,7 @@ Finalmente, de acuerdo con el modelo cuantitativo COCOMO II ajustado y calculado
 | Esfuerzo del Proyecto | -- | 14,83 Personas-Mes | Esfuerzo total consolidado requerido para la codificación. |
 | Tiempo Calendario (TDEV)| 8,39 Meses | 14,83 Meses | Al no existir concurrencia (1 FTE), el desarrollo se realiza secuencialmente. |
 | Personal Requerido | 1,77 FTEs | 1,00 Persona | El postulante asume el 100% de la lógica de negocio y UI de forma individual. |
-| Costo Consolidado | -- | 118.629,20 Bs. | Equivale a $17.044,43 USD bajo una tarifa laboral de 8.000 Bs./PM. |
+| Costo Consolidado | -- | 118.629,20 Bs. | Equivale a $13.181,02 USD (tasa de cambio de 9,00 Bs./USD) bajo una tarifa laboral de 8.000 Bs./PM. |
 
 Tabla 6.4: Resumen de Estimación de Esfuerzo, Tiempo y Costo de Software  
 *Nota.* Comparativa de variables nominales del modelo vs. las condiciones físicas del proyecto de desarrollador único. Elaboración propia.
