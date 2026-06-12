@@ -6,7 +6,7 @@ sidebar_label: 05. Base de Datos y Seguridad
 # Base de Datos Relacional y Protocolos de Seguridad (PostgreSQL & SQLAlchemy)
 
 :::info METADATOS DEL DOCUMENTO
-* **Propietario del Documento:** Nataly Gemio Morales (MLSA Ambassador / Carrera de Informática UMSA)
+* **Propietario del Documento:** Nataly Gemio Morales (MSA Ambassador / Carrera de Informática UMSA)
 * **Versión:** 1.2.0
 * **Última Actualización:** 2026-05-25
 * **Audiencia Destinataria:** Desarrolladores Backend/Frontend, Administradores de Sistemas, Evaluadores Académicos de la UMSA.
@@ -110,6 +110,11 @@ erDiagram
         int id_evento FK
         int id_comunidad FK
     }
+    EVENTOS_PAGOS_QR {
+        int id_qr PK
+        int id_evento FK
+        int id_estado FK
+    }
 
     EVENTOS ||--o{ INSCRIPCIONES_EVENTOS : "recibe"
     EVENTOS ||--o{ CHECKPOINTS : "define"
@@ -121,6 +126,7 @@ erDiagram
     AUSPICIADORES ||--o{ EVENTOS_AUSPICIADORES : "patrocina"
     EVENTOS ||--o{ EVENTOS_COMUNIDADES : "vincula"
     COMUNIDADES_ALIADAS ||--o{ EVENTOS_COMUNIDADES : "colabora"
+    EVENTOS ||--o{ EVENTOS_PAGOS_QR : "define"
 ```
 
 ### C. Módulo 3: Academia Virtual y Progreso Académico
@@ -358,6 +364,22 @@ erDiagram
 | `link_contacto` | `VARCHAR` |  | NULL |
 | `correo_contacto` | `VARCHAR` |  | NULL |
 | `whatsapp_contacto` | `VARCHAR` |  | NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: utcnow |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### eventos_pagos_qr
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_qr` | `INTEGER` | **PK** | NOT NULL |
+| `id_evento` | `INTEGER` | **FK** (eventos.id_evento) | NOT NULL, ON DELETE: CASCADE |
+| `nombre_paquete` | `VARCHAR(100)` |  | NOT NULL |
+| `monto` | `NUMERIC(10, 2)` |  | NOT NULL |
+| `url_qr` | `VARCHAR(255)` |  | NOT NULL |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: utcnow |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |

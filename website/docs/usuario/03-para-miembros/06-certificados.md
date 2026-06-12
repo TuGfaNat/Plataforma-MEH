@@ -28,5 +28,5 @@ Una vez completados los requisitos de aprobación de un curso o un evento, la pl
 ### 📋 Errores Comunes de Emisión
 Si el botón de descarga aparece inhabilitado, comprueba que:
 * Hayas marcado todas las lecciones del curso como completadas.
-* Tu pago por kit o souvenir esté en estado `'VERIFICADO_AUTOMATICO'` o `'APROBADO'` (para eventos de pago).
+* Tu pago por kit o souvenir esté en estado `'APROBADO'` o `'CONCILIADO'` (para eventos de pago).
 * Tu marca de checkpoint de salida presencial haya sido escaneada exitosamente por el staff en la puerta de egreso.

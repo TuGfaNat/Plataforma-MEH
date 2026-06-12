@@ -6,7 +6,7 @@ sidebar_label: 03. Mapeo de Componentes .jsx
 # Mapeo de Componentes Frontend `.jsx` a la API Backend
 
 :::info METADATOS DEL DOCUMENTO
-* **Propietario del Documento:** Nataly Gemio Morales (MLSA Ambassador / Carrera de Informática UMSA)
+* **Propietario del Documento:** Nataly Gemio Morales (MSA Ambassador / Carrera de Informática UMSA)
 * **Versión:** 1.2.0
 * **Última Actualización:** 2026-05-25
 * **Audiencia Destinataria:** Desarrolladores Backend/Frontend, Administradores de Sistemas, Evaluadores Académicos de la UMSA.

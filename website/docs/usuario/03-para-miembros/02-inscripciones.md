@@ -26,6 +26,6 @@ Aprende a registrar tu participación en un evento y a subir tu comprobante de p
 ---
 
 ### ⚠️ Reglas y Estados de Inscripción
-* Tu comprobante de pago pasará por un análisis OCR local. Si es válido y superior a 5 KB, se le asignará una confianza del **98%** y el estado `'VERIFICADO_AUTOMATICO'`, habilitando tu código QR.
-* Si el comprobante posee un tamaño inferior o es ilegible, pasará al estado `'REVISION_MANUAL'` para auditoría del administrador.
+* Tu comprobante de pago pasará por un análisis OCR local. Si es válido y legible (confianza >= 95%), se le asignará el estado `'PENDIENTE'`, esperando la conciliación bancaria automatizada para habilitar tu código QR.
+* Si el comprobante es de baja confianza o posee un tamaño sospechosamente pequeño, pasará al estado `'REVISION_MANUAL'` para auditoría manual del administrador.
 * **Prohibición Transaccional:** El sistema no admite valores de transacciones duplicados ni montos negativos en el comprobante.
