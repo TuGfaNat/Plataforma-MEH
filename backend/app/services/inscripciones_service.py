@@ -41,11 +41,15 @@ def inscribir_evento(
     # Generar QR único (Token de entrada)
     token_qr = str(uuid.uuid4())
 
+    # Verificar si el evento tiene paquetes de pago (si no tiene, es gratuito)
+    tiene_pagos = db.query(models.EventoPagoQR).filter(models.EventoPagoQR.id_evento == id_evento).first() is not None
+    estado_inscripcion_inicial = "PENDIENTE" if tiene_pagos else "CONFIRMADA"
+
     nueva_inscripcion = models.InscripcionEvento(
         id_usuario=user_id,
         id_evento=id_evento,
         fecha_inscripcion=datetime.utcnow(),
-        estado_inscripcion="PENDIENTE",
+        estado_inscripcion=estado_inscripcion_inicial,
         codigo_qr=token_qr
     )
     db.add(nueva_inscripcion)

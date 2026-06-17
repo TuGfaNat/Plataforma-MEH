@@ -66,7 +66,8 @@ def sanitize():
             "pedidos", "pedido_detalles", "eventos", "inscripciones_eventos", 
             "checkpoints", "asistencia_detalles", "cursos", "lecciones", 
             "tareas", "entregas_tareas", "posts_foro", "inscripciones_cursos", 
-            "pagos", "logs_sistema", "certificados", "recursos", "anuncios"
+            "pagos", "logs_sistema", "certificados", "recursos", "anuncios",
+            "eventos_pagos_qr"
         ]
 
         for tabla in tablas:

@@ -445,6 +445,19 @@ erDiagram
         INTEGER id_estado FK
         DATETIME fecha_modificacion_estado 
     }
+    EVENTOS_PAGOS_QR {
+        INTEGER id_qr PK
+        INTEGER id_evento FK
+        VARCHAR(100) nombre_paquete 
+        NUMERIC(10,_2) monto 
+        VARCHAR(255) url_qr 
+        INTEGER creado_por FK
+        DATETIME fecha_creacion 
+        INTEGER modificado_por FK
+        DATETIME fecha_modificacion 
+        INTEGER id_estado FK
+        DATETIME fecha_modificacion_estado 
+    }
     AUSPICIADORES ||--o{ EVENTOS_AUSPICIADORES : "fk"
     BADGES ||--o{ USUARIOS_BADGES : "fk"
     CHECKPOINTS ||--o{ ASISTENCIA_DETALLES : "fk"
@@ -466,6 +479,7 @@ erDiagram
     ESTADOS_REGISTRO ||--o{ CURSOS : "fk"
     ESTADOS_REGISTRO ||--o{ ENTREGAS_TAREAS : "fk"
     ESTADOS_REGISTRO ||--o{ EVENTOS : "fk"
+    ESTADOS_REGISTRO ||--o{ EVENTOS_PAGOS_QR : "fk"
     ESTADOS_REGISTRO ||--o{ INSCRIPCIONES_CURSOS : "fk"
     ESTADOS_REGISTRO ||--o{ INSCRIPCIONES_EVENTOS : "fk"
     ESTADOS_REGISTRO ||--o{ LECCIONES : "fk"
@@ -485,6 +499,7 @@ erDiagram
     EVENTOS ||--o{ CHECKPOINTS : "fk"
     EVENTOS ||--o{ EVENTOS_AUSPICIADORES : "fk"
     EVENTOS ||--o{ EVENTOS_COMUNIDADES : "fk"
+    EVENTOS ||--o{ EVENTOS_PAGOS_QR : "fk"
     EVENTOS ||--o{ EVENTOS_SPEAKERS : "fk"
     EVENTOS ||--o{ INSCRIPCIONES_EVENTOS : "fk"
     EVENTOS ||--o{ RECURSOS : "fk"
@@ -508,6 +523,7 @@ erDiagram
     USUARIOS ||--o{ CURSOS : "fk"
     USUARIOS ||--o{ ENTREGAS_TAREAS : "fk"
     USUARIOS ||--o{ EVENTOS : "fk"
+    USUARIOS ||--o{ EVENTOS_PAGOS_QR : "fk"
     USUARIOS ||--o{ INSCRIPCIONES_CURSOS : "fk"
     USUARIOS ||--o{ INSCRIPCIONES_EVENTOS : "fk"
     USUARIOS ||--o{ LECCIONES : "fk"
@@ -567,7 +583,7 @@ erDiagram
 | `correo` | `VARCHAR` |  | NULL, UNIQUE |
 | `password_hash` | `TEXT` |  | NULL |
 | `rol` | `VARCHAR` |  | NULL, DEFAULT: MIEMBRO |
-| `fecha_registro` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA00054E0> |
+| `fecha_registro` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB3954E0> |
 | `bio` | `TEXT` |  | NULL |
 | `institucion` | `VARCHAR` |  | NULL |
 | `estudia_en` | `VARCHAR` |  | NULL |
@@ -586,7 +602,7 @@ erDiagram
 | `reset_token` | `VARCHAR` |  | NULL |
 | `reset_token_exp` | `DATETIME` |  | NULL |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -609,7 +625,7 @@ erDiagram
 | `correo_contacto` | `VARCHAR` |  | NULL |
 | `whatsapp_contacto` | `VARCHAR` |  | NULL |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -627,7 +643,7 @@ erDiagram
 | `correo_contacto` | `VARCHAR` |  | NULL |
 | `whatsapp_contacto` | `VARCHAR` |  | NULL |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -645,7 +661,7 @@ erDiagram
 | `correo_contacto` | `VARCHAR` |  | NULL |
 | `whatsapp_contacto` | `VARCHAR` |  | NULL |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -660,7 +676,7 @@ erDiagram
 | `valor` | `TEXT` |  | NULL |
 | `descripcion` | `VARCHAR` |  | NULL |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -679,7 +695,7 @@ erDiagram
 | `puntos` | `INTEGER` |  | NULL, DEFAULT: 10 |
 | `requisito_nivel` | `VARCHAR` |  | NULL, DEFAULT: Beginner |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -692,9 +708,9 @@ erDiagram
 | `id_usuario_badge` | `INTEGER` | **PK** | NOT NULL |
 | `id_usuario` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `id_badge` | `INTEGER` | **FK** (badges.id_badge) | NULL |
-| `fecha_obtencion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA00A8180> |
+| `fecha_obtencion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB43C180> |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -714,7 +730,7 @@ erDiagram
 | `categoria` | `VARCHAR` |  | NULL, DEFAULT: SOUVENIR |
 | `activo` | `BOOLEAN` |  | NULL, DEFAULT: True |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -728,10 +744,10 @@ erDiagram
 | `id_usuario` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `id_pago` | `INTEGER` | **FK** (pagos.id_pago) | NULL |
 | `estado` | `VARCHAR` |  | NULL, DEFAULT: PENDIENTE |
-| `fecha_pedido` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA00AB740> |
+| `fecha_pedido` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB43F740> |
 | `total` | `NUMERIC(10, 2)` |  | NULL, DEFAULT: 0 |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -772,7 +788,7 @@ erDiagram
 | `token_qr` | `VARCHAR` |  | NULL |
 | `id_organizador` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -785,14 +801,14 @@ erDiagram
 | `id_inscripcion` | `INTEGER` | **PK** | NOT NULL |
 | `id_usuario` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `id_evento` | `INTEGER` | **FK** (eventos.id_evento) | NULL |
-| `fecha_inscripcion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA0111760> |
+| `fecha_inscripcion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB49D8A0> |
 | `estado_inscripcion` | `VARCHAR` |  | NULL, DEFAULT: PENDIENTE |
 | `codigo_qr` | `VARCHAR` |  | NULL, UNIQUE |
 | `asistio` | `BOOLEAN` |  | NULL, DEFAULT: False |
 | `fecha_validacion` | `DATETIME` |  | NULL |
 | `id_pago` | `INTEGER` | **FK** (pagos.id_pago) | NULL |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -811,7 +827,7 @@ erDiagram
 | `orden` | `INTEGER` |  | NULL |
 | `activo` | `BOOLEAN` |  | NULL, DEFAULT: True |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -824,10 +840,10 @@ erDiagram
 | `id_asistencia` | `INTEGER` | **PK** | NOT NULL |
 | `id_inscripcion` | `INTEGER` | **FK** (inscripciones_eventos.id_inscripcion) | NULL |
 | `id_checkpoint` | `INTEGER` | **FK** (checkpoints.id_checkpoint) | NULL |
-| `fecha_escaneo` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA0131BC0> |
+| `fecha_escaneo` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB4C1D00> |
 | `escaneado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -848,7 +864,7 @@ erDiagram
 | `external_url` | `VARCHAR` |  | NULL |
 | `uid_ms` | `VARCHAR` |  | NULL |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -865,7 +881,7 @@ erDiagram
 | `contenido_texto` | `TEXT` |  | NULL |
 | `orden` | `INTEGER` |  | NULL, DEFAULT: 1 |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -883,7 +899,7 @@ erDiagram
 | `fecha_entrega_limite` | `DATETIME` |  | NULL |
 | `archivo_adjunto_url` | `VARCHAR` |  | NULL |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -900,9 +916,9 @@ erDiagram
 | `comentario_alumno` | `TEXT` |  | NULL |
 | `nota` | `INTEGER` |  | NULL |
 | `comentario_docente` | `TEXT` |  | NULL |
-| `fecha_envio` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA0181260> |
+| `fecha_envio` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB5113A0> |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -918,7 +934,7 @@ erDiagram
 | `mensaje` | `TEXT` |  | NULL |
 | `es_pregunta_docente` | `BOOLEAN` |  | NULL, DEFAULT: False |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -931,14 +947,14 @@ erDiagram
 | `id_inscripcion_curso` | `INTEGER` | **PK** | NOT NULL |
 | `id_usuario` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `id_curso` | `INTEGER` | **FK** (cursos.id_curso) | NULL |
-| `fecha_inscripcion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA01B0C20> |
+| `fecha_inscripcion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB540D60> |
 | `progreso` | `INTEGER` |  | NULL, DEFAULT: 0 |
 | `nota_final` | `NUMERIC(5, 2)` |  | NULL |
 | `finalizado` | `BOOLEAN` |  | NULL, DEFAULT: False |
 | `id_pago` | `INTEGER` | **FK** (pagos.id_pago) | NULL |
 | `estado_inscripcion` | `VARCHAR` |  | NULL, DEFAULT: PENDIENTE |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -951,7 +967,7 @@ erDiagram
 | `id_pago` | `INTEGER` | **PK** | NOT NULL |
 | `id_usuario` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `monto` | `NUMERIC(10, 2)` |  | NULL |
-| `fecha_pago` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA01B2DE0> |
+| `fecha_pago` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB542F20> |
 | `metodo_pago` | `VARCHAR` |  | NULL |
 | `estado_pago` | `VARCHAR` |  | NULL, DEFAULT: PENDIENTE |
 | `comprobante_url` | `TEXT` |  | NULL |
@@ -964,7 +980,7 @@ erDiagram
 | `porcentaje_ocr` | `NUMERIC(5, 2)` |  | NULL |
 | `texto_ocr` | `TEXT` |  | NULL |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -981,7 +997,7 @@ erDiagram
 | `id_registro_afectado` | `INTEGER` |  | NULL |
 | `valor_anterior` | `TEXT` |  | NULL |
 | `valor_nuevo` | `TEXT` |  | NULL |
-| `fecha_hora` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA01D1120> |
+| `fecha_hora` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB565260> |
 | `ip_direccion` | `VARCHAR` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
 | `fecha_modificacion_estado` | `DATETIME` |  | NULL |
@@ -994,16 +1010,16 @@ erDiagram
 | `id_usuario` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `id_curso` | `INTEGER` | **FK** (cursos.id_curso) | NULL |
 | `id_evento` | `INTEGER` | **FK** (eventos.id_evento) | NULL |
-| `uuid_verificacion` | `VARCHAR` |  | NULL, UNIQUE, DEFAULT: <function Certificado.<lambda> at 0x0000022CA01D28E0> |
+| `uuid_verificacion` | `VARCHAR` |  | NULL, UNIQUE, DEFAULT: <function Certificado.<lambda> at 0x000001AAFB566A20> |
 | `codigo_verificacion` | `VARCHAR` |  | NULL, UNIQUE |
-| `fecha_emision` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA01D2980> |
+| `fecha_emision` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB566AC0> |
 | `url_pdf` | `VARCHAR` |  | NULL |
 | `formato` | `VARCHAR` |  | NULL, DEFAULT: DIGITAL |
 | `entregado_fisico` | `BOOLEAN` |  | NULL, DEFAULT: False |
 | `es_ruta_linkedin` | `BOOLEAN` |  | NULL, DEFAULT: False |
 | `metadata_adicional` | `TEXT` |  | NULL |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -1027,7 +1043,7 @@ erDiagram
 | `id_curso` | `INTEGER` | **FK** (cursos.id_curso) | NULL |
 | `id_evento` | `INTEGER` | **FK** (eventos.id_evento) | NULL |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
@@ -1043,11 +1059,27 @@ erDiagram
 | `url_imagen` | `VARCHAR` |  | NULL |
 | `link_accion` | `VARCHAR` |  | NULL |
 | `tipo` | `VARCHAR` |  | NULL, DEFAULT: INFO |
-| `fecha_publicacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022CA020EC00> |
+| `fecha_publicacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB59AD40> |
 | `id_autor` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `activo` | `BOOLEAN` |  | NULL, DEFAULT: True |
 | `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
-| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x0000022C9FFEA520> |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
+| `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_modificacion` | `DATETIME` |  | NULL |
+| `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |
+| `fecha_modificacion_estado` | `DATETIME` |  | NULL |
+
+### eventos_pagos_qr
+
+| Nombre del Campo | Tipo de Dato | Clave | Restricciones / Nulidad / Defecto |
+|---|---|---|---|
+| `id_qr` | `INTEGER` | **PK** | NOT NULL |
+| `id_evento` | `INTEGER` | **FK** (eventos.id_evento) | NOT NULL |
+| `nombre_paquete` | `VARCHAR(100)` |  | NOT NULL |
+| `monto` | `NUMERIC(10, 2)` |  | NOT NULL |
+| `url_qr` | `VARCHAR(255)` |  | NOT NULL |
+| `creado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
+| `fecha_creacion` | `DATETIME` |  | NULL, DEFAULT: <function datetime.utcnow at 0x000001AAFB37A520> |
 | `modificado_por` | `INTEGER` | **FK** (usuarios.id_usuario) | NULL |
 | `fecha_modificacion` | `DATETIME` |  | NULL |
 | `id_estado` | `INTEGER` | **FK** (estados_registro.id_estado) | NOT NULL, DEFAULT: 2 |

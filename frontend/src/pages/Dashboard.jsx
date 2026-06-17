@@ -12,7 +12,8 @@ import {
   DialogTitle,
   DialogBody,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Badge
 } from '@fluentui/react-components';
 import { 
   Alert24Regular,
@@ -32,7 +33,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { designTokens } from '../theme/theme';
-import { useAuth } from '../App';
+import { useAuth, useNotify } from '../App';
 import { resolveApiFileUrl } from '../services/api';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import RankBenefitsTable from '../components/RankBenefitsTable';
@@ -41,6 +42,7 @@ import eventoService from '../services/eventoService';
 import dashboardService from '../services/dashboardService';
 import comunidadService from '../services/comunidadService';
 import { QRCodeSVG } from 'qrcode.react';
+import BadgeDetailModal from '../components/BadgeDetailModal';
 
 const useStyles = makeStyles({
   dashboardContainer: {
@@ -163,6 +165,33 @@ const useStyles = makeStyles({
     alignItems: 'center',
     gap: '4px',
     marginTop: '8px'
+  },
+  nextMilestoneCard: {
+    background: 'linear-gradient(135deg, rgba(127, 19, 236, 0.1) 0%, rgba(34, 177, 76, 0.1) 100%)',
+    border: `1px solid rgba(127, 19, 236, 0.2)`,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: '20px',
+    ...shorthands.padding('24px'),
+    '@media (max-width: 600px)': {
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      gap: '16px',
+    }
+  },
+  announcementItem: {
+    display: 'flex',
+    gap: '12px',
+    borderBottom: `1px solid ${tokens.colorNeutralBackground3}`,
+    paddingBottom: '12px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    ...shorthands.padding('8px'),
+    ...shorthands.borderRadius('8px'),
+    ':hover': {
+      backgroundColor: 'rgba(127, 19, 236, 0.05)',
+    }
   }
 });
 
@@ -170,6 +199,7 @@ const Dashboard = () => {
   const styles = useStyles();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { notify } = useNotify();
   const navigate = useNavigate();
   
   const [eventos, setEventos] = useState([]);
@@ -177,34 +207,56 @@ const Dashboard = () => {
   const [anuncios, setAnuncios] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [submittingInscripcion, setSubmittingInscripcion] = useState(null);
+  const [showAmbassadorModal, setShowAmbassadorModal] = useState(false);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+
+  const fetchData = async () => {
+    if (!user) return;
+    try {
+      const [eventosData, statsData, inscripcionesData, anunciosData] = await Promise.all([
+        eventoService.getEventos(),
+        dashboardService.getStats(user.rol),
+        eventoService.getMisInscripciones(),
+        comunidadService.getAnuncios()
+      ]);
+      
+      const proximos = eventosData
+        .filter(e => e.estado === 'PROGRAMADO')
+        .sort((a, b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio))
+        .slice(0, 3);
+        
+      setEventos(proximos);
+      setStats(statsData);
+      setInscripciones(inscripcionesData);
+      setAnuncios(anunciosData.slice(0, 3));
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [eventosData, statsData, inscripcionesData, anunciosData] = await Promise.all([
-          eventoService.getEventos(),
-          dashboardService.getStats(),
-          eventoService.getMisInscripciones(),
-          comunidadService.getAnuncios()
-        ]);
-        
-        const proximos = eventosData
-          .filter(e => e.estado === 'PROGRAMADO')
-          .sort((a, b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio))
-          .slice(0, 3);
-          
-        setEventos(proximos);
-        setStats(statsData);
-        setInscripciones(inscripcionesData);
-        setAnuncios(anunciosData.slice(0, 3));
-      } catch (err) {
-        console.error("Error fetching dashboard data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
+  const handleInscribirse = async (idEvento) => {
+    setSubmittingInscripcion(idEvento);
+    try {
+      await eventoService.inscribirse(idEvento);
+      notify("Inscripción exitosa", "¡Inscripción registrada! Ahora puedes realizar el pago en la sección de Finanzas.", "success");
+      await fetchData();
+    } catch (err) {
+      console.error("Error inscribiendo al evento:", err);
+      const detail = err.response?.data?.detail;
+      notify("Error", typeof detail === "string" ? detail : "No se pudo registrar la inscripción", "error");
+    } finally {
+      setSubmittingInscripcion(null);
+    }
+  };
 
   if (!user) return <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}><Spinner label="Cargando perfil..." /></div>;
 
@@ -330,7 +382,7 @@ const Dashboard = () => {
                 </MEHTypography>
               </div>
             </div>
-            <MEHButton appearance="primary" style={{ backgroundColor: 'white', color: '#7f13ec' }} onClick={() => navigate('/finanzas')}>
+            <MEHButton appearance="primary" style={{ backgroundColor: 'white', color: '#7f13ec' }} onClick={() => setShowAmbassadorModal(true)}>
               Saber más
             </MEHButton>
           </MEHCard>
@@ -407,9 +459,25 @@ const Dashboard = () => {
                             </DialogSurface>
                           </Dialog>
                       ) : isInscribed ? (
-                          <Badge appearance="outline" color="warning">Pendiente pago</Badge>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Badge appearance="outline" color="warning">Pendiente pago</Badge>
+                            <MEHButton 
+                              appearance="primary" 
+                              size="small" 
+                              onClick={() => navigate('/finanzas')}
+                            >
+                              Pagar
+                            </MEHButton>
+                          </div>
                       ) : (
-                          <MEHButton appearance="subtle" icon={<ChevronRight24Regular />} onClick={() => navigate('/learning')} />
+                          <MEHButton 
+                            appearance="primary" 
+                            size="small" 
+                            disabled={submittingInscripcion === evento.id_evento}
+                            onClick={() => handleInscribirse(evento.id_evento)}
+                          >
+                            {submittingInscripcion === evento.id_evento ? <Spinner size="tiny" /> : "Inscribirme"}
+                          </MEHButton>
                       )}
                     </div>
                   );
@@ -419,7 +487,7 @@ const Dashboard = () => {
               )}
               
               <MEHButton appearance="outline" style={{ marginTop: '8px' }} onClick={() => navigate('/dashboard/events-master')}>
-                Explorar Learning Hub
+                Ver todos los eventos
               </MEHButton>
             </MEHCard>
           </section>
@@ -452,11 +520,13 @@ const Dashboard = () => {
                 <div style={{
                   height: '100%',
                   width: `${Math.min((stats?.personal_stats?.progreso_promedio || 0), 100)}%`,
-                  background: `linear-gradient(90deg, 
-                    ${(stats?.personal_stats?.progreso_promedio || 0) < 25 ? '#FF6B6B' : ''} 
-                    ${(stats?.personal_stats?.progreso_promedio || 0) < 50 ? '#FFA500' : ''} 
-                    ${(stats?.personal_stats?.progreso_promedio || 0) < 75 ? '#FFD700' : ''} 
-                    ${(stats?.personal_stats?.progreso_promedio || 0) >= 75 ? '#22B14C' : ''})`,
+                  backgroundColor: (() => {
+                    const p = stats?.personal_stats?.progreso_promedio || 0;
+                    if (p < 25) return '#FF6B6B';
+                    if (p < 50) return '#FFA500';
+                    if (p < 75) return '#FFD700';
+                    return '#22B14C';
+                  })(),
                   borderRadius: '6px',
                   transition: 'width 0.3s ease',
                 }} />
@@ -467,14 +537,7 @@ const Dashboard = () => {
               </MEHTypography>
             </MEHCard>
 
-            <MEHCard style={{
-              background: 'linear-gradient(135deg, rgba(127, 19, 236, 0.1) 0%, rgba(34, 177, 76, 0.1) 100%)',
-              border: `1px solid rgba(127, 19, 236, 0.2)`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '20px',
-              ...shorthands.padding('24px'),
-            }}>
+            <MEHCard className={styles.nextMilestoneCard}>
               <Target24Regular style={{ fontSize: '40px', color: tokens.colorBrandForeground1 }} />
               <div style={{ flex: 1 }}>
                 <MEHTypography variant="h3" style={{ marginBottom: '4px' }}>
@@ -526,7 +589,11 @@ const Dashboard = () => {
             <MEHCard style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                {anuncios.length > 0 ? (
                  anuncios.map(an => (
-                    <div key={an.id_anuncio} style={{ display: 'flex', gap: '12px', borderBottom: `1px solid ${tokens.colorNeutralBackground3}`, paddingBottom: '12px' }}>
+                    <div 
+                      key={an.id_anuncio} 
+                      className={styles.announcementItem}
+                      onClick={() => setSelectedAnnouncement(an)}
+                    >
                         <div style={{ backgroundColor: 'rgba(127, 19, 236, 0.1)', padding: '8px', borderRadius: '8px', height: 'fit-content' }}>
                             <Mail24Filled style={{ color: tokens.colorBrandForeground1 }} />
                         </div>
@@ -544,6 +611,73 @@ const Dashboard = () => {
             </MEHCard>
           </section>
         </div>
+
+        {/* Modal de información para ser Embajador */}
+        <Dialog open={showAmbassadorModal} onOpenChange={(e, data) => setShowAmbassadorModal(data.open)}>
+          <DialogSurface style={{ backgroundColor: '#1A1A1A', border: `1px solid ${tokens.colorBrandForeground1}` }}>
+            <DialogBody>
+              <DialogTitle>¿Cómo ser Embajador MEH? 🌟</DialogTitle>
+              <DialogContent style={{ padding: '16px 0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <MEHTypography variant="body" style={{ display: 'block' }}>
+                  Las postulaciones oficiales para ser <b>Embajador</b> se abren periódicamente durante el año académico. ¡Mantente atento a las notificaciones y anuncios de la comunidad!
+                </MEHTypography>
+                <div style={{ padding: '12px', borderRadius: '6px', backgroundColor: 'rgba(127, 19, 236, 0.1)', border: '1px solid rgba(127, 19, 236, 0.2)' }}>
+                  <MEHTypography variant="body" style={{ display: 'block', fontWeight: 'bold', color: tokens.colorBrandForeground1, marginBottom: '4px' }}>
+                    💡 Sugerencia para destacar:
+                  </MEHTypography>
+                  <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.9, lineHeight: '1.4' }}>
+                    Comienza a crear y compartir contenido técnico relacionado con tecnologías de Microsoft (tutoriales, posts, ponencias) y apoya activamente en la logística y asistencia de nuestros eventos locales.
+                  </MEHTypography>
+                </div>
+              </DialogContent>
+              <DialogActions>
+                <MEHButton appearance="primary" onClick={() => setShowAmbassadorModal(false)}>Entendido</MEHButton>
+              </DialogActions>
+            </DialogBody>
+          </DialogSurface>
+        </Dialog>
+
+        {/* Modal para ver detalles de un Anuncio */}
+        <Dialog open={!!selectedAnnouncement} onOpenChange={(e, data) => { if (!data.open) setSelectedAnnouncement(null); }}>
+          <DialogSurface style={{ backgroundColor: '#1A1A1A', border: `1px solid ${tokens.colorBrandForeground1}` }}>
+            <DialogBody>
+              <DialogTitle>{selectedAnnouncement?.titulo}</DialogTitle>
+              <DialogContent style={{ padding: '16px 0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {selectedAnnouncement?.url_imagen && (
+                  <img 
+                    src={resolveApiFileUrl(selectedAnnouncement.url_imagen)} 
+                    alt={selectedAnnouncement.titulo} 
+                    style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} 
+                  />
+                )}
+                <MEHTypography variant="body" style={{ display: 'block', whiteSpace: 'pre-wrap', lineHeight: '1.5', opacity: 0.9 }}>
+                  {selectedAnnouncement?.contenido}
+                </MEHTypography>
+                
+                {selectedAnnouncement?.link_accion && (
+                  <div style={{ marginTop: '8px' }}>
+                    <MEHTypography variant="caption" style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px' }}>Enlace de interés:</MEHTypography>
+                    <a 
+                      href={selectedAnnouncement.link_accion} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      style={{ color: tokens.colorBrandForeground1, textDecoration: 'underline', fontWeight: 'bold', wordBreak: 'break-all' }}
+                    >
+                      {selectedAnnouncement.link_accion}
+                    </a>
+                  </div>
+                )}
+                
+                <MEHTypography variant="caption" style={{ opacity: 0.5, display: 'block', marginTop: '12px' }}>
+                  Publicado el: {selectedAnnouncement && new Date(selectedAnnouncement.fecha_publicacion).toLocaleDateString()}
+                </MEHTypography>
+              </DialogContent>
+              <DialogActions>
+                <MEHButton appearance="primary" onClick={() => setSelectedAnnouncement(null)}>Cerrar</MEHButton>
+              </DialogActions>
+            </DialogBody>
+          </DialogSurface>
+        </Dialog>
       </div>
     );
   };

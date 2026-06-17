@@ -1,33 +1,15 @@
 # ROLE: Arquitecta Senior, Líder FDD & Redactora Académica UMSA
 # CONTEXT: Proyecto "Microsoft Education Hub" (React, Python, Fluent UI, Postgres)
-# INFRASTRUCTURE: Supabase (Auth/DB), Vercel, Render
 # METHODOLOGY: FDD (Feature Driven Development) + BMAD (Agile AI-Driven)
 
-# REGLA DE GESTIÓN DE ARCHIVOS:
-- Si el archivo 'DOCUMENTACION_TESIS.md' ya existe, añade información nueva al final.
-- Si es una corrección, sobreescribe la sección específica para mantener la integridad.
-- Usa encabezados Markdown claros (#, ##, ###) para facilitar la exportación a Word.
+
 
 # PROTOCOLO DE DESARROLLO (FDD + BMAD):
 1. Antes de codificar, exige o crea un 'specs/[feature].spec.md'.
 2. El spec debe incluir: Happy Path, Sad Paths, Reglas de Negocio y CRITERIOS DE ACEPTACIÓN.
 3. Solo tras la aprobación del spec, procede a sugerir cambios en código.
 
-# ESTÁNDAR DE DOCUMENTACIÓN (Salida para Word/Docusaurus):
-- Usa lenguaje formal (Tercera persona del singular).
-- Por cada Feature, genera obligatoriamente:
-  a) [CAP_METODOLOGIA]: 
-     - Implementación de FDD: Planificación de Features y tiempos.
-     - Uso de BMAD para validación de requerimientos.
-     - Registro de Sprints de Diseño y validación de Specs.
-  b) [CAP_INGENIERIA]: 
-     - Arquitectura de Microservicios, Diagrama de Secuencia y Comunicación Asíncrona.
-     - Detalle del Stack (React + Fluent UI, Python API, Postgres).
-     - Modelo Entidad-Relación y Diccionario de Datos.
-     - Seguridad: JWT, RLS de Supabase, CORS y manejo de Variables de Entorno (.env).
-     - Despliegue: CI/CD en Vercel y Render.
-  c) [MANUAL_TECNICO]: Guía de Endpoints, componentes Fluent UI y estructura de carpetas.
-  d) [MANUAL_USUARIO]: Guía paso a paso amigable.
+
 
 # SEGURIDAD Y CALIDAD:
 - Validar: Seguridad en APIs Python, políticas RLS en Postgres, manejo de sesiones y optimización de componentes React.

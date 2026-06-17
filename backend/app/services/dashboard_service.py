@@ -8,8 +8,8 @@ from ..core.permissions import (
     has_permission
 )
 
-def get_dashboard_stats(db: Session, user_id: int, role: str, nombres: str):
-    """Genera estadísticas dinámicas y KPIs para el Dashboard según el rol del usuario."""
+def get_personal_dashboard_stats(db: Session, user_id: int, role: str, nombres: str):
+    """Genera estadísticas personales para el Dashboard de cualquier usuario."""
     stats = {
         "user_role": role,
         "welcome_name": nombres,
@@ -26,18 +26,32 @@ def get_dashboard_stats(db: Session, user_id: int, role: str, nombres: str):
         models.Certificado.id_usuario == user_id
     ).count()
 
-    # Obtener últimas 3 insignias
-    ultimas_insignias = db.query(models.Badge).join(models.UsuarioBadge).filter(
-        models.UsuarioBadge.id_usuario == user_id
+    # Obtener últimas 3 insignias con metadatos completos y fecha de obtención
+    ultimas_insignias = db.query(
+        models.Badge.id_badge,
+        models.Badge.nombre_badge,
+        models.Badge.descripcion,
+        models.Badge.imagen_url,
+        models.Badge.puntos,
+        models.Badge.requisito_nivel,
+        models.UsuarioBadge.fecha_obtencion
+    ).join(
+        models.UsuarioBadge, models.Badge.id_badge == models.UsuarioBadge.id_badge
+    ).filter(
+        models.UsuarioBadge.id_usuario == user_id,
+        models.Badge.id_estado != 0
     ).order_by(models.UsuarioBadge.fecha_obtencion.desc()).limit(3).all()
 
     ultimas_insignias_data = [
         {
-            "id_badge": b.id_badge,
-            "nombre_badge": b.nombre_badge,
-            "imagen_url": b.imagen_url,
-            "puntos": b.puntos
-        } for b in ultimas_insignias
+            "id_badge": row[0],
+            "nombre_badge": row[1],
+            "descripcion": row[2],
+            "imagen_url": row[3],
+            "puntos": row[4],
+            "requisito_nivel": row[5],
+            "fecha_obtencion": row[6].isoformat() if row[6] else None
+        } for row in ultimas_insignias
     ]
 
     # Sincronizado con el modelo saneado (progreso)
@@ -45,14 +59,26 @@ def get_dashboard_stats(db: Session, user_id: int, role: str, nombres: str):
         models.InscripcionCurso.id_usuario == user_id
     ).scalar() or 0
 
+    # Calcular puntos XP acumulados sumando los puntos de sus insignias
+    puntos_xp = db.query(func.sum(models.Badge.puntos)).join(
+        models.UsuarioBadge, models.Badge.id_badge == models.UsuarioBadge.id_badge
+    ).filter(models.UsuarioBadge.id_usuario == user_id).scalar() or 0
+
     stats["personal_stats"] = {
         "eventos_inscritos": mis_eventos,
         "certificados_obtenidos": mis_certificados,
         "progreso_promedio": float(promedio_progreso),
         "eventos_asistidos": mis_eventos, # Por ahora simplificado
         "eventos_esperados": 10,
+        "puntos_xp": int(puntos_xp),
         "ultimas_insignias": ultimas_insignias_data
     }
+    
+    return stats
+
+def get_dashboard_stats(db: Session, user_id: int, role: str, nombres: str):
+    """Genera estadísticas dinámicas y KPIs para el Dashboard según el rol del usuario."""
+    stats = get_personal_dashboard_stats(db, user_id, role, nombres)
 
     # 2. WIDGETS POR PERMISOS (Staff / Admin)
     if has_permission(role, PERMISSION_PAYMENTS_VALIDATE):
@@ -72,7 +98,7 @@ def get_dashboard_stats(db: Session, user_id: int, role: str, nombres: str):
             "title": "Usuarios Totales",
             "value": total_usuarios,
             "icon": "People",
-            "link": "/dashboard/users"
+            "link": "/admin?tab=usuarios" if role == "ADMIN" else "/dashboard/users"
         })
         
         # --- MÉTRICAS ESTRATÉGICAS (BI) ---

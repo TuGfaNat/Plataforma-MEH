@@ -25,6 +25,14 @@ const cursoService = {
     const response = await api.get('/cursos/mis-certificados');
     return response.data;
   },
+  getMisInscripcionesCursos: async () => {
+    const response = await api.get('/inscripciones/cursos/mis-inscripciones');
+    return response.data;
+  },
+  updateProgresoCurso: async (idCurso, progreso) => {
+    const response = await api.put(`/inscripciones/cursos/${idCurso}/progreso?progreso=${progreso}`);
+    return response.data;
+  },
   
   // PROXY MICROSOFT LEARNING
   getMSCatalog: async () => {

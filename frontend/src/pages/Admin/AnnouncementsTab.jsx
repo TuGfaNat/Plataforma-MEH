@@ -60,7 +60,8 @@ const AnnouncementsTab = () => {
     link_accion: '',
     tipo: 'INFO',
     activo: true,
-    enviar_email: false
+    enviar_email: false,
+    exclusivo_embajadores: false
   });
 
   const fetchAnnouncements = async () => {
@@ -91,7 +92,8 @@ const AnnouncementsTab = () => {
       link_accion: '',
       tipo: 'INFO',
       activo: true,
-      enviar_email: false
+      enviar_email: false,
+      exclusivo_embajadores: false
     });
     setIsEditing(false);
     setCurrentId(null);
@@ -105,7 +107,8 @@ const AnnouncementsTab = () => {
       link_accion: ann.link_accion || '',
       tipo: ann.tipo,
       activo: ann.activo,
-      enviar_email: false
+      enviar_email: false,
+      exclusivo_embajadores: ann.exclusivo_embajadores || false
     });
     setCurrentId(ann.id_anuncio);
     setIsEditing(true);
@@ -193,9 +196,14 @@ const AnnouncementsTab = () => {
                 {announcements.map(ann => (
                   <TableRow key={ann.id_anuncio}>
                     <TableCell>
-                      <Badge color={ann.activo ? "success" : "neutral"} appearance="tint">
-                        {ann.activo ? t("active") : t("hidden")}
-                      </Badge>
+                      <div style={{ display: 'flex', gap: '4px', flexDirection: 'column' }}>
+                        <Badge color={ann.activo ? "success" : "neutral"} appearance="tint">
+                          {ann.activo ? t("active") : t("hidden")}
+                        </Badge>
+                        {ann.exclusivo_embajadores && (
+                          <Badge color="warning" appearance="tint">VIP</Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell style={{ fontWeight: 'bold' }}>{ann.titulo}</TableCell>
                     <TableCell>
@@ -242,10 +250,11 @@ const AnnouncementsTab = () => {
             </Field>
           </div>
 
-          <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-            <Switch label={t("visible")} checked={formData.activo} onChange={(e, d) => handleInputChange('activo', d.checked)} />
+          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <Switch label={t("visible") || "Visible"} checked={formData.activo} onChange={(e, d) => handleInputChange('activo', d.checked)} />
+            <Switch label="Exclusivo Embajadores" checked={formData.exclusivo_embajadores} onChange={(e, d) => handleInputChange('exclusivo_embajadores', d.checked)} />
             {!isEditing && (
-              <Field label={t("admin_notify_email")}>
+              <Field label={t("admin_notify_email") || "Notificar Email"}>
                 <Switch checked={formData.enviar_email} onChange={(e, d) => handleInputChange('enviar_email', d.checked)} />
               </Field>
             )}

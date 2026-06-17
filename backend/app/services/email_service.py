@@ -239,3 +239,47 @@ def notify_reset_password(email: str, nombre: str, token: str) -> bool:
     </div>
     """
     return send_email(email, subject, html)
+
+
+def notify_ticket_qr(email: str, nombre: str, titulo_evento: str, fecha: str, codigo_qr: str, frontend_url: str) -> bool:
+    """Envía el ticket de entrada con su código QR para un evento."""
+    subject = f"🎟️ Tu entrada para {titulo_evento}"
+    
+    # Usar un servicio público confiable para generar la imagen del código QR
+    qr_image_url = f"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={codigo_qr}"
+    
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <span style="background: #7f13ec; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">TICKET DE ENTRADA</span>
+        </div>
+        <h2 style="color: #333; text-align: center;">¡Tu lugar está confirmado! 🎉</h2>
+        <p>Hola <b>{nombre}</b>,</p>
+        <p>Tu inscripción para el evento <b>{titulo_evento}</b> ha sido confirmada exitosamente. A continuación se encuentra tu ticket de ingreso:</p>
+        
+        <div style="background: #f9f9f9; border: 2px dashed #7f13ec; padding: 20px; margin: 25px 0; border-radius: 10px; text-align: center;">
+            <h3 style="margin-top: 0; color: #7f13ec; font-size: 1.4rem;">{titulo_evento}</h3>
+            <p style="margin: 5px 0; color: #666;"><b>Fecha:</b> {fecha}</p>
+            
+            <div style="margin: 20px 0;">
+                <img src="{qr_image_url}" alt="Código QR de Entrada" style="border: 1px solid #ddd; padding: 10px; background: white; border-radius: 8px; width: 180px; height: 180px;" />
+            </div>
+            
+            <p style="font-family: monospace; font-size: 0.85rem; color: #888; margin: 5px 0;">Código: {codigo_qr}</p>
+            <p style="font-size: 0.9rem; color: #333; font-weight: bold; margin-top: 15px;">⚠️ Muestra este código QR en el ingreso para registrar tu asistencia.</p>
+        </div>
+        
+        <p>También puedes ver tu ticket en cualquier momento desde tu **Dashboard** en la sección de eventos inscritos.</p>
+        <div style="text-align: center; margin: 25px 0;">
+            <a href="{frontend_url}/dashboard" style="display: inline-block; background: #7f13ec; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ir a mi Portal</a>
+        </div>
+        
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <footer style="font-size: 0.8rem; color: #888; text-align: center;">
+            Plataforma Microsoft Education Hub - Innovando el futuro, juntos.<br>
+            Este es un correo automático. No respondas a este mensaje.
+        </footer>
+    </div>
+    """
+    return send_email(email, subject, html)
+

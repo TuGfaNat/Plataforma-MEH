@@ -110,7 +110,7 @@ const GestionPagos = () => {
       const resultados = await pagoService.procesarExtracto(file);
       setMatches(resultados);
     } catch (err) {
-      alert("Error procesando el extracto CSV");
+      alert("Error procesando el extracto bancario");
     } finally {
       setUploadingExtracto(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -141,16 +141,16 @@ const GestionPagos = () => {
             <input 
               type="file" 
               ref={fileInputRef} 
-              accept=".csv" 
+              accept=".csv,.xlsx" 
               style={{ display: 'none' }} 
               onChange={handleFileUpload}
             />
             <DocumentArrowUpRegular style={{ fontSize: '48px', color: tokens.colorBrandForeground1, marginBottom: '16px' }} />
-            <MEHTypography variant="h4">Haz clic para subir extracto bancario (.csv)</MEHTypography>
+            <MEHTypography variant="h4">Haz clic para subir extracto bancario (.csv, .xlsx)</MEHTypography>
             <MEHTypography variant="body" style={{ opacity: 0.7 }}>
               El sistema cruzará los datos del banco con los pagos pendientes en el sistema.
             </MEHTypography>
-            {uploadingExtracto && <Spinner style={{ marginTop: '16px' }} label="Procesando CSV..." />}
+            {uploadingExtracto && <Spinner style={{ marginTop: '16px' }} label="Procesando archivo..." />}
           </div>
 
           {matches && (
@@ -226,8 +226,18 @@ const GestionPagos = () => {
               <TableBody>
                 {pagos.map((pago) => (
                   <TableRow key={pago.id_pago}>
-                    <TableCell>Member #{pago.id_usuario}</TableCell>
-                    <TableCell>{pago.tipo_referencia} #{pago.id_referencia}</TableCell>
+                    <TableCell>
+                      <div>
+                        <MEHTypography style={{ fontWeight: '500' }}>{pago.nombre_usuario || `Usuario #${pago.id_usuario}`}</MEHTypography>
+                        <MEHTypography variant="caption" style={{ opacity: 0.6, display: 'block' }}>ID: {pago.id_usuario}</MEHTypography>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <MEHTypography style={{ fontWeight: '500' }}>{pago.detalles_referencia || `${pago.tipo_referencia} #${pago.id_referencia}`}</MEHTypography>
+                        <MEHTypography variant="caption" style={{ opacity: 0.6, display: 'block' }}>{pago.tipo_referencia} (Ref: #{pago.id_referencia})</MEHTypography>
+                      </div>
+                    </TableCell>
                     <TableCell><b>Bs. {pago.monto}</b></TableCell>
                     <TableCell>{new Date(pago.fecha_pago).toLocaleDateString()}</TableCell>
                     <TableCell>

@@ -291,3 +291,37 @@ def update_user_role(
         ip_direccion=ip_address
     )
     return usuario
+
+
+def delete_usuario(
+    db: Session, 
+    admin_user: models.Usuario, 
+    id_usuario: int, 
+    ip_address: Optional[str] = None
+) -> None:
+    """Elimina lógicamente un usuario (id_estado = 0, activo = False) (Solo ADMIN)."""
+    if admin_user.rol != "ADMIN":
+        raise PermisoDenegadoError("Solo los administradores pueden eliminar usuarios")
+    
+    usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
+    if not usuario:
+        raise UsuarioNoEncontradoError()
+        
+    if usuario.id_usuario == admin_user.id_usuario:
+        raise ValidacionNegocioError("No puedes eliminarte a ti mismo")
+        
+    usuario.id_estado = 0
+    usuario.activo = False
+    db.commit()
+    
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="ELIMINAR_USUARIO",
+        tabla_afectada="usuarios",
+        id_registro_afectado=id_usuario,
+        valor_anterior={"id_estado": 2, "activo": True},
+        valor_nuevo={"id_estado": 0, "activo": False},
+        ip_direccion=ip_address
+    )
+

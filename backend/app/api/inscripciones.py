@@ -64,3 +64,36 @@ def inscribir_curso(
     """Inscribe al usuario actual en un curso."""
     ip_address = request.client.host if request.client else None
     return inscripciones_service.inscribir_curso(db, current_user.id_usuario, id_curso, ip_address)
+
+@router.get("/cursos/mis-inscripciones", response_model=List[inscripcion_schema.InscripcionCursoResponse])
+def obtener_mis_inscripciones_cursos(
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Obtiene las inscripciones a cursos del usuario actual."""
+    return db.query(models.InscripcionCurso).filter(
+        models.InscripcionCurso.id_usuario == current_user.id_usuario
+    ).all()
+
+@router.put("/cursos/{id_curso}/progreso", response_model=inscripcion_schema.InscripcionCursoResponse)
+def actualizar_progreso_curso(
+    id_curso: int,
+    progreso: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Actualiza el progreso de un usuario en un curso."""
+    from fastapi import HTTPException
+    inscripcion = db.query(models.InscripcionCurso).filter(
+        models.InscripcionCurso.id_usuario == current_user.id_usuario,
+        models.InscripcionCurso.id_curso == id_curso
+    ).first()
+    if not inscripcion:
+        raise HTTPException(status_code=404, detail="Inscripción al curso no encontrada")
+    
+    inscripcion.progreso = progreso
+    if progreso >= 100:
+        inscripcion.finalizado = True
+    db.commit()
+    db.refresh(inscripcion)
+    return inscripcion

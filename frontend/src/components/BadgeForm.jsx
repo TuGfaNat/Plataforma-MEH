@@ -10,9 +10,10 @@ import {
   Select,
   Button
 } from '@fluentui/react-components';
-import { Add24Regular, ArrowUpload24Regular, Link24Regular, Trophy24Filled } from '@fluentui/react-icons';
+import { Add24Regular, ArrowUpload24Regular, Link24Regular, Trophy24Filled, Edit24Regular } from '@fluentui/react-icons';
 import { MEHCard, MEHButton, MEHTypography } from './ui';
 import { useAuth, useNotify } from '../App';
+import { hasPermission, PERMISSION_BADGES_MANAGE } from '../auth/rbac';
 import insigniasService from '../services/insigniasService';
 import api from '../services/api';
 
@@ -129,7 +130,7 @@ const BadgeForm = ({ onSuccess, editingBadge, onCancel }) => {
     }
   };
 
-  if (!user || !['ADMIN', 'ORGANIZADOR'].includes(user.rol)) return null;
+  if (!user || !hasPermission(user.rol, PERMISSION_BADGES_MANAGE)) return null;
 
   return (
     <MEHCard>

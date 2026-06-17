@@ -45,6 +45,11 @@ const pagoService = {
       },
     });
     return response.data;
+  },
+
+  getEventPaymentPackages: async (idEvento) => {
+    const response = await api.get(`/eventos/${idEvento}/pagos-qr`);
+    return response.data;
   }
 };
 

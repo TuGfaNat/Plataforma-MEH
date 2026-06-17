@@ -1,30 +1,160 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Badge, Spinner, makeStyles, shorthands, tokens, Divider, Field, Input, Textarea } from '@fluentui/react-components';
-import { ArrowLeft24Regular, PlayCircle24Regular, ClipboardTask24Regular, ArrowUpload24Regular, CheckmarkCircle24Regular } from '@fluentui/react-icons';
+import { Badge, Spinner, makeStyles, shorthands, tokens, Divider, Field, Input, Textarea, Button } from '@fluentui/react-components';
+import { ArrowLeft24Regular, PlayCircle24Regular, ClipboardTask24Regular, ArrowUpload24Regular, CheckmarkCircle24Regular, Link24Regular, DocumentText24Regular, Dismiss24Regular } from '@fluentui/react-icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
-import api from '../services/api';
+import api, { resolveApiFileUrl } from '../services/api';
 import cursoService from '../services/cursoService';
 import { useNotify } from '../App';
 
 const useStyles = makeStyles({
-// ... (existing styles)
+  container: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '32px',
+    animationName: { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+    animationDuration: '0.5s',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '16px',
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    paddingBottom: '16px',
+  },
+  layout: {
+    display: 'grid',
+    gridTemplateColumns: '320px 1fr',
+    gap: '24px',
+    '@media (max-width: 900px)': {
+      gridTemplateColumns: '1fr',
+    }
+  },
+  sidebarCard: {
+    height: 'fit-content',
+  },
+  sidebar: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  toggleTemarioBtn: {
+    display: 'none',
+    '@media (max-width: 900px)': {
+      display: 'inline-flex',
+    }
+  },
+  leccionesList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    '@media (max-width: 900px)': {
+      display: 'none',
+    }
+  },
+  leccionesListVisible: {
+    '@media (max-width: 900px)': {
+      display: 'flex',
+      marginTop: '12px',
+    }
+  },
+  leccionItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    ...shorthands.padding('12px', '16px'),
+    ...shorthands.borderRadius('12px'),
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    border: `1px solid transparent`,
+    ':hover': {
+      backgroundColor: 'rgba(127, 19, 236, 0.05)',
+      transform: 'translateX(4px)',
+    }
+  },
+  leccionItemActive: {
+    backgroundColor: 'rgba(127, 19, 236, 0.1)',
+    border: `1px solid ${tokens.colorBrandStroke1}`,
+    color: tokens.colorBrandForeground1,
+    boxShadow: `0 4px 12px rgba(127, 19, 236, 0.1)`,
+  },
+  content: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px',
+  },
+  videoFrame: {
+    width: '100%',
+    aspectRatio: '16 / 9',
+    height: 'auto',
+    ...shorthands.borderRadius('16px'),
+    border: 'none',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)',
+  },
+  richContent: {
+    fontSize: '16px',
+    lineHeight: '1.6',
+    color: tokens.colorNeutralForeground1,
+    '& p': {
+      marginBottom: '16px',
+    },
+    '& h3': {
+      marginTop: '24px',
+      marginBottom: '12px',
+      color: tokens.colorBrandForeground1,
+    }
+  },
   taskSection: {
     marginTop: '24px',
-    padding: '20px',
-    backgroundColor: tokens.colorNeutralBackground2,
-    borderRadius: '16px',
-    border: `1px solid ${tokens.colorBrandStroke1}`
+    padding: '24px',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    ...shorthands.borderRadius('16px'),
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   submissionBox: {
     marginTop: '16px',
-    padding: '16px',
-    backgroundColor: tokens.colorNeutralBackground1,
-    borderRadius: '12px',
-    border: `1px dashed ${tokens.colorNeutralBackground3}`
+    padding: '20px',
+    backgroundColor: 'rgba(255, 255, 255, 0.01)',
+    ...shorthands.borderRadius('12px'),
+    border: `1px dashed ${tokens.colorNeutralStroke3}`,
+  },
+  footerNav: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginTop: '32px',
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    paddingTop: '20px',
+  },
+  uploadBox: { 
+    ...shorthands.border('2px', 'dashed', tokens.colorBrandStroke1), 
+    ...shorthands.padding('20px'), 
+    ...shorthands.borderRadius('12px'), 
+    textAlign: 'center', 
+    cursor: 'pointer', 
+    backgroundColor: tokens.colorNeutralBackground1, 
+    transition: 'all 0.2s ease', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    alignItems: 'center', 
+    gap: '8px', 
+    ':hover': { 
+      backgroundColor: 'rgba(127, 19, 236, 0.05)', 
+      ...shorthands.borderColor(tokens.colorBrandBackground) 
+    } 
   }
 });
-// ... (toEmbedUrl function)
+
+const toEmbedUrl = (url) => {
+  if (!url) return '';
+  let regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  let match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    return `https://www.youtube.com/embed/${match[2]}`;
+  }
+  return url;
+};
 const CursoAula = () => {
   const styles = useStyles();
   const navigate = useNavigate();
@@ -35,11 +165,13 @@ const CursoAula = () => {
   const [curso, setCurso] = useState(null);
   const [lecciones, setLecciones] = useState([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [expandedTemario, setExpandedTemario] = useState(false);
 
   // Estados para Tareas
   const [tareas, setTareas] = useState([]);
   const [entregas, setEntregas] = useState({}); // { id_tarea: entrega_obj }
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(null);
   const [submissionData, setSubmissionData] = useState({ archivo_url: '', comentario_alumno: '' });
 
   const selectedLeccion = lecciones[selectedIndex] || null;
@@ -89,6 +221,19 @@ const CursoAula = () => {
   }, [lecciones.length, selectedIndex]);
 
   useEffect(() => {
+    const saveProgress = async () => {
+      if (progreso > 0 && idCurso) {
+        try {
+          await cursoService.updateProgresoCurso(idCurso, progreso);
+        } catch (err) {
+          console.error("Error al guardar progreso:", err);
+        }
+      }
+    };
+    saveProgress();
+  }, [progreso, idCurso]);
+
+  useEffect(() => {
     const fetchCursoAula = async () => {
       if (!idCurso) return;
       setLoading(true);
@@ -113,14 +258,16 @@ const CursoAula = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <div>
-          <MEHButton appearance="subtle" icon={<ArrowLeft24Regular />} onClick={() => navigate('/learning')}>
-            Volver al Learning Hub
-          </MEHButton>
-          <MEHTypography variant="h1" style={{ marginTop: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+          <div>
+            <MEHButton appearance="subtle" icon={<ArrowLeft24Regular />} onClick={() => navigate('/learning')}>
+              Volver al Learning Hub
+            </MEHButton>
+          </div>
+          <MEHTypography variant="h1" style={{ display: 'block', margin: 0 }}>
             {curso?.nombre_curso || 'Aula del Curso'}
           </MEHTypography>
-          <MEHTypography variant="caption" style={{ opacity: 0.75 }}>
+          <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.75 }}>
             {curso?.descripcion || 'Contenido de aprendizaje de la comunidad MEH.'}
           </MEHTypography>
         </div>
@@ -131,23 +278,50 @@ const CursoAula = () => {
         <Spinner label="Cargando aula..." />
       ) : (
         <div className={styles.layout}>
-          <MEHCard>
+          <MEHCard className={styles.sidebarCard}>
             <div className={styles.sidebar}>
-              <MEHTypography variant="h3">Lecciones</MEHTypography>
-              {lecciones.length > 0 ? lecciones.map((l, idx) => (
-                <div
-                  key={`lesson-${l.id_leccion}`}
-                  className={`${styles.leccionItem} ${selectedIndex === idx ? styles.leccionItemActive : ''}`}
-                  onClick={() => setSelectedIndex(idx)}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <MEHTypography variant="h3">Lecciones</MEHTypography>
+                <MEHButton 
+                  className={styles.toggleTemarioBtn}
+                  appearance="subtle"
+                  size="small"
+                  onClick={() => setExpandedTemario(!expandedTemario)}
                 >
-                  <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.75 }}>
-                    Lección {idx + 1}
-                  </MEHTypography>
-                  <MEHTypography variant="body">{l.titulo}</MEHTypography>
-                </div>
-              )) : (
-                <MEHTypography variant="caption">Aún no hay lecciones publicadas para este curso.</MEHTypography>
-              )}
+                  {expandedTemario ? 'Ocultar Temario' : 'Ver Temario'}
+                </MEHButton>
+              </div>
+              
+              <div className={`${styles.leccionesList} ${expandedTemario ? styles.leccionesListVisible : ''}`}>
+                {lecciones.length > 0 ? lecciones.map((l, idx) => (
+                  <div
+                    key={`lesson-${l.id_leccion}`}
+                    className={`${styles.leccionItem} ${selectedIndex === idx ? styles.leccionItemActive : ''}`}
+                    onClick={() => {
+                      setSelectedIndex(idx);
+                      setExpandedTemario(false); // Colapsar en móvil al seleccionar
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+                      {selectedIndex === idx ? (
+                        <PlayCircle24Regular style={{ color: tokens.colorBrandForeground1, fontSize: '20px' }} />
+                      ) : (
+                        <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: `2px solid ${tokens.colorNeutralStrokeAccessible}`, boxSizing: 'border-box' }} />
+                      )}
+                      <div style={{ flex: 1 }}>
+                        <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.75, fontSize: '11px', lineHeight: '1.2' }}>
+                          Lección {idx + 1}
+                        </MEHTypography>
+                        <MEHTypography variant="body" style={{ fontWeight: selectedIndex === idx ? '600' : 'normal', fontSize: '14px', display: 'block' }}>
+                          {l.titulo}
+                        </MEHTypography>
+                      </div>
+                    </div>
+                  </div>
+                )) : (
+                  <MEHTypography variant="caption">Aún no hay lecciones publicadas para este curso.</MEHTypography>
+                )}
+              </div>
             </div>
           </MEHCard>
 
@@ -203,21 +377,104 @@ const CursoAula = () => {
                                <MEHTypography variant="body" style={{ display: 'block', margin: '8px 0', opacity: 0.8 }}>
                                   {t.instrucciones}
                                </MEHTypography>
-                               <MEHTypography variant="caption" style={{ opacity: 0.6 }}>Puntaje máximo: {t.puntos_max} pts</MEHTypography>
+                               <MEHTypography variant="caption" style={{ opacity: 0.6, display: 'block' }}>Puntaje máximo: {t.puntos_max} pts</MEHTypography>
+                               {t.fecha_entrega_limite && (
+                                  <MEHTypography variant="caption" style={{ display: 'block', marginTop: '4px', opacity: 0.7 }}>
+                                     📅 Fecha límite: {new Date(t.fecha_entrega_limite).toLocaleDateString()}
+                                  </MEHTypography>
+                               )}
 
                                <Divider style={{ margin: '12px 0' }} />
 
                                {!entrega ? (
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                     <Field label="URL de tu trabajo o archivo">
+                                     <Field label="URL / Enlace de tu trabajo">
                                         <Input 
-                                          placeholder="https://drive.google.com/..." 
-                                          value={submissionData.archivo_url}
+                                          placeholder="e.g. enlace a Google Drive, GitHub, Notion, YouTube, etc."
+                                          contentBefore={<Link24Regular />}
+                                          value={submissionData.archivo_url || ''}
                                           onChange={(e, d) => setSubmissionData({ ...submissionData, archivo_url: d.value })}
                                         />
                                      </Field>
+                                     
+                                     <Field label="O sube un archivo desde tu dispositivo">
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                           <div 
+                                             className={styles.uploadBox} 
+                                             style={{ padding: '12px', minHeight: '60px' }}
+                                             onClick={() => document.getElementById(`entrega-file-${t.id_tarea}`).click()}
+                                           >
+                                             {uploadingFile === t.id_tarea ? (
+                                               <Spinner size="small" label="Subiendo archivo..." />
+                                             ) : (
+                                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                 <ArrowUpload24Regular />
+                                                 <MEHTypography variant="caption">
+                                                   {submissionData.archivo_url ? "Reemplazar archivo local" : "Subir archivo local (PDF, Word, Zip, Foto, etc.)"}
+                                                 </MEHTypography>
+                                               </div>
+                                             )}
+                                           </div>
+                                           <input 
+                                             id={`entrega-file-${t.id_tarea}`} 
+                                             type="file" 
+                                             onChange={async (e) => {
+                                               const file = e.target.files[0];
+                                               if (!file) return;
+                                               setUploadingFile(t.id_tarea);
+                                               try {
+                                                 const formData = new FormData();
+                                                 formData.append('file', file);
+                                                 const res = await api.post('/files/upload', formData);
+                                                 setSubmissionData({ ...submissionData, archivo_url: res.data.url });
+                                               } catch (err) {
+                                                 console.error("Fallo al subir archivo", err);
+                                                 notify("Error", "No se pudo cargar el archivo local", "error");
+                                               } finally {
+                                                 setUploadingFile(null);
+                                               }
+                                             }}
+                                             style={{ display: 'none' }} 
+                                           />
+                                        </div>
+                                     </Field>
+                                     
+                                     {submissionData.archivo_url && (
+                                       <div style={{ 
+                                         display: 'flex', 
+                                         alignItems: 'center', 
+                                         justifyContent: 'space-between', 
+                                         padding: '8px 12px', 
+                                         backgroundColor: tokens.colorNeutralBackground3, 
+                                         borderRadius: '8px',
+                                         border: `1px solid ${tokens.colorNeutralBackground1}`
+                                       }}>
+                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                                           {submissionData.archivo_url.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                                             <img 
+                                               src={resolveApiFileUrl(submissionData.archivo_url)} 
+                                               alt="Preview" 
+                                               style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '4px' }} 
+                                             />
+                                           ) : (
+                                             <DocumentText24Regular color={tokens.colorBrandForeground1} />
+                                           )}
+                                           <span style={{ fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '220px' }}>
+                                             {submissionData.archivo_url}
+                                           </span>
+                                         </div>
+                                         <Button 
+                                           size="small" 
+                                           appearance="subtle" 
+                                           icon={<Dismiss24Regular color={tokens.colorPaletteRedForeground1} />} 
+                                           onClick={() => setSubmissionData({ ...submissionData, archivo_url: '' })}
+                                         />
+                                       </div>
+                                     )}
+
                                      <Field label="Comentario (Opcional)">
                                         <Textarea 
+                                          placeholder="Escribe alguna nota o duda para el docente..."
                                           value={submissionData.comentario_alumno}
                                           onChange={(e, d) => setSubmissionData({ ...submissionData, comentario_alumno: d.value })}
                                         />
@@ -226,7 +483,7 @@ const CursoAula = () => {
                                        appearance="primary" 
                                        icon={<ArrowUpload24Regular />} 
                                        onClick={() => handleSubmitTarea(t.id_tarea)}
-                                       disabled={submitting}
+                                       disabled={submitting || uploadingFile === t.id_tarea}
                                      >
                                         Subir Entrega
                                      </MEHButton>

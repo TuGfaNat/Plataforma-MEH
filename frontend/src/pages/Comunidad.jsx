@@ -5,7 +5,9 @@ import {
   tokens,
   Avatar,
   Spinner,
-  Badge
+  Badge,
+  Input,
+  Select
 } from '@fluentui/react-components';
 import { 
   People24Regular,
@@ -15,7 +17,9 @@ import {
   Star24Regular,
   Alert24Regular,
   Globe24Regular,
-  Link24Regular
+  Link24Regular,
+  Search24Regular,
+  Filter24Regular
 } from '@fluentui/react-icons';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import comunidadService from '../services/comunidadService';
@@ -39,6 +43,24 @@ const useStyles = makeStyles({
     gap: '12px',
     marginBottom: '8px',
   },
+  filterBar: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '12px',
+    marginBottom: '20px',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    ...shorthands.padding('16px'),
+    ...shorthands.borderRadius('8px'),
+    ...shorthands.border('1px', 'solid', 'rgba(255, 255, 255, 0.05)'),
+  },
+  filterInput: {
+    flexGrow: 2,
+    minWidth: '240px',
+  },
+  filterSelect: {
+    flexGrow: 1,
+    minWidth: '160px',
+  },
   memberGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))',
@@ -49,9 +71,12 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     ...shorthands.padding('18px'),
     gap: '12px',
+    cursor: 'pointer',
     transition: 'all 0.2s',
     ':hover': {
       backgroundColor: 'rgba(255,255,255,0.04)',
+      transform: 'translateY(-2px)',
+      boxShadow: `0 8px 16px -8px ${tokens.colorBrandBackground2}`,
     }
   },
   memberTop: {
@@ -142,6 +167,12 @@ const Comunidad = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Filtros y Buscador
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterRol, setFilterRol] = useState('ALL');
+  const [filterTipoEntidad, setFilterTipoEntidad] = useState('ALL');
+  const [filterDepartamento, setFilterDepartamento] = useState('ALL');
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -160,6 +191,59 @@ const Comunidad = () => {
     };
     fetchData();
   }, []);
+
+  const uniqueRoles = React.useMemo(() => {
+    const roles = miembros.map(m => m.rol).filter(Boolean);
+    return [...new Set(roles)];
+  }, [miembros]);
+
+  const uniqueTipoEntidades = React.useMemo(() => {
+    const tipos = miembros.map(m => m.tipo_entidad).filter(Boolean);
+    return [...new Set(tipos)];
+  }, [miembros]);
+
+  const uniqueDepartamentos = React.useMemo(() => {
+    const deps = miembros.map(m => m.departamento).filter(Boolean);
+    return [...new Set(deps)];
+  }, [miembros]);
+
+  const filteredMiembros = React.useMemo(() => {
+    return miembros.filter(m => {
+      // 1. Buscador
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const fullName = `${m.nombres || ''} ${m.apellidos || ''}`.toLowerCase();
+        const alias = (m.alias || '').toLowerCase();
+        const inst = (m.institucion || '').toLowerCase();
+        const dep = (m.departamento || '').toLowerCase();
+        const pais = (m.pais || '').toLowerCase();
+        
+        const matchesSearch = fullName.includes(q) || 
+                              alias.includes(q) || 
+                              inst.includes(q) || 
+                              dep.includes(q) || 
+                              pais.includes(q);
+        if (!matchesSearch) return false;
+      }
+      
+      // 2. Filtro Rol
+      if (filterRol !== 'ALL' && m.rol !== filterRol) {
+        return false;
+      }
+
+      // 3. Filtro Tipo Entidad
+      if (filterTipoEntidad !== 'ALL' && m.tipo_entidad !== filterTipoEntidad) {
+        return false;
+      }
+
+      // 4. Filtro Departamento
+      if (filterDepartamento !== 'ALL' && m.departamento !== filterDepartamento) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [miembros, searchQuery, filterRol, filterTipoEntidad, filterDepartamento]);
 
   const getAnuncioIcon = (tipo) => {
     switch(tipo) {
@@ -206,12 +290,64 @@ const Comunidad = () => {
           {/* Directorio Real */}
           <section>
             <MEHTypography variant="h3" style={{ marginBottom: '16px', display: 'block' }}>Directorio de Miembros</MEHTypography>
+            
+            {/* Buscador y Filtros */}
+            <div className={styles.filterBar}>
+              <Input
+                contentBefore={<Search24Regular style={{ color: tokens.colorNeutralForeground4 }} />}
+                placeholder="Buscar por nombre, alias, institución, ciudad..."
+                value={searchQuery}
+                onChange={(e, data) => setSearchQuery(data.value)}
+                className={styles.filterInput}
+              />
+              <Select
+                value={filterRol}
+                onChange={(e, data) => setFilterRol(data.value)}
+                className={styles.filterSelect}
+                aria-label="Filtrar por Rol"
+              >
+                <option value="ALL">Todos los Roles</option>
+                {uniqueRoles.map(rol => (
+                  <option key={rol} value={rol}>{rol}</option>
+                ))}
+              </Select>
+              <Select
+                value={filterTipoEntidad}
+                onChange={(e, data) => setFilterTipoEntidad(data.value)}
+                className={styles.filterSelect}
+                aria-label="Filtrar por Entidad"
+              >
+                <option value="ALL">Todas las Entidades</option>
+                {uniqueTipoEntidades.map(tipo => (
+                  <option key={tipo} value={tipo}>{tipo}</option>
+                ))}
+              </Select>
+              <Select
+                value={filterDepartamento}
+                onChange={(e, data) => setFilterDepartamento(data.value)}
+                className={styles.filterSelect}
+                aria-label="Filtrar por Departamento"
+              >
+                <option value="ALL">Todos los Departamentos</option>
+                {uniqueDepartamentos.map(dep => (
+                  <option key={dep} value={dep}>{dep}</option>
+                ))}
+              </Select>
+            </div>
+
             {loading ? (
               <Spinner label="Cargando comunidad..." />
             ) : (
               <div className={styles.memberGrid}>
-                {miembros.map(m => (
-                  <MEHCard key={m.id_usuario} className={styles.memberCard}>
+                {filteredMiembros.map(m => (
+                  <MEHCard 
+                    key={m.id_usuario} 
+                    className={styles.memberCard}
+                    onClick={() => {
+                      setSelectedUser(m.id_usuario);
+                      setIsModalOpen(true);
+                    }}
+                  >
                     <div className={styles.memberTop}>
                       <Avatar name={`${m.nombres} ${m.apellidos}`} size={56} color="colorful" image={{ src: resolveApiFileUrl(m.foto_url) }} />
                       <div>
@@ -238,25 +374,50 @@ const Comunidad = () => {
                     </MEHTypography>
 
                     <div className={styles.memberSocials}>
-                      {m.linkedin_url && <MEHButton size="small" appearance="subtle" icon={<Globe24Regular />} onClick={() => window.open(m.linkedin_url, '_blank')}>LinkedIn</MEHButton>}
-                      {m.github_url && <MEHButton size="small" appearance="subtle" icon={<Globe24Regular />} onClick={() => window.open(m.github_url, '_blank')}>GitHub</MEHButton>}
-                      {m.learning_path_url && <MEHButton size="small" appearance="subtle" icon={<Globe24Regular />} onClick={() => window.open(m.learning_path_url, '_blank')}>Learn</MEHButton>}
+                      {m.linkedin_url && (
+                        <MEHButton 
+                          size="small" 
+                          appearance="subtle" 
+                          icon={<Globe24Regular />} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(m.linkedin_url, '_blank');
+                          }}
+                        >
+                          LinkedIn
+                        </MEHButton>
+                      )}
+                      {m.github_url && (
+                        <MEHButton 
+                          size="small" 
+                          appearance="subtle" 
+                          icon={<Globe24Regular />} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(m.github_url, '_blank');
+                          }}
+                        >
+                          GitHub
+                        </MEHButton>
+                      )}
+                      {m.learning_path_url && (
+                        <MEHButton 
+                          size="small" 
+                          appearance="subtle" 
+                          icon={<Globe24Regular />} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(m.learning_path_url, '_blank');
+                          }}
+                        >
+                          Learn
+                        </MEHButton>
+                      )}
                     </div>
-
-                    <MEHButton 
-                      appearance="subtle" 
-                      size="small"
-                      onClick={() => {
-                        setSelectedUser(m.id_usuario);
-                        setIsModalOpen(true);
-                      }}
-                    >
-                      Ver perfil completo
-                    </MEHButton>
                   </MEHCard>
                 ))}
-                {miembros.length === 0 && (
-                  <MEHTypography variant="caption" style={{ opacity: 0.5 }}>Aún no hay perfiles públicos.</MEHTypography>
+                {filteredMiembros.length === 0 && (
+                  <MEHTypography variant="caption" style={{ opacity: 0.5 }}>No se encontraron miembros con los filtros seleccionados.</MEHTypography>
                 )}
               </div>
             )}

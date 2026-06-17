@@ -9,6 +9,7 @@ class AnuncioBase(BaseModel):
     link_accion: Optional[str] = None
     tipo: str = "INFO" # INFO, EVENTO, ALERTA
     activo: bool = True
+    exclusivo_embajadores: bool = False
 
 class AnuncioCreate(AnuncioBase):
     enviar_email: bool = False
@@ -20,6 +21,7 @@ class AnuncioUpdate(BaseModel):
     link_accion: Optional[str] = None
     activo: Optional[bool] = None
     id_estado: Optional[int] = None
+    exclusivo_embajadores: Optional[bool] = None
 
 class AnuncioResponse(AnuncioBase):
     id_anuncio: int

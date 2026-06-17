@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   makeStyles, shorthands, tokens, TabList, Tab, Spinner,
   Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions, Button
@@ -95,6 +96,7 @@ const AdminPanel = () => {
     if (currentUser?.rol === 'ADMIN') return 'usuarios';
     if (currentUser?.rol === 'ORGANIZADOR') return 'eventos';
     if (currentUser?.rol === 'MODERADOR') return 'academia';
+    if (currentUser?.rol === 'SOPORTE') return 'usuarios';
     return 'usuarios';
   };
 
@@ -108,11 +110,11 @@ const AdminPanel = () => {
     if (!selectedTab) return;
     
     // Validar permisos del tab actual
-    if (selectedTab === 'usuarios' && currentUser?.rol !== 'ADMIN') return;
-    if (selectedTab === 'eventos' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR') return;
+    if (selectedTab === 'usuarios' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'SOPORTE') return;
+    if (selectedTab === 'eventos' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'MODERADOR') return;
     if (selectedTab === 'souvenirs' && currentUser?.rol !== 'ADMIN') return;
     if (selectedTab === 'biblioteca' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'MODERADOR') return;
-    if (selectedTab === 'academia' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'MODERADOR') return;
+    if (selectedTab === 'academia' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'MODERADOR' && currentUser?.rol !== 'SOPORTE') return;
     if (selectedTab === 'papelera') return;
     
     setData([]);
@@ -123,13 +125,21 @@ const AdminPanel = () => {
             setData(Array.isArray(res) ? res : []);
         }
         if (selectedTab === 'eventos') {
-            const [eRes, sRes] = await Promise.all([api.get('/eventos/'), api.get('/admin-directories/speakers')]);
-            setEventosList(eRes.data || []);
+            const [eRes, sRes] = await Promise.all([
+                api.get('/eventos/'),
+                api.get('/admin-directories/speakers').catch(() => ({ data: [] }))
+            ]);
+            const sortedEvents = (eRes.data || []).sort((a, b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio));
+            setEventosList(sortedEvents);
             setSpeakersList(sRes.data || []);
-            setData(eRes.data || []);
+            setData(sortedEvents);
         }
         if (selectedTab === 'souvenirs') {
-            const [sRes, vRes, uRes] = await Promise.all([adminService.getSouvenirs(), api.get('/souvenirs/ventas'), authService.getAllUsers()]);
+            const [sRes, vRes, uRes] = await Promise.all([
+                adminService.getSouvenirs(),
+                api.get('/souvenirs/ventas'),
+                authService.getAllUsers().catch(() => [])
+            ]);
             setData(Array.isArray(sRes) ? sRes : []);
             setUsuariosList(uRes || []);
         }
@@ -138,7 +148,11 @@ const AdminPanel = () => {
             setData(Array.isArray(rRes) ? rRes : []);
         }
         if (selectedTab === 'academia') {
-            const [cRes, uRes] = await Promise.all([api.get('/cursos/'), authService.getAllUsers()]);
+            const hasUsersPermission = ['ADMIN', 'ORGANIZADOR', 'SOPORTE'].includes(currentUser?.rol);
+            const [cRes, uRes] = await Promise.all([
+                api.get('/cursos/'),
+                hasUsersPermission ? authService.getAllUsers().catch(() => []) : Promise.resolve([])
+            ]);
             setData(cRes.data || []);
             setUsuariosList(uRes || []);
         }
@@ -342,11 +356,11 @@ const AdminPanel = () => {
       </div>
 
       <TabList selectedValue={selectedTab} onTabSelect={(e, d) => { setData([]); setSelectedTab(d.value); }} style={{ overflowX: 'auto' }}>
-        {currentUser?.rol === 'ADMIN' && <Tab value="usuarios" icon={<People24Regular />}>Miembros</Tab>}
-        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR') && <Tab value="eventos" icon={<CalendarLtr24Regular />}>Eventos</Tab>}
+        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'SOPORTE') && <Tab value="usuarios" icon={<People24Regular />}>Miembros</Tab>}
+        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="eventos" icon={<CalendarLtr24Regular />}>Eventos</Tab>}
         {currentUser?.rol === 'ADMIN' && <Tab value="souvenirs" icon={<Box24Regular />}>POS & Stock</Tab>}
         {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="biblioteca" icon={<Library24Regular />}>Biblioteca</Tab>}
-        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="academia" icon={<HatGraduation24Regular />}>Aula Virtual</Tab>}
+        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR' || currentUser?.rol === 'SOPORTE') && <Tab value="academia" icon={<HatGraduation24Regular />}>Aula Virtual</Tab>}
         {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="papelera" icon={<DeleteDismiss24Regular />}>Papelera</Tab>}
       </TabList>
 

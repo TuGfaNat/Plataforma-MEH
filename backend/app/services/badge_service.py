@@ -6,7 +6,7 @@ from datetime import datetime
 from ..core.logging import registrar_log
 
 def get_all_badges(db: Session) -> List[models.Badge]:
-    return db.query(models.Badge).all()
+    return db.query(models.Badge).filter(models.Badge.id_estado != 0).all()
 
 def create_badge(db: Session, badge: badge_schema.BadgeCreate, id_admin: int) -> models.Badge:
     db_badge = models.Badge(
@@ -77,7 +77,10 @@ def delete_badge(db: Session, id_badge: int, id_admin: int) -> bool:
     return True
 
 def get_user_badges(db: Session, id_usuario: int) -> List[models.Badge]:
-    return db.query(models.Badge).join(models.UsuarioBadge).filter(models.UsuarioBadge.id_usuario == id_usuario).all()
+    return db.query(models.Badge).join(models.UsuarioBadge).filter(
+        models.UsuarioBadge.id_usuario == id_usuario,
+        models.Badge.id_estado != 0
+    ).all()
 
 def assign_badge_to_user(db: Session, id_usuario: int, id_badge: int, id_admin: int) -> models.UsuarioBadge:
     # Evitar duplicados

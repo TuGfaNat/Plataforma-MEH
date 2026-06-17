@@ -24,9 +24,12 @@ def get_miembro_detalle(id_usuario: int, db: Session = Depends(get_db)):
     return comunidad_service.get_perfil_publico(db, id_usuario)
 
 @router.get("/anuncios", response_model=List[anuncio_schema.AnuncioResponse])
-def get_anuncios(db: Session = Depends(get_db)):
+def get_anuncios(
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
     """Muestra los anuncios activos para la comunidad."""
-    return comunidad_service.list_anuncios_activos(db)
+    return comunidad_service.list_anuncios_activos(db, current_user)
 
 @router.get("/anuncios/all", response_model=List[anuncio_schema.AnuncioResponse])
 def get_all_anuncios(

@@ -23,6 +23,8 @@ import { designTokens } from '../theme/theme';
 import dashboardService from '../services/dashboardService';
 import insigniasService from '../services/insigniasService';
 import { useAuth, useNotify } from '../App';
+import { resolveApiFileUrl } from '../services/api';
+import { hasPermission, PERMISSION_BADGES_MANAGE } from '../auth/rbac';
 
 const useStyles = makeStyles({
   container: {
@@ -110,13 +112,14 @@ const Insignias = () => {
   const [loading, setLoading] = useState(true);
   const [editingBadge, setEditingBadge] = useState(null);
 
-  const isAdmin = ['ADMIN', 'ORGANIZADOR'].includes(user?.rol);
+  const isAdmin = hasPermission(user?.rol, PERMISSION_BADGES_MANAGE);
 
   const fetchData = async () => {
+    if (!user) return;
     setLoading(true);
     try {
       const [statsData, badgesData, myBadgesData] = await Promise.all([
-        dashboardService.getStats(),
+        dashboardService.getStats(user.rol),
         insigniasService.getInsignias(),
         insigniasService.getMisInsignias(user.id_usuario)
       ]);
@@ -135,8 +138,10 @@ const Insignias = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
   const handleDelete = async (e, id) => {
       e.stopPropagation();
@@ -156,6 +161,12 @@ const Insignias = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleShareProfile = () => {
+    const text = `🚀 ¡Hola! Los invito a ver mi perfil y mi progreso en la Plataforma Microsoft Education Hub (MEH) 🏆. He acumulado ${stats?.personal_stats?.puntos_xp || 0} XP y desbloqueado insignias. ¡Regístrense en esta página y sigan mi progreso!: https://plataforma-meh.runa.laotrared.net`;
+    navigator.clipboard.writeText(text);
+    notify("Compartir Perfil", "¡Texto e invitación para compartir copiados al portapapeles!", "success");
+  };
+
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}><Spinner label="Sincronizando sistema de méritos..." /></div>;
 
   const earnedCount = badges.filter(b => b.earned).length;
@@ -173,7 +184,7 @@ const Insignias = () => {
             Visualiza tu progreso y las competencias validadas por el programa MEH.
           </MEHTypography>
         </div>
-        <MEHButton icon={<Share24Filled />} appearance="outline" onClick={() => window.open('https://linkedin.com', '_blank')}>Compartir Perfil</MEHButton>
+        <MEHButton icon={<Share24Filled />} appearance="outline" onClick={handleShareProfile}>Compartir Perfil</MEHButton>
       </div>
 
       {/* Resumen de Hito actual */}
@@ -241,7 +252,7 @@ const Insignias = () => {
                   {!badge.earned && !isAdmin && <LockClosed24Regular className={styles.lockIcon} />}
                   
                   <img 
-                    src={badge.imagen_url} 
+                    src={resolveApiFileUrl(badge.imagen_url)} 
                     alt={badge.nombre_badge} 
                     className={`${styles.badgeImage} ${badge.earned || isAdmin ? styles.earned : styles.locked}`}
                   />

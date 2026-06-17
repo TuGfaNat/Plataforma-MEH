@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, status, File, UploadFile, Form
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..database import get_db
 from ..models import models
 from ..schemas import evento as evento_schema
 from ..schemas.evento import QRScanRequest, CheckpointCreate, CheckpointResponse, InscriptoConfirmadoResponse
+from ..schemas.pago_qr import EventoPagoQRResponse
 from ..services import eventos_service
 from .auth import get_current_user
 
@@ -115,5 +116,53 @@ def get_inscritos_confirmados(
 ):
     """Obtiene la lista de inscritos confirmados para descargarlos localmente para escaneo offline."""
     return eventos_service.get_inscritos_confirmados(db, id_evento, current_user)
+
+@router.get("/{id_evento}/pagos-qr", response_model=List[EventoPagoQRResponse])
+def get_pagos_qr(id_evento: int, db: Session = Depends(get_db)):
+    """Obtiene los paquetes y QRs de pago configurados para un evento."""
+    return eventos_service.get_pagos_qr_by_event(db, id_evento)
+
+@router.post("/{id_evento}/pagos-qr", response_model=EventoPagoQRResponse, status_code=status.HTTP_201_CREATED)
+async def create_pago_qr(
+    id_evento: int,
+    request: Request,
+    nombre_paquete: str = Form(...),
+    monto: float = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Crea un paquete de pago y QR asociado a un evento (Admin, Organizador, Moderador)."""
+    ip_address = request.client.host if request.client else None
+    
+    import os
+    _, file_extension = os.path.splitext(file.filename)
+    if file_extension.lower() not in [".png", ".jpg", ".jpeg", ".pdf"]:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Tipo de archivo no permitido. Solo imágenes o PDFs.")
+        
+    file_content = await file.read()
+    
+    return eventos_service.create_pago_qr(
+        db=db,
+        admin_user=current_user,
+        id_evento=id_evento,
+        nombre_paquete=nombre_paquete,
+        monto=monto,
+        file_content=file_content,
+        file_extension=file_extension,
+        ip_address=ip_address
+    )
+
+@router.delete("/pagos-qr/{id_qr}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_pago_qr(
+    id_qr: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Elimina lógicamente un paquete de pago QR (Admin, Organizador, Moderador)."""
+    ip_address = request.client.host if request.client else None
+    eventos_service.delete_pago_qr(db, current_user, id_qr, ip_address)
 
 

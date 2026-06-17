@@ -83,8 +83,8 @@ const RANKS = [
     requirement: '0% - Inicial',
     benefits: [
       'Ver comunidad',
-      'Participar en eventos',
-      'Perfil público',
+      'Participar en eventos públicos',
+      'Perfil básico de usuario',
     ],
   },
   {
@@ -96,9 +96,10 @@ const RANKS = [
     requirement: '25% de progreso',
     benefits: [
       'Todo lo anterior',
-      'Acceso a recursos VIP',
-      'Descuentos en eventos',
-      'Insignias exclusivas',
+      'Invitación a clases especiales',
+      'Acceso a cursos exclusivos',
+      'Insignias por participación',
+      'Información exclusiva de la comunidad',
     ],
   },
   {
@@ -110,10 +111,9 @@ const RANKS = [
     requirement: '50% de progreso',
     benefits: [
       'Todo lo anterior',
-      'Crear eventos propios',
-      'Moderar comunidad',
-      'Badge de leyenda',
-      'Soporte prioritario',
+      'Soporte preferente',
+      'Acceso a talleres prácticos avanzados',
+      'Insignia de Leyenda en el perfil',
     ],
   },
   {
@@ -125,10 +125,9 @@ const RANKS = [
     requirement: '75% de progreso',
     benefits: [
       'Todo lo anterior',
-      'Acceso Speaker Kit',
-      'Monetizar eventos',
-      'Dashboard avanzado',
-      'Programa de afiliados',
+      'Acceso prioritario a nuevos contenidos',
+      'Participación en eventos cerrados',
+      'Mentoría grupal de comunidad',
     ],
   },
   {
@@ -140,10 +139,9 @@ const RANKS = [
     requirement: '100% completado',
     benefits: [
       'Todo lo anterior',
-      'Badge exclusivo',
-      'Reconocimiento oficial',
-      'Acceso VIP ilimitado',
-      'Mentor de comunidad',
+      'Reconocimiento oficial en la plataforma',
+      'Acceso a información estratégica',
+      'Postulación preferente para roles staff',
     ],
   },
 ];
@@ -171,52 +169,84 @@ const RankBenefitsTable = ({ currentProgress = 0, userRank = null }) => {
             </tr>
           </thead>
           <tbody>
-            {RANKS.map(rank => (
-              <tr
-                key={rank.id}
-                className={styles.tableRow}
-                style={activeRank?.id === rank.id ? { backgroundColor: 'rgba(127, 19, 236, 0.15)', borderLeft: `4px solid ${tokens.colorBrandForeground1}` } : {}}
-              >
-                <td className={styles.tableCell}>
-                  <div className={styles.levelBadge}>
-                    <span style={{ fontSize: '20px' }}>{rank.emoji}</span>
-                    <span>{rank.name}</span>
-                  </div>
-                </td>
-                <td className={styles.tableCell}>
-                  <MEHTypography style={{ opacity: 0.8 }}>
-                    {rank.requirement}
-                  </MEHTypography>
-                </td>
-                <td className={styles.tableCell}>
-                  <div className={styles.benefitsList}>
-                    {rank.benefits.map((benefit, idx) => (
-                      <div key={idx} className={styles.benefitItem}>
-                        <span>✓</span>
-                        <span>{benefit}</span>
-                      </div>
-                    ))}
-                  </div>
-                </td>
-                <td className={styles.tableCell} style={{ textAlign: 'center' }}>
-                  <div style={{ minWidth: '120px' }}>
-                    <MEHTypography style={{ fontSize: '14px', fontWeight: 'bold', textAlign: 'center' }}>
-                      {rank.minProgress}-{rank.maxProgress}%
-                    </MEHTypography>
-                    <div className={styles.progressBar}>
-                      <div
-                        className={styles.progressFill}
-                        style={{
-                          width: activeRank?.id === rank.id ? `${((currentProgress - rank.minProgress) / (rank.maxProgress - rank.minProgress + 1)) * 100}%` : '0%',
-                        }}
-                      />
+            {RANKS.map(rank => {
+              const isCompleted = currentProgress > rank.maxProgress;
+              const isActive = activeRank?.id === rank.id;
+              
+              // Calcular porcentaje de llenado para la barra de este rango
+              let fillPercentage = '0%';
+              if (isCompleted) {
+                fillPercentage = '100%';
+              } else if (isActive) {
+                const range = rank.maxProgress - rank.minProgress + 1;
+                fillPercentage = `${((currentProgress - rank.minProgress) / range) * 100}%`;
+              }
+
+              return (
+                <tr
+                  key={rank.id}
+                  className={styles.tableRow}
+                  style={isActive ? { backgroundColor: 'rgba(127, 19, 236, 0.15)', borderLeft: `4px solid ${tokens.colorBrandForeground1}` } : {}}
+                >
+                  <td className={styles.tableCell}>
+                    <div className={styles.levelBadge} style={isCompleted ? { backgroundColor: 'rgba(34, 177, 76, 0.2)', color: '#22B14C' } : {}}>
+                      <span style={{ fontSize: '20px' }}>{rank.emoji}</span>
+                      <span>{rank.name}</span>
                     </div>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className={styles.tableCell}>
+                    <MEHTypography style={{ opacity: 0.8 }}>
+                      {rank.requirement}
+                    </MEHTypography>
+                  </td>
+                  <td className={styles.tableCell}>
+                    <div className={styles.benefitsList}>
+                      {rank.benefits.map((benefit, idx) => (
+                        <div key={idx} className={styles.benefitItem}>
+                          <span style={isCompleted || isActive ? { color: '#22B14C', fontWeight: 'bold' } : {}}>✓</span>
+                          <span>{benefit}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </td>
+                  <td className={styles.tableCell} style={{ textAlign: 'center' }}>
+                    <div style={{ minWidth: '120px' }}>
+                      <MEHTypography style={{ fontSize: '14px', fontWeight: 'bold', textAlign: 'center' }}>
+                        {rank.minProgress}-{rank.maxProgress}%
+                      </MEHTypography>
+                      <div className={styles.progressBar}>
+                        <div
+                          className={styles.progressFill}
+                          style={{
+                            width: fillPercentage,
+                            backgroundColor: isCompleted ? '#22B14C' : tokens.colorBrandForeground1
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+        <div style={{ 
+          marginTop: '20px', 
+          padding: '16px', 
+          borderRadius: '8px', 
+          backgroundColor: 'rgba(127, 19, 236, 0.05)', 
+          border: '1px solid rgba(127, 19, 236, 0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px'
+        }}>
+          <MEHTypography variant="caption" style={{ opacity: 0.9, display: 'block', fontWeight: 'bold', color: tokens.colorBrandForeground1 }}>
+            ℹ️ Nota sobre el rol de Embajador y Recursos VIP:
+          </MEHTypography>
+          <MEHTypography variant="caption" style={{ opacity: 0.8, display: 'block', lineHeight: '1.4' }}>
+            El rol oficial de <b>Embajador</b> y el acceso a <b>Recursos VIP</b> no se otorgan automáticamente al subir de nivel en esta tabla. Estos privilegios son asignados discrecionalmente por los Administradores a aquellos miembros activos que organicen eventos, den conferencias o generen contenido destacado para la comunidad de Microsoft.
+          </MEHTypography>
+        </div>
       </MEHCard>
     </div>
   );

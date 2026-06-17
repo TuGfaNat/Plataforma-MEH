@@ -62,7 +62,24 @@ def create_evento(
     return db_evento
 
 def list_eventos(db: Session, skip: int = 0, limit: int = 100) -> List[models.Evento]:
-    """Lista eventos públicos con paginación."""
+    """Lista eventos públicos con paginación y actualiza estados de eventos pasados."""
+    now = datetime.utcnow()
+    # Traer todos los eventos programados o en curso que ya hayan iniciado
+    eventos_pasados = db.query(models.Evento).filter(
+        models.Evento.estado.in_(["PROGRAMADO", "EN_CURSO"]),
+        models.Evento.fecha_inicio < now
+    ).all()
+
+    modificado = False
+    for ev in eventos_pasados:
+        # Si tiene fecha de fin y ya pasó, o si no tiene y han transcurrido más de 24 horas del inicio
+        if (ev.fecha_fin and ev.fecha_fin < now) or (not ev.fecha_fin and (now - ev.fecha_inicio).total_seconds() > 86400):
+            ev.estado = "FINALIZADO"
+            modificado = True
+
+    if modificado:
+        db.commit()
+
     return db.query(models.Evento).offset(skip).limit(limit).all()
 
 def get_evento_by_id(db: Session, id_evento: int) -> models.Evento:
@@ -298,5 +315,102 @@ def get_inscritos_confirmados(db: Session, id_evento: int, staff_user: models.Us
             "nombre_completo": f"{ins.usuario.nombres} {ins.usuario.apellidos}"
         })
     return resultado
+
+import os
+
+UPLOAD_QR_DIR = "static/qrs"
+if not os.path.exists(UPLOAD_QR_DIR):
+    os.makedirs(UPLOAD_QR_DIR, exist_ok=True)
+
+def get_pagos_qr_by_event(db: Session, id_evento: int) -> List[models.EventoPagoQR]:
+    """Obtiene todos los paquetes y QRs asociados a un evento."""
+    return db.query(models.EventoPagoQR).filter(
+        models.EventoPagoQR.id_evento == id_evento,
+        models.EventoPagoQR.id_estado == 2
+    ).all()
+
+def create_pago_qr(
+    db: Session,
+    admin_user: models.Usuario,
+    id_evento: int,
+    nombre_paquete: str,
+    monto: float,
+    file_content: bytes,
+    file_extension: str,
+    ip_address: Optional[str] = None
+) -> models.EventoPagoQR:
+    """Crea un paquete de pago y QR asociado a un evento (ADMIN, ORGANIZADOR, MODERADOR)."""
+    if admin_user.rol not in ["ADMIN", "ORGANIZADOR", "MODERADOR"]:
+        raise PermisoDenegadoError("No tienes permisos para gestionar QRs de pago de eventos")
+
+    # Asegurar existencia física del directorio
+    os.makedirs(UPLOAD_QR_DIR, exist_ok=True)
+
+    # Nombre de archivo único
+    import uuid
+    file_name = f"qr_{id_evento}_{uuid.uuid4().hex}{file_extension}"
+    file_path = os.path.join(UPLOAD_QR_DIR, file_name)
+
+    with open(file_path, "wb") as output_file:
+        output_file.write(file_content)
+
+    nuevo_qr = models.EventoPagoQR(
+        id_evento=id_evento,
+        nombre_paquete=nombre_paquete,
+        monto=monto,
+        url_qr=file_path.replace("\\", "/"),
+        id_estado=2
+    )
+    db.add(nuevo_qr)
+    db.commit()
+    db.refresh(nuevo_qr)
+
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="CREAR_PAQUETE_PAGO_QR",
+        tabla_afectada="eventos_pagos_qr",
+        id_registro_afectado=nuevo_qr.id_qr,
+        valor_nuevo={"id_evento": id_evento, "nombre_paquete": nombre_paquete, "monto": str(monto)},
+        ip_direccion=ip_address
+    )
+    return nuevo_qr
+
+def delete_pago_qr(
+    db: Session,
+    admin_user: models.Usuario,
+    id_qr: int,
+    ip_address: Optional[str] = None
+) -> bool:
+    """Elimina (borrado lógico) un paquete de pago y QR (ADMIN, ORGANIZADOR, MODERADOR)."""
+    if admin_user.rol not in ["ADMIN", "ORGANIZADOR", "MODERADOR"]:
+        raise PermisoDenegadoError("No tienes permisos para gestionar QRs de pago de eventos")
+
+    db_qr = db.query(models.EventoPagoQR).filter(models.EventoPagoQR.id_qr == id_qr).first()
+    if not db_qr:
+        raise ValidacionNegocioError("Paquete de pago QR no encontrado")
+
+    # Borrado lógico
+    db_qr.id_estado = 0
+    db.commit()
+
+    # Intentar borrar el archivo físico
+    try:
+        if os.path.exists(db_qr.url_qr):
+            os.remove(db_qr.url_qr)
+    except:
+        pass
+
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="ELIMINAR_PAQUETE_PAGO_QR",
+        tabla_afectada="eventos_pagos_qr",
+        id_registro_afectado=id_qr,
+        valor_anterior={"nombre_paquete": db_qr.nombre_paquete},
+        valor_nuevo={"id_estado": 0},
+        ip_direccion=ip_address
+    )
+    return True
 
 

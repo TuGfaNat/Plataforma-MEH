@@ -30,9 +30,10 @@ Tienes **control total** sobre `F:\Plataforma-MEH\website\docs\tecnico\`. Puedes
 
 ### Stack Tecnológico Real
 
-- **Backend:** FastAPI (Python 3.11) + SQLAlchemy síncrono + PostgreSQL + Alembic
+- **Backend:** FastAPI (Python 3.11) + SQLAlchemy síncrono + PostgreSQL + Alembic + Instrumentador Prometheus
 - **Frontend:** React 18 + Fluent UI v9 + Vite + react-i18next + Recharts + jsPDF
 - **Seguridad:** JWT HS256 (python-jose) + passlib/bcrypt + RBAC jerárquico + AuditMixin
+- **Monitoreo y Carga:** Prometheus + Grafana + k6 (Docker Compose)
 - **Documentación:** Docusaurus
 - **Despliegue:** Render (backend gunicorn+uvicorn) + Vercel (frontend)
 
@@ -181,7 +182,13 @@ Ruta, componente principal, árbol Mermaid, estado, conexión con backend, estil
 | 12  | Dashboard / Reportes       | `dashboard.py`, `reports.py`        | `dashboard_service.py`                                                       | —                                 | (queries agregadas)                                                         |
 | 13  | Logs / Auditoría           | `logs.py`                           | `logs_service.py`                                                            | —                                 | `LogSistema`                                                                |
 | 14  | Admin / Configuración      | `admin_directories.py`              | —                                                                            | —                                 | `ConfiguracionGlobal`                                                       |
-| 15  | Files / Archivos           | `files.py`                          | —                                                                            | —                                 | (subida de archivos)                                                        |
+| 15  | Files / Archivos           | `files.py`                           | —                                                                            | —                                 | (subida de archivos)                                                        |
+| 16  | Monitoreo y Pruebas Carga  | —                                   | `prometheus_fastapi_instrumentator`                                          | —                                 | Prometheus configuration, Grafana dashboards, k6 load testing scripts       |
+
+### Sección M7 — Configuración de Monitoreo y Pruebas de Carga
+*   **Prometheus Exporter:** Instrumentación síncrona en `backend/app/main.py` mediante `Instrumentator().instrument(app).expose(app)`. Expone la ruta de métricas `/metrics` en el puerto `8000`.
+*   **Grafana Dashboard:** Configurado en Docker Compose mapeando el puerto `3001:3000`. Consume métricas recopiladas por Prometheus y expone latencias por endpoint, RPS, errores HTTP y pool de conexiones de base de datos.
+*   **Pruebas de Carga (k6):** Script `tests/k6_load_test.js` parametrizado con 3 escenarios concurrentes (200 local, 1000 regional, 5000 global).
 
 ---
 

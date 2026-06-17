@@ -46,6 +46,8 @@ import {
   PeopleCommunity24Regular,
   PeopleCommunity24Filled,
   Globe24Regular,
+  CalendarStar24Regular,
+  CalendarStar24Filled,
 } from "@fluentui/react-icons";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -242,6 +244,12 @@ const Sidebar = ({ onClose }) => {
           label={t("dashboard")}
         />
         <NavItem
+          to="/dashboard/events-master"
+          icon={CalendarStar24Regular}
+          activeIcon={CalendarStar24Filled}
+          label={t("events") || "Eventos"}
+        />
+        <NavItem
           to="/validador"
           icon={Certificate24Regular}
           activeIcon={Certificate24Filled}
@@ -294,7 +302,7 @@ const Sidebar = ({ onClose }) => {
                 label={t("manage_payments")}
               />
             )}
-            {canManageEvents && (
+            {(user?.rol === 'ADMIN' || user?.rol === 'ORGANIZADOR') && (
               <NavItem
                 to="/admin/ecosistema"
                 icon={PeopleCommunity24Regular}
@@ -331,7 +339,7 @@ const Sidebar = ({ onClose }) => {
         )}
 
         {/* SECTION 4: ACADEMIC & CONTENT (MANAGEMENT) */}
-        {(canManageEvents || user?.rol === 'MODERADOR') && (
+        {(canManageEvents || user?.rol === 'MODERADOR' || user?.rol === 'SOPORTE') && (
           <>
             <div className={styles.sectionTitle}>
               {t("menu_academic") || "Academia y Contenido"}
@@ -342,28 +350,32 @@ const Sidebar = ({ onClose }) => {
               activeIcon={ShieldSettings24Filled}
               label={t("admin_panel")}
             />
-            <NavItem
-              to="/admin/notificaciones"
-              icon={MegaphoneLoud24Regular}
-              activeIcon={MegaphoneLoud24Filled}
-              label={t("admin_announcements_management")}
-            />
-            <NavItem
-              to="/admin/generador-certificados"
-              icon={Print24Regular}
-              activeIcon={Print24Filled}
-              label={t("admin_cert_generator")}
-            />
+            {(user?.rol === 'ADMIN' || user?.rol === 'ORGANIZADOR') && (
+              <NavItem
+                to="/admin/notificaciones"
+                icon={MegaphoneLoud24Regular}
+                activeIcon={MegaphoneLoud24Filled}
+                label={t("admin_announcements_management")}
+              />
+            )}
+            {canManageEvents && (
+              <NavItem
+                to="/admin/generador-certificados"
+                icon={Print24Regular}
+                activeIcon={Print24Filled}
+                label={t("admin_cert_generator")}
+              />
+            )}
           </>
         )}
 
         {/* SECTION 5: INTELLIGENCE & SYSTEM (ADMIN) */}
-        {(canManageEvents || canReadAudit) && (
+        {((user?.rol === 'ADMIN' || user?.rol === 'ORGANIZADOR') || canReadAudit) && (
           <>
             <div className={styles.sectionTitle}>
               {t("menu_intelligence") || "Inteligencia y Sistema"}
             </div>
-            {canManageEvents && (
+            {(user?.rol === 'ADMIN' || user?.rol === 'ORGANIZADOR') && (
               <NavItem
                 to="/dashboard/analytics"
                 icon={DataTrending24Regular}

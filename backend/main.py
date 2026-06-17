@@ -4,6 +4,7 @@ import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from prometheus_fastapi_instrumentator import Instrumentator
 from app.api import auth, eventos, cursos, academia, inscripciones, logs, pagos, comunidad, dashboard, recursos, asistencia, reports, badges, files, admin_directories, learning_path, souvenirs, certificados_admin, papelera
 from app.core.exceptions import global_exception_handler, BaseDomainError, domain_exception_handler
 from app.core.email_config import SMTPConfig
@@ -13,6 +14,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Plataforma MEH API", version="1.0.0")
+
+# --- MONITOREO PROMETHEUS ---
+Instrumentator().instrument(app).expose(app)
 
 # --- MANEJO DE ERRORES ---
 app.add_exception_handler(BaseDomainError, domain_exception_handler)

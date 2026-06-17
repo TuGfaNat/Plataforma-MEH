@@ -61,6 +61,11 @@ const authService = {
     return response.data;
   },
 
+  deleteUser: async (idUsuario) => {
+    const response = await api.delete(`/auth/usuarios/${idUsuario}`);
+    return response.data;
+  },
+
   logout: () => {
     localStorage.removeItem('token');
   }

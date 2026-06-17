@@ -101,3 +101,16 @@ def update_user_role(
     """Cambia el rango de un usuario (Solo para Administradores)."""
     ip_address = request.client.host if request.client else None
     return auth_service.update_user_role(db, current_user, id_usuario, nuevo_rol, ip_address)
+
+
+@router.delete("/usuarios/{id_usuario}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_usuario(
+    id_usuario: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Elimina lógicamente un usuario (Solo Administradores)."""
+    ip_address = request.client.host if request.client else None
+    auth_service.delete_usuario(db, current_user, id_usuario, ip_address)
+

@@ -14,3 +14,5 @@ email-validator
 gunicorn
 google-auth
 requests
+prometheus-fastapi-instrumentator
+openpyxl

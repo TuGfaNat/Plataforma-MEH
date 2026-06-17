@@ -257,6 +257,7 @@ Dashboard / Reportes	Panel de control, exportar reportes
 Logs / Auditoría	Ver historial de cambios (admin)
 Admin / Configuración	Gestión de usuarios, configuración global
 Files	Subida de archivos (embebido en otras secciones)
+Monitoreo y Carga	Visualización de dashboards Grafana (admin), ejecución de scripts k6
 8. Guías Transversales
 8.1. Guía de Roles del Sistema
 Según frontend/src/auth/rbac.js:
@@ -278,6 +279,13 @@ Checkpoint	Punto de control dentro de un evento donde se registra tu asistencia
 Badge	Insignia virtual que obtienes al completar un logro
 QR	Código de barras bidimensional que sirve como tu pase de entrada
 OCRM	Sistema de conciliación de pagos (el admin sube extractos bancarios)
+
+8.4. Guía de Monitoreo y Pruebas de Carga para Administradores
+*   **Acceso al Dashboard de Grafana:** El administrador puede acceder a la interfaz de monitoreo en tiempo real ingresando a la URL `http://localhost:3001` desde el navegador. El dashboard de control consolidado expone latencias por endpoint, RPS, tasa de errores y conexiones PostgreSQL.
+*   **Ejecución de Pruebas de Carga (k6):** Para simular la concurrencia masiva del programa de embajadores, ejecute el script k6 desde la terminal en la raíz del proyecto usando el comando:
+    `k6 run tests/k6_load_test.js`
+    Esto simulará de forma secuencial los escenarios local (200 usuarios), regional (1.000 usuarios) y global (5.000 usuarios), y reportará el throughput y tiempos de respuesta directo en la consola y en el dashboard de Grafana.
+
 9. Mantenimiento del Manual
 9.1. Archivo de Historial de Cambios
 Mantener docs/usuario/09-historial-cambios.md:

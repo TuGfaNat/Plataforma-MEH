@@ -33,6 +33,7 @@ import EcosystemDirectory from './pages/Admin/EcosystemDirectory.jsx';
 import NotificacionesAdmin from './pages/NotificacionesAdmin.jsx';
 import DashboardLayout from './components/layout/DashboardLayout.jsx';
 import CursoAula from './pages/CursoAula.jsx';
+import AccesoDenegado from './pages/AccesoDenegado.jsx';
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
@@ -56,7 +57,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   if (!user) return <Navigate to="/login" replace />;
   
   if (allowedRoles.length > 0 && !hasAnyRole(user.rol, allowedRoles)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/acceso-denegado" replace />;
   }
   
   return children;
@@ -174,13 +175,14 @@ export default function App() {
                 
                 {/* Validador Público (Sin Sidebar) */}
                 <Route path="/validador-publico" element={<ValidadorTalento />} />
+                <Route path="/acceso-denegado" element={<AccesoDenegado />} />
                 
                 {/* Rutas con Sidebar Persistente */}
                 <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/validador" element={<ValidadorTalento />} />
                   <Route path="/dashboard/users" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'SOPORTE']}><Users /></ProtectedRoute>} />
-                  <Route path="/dashboard/events-master" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}><EventsMaster /></ProtectedRoute>} />
+                  <Route path="/dashboard/events-master" element={<ProtectedRoute><EventsMaster /></ProtectedRoute>} />
                   <Route path="/dashboard/analytics" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}><Analytics /></ProtectedRoute>} />
                   
                   <Route path="/insignias" element={<Insignias />} />
@@ -192,10 +194,10 @@ export default function App() {
                   
                   <Route path="/recursos-vip" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR', 'EMBAJADOR']}><RecursosVIP /></ProtectedRoute>} />
                   <Route path="/speaker-kit" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR']}><SpeakerKit /></ProtectedRoute>} />
-                  <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR']}><AdminPanel /></ProtectedRoute>} />
+                  <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR', 'SOPORTE']}><AdminPanel /></ProtectedRoute>} />
                   <Route path="/admin/ecosistema" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}><EcosystemDirectory /></ProtectedRoute>} />
                   <Route path="/admin/generador-certificados" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR']}><GeneradorCertificados /></ProtectedRoute>} />
-                  <Route path="/admin/notificaciones" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR']}><NotificacionesAdmin /></ProtectedRoute>} />
+                  <Route path="/admin/notificaciones" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}><NotificacionesAdmin /></ProtectedRoute>} />
                   <Route path="/gestion-pagos" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'SOPORTE']}><GestionPagos /></ProtectedRoute>} />
                   <Route path="/escaneo-qr" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}><EscaneoQR /></ProtectedRoute>} />
                   <Route path="/auditoria" element={<ProtectedRoute allowedRoles={['ADMIN']}><Auditoria /></ProtectedRoute>} />

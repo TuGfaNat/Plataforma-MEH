@@ -26,11 +26,16 @@ def get_perfil_publico(db: Session, id_usuario: int) -> models.Usuario:
         raise RecursoNoEncontradoError("Perfil no encontrado o privado")
     return perfil
 
-def list_anuncios_activos(db: Session) -> List[models.Anuncio]:
+def list_anuncios_activos(db: Session, current_user: models.Usuario) -> List[models.Anuncio]:
     """Lista anuncios para la comunidad (solo activos)."""
-    return db.query(models.Anuncio).filter(
-        models.Anuncio.activo == True
-    ).order_by(models.Anuncio.fecha_publicacion.desc()).all()
+    query = db.query(models.Anuncio).filter(models.Anuncio.activo == True)
+    
+    # Si no es rol privilegiado, ocultamos los anuncios exclusivos para embajadores
+    roles_privilegiados = {'ADMIN', 'ORGANIZADOR', 'MODERADOR', 'SOPORTE', 'EMBAJADOR'}
+    if current_user.rol not in roles_privilegiados:
+        query = query.filter(models.Anuncio.exclusivo_embajadores == False)
+        
+    return query.order_by(models.Anuncio.fecha_publicacion.desc()).all()
 
 def list_all_anuncios(db: Session, role: str) -> List[models.Anuncio]:
     """Lista todos los anuncios incluyendo inactivos (Solo Staff)."""

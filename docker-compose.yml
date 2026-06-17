@@ -71,5 +71,25 @@ services:
       - frontend
       - website
 
+  # Monitoreo Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: meh-prometheus
+    restart: always
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    expose:
+      - "9090"
+
+  # Monitoreo Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: meh-grafana
+    restart: always
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
 volumes:
   postgres_data:

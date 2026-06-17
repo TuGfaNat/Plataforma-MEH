@@ -3,13 +3,13 @@ import {
   Divider, Badge, Button, Avatar, Field, Input, Accordion, AccordionItem, AccordionHeader, AccordionPanel, 
   tokens, makeStyles, shorthands, Tooltip, Spinner, Textarea,
   Table, TableHeader, TableRow, TableHeaderCell, TableBody, TableCell,
-  Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions, Link
+  Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions, Link, Switch
 } from '@fluentui/react-components';
 import { 
   Add24Regular, HatGraduation24Regular, Edit24Regular, Delete24Regular,
   Save24Regular, Dismiss24Regular, ArrowUpload24Regular, Clock24Regular,
   BookOpen24Regular, DocumentText24Regular, Video24Regular, Edit20Regular, Delete20Regular,
-  ClipboardTask24Regular, Person24Regular, Checkmark24Regular
+  ClipboardTask24Regular, Person24Regular, Checkmark24Regular, Link24Regular, CalendarLtr24Regular
 } from '@fluentui/react-icons';
 import ReactQuill from 'react-quill-new';
 import { useTranslation } from 'react-i18next';
@@ -17,23 +17,170 @@ import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
 
 const useStyles = makeStyles({
-// ... (rest of styles same as before, adding some for tasks)
+  grid: { 
+    display: 'grid', 
+    gridTemplateColumns: '320px 1fr', 
+    gap: '24px', 
+    marginTop: '24px', 
+    alignItems: 'start',
+    '@media (max-width: 900px)': {
+      gridTemplateColumns: '1fr'
+    }
+  },
+  sidebar: { 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '12px', 
+    position: 'sticky', 
+    top: '24px', 
+    maxHeight: 'calc(100vh - 200px)', 
+    paddingRight: '8px' 
+  },
+  selectableCard: { 
+    padding: '16px', 
+    ...shorthands.borderRadius('12px'), 
+    backgroundColor: tokens.colorNeutralBackground1, 
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), 
+    cursor: 'pointer', 
+    transition: 'all 0.2s ease', 
+    ':hover': { 
+      transform: 'translateX(4px)', 
+      ...shorthands.borderColor(tokens.colorBrandStroke1) 
+    } 
+  },
+  activeItem: { 
+    ...shorthands.borderColor(tokens.colorBrandStroke1), 
+    backgroundColor: tokens.colorBrandBackground2 
+  },
+  detailsContainer: { 
+    paddingLeft: '24px', 
+    borderLeft: `1px solid ${tokens.colorNeutralBackground3}`,
+    '@media (max-width: 900px)': {
+      paddingLeft: '0',
+      borderLeft: 'none'
+    }
+  },
+  formPanel: { 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '20px', 
+    padding: '24px', 
+    backgroundColor: tokens.colorNeutralBackground2, 
+    ...shorthands.borderRadius('20px'), 
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3) 
+  },
+  courseHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '24px',
+    padding: '20px',
+    backgroundColor: tokens.colorNeutralBackground2,
+    ...shorthands.borderRadius('20px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    boxShadow: tokens.shadow2,
+    '@media (max-width: 768px)': {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+      gap: '16px'
+    }
+  },
+  lessonActions: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center'
+  },
+  quillWrapper: { 
+    marginTop: '4px', 
+    '& .ql-toolbar': { 
+      ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1), 
+      ...shorthands.borderRadius('12px', '12px', '0', '0'), 
+      backgroundColor: tokens.colorNeutralBackground3 
+    }, 
+    '& .ql-container': { 
+      ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1), 
+      ...shorthands.borderRadius('0', '0', '12px', '12px'), 
+      minHeight: '200px', 
+      backgroundColor: tokens.colorNeutralBackground1 
+    } 
+  },
+  quillSmall: {
+    '& .ql-container': {
+      minHeight: '120px'
+    }
+  },
+  uploadBox: { 
+    ...shorthands.border('2px', 'dashed', tokens.colorBrandStroke1), 
+    ...shorthands.padding('20px'), 
+    ...shorthands.borderRadius('12px'), 
+    textAlign: 'center', 
+    cursor: 'pointer', 
+    backgroundColor: tokens.colorNeutralBackground1, 
+    transition: 'all 0.2s ease', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    alignItems: 'center', 
+    gap: '8px', 
+    ':hover': { 
+      backgroundColor: tokens.colorBrandBackground2, 
+      ...shorthands.borderColor(tokens.colorBrandBackground) 
+    } 
+  },
+  previewContainer: {
+    width: '100%',
+    height: '100px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    ...shorthands.borderRadius('8px'),
+    backgroundColor: tokens.colorNeutralBackground2
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover'
+  },
+  uploadButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 16px',
+    ...shorthands.borderRadius('8px'),
+    backgroundColor: tokens.colorBrandBackground,
+    color: 'white',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    transition: 'all 0.2s ease',
+    ':hover': {
+      backgroundColor: tokens.colorBrandBackground2
+    }
+  },
   taskCard: {
     padding: '16px',
-    backgroundColor: tokens.colorNeutralBackground2,
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: '12px',
     border: `1px solid ${tokens.colorNeutralBackground3}`,
     marginTop: '12px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px'
+    gap: '12px',
+    boxShadow: tokens.shadow2,
+    transition: 'all 0.2s ease',
+    ':hover': {
+      boxShadow: tokens.shadow4,
+      transform: 'translateY(-2px)'
+    }
   },
   gradingArea: {
     marginTop: '20px',
     padding: '20px',
     backgroundColor: tokens.colorNeutralBackground3,
     borderRadius: '16px',
-    border: `1px solid ${tokens.colorBrandStroke1}`
+    border: `1px solid ${tokens.colorBrandStroke1}`,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px'
   }
 });
 
@@ -49,13 +196,21 @@ const AcademyTab = ({
   const styles = useStyles();
   const { t } = useTranslation();
 
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    const pad = (num) => String(num).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+
   // Estados para Tareas
   const [tareas, setTareas] = useState({}); // { id_leccion: [tareas] }
   const [isAddingTarea, setIsAddingTarea] = useState(false);
   const [isEditingTarea, setIsEditingTarea] = useState(false);
   const [currentTareaId, setCurrentTareaId] = useState(null);
   const [currentLeccionIdForTarea, setCurrentLeccionIdForTarea] = useState(null);
-  const [newTarea, setNewTarea] = useState({ titulo: '', instrucciones: '', puntos_max: 100, fecha_entrega_limite: '' });
+  const [newTarea, setNewTarea] = useState({ titulo: '', instrucciones: '', puntos_max: 100, fecha_entrega_limite: '', archivo_adjunto_url: '' });
 
   // Estados para Entregas
   const [showEntregas, setShowEntregas] = useState(false);
@@ -82,10 +237,15 @@ const AcademyTab = ({
 
   const handleSaveTarea = async () => {
     try {
+      const payload = {
+        ...newTarea,
+        fecha_entrega_limite: newTarea.fecha_entrega_limite ? newTarea.fecha_entrega_limite : null,
+        archivo_adjunto_url: newTarea.archivo_adjunto_url ? newTarea.archivo_adjunto_url : null
+      };
       if (isEditingTarea) {
-        await api.put(`/academia/tareas/${currentTareaId}`, newTarea);
+        await api.put(`/academia/tareas/${currentTareaId}`, payload);
       } else {
-        await api.post('/academia/tareas', { ...newTarea, id_leccion: currentLeccionIdForTarea });
+        await api.post('/academia/tareas', { ...payload, id_leccion: currentLeccionIdForTarea });
       }
       setIsAddingTarea(false);
       fetchTareas(currentLeccionIdForTarea);
@@ -301,10 +461,10 @@ const AcademyTab = ({
                   </div>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.6, fontSize: '12px' }}>
-                      <Clock24Regular fontSize={14} /> {currentCourse.horas_academicas} {t("admin_hours_count")}
+                      <Clock24Regular fontSize={14} /> {t("admin_hours_count", { hours: currentCourse.horas_academicas })}
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.6, fontSize: '12px' }}>
-                      <DocumentText24Regular fontSize={14} /> {lecciones.length} {t("admin_lessons_count")}
+                      <DocumentText24Regular fontSize={14} /> {t("admin_lessons_count", { lessons: lecciones.length })}
                     </span>
                     <Divider vertical style={{ height: '12px' }} />
                     <Switch 
@@ -342,7 +502,7 @@ const AcademyTab = ({
                   <MEHTypography variant="h3">
                     {isEditingLeccion ? t("admin_edit_lesson") : t("admin_create_new_lesson")}
                   </MEHTypography>
-                  <Badge appearance="outline">{t("admin_order_badge")}: {newLeccion.orden}</Badge>
+                  <Badge appearance="outline">{t("admin_order_badge", { order: newLeccion.orden })}</Badge>
                 </div>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
@@ -438,7 +598,7 @@ const AcademyTab = ({
                           <ClipboardTask24Regular color={tokens.colorBrandForeground1} /> {t("admin_lesson_tasks")}
                         </MEHTypography>
                         <MEHButton size="small" appearance="subtle" icon={<Add24Regular />} onClick={() => {
-                           setNewTarea({ titulo: '', instrucciones: '', puntos_max: 100, fecha_entrega_limite: '' });
+                           setNewTarea({ titulo: '', instrucciones: '', puntos_max: 100, fecha_entrega_limite: '', archivo_adjunto_url: '' });
                            setCurrentLeccionIdForTarea(l.id_leccion);
                            setIsAddingTarea(true);
                            setIsEditingTarea(false);
@@ -453,8 +613,34 @@ const AcademyTab = ({
                                  <MEHTypography variant="bold">{t.titulo}</MEHTypography>
                                  <Badge appearance="tint">{t.puntos_max} pts</Badge>
                               </div>
-                              <MEHTypography variant="caption" style={{ opacity: 0.8 }}>{t.instrucciones}</MEHTypography>
-                              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                <MEHTypography variant="caption" style={{ opacity: 0.8, display: 'block' }}>{t.instrucciones}</MEHTypography>
+                                {t.fecha_entrega_limite && (
+                                  <MEHTypography variant="caption" style={{ display: 'block', marginTop: '4px', opacity: 0.7 }}>
+                                    📅 Fecha límite: {new Date(t.fecha_entrega_limite).toLocaleDateString()}
+                                  </MEHTypography>
+                                )}
+                               {t.archivo_adjunto_url && (
+                                 <div style={{ marginTop: '8px' }}>
+                                   <a 
+                                     href={resolveApiFileUrl(t.archivo_adjunto_url)} 
+                                     target="_blank" 
+                                     rel="noreferrer"
+                                     style={{ 
+                                       display: 'inline-flex', 
+                                       alignItems: 'center', 
+                                       gap: '6px', 
+                                       fontSize: '12px', 
+                                       color: tokens.colorBrandForeground1,
+                                       textDecoration: 'none',
+                                       fontWeight: '600'
+                                     }}
+                                   >
+                                     <DocumentText24Regular fontSize="16px" />
+                                     {t.archivo_adjunto_url.startsWith('http') ? 'Ver enlace adjunto' : 'Descargar archivo adjunto'}
+                                   </a>
+                                 </div>
+                               )}
+                               <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                                  <MEHButton size="small" appearance="outline" icon={<Person24Regular />} onClick={() => fetchEntregas(t.id_tarea)}>{t("admin_view_submissions")}</MEHButton>
                                  <Button size="small" appearance="subtle" icon={<Edit20Regular />} onClick={() => {
                                     setNewTarea({ ...t });
@@ -511,9 +697,95 @@ const AcademyTab = ({
                         <Input type="number" value={newTarea.puntos_max} onChange={(e, d) => setNewTarea({ ...newTarea, puntos_max: d.value })} />
                      </Field>
                      <Field label={t("admin_deadline")}>
-                        <Input type="date" value={newTarea.fecha_entrega_limite} onChange={(e, d) => setNewTarea({ ...newTarea, fecha_entrega_limite: d.value })} />
+                        <Input 
+                          type="date" 
+                          contentBefore={<CalendarLtr24Regular />}
+                          value={formatDateForInput(newTarea.fecha_entrega_limite)} 
+                          onChange={(e, d) => setNewTarea({ ...newTarea, fecha_entrega_limite: d.value })} 
+                        />
                      </Field>
                   </div>
+                  
+                  <Field label="Recursos / Enlace / Archivo Adjunto (Opcional)">
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <Input 
+                          placeholder="Introduce un enlace URL (e.g. Google Drive, YouTube, etc.)"
+                          contentBefore={<Link24Regular />}
+                          value={newTarea.archivo_adjunto_url || ''} 
+                          onChange={(e, d) => setNewTarea({ ...newTarea, archivo_adjunto_url: d.value })} 
+                        />
+                        
+                        <div 
+                          className={styles.uploadBox} 
+                          style={{ padding: '12px', minHeight: '60px' }}
+                          onClick={() => document.getElementById('tarea-file-input').click()}
+                        >
+                          {uploading ? (
+                            <Spinner size="small" label="Subiendo archivo..." />
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <ArrowUpload24Regular />
+                              <MEHTypography variant="caption">
+                                {newTarea.archivo_adjunto_url ? "Reemplazar archivo local" : "Subir archivo local (Foto, PDF, Doc, Zip...)"}
+                              </MEHTypography>
+                            </div>
+                          )}
+                        </div>
+                        <input 
+                          id="tarea-file-input" 
+                          type="file" 
+                          onChange={async (e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            setUploading(true);
+                            try {
+                              const formData = new FormData();
+                              formData.append('file', file);
+                              const res = await api.post('/files/upload', formData);
+                              setNewTarea({ ...newTarea, archivo_adjunto_url: res.data.url });
+                            } catch (err) {
+                              console.error("Fallo al subir archivo", err);
+                            } finally {
+                              setUploading(false);
+                            }
+                          }}
+                          style={{ display: 'none' }} 
+                        />
+                        
+                        {newTarea.archivo_adjunto_url && (
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'space-between', 
+                            padding: '8px 12px', 
+                            backgroundColor: tokens.colorNeutralBackground3, 
+                            borderRadius: '8px',
+                            border: `1px solid ${tokens.colorNeutralBackground1}`
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                              {newTarea.archivo_adjunto_url.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                                <img 
+                                  src={resolveApiFileUrl(newTarea.archivo_adjunto_url)} 
+                                  alt="Preview" 
+                                  style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '4px' }} 
+                                />
+                              ) : (
+                                <DocumentText24Regular color={tokens.colorBrandForeground1} />
+                              )}
+                              <span style={{ fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '220px' }}>
+                                {newTarea.archivo_adjunto_url}
+                              </span>
+                            </div>
+                            <Button 
+                              size="small" 
+                              appearance="subtle" 
+                              icon={<Dismiss24Regular color={tokens.colorPaletteRedForeground1} />} 
+                              onClick={() => setNewTarea({ ...newTarea, archivo_adjunto_url: '' })}
+                            />
+                          </div>
+                        )}
+                     </div>
+                  </Field>
                </DialogContent>
                <DialogActions>
                   <MEHButton appearance="primary" icon={<Save24Regular />} onClick={handleSaveTarea}>{t("admin_save_task")}</MEHButton>

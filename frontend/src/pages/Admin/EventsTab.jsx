@@ -2,19 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Divider, Badge, Field, Input, Textarea, Select, Switch, Button, tokens, makeStyles, shorthands,
-  Avatar, Tooltip, Tag, TagGroup, InteractionTag, InteractionTagPrimary
+  Avatar, Tooltip, Tag, TagGroup, InteractionTag, InteractionTagPrimary, Spinner
 } from '@fluentui/react-components';
 import { 
   CalendarLtr24Regular, Add24Regular, Map24Regular, Edit24Regular, Delete24Regular,
   Food24Regular, QrCode24Regular, PeopleTeam24Regular, Mic24Regular, Link24Regular,
-  Clock24Regular, Dismiss24Regular
+  Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
 
 const useStyles = makeStyles({
-  grid: { display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', marginTop: '24px', alignItems: 'start' },
-  sidebar: { display: 'flex', flexDirection: 'column', gap: '12px', position: 'sticky', top: '24px', maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', paddingRight: '8px' },
+  grid: { 
+    display: 'grid', 
+    gridTemplateColumns: '320px 1fr', 
+    gap: '24px', 
+    marginTop: '24px', 
+    alignItems: 'start',
+    '@media (max-width: 900px)': {
+      gridTemplateColumns: '1fr'
+    }
+  },
+  sidebar: { display: 'flex', flexDirection: 'column', gap: '12px', position: 'sticky', top: '24px', maxHeight: 'calc(100vh - 200px)', paddingRight: '8px' },
   selectableCard: { 
     padding: '16px', 
     ...shorthands.borderRadius('12px'), 
@@ -72,6 +81,81 @@ const EventsTab = ({
   const [agenda, setAgenda] = useState([]);
   const [selectedSpeakers, setSelectedSpeakers] = useState([]);
   const [errors, setErrors] = useState({});
+  const [pagosQr, setPagosQr] = useState([]);
+  const [loadingQr, setLoadingQr] = useState(false);
+  const [nuevoNombrePaquete, setNuevoNombrePaquete] = useState('');
+  const [nuevoMonto, setNuevoMonto] = useState('');
+  const [qrFile, setQrFile] = useState(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
+
+  useEffect(() => {
+    if (selectedEventoId) {
+      fetchPagosQr();
+    } else {
+      setPagosQr([]);
+    }
+  }, [selectedEventoId]);
+
+  const fetchPagosQr = async () => {
+    setLoadingQr(true);
+    try {
+      const response = await api.get(`/eventos/${selectedEventoId}/pagos-qr`);
+      setPagosQr(response.data || []);
+    } catch (err) {
+      console.error("Error fetching pagos qr:", err);
+    } finally {
+      setLoadingQr(false);
+    }
+  };
+
+  const handleAddPagoQr = async (e) => {
+    e.preventDefault();
+    if (!nuevoNombrePaquete || !nuevoMonto || !qrFile) {
+      alert("Por favor, rellena todos los campos y selecciona la imagen del QR.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('nombre_paquete', nuevoNombrePaquete);
+    formData.append('monto', nuevoMonto);
+    formData.append('file', qrFile);
+
+    try {
+      setLoadingQr(true);
+      await api.post(`/eventos/${selectedEventoId}/pagos-qr`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      setNuevoNombrePaquete('');
+      setNuevoMonto('');
+      setQrFile(null);
+      setFileInputKey(prev => prev + 1);
+      
+      await fetchPagosQr();
+    } catch (err) {
+      console.error("Error al añadir pago QR:", err);
+      alert("Error al guardar el paquete de pago QR.");
+    } finally {
+      setLoadingQr(false);
+    }
+  };
+
+  const handleDeletePagoQr = async (idQr) => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este paquete de pago y QR?")) {
+      return;
+    }
+    try {
+      setLoadingQr(true);
+      await api.delete(`/eventos/pagos-qr/${idQr}`);
+      await fetchPagosQr();
+    } catch (err) {
+      console.error("Error al eliminar pago QR:", err);
+      alert("Error al eliminar el paquete de pago QR.");
+    } finally {
+      setLoadingQr(false);
+    }
+  };
 
   useEffect(() => {
     if (isEditingEvento && selectedEventoId) {
@@ -133,31 +217,35 @@ const EventsTab = ({
   return (
     <div className={styles.grid}>
       <div className={styles.sidebar}>
-        <MEHTypography variant="h3">{t("admin_active_events")}</MEHTypography>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <MEHTypography variant="h3">{t("admin_active_events")}</MEHTypography>
+          <MEHButton size="small" icon={<Add24Regular />} appearance="primary" onClick={() => { setIsAddingEvento(true); setIsEditingEvento(false); setNewEvento({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', link_mapas: '', capacidad_max: 50, refrigerio_incluido: false }); setAgenda([]); setSelectedSpeakers([]); }}>
+            {t("admin_new_event") || "Nuevo Evento"}
+          </MEHButton>
+        </div>
         <Divider />
-        {eventosList.map(ev => (
-          <div 
-            key={`ev-${ev.id_evento}`} 
-            className={`${styles.selectableCard} ${selectedEventoId === ev.id_evento ? styles.activeItem : ''}`} 
-            onClick={() => setSelectedEventoId(ev.id_evento)}
-          >
-            <div style={{display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between', width: '100%'}}>
-              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                <Badge color={ev.tipo_evento === 'HACKATHON' ? 'important' : 'brand'}>{ev.tipo_evento?.charAt(0)}</Badge>
-                <div>
-                  <b>{ev.titulo}</b><br/>
-                  <MEHTypography variant="caption">{new Date(ev.fecha_inicio).toLocaleDateString()}</MEHTypography>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', maxHeight: 'calc(100vh - 250px)', paddingRight: '4px' }}>
+          {eventosList.map(ev => (
+            <div 
+              key={`ev-${ev.id_evento}`} 
+              className={`${styles.selectableCard} ${selectedEventoId === ev.id_evento ? styles.activeItem : ''}`} 
+              onClick={() => setSelectedEventoId(ev.id_evento)}
+            >
+              <div style={{display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between', width: '100%'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                  <Badge color={ev.tipo_evento === 'HACKATHON' ? 'important' : 'brand'}>{ev.tipo_evento?.charAt(0)}</Badge>
+                  <div>
+                    <b>{ev.titulo}</b><br/>
+                    <MEHTypography variant="caption">{new Date(ev.fecha_inicio).toLocaleDateString()}</MEHTypography>
+                  </div>
                 </div>
+                <Badge color={ev.estado === 'FINALIZADO' ? 'neutral' : ev.id_estado === 1 ? 'warning' : 'success'} appearance="tint">
+                  {ev.estado === 'FINALIZADO' ? 'Finalizado' : ev.id_estado === 1 ? 'Inactivo' : 'Activo'}
+                </Badge>
               </div>
-              <Badge color={ev.id_estado === 1 ? 'warning' : 'success'} appearance="tint">
-                {ev.id_estado === 1 ? 'Inactivo' : 'Activo'}
-              </Badge>
             </div>
-          </div>
-        ))}
-        <MEHButton size="small" icon={<Add24Regular />} appearance="subtle" onClick={() => { setIsAddingEvento(true); setIsEditingEvento(false); setNewEvento({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', link_mapas: '', capacidad_max: 50, refrigerio_incluido: false }); setAgenda([]); setSelectedSpeakers([]); }}>
-          {t("admin_new_event")}
-        </MEHButton>
+          ))}
+        </div>
       </div>
       
       <div className={styles.detailsContainer}>
@@ -334,6 +422,55 @@ const EventsTab = ({
                         <MEHButton icon={<QrCode24Regular />} appearance="primary">{t("admin_scan_qr")}</MEHButton>
                         <MEHButton appearance="outline">{t("admin_attendance_list")}</MEHButton>
                     </div>
+                </div>
+            </div>
+
+            {/* Gestión de Paquetes y QRs de Pago */}
+            <div className={styles.infoCard} style={{ backgroundColor: tokens.colorNeutralBackground2, marginBottom: '24px' }}>
+                <MEHTypography variant="h3"><ReceiptMoney24Filled style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Paquetes de Inscripción y QRs de Pago</MEHTypography>
+                <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Define los paquetes (ej. VIP, General) y sube su correspondiente código QR de pago para que los usuarios puedan escanearlo y pagar.</MEHTypography>
+                
+                {loadingQr ? (
+                    <Spinner size="small" label="Cargando paquetes de pago..." />
+                ) : pagosQr.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+                        {pagosQr.map(pkg => (
+                            <div key={pkg.id_qr} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '12px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                    <img src={resolveApiFileUrl(pkg.url_qr)} alt={pkg.nombre_paquete} style={{ width: '50px', height: '50px', objectFit: 'contain', backgroundColor: 'white', borderRadius: '4px', padding: '2px' }} />
+                                    <div>
+                                        <MEHTypography variant="body"><b>{pkg.nombre_paquete}</b></MEHTypography>
+                                        <MEHTypography variant="caption" style={{ display: 'block', color: tokens.colorBrandForeground1, fontWeight: 'bold' }}>Bs. {pkg.monto}</MEHTypography>
+                                    </div>
+                                </div>
+                                <Button icon={<Delete24Regular />} appearance="subtle" style={{ color: tokens.colorPaletteRedForeground1 }} onClick={() => handleDeletePagoQr(pkg.id_qr)} />
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <MEHTypography variant="caption" style={{ display: 'block', padding: '12px', textAlign: 'center', opacity: 0.5 }}>
+                        No hay paquetes de pago configurados. Se usará el fallback genérico.
+                    </MEHTypography>
+                )}
+
+                <Divider style={{ margin: '16px 0' }} />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <MEHTypography variant="h4">Agregar Nuevo Paquete de Pago</MEHTypography>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '12px' }}>
+                        <Field label="Nombre del Paquete" required>
+                            <Input value={nuevoNombrePaquete} onChange={(e, d) => setNuevoNombrePaquete(d.value)} placeholder="Ej: Pase VIP, Acceso General" />
+                        </Field>
+                        <Field label="Precio (Bs.)" required>
+                            <Input type="number" value={nuevoMonto} onChange={(e, d) => setNuevoMonto(d.value)} placeholder="0.00" />
+                        </Field>
+                    </div>
+                    <Field label="Imagen Código QR de Pago" required>
+                        <Input type="file" key={fileInputKey} id="qr-file-input" onChange={(e) => setQrFile(e.target.files[0])} accept="image/*,application/pdf" />
+                    </Field>
+                    <MEHButton appearance="primary" onClick={handleAddPagoQr} disabled={loadingQr || !nuevoNombrePaquete || !nuevoMonto || !qrFile} style={{ marginTop: '8px' }}>
+                        Guardar Paquete y QR
+                    </MEHButton>
                 </div>
             </div>
 

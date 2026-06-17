@@ -6,7 +6,7 @@ from ..schemas import badge as badge_schema
 from ..services import badge_service
 from .auth import get_current_user
 from ..models import models
-from ..core.permissions import ensure_admin
+from ..core.permissions import ensure_permission, PERMISSION_BADGES_MANAGE
 
 router = APIRouter(
     prefix="/insignias",
@@ -23,7 +23,7 @@ def create_badge(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    ensure_admin(current_user.rol)
+    ensure_permission(current_user.rol, PERMISSION_BADGES_MANAGE)
     return badge_service.create_badge(db, badge, current_user.id_usuario)
 
 @router.put("/{id_badge}", response_model=badge_schema.BadgeResponse)
@@ -33,7 +33,7 @@ def update_badge(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    ensure_admin(current_user.rol)
+    ensure_permission(current_user.rol, PERMISSION_BADGES_MANAGE)
     updated = badge_service.update_badge(db, id_badge, badge, current_user.id_usuario)
     if not updated:
         raise HTTPException(status_code=404, detail="Insignia no encontrada")
@@ -45,7 +45,7 @@ def delete_badge(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    ensure_admin(current_user.rol)
+    ensure_permission(current_user.rol, PERMISSION_BADGES_MANAGE)
     success = badge_service.delete_badge(db, id_badge, current_user.id_usuario)
     if not success:
         raise HTTPException(status_code=404, detail="Insignia no encontrada")
@@ -62,5 +62,5 @@ def assign_badge(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    ensure_admin(current_user.rol)
+    ensure_permission(current_user.rol, PERMISSION_BADGES_MANAGE)
     return badge_service.assign_badge_to_user(db, id_usuario, id_badge, current_user.id_usuario)

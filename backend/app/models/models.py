@@ -244,6 +244,7 @@ class Evento(Base, AuditMixin, EstadoLifecycleMixin):
     speakers = relationship("Speaker", secondary=eventos_speakers, back_populates="eventos")
     auspiciadores = relationship("Auspiciador", secondary=eventos_auspiciadores, back_populates="eventos")
     comunidades = relationship("ComunidadAliada", secondary=eventos_comunidades, back_populates="eventos")
+    pagos_qr = relationship("EventoPagoQR", back_populates="evento", cascade="all, delete-orphan")
 
     __table_args__ = (
         CheckConstraint("capacidad_max > 0", name="check_evento_capacidad_positiva"),
@@ -478,8 +479,20 @@ class Anuncio(Base, AuditMixin, EstadoLifecycleMixin):
     fecha_publicacion = Column(DateTime, default=datetime.utcnow)
     id_autor = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
     activo = Column(Boolean, default=True)
+    exclusivo_embajadores = Column(Boolean, default=False)
 
     autor = relationship("Usuario", foreign_keys="[Anuncio.id_autor]")
+
+class EventoPagoQR(Base, AuditMixin, EstadoLifecycleMixin):
+    __tablename__ = "eventos_pagos_qr"
+
+    id_qr = Column(Integer, primary_key=True, index=True)
+    id_evento = Column(Integer, ForeignKey("eventos.id_evento", ondelete="CASCADE"), nullable=False, index=True)
+    nombre_paquete = Column(String(100), nullable=False)
+    monto = Column(Numeric(10, 2), nullable=False)
+    url_qr = Column(String(255), nullable=False)
+
+    evento = relationship("Evento", back_populates="pagos_qr")
 
 @event.listens_for(Base, "before_insert", propagate=True)
 def receive_before_insert(mapper, connection, target):

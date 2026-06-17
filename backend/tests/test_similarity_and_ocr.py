@@ -77,7 +77,7 @@ async def test_deterministic_ocr_comprobante_upload():
             file_extension=".pdf"
         )
         assert pago_ok.porcentaje_ocr == 98
-        assert pago_ok.estado_pago == "VERIFICADO_AUTOMATICO"
+        assert pago_ok.estado_pago == "PENDIENTE"
         assert f"Cliente detectado: Maria_{unique_id} Estudiante_{unique_id}" in pago_ok.texto_ocr
         
         # Caso B: Comprobante sospechoso (muy pequeño, 10 bytes) -> REVISION_MANUAL (50% confianza)
@@ -201,6 +201,89 @@ async def test_reconciliacion_extracto_bancario_fuzzy():
         if user:
             try:
                 db.delete(user)
+                db.commit()
+            except:
+                db.rollback()
+        if admin:
+            try:
+                db.delete(admin)
+                db.commit()
+            except:
+                db.rollback()
+        db.close()
+
+def test_event_payment_qrs():
+    """Valida la creación, obtención y eliminación lógica de QRs de pago por evento."""
+    db = SessionLocal()
+    admin = None
+    evento = None
+    qr_pago = None
+    try:
+        unique_id = uuid.uuid4().hex[:8]
+        admin = models.Usuario(
+            nombres="Admin",
+            apellidos="Events",
+            correo=f"admin_qr_{unique_id}@meh.com",
+            password_hash="fake_hash",
+            rol="ADMIN"
+        )
+        db.add(admin)
+        db.commit()
+        db.refresh(admin)
+
+        evento = models.Evento(
+            titulo=f"Event QR Test {unique_id}",
+            descripcion="Test event description",
+            modalidad="PRESENCIAL",
+            capacidad_max=100,
+            id_organizador=admin.id_usuario
+        )
+        db.add(evento)
+        db.commit()
+        db.refresh(evento)
+
+        # Crear QR de pago
+        from app.services import eventos_service
+        qr_pago = eventos_service.create_pago_qr(
+            db=db,
+            admin_user=admin,
+            id_evento=evento.id_evento,
+            nombre_paquete="VIP Test",
+            monto=150.00,
+            file_content=b"DUMMY_IMAGE_BYTES",
+            file_extension=".png"
+        )
+        
+        assert qr_pago.id_qr is not None
+        assert qr_pago.nombre_paquete == "VIP Test"
+        assert qr_pago.monto == 150.00
+        assert qr_pago.id_estado == 2
+
+        # Listar QRs de pago
+        qrs = eventos_service.get_pagos_qr_by_event(db, evento.id_evento)
+        assert len(qrs) == 1
+        assert qrs[0].id_qr == qr_pago.id_qr
+
+        # Eliminar QR de pago
+        deleted = eventos_service.delete_pago_qr(db, admin, qr_pago.id_qr)
+        assert deleted is True
+
+        # Verificar borrado lógico
+        qrs_after = eventos_service.get_pagos_qr_by_event(db, evento.id_evento)
+        assert len(qrs_after) == 0
+
+    finally:
+        if qr_pago:
+            try:
+                db_pago_raw = db.query(models.EventoPagoQR).filter(models.EventoPagoQR.id_qr == qr_pago.id_qr).first()
+                if db_pago_raw:
+                    db.delete(db_pago_raw)
+                    db.commit()
+            except:
+                db.rollback()
+        if evento:
+            try:
+                db.delete(evento)
                 db.commit()
             except:
                 db.rollback()

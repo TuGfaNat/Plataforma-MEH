@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  makeStyles, shorthands, tokens, Badge, Spinner, TabList, Tab
+  makeStyles, shorthands, tokens, Badge, Spinner, TabList, Tab, Input, ProgressBar
 } from '@fluentui/react-components';
 import { 
   Library24Regular, PlayCircle24Regular, DocumentPdf24Regular, Link24Regular, Clock24Regular, Person24Regular,
   ArrowDownload24Regular, Ribbon24Regular,
-  BookOpen24Regular, Globe24Regular
+  BookOpen24Regular, Globe24Regular, Search24Regular, CheckmarkCircle24Regular
 } from '@fluentui/react-icons';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import cursoService from '../services/cursoService';
@@ -76,6 +76,26 @@ const LearningHub = () => {
   const [loading, setLoading] = useState(true);
   const [generatingCertId, setGeneratingCertId] = useState(null);
   const [startingCourseId, setStartingCourseId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [misInscripcionesCursos, setMisInscripcionesCursos] = useState([]);
+
+  const filteredCursos = React.useMemo(() => {
+    if (!searchQuery) return cursos;
+    const q = searchQuery.toLowerCase();
+    return cursos.filter(c => 
+      c.nombre_curso.toLowerCase().includes(q) || 
+      (c.descripcion && c.descripcion.toLowerCase().includes(q))
+    );
+  }, [cursos, searchQuery]);
+
+  const filteredMsCursos = React.useMemo(() => {
+    if (!searchQuery) return msCursos;
+    const q = searchQuery.toLowerCase();
+    return msCursos.filter(m => 
+      m.title.toLowerCase().includes(q) || 
+      (m.summary && m.summary.toLowerCase().includes(q))
+    );
+  }, [msCursos, searchQuery]);
 
   useEffect(() => {
     fetchData();
@@ -84,15 +104,16 @@ const LearningHub = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [cursosData, certData, msData] = await Promise.all([
+      const [cursosData, certData, msData, inscripcionesCursosData] = await Promise.all([
         cursoService.getCursos(),
         cursoService.getMisCertificados(),
-        cursoService.getMSCatalog()
+        cursoService.getMSCatalog(),
+        cursoService.getMisInscripcionesCursos().catch(() => [])
       ]);
       setCursos(cursosData);
       setCertificados(certData);
-      // Extraemos solo algunos modulos/cursos de la API de MS para no saturar
       setMsCursos(msData.modules?.slice(0, 12) || []);
+      setMisInscripcionesCursos(inscripcionesCursosData || []);
     } catch (err) {
       console.error("Error cargando Learning Hub:", err);
       const detail = err?.response?.data?.detail;
@@ -158,12 +179,24 @@ const LearningHub = () => {
 
   return (
     <div className={styles.container}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <Library24Regular style={{ color: tokens.colorBrandForeground1, fontSize: '32px' }} />
-        <MEHTypography variant="h1">Learning Hub</MEHTypography>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Library24Regular style={{ color: tokens.colorBrandForeground1, fontSize: '32px' }} />
+          <MEHTypography variant="h1">Learning Hub</MEHTypography>
+        </div>
+        <Input
+          contentBefore={<Search24Regular style={{ color: tokens.colorNeutralForeground4 }} />}
+          placeholder={activeTab === 'local' ? "Buscar cursos de la comunidad..." : "Buscar en Microsoft Learn..."}
+          value={searchQuery}
+          onChange={(e, data) => setSearchQuery(data.value)}
+          style={{ maxWidth: '320px', width: '100%' }}
+        />
       </div>
 
-      <TabList selectedValue={activeTab} onTabSelect={(e, d) => setActiveTab(d.value)}>
+      <TabList selectedValue={activeTab} onTabSelect={(e, d) => {
+        setActiveTab(d.value);
+        setSearchQuery('');
+      }}>
         <Tab value="local" icon={<BookOpen24Regular />}>Cursos de la Comunidad</Tab>
         <Tab value="ms" icon={<Globe24Regular />}>Catálogo Microsoft Learn</Tab>
       </TabList>
@@ -172,7 +205,7 @@ const LearningHub = () => {
         <section>
           <div className={styles.courseGrid}>
             {activeTab === 'local' ? (
-              cursos.length > 0 ? cursos.map(curso => (
+              filteredCursos.length > 0 ? filteredCursos.map(curso => (
                 <MEHCard key={curso.id_curso} className={styles.courseCard}>
                   <img src={curso.imagen_url || DEFAULT_BANNER} alt={`Portada de ${curso.nombre_curso}`} className={styles.cardBanner} />
                   <div className={styles.cardContent}>
@@ -182,23 +215,51 @@ const LearningHub = () => {
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}><Person24Regular fontSize={14} /> Instructor MEH</span>
                     </div>
                     <MEHTypography variant="caption" style={{ opacity: 0.7, minHeight: '40px' }}>{curso.descripcion}</MEHTypography>
-                    <MEHButton
-                      appearance="primary"
-                      icon={<PlayCircle24Regular />}
-                      onClick={() => handleStartCourse(curso)}
-                      disabled={startingCourseId === curso.id_curso}
-                    >
-                      {startingCourseId === curso.id_curso ? "Iniciando..." : "Empezar ahora"}
-                    </MEHButton>
+                    
+                    {(() => {
+                      const inscripcion = misInscripcionesCursos.find(ins => ins.id_curso === curso.id_curso);
+                      const hasProgress = inscripcion !== undefined;
+                      const porcentajeProgreso = hasProgress ? inscripcion.progreso : 0;
+                      return (
+                        <>
+                          {hasProgress && (
+                            <div style={{ marginTop: '8px', marginBottom: '8px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                <span style={{ fontSize: '12px', color: tokens.colorBrandForeground1, fontWeight: 'bold' }}>
+                                  {porcentajeProgreso}% completado
+                                </span>
+                              </div>
+                              <ProgressBar value={porcentajeProgreso / 100} color={porcentajeProgreso === 100 ? "success" : "brand"} style={{ height: '6px' }} />
+                            </div>
+                          )}
+                          <MEHButton
+                            appearance={hasProgress ? "outline" : "primary"}
+                            icon={porcentajeProgreso === 100 ? <CheckmarkCircle24Regular style={{ color: '#22B14C' }} /> : <PlayCircle24Regular />}
+                            onClick={() => {
+                              if (hasProgress) {
+                                navigate(`/learning/curso/${curso.id_curso}`);
+                              } else {
+                                handleStartCourse(curso);
+                              }
+                            }}
+                            disabled={startingCourseId === curso.id_curso}
+                            style={{ width: '100%' }}
+                          >
+                            {startingCourseId === curso.id_curso ? "Iniciando..." : 
+                             hasProgress ? (porcentajeProgreso === 100 ? "Aula Virtual (Completado)" : "Continuar Aprendiendo") : "Empezar ahora"}
+                          </MEHButton>
+                        </>
+                      );
+                    })()}
                   </div>
                 </MEHCard>
               )) : (
-                <MEHCard className={styles.emptyCard}>
-                  <MEHTypography variant="caption">Aún no hay cursos de la comunidad disponibles.</MEHTypography>
+                <MEHCard className={styles.emptyCard} style={{ gridColumn: '1 / -1' }}>
+                  <MEHTypography variant="caption">No se encontraron cursos de la comunidad.</MEHTypography>
                 </MEHCard>
               )
             ) : (
-              msCursos.length > 0 ? msCursos.map(m => (
+              filteredMsCursos.length > 0 ? filteredMsCursos.map(m => (
                 <MEHCard key={m.uid} className={styles.courseCard}>
                   <div style={{ height: '140px', backgroundColor: '#0078d4', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                       <img 
@@ -235,8 +296,8 @@ const LearningHub = () => {
                   </div>
                 </MEHCard>
               )) : (
-                <MEHCard className={styles.emptyCard}>
-                  <MEHTypography variant="caption">No hay módulos de Microsoft Learn disponibles por ahora.</MEHTypography>
+                <MEHCard className={styles.emptyCard} style={{ gridColumn: '1 / -1' }}>
+                  <MEHTypography variant="caption">No se encontraron módulos de Microsoft Learn.</MEHTypography>
                 </MEHCard>
               )
             )}

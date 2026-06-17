@@ -27,6 +27,7 @@ import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import { designTokens } from '../theme/theme';
 import pagoService from '../services/pagoService';
 import eventoService from '../services/eventoService';
+import { resolveApiFileUrl } from '../services/api';
 
 const useStyles = makeStyles({
   container: {
@@ -85,6 +86,31 @@ const Finanzas = () => {
   const [selectedInscripcion, setSelectedInscripcion] = useState(null);
   const [monto, setMonto] = useState('');
   const [file, setFile] = useState(null);
+
+  const [paymentPackages, setPaymentPackages] = useState([]);
+  const [selectedPackage, setSelectedPackage] = useState(null);
+
+  useEffect(() => {
+    if (selectedInscripcion) {
+      fetchEventPaymentPackages(selectedInscripcion);
+    } else {
+      setPaymentPackages([]);
+      setSelectedPackage(null);
+      setMonto('');
+    }
+  }, [selectedInscripcion]);
+
+  const fetchEventPaymentPackages = async (idEvento) => {
+    try {
+      const response = await pagoService.getEventPaymentPackages(idEvento);
+      setPaymentPackages(response || []);
+      setSelectedPackage(null);
+      setMonto('');
+    } catch (err) {
+      console.error("Error fetching event payment packages:", err);
+      setPaymentPackages([]);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -179,7 +205,14 @@ const Finanzas = () => {
                       <TableRow key={item.id_pago}>
                         <TableCell><MEHTypography variant="caption" style={{ fontFamily: 'monospace' }}>#{item.id_pago}</MEHTypography></TableCell>
                         <TableCell>{new Date(item.fecha_pago).toLocaleDateString()}</TableCell>
-                        <TableCell>{item.tipo_referencia} #{item.id_referencia}</TableCell>
+                        <TableCell>
+                          <span style={{ fontWeight: '600', display: 'block' }}>
+                            {item.detalles_referencia || `${item.tipo_referencia} #${item.id_referencia}`}
+                          </span>
+                          <span style={{ fontSize: '11px', opacity: 0.6 }}>
+                            {item.tipo_referencia}
+                          </span>
+                        </TableCell>
                         <TableCell><b>Bs. {item.monto}</b></TableCell>
                         <TableCell>
                           <div style={{ 
@@ -226,30 +259,90 @@ const Finanzas = () => {
             <Dropdown
               id="evento-select"
               placeholder="Selecciona un evento"
+              value={selectedInscripcion ? (inscripciones.find(ins => ins.id_evento.toString() === selectedInscripcion)?.evento?.titulo || `Evento #${selectedInscripcion}`) : ''}
               onOptionSelect={(e, data) => setSelectedInscripcion(data.optionValue)}
               style={{ width: '100%' }}
             >
               {inscripciones.map(ins => (
                 <Option key={ins.id_inscripcion} value={ins.id_evento.toString()}>
-                  Evento #{ins.id_evento}
+                  {ins.evento?.titulo || `Evento #${ins.id_evento}`}
                 </Option>
               ))}
             </Dropdown>
           </div>
 
+          {selectedInscripcion && (() => {
+            const ins = inscripciones.find(i => i.id_evento.toString() === selectedInscripcion);
+            if (!ins || !ins.evento) return null;
+            const ev = ins.evento;
+            return (
+              <div style={{
+                marginBottom: '16px',
+                padding: '12px 16px',
+                backgroundColor: 'rgba(127, 19, 236, 0.05)',
+                borderRadius: '8px',
+                borderLeft: `4px solid ${tokens.colorBrandBackground}`,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px'
+              }}>
+                <MEHTypography variant="body" style={{ fontWeight: 'bold', display: 'block' }}>
+                  {ev.titulo}
+                </MEHTypography>
+                {ev.descripcion && (
+                  <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.7, marginBottom: '4px' }}>
+                    {ev.descripcion}
+                  </MEHTypography>
+                )}
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                  <MEHTypography variant="caption" style={{ opacity: 0.6 }}>
+                    📅 <b>Fecha:</b> {new Date(ev.fecha_inicio).toLocaleDateString()} {ev.hora_inicio ? `a las ${ev.hora_inicio}` : ''}
+                  </MEHTypography>
+                  <MEHTypography variant="caption" style={{ opacity: 0.6 }}>
+                    📍 <b>Modalidad:</b> {ev.modalidad} {ev.ubicacion ? `(${ev.ubicacion})` : ''}
+                  </MEHTypography>
+                </div>
+              </div>
+            );
+          })()}
+
           {selectedInscripcion && (
               <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <Label htmlFor="tier-select">Paquete de Inscripción (Tiers)</Label>
-                <Dropdown
-                    id="tier-select"
-                    placeholder="Selecciona un paquete"
-                    onOptionSelect={(e, data) => setMonto(data.optionValue)}
-                    style={{ width: '100%' }}
-                >
-                    <Option value="50">Básico - Bs. 50.00</Option>
-                    <Option value="100">VIP - Bs. 100.00</Option>
-                    <Option value="150">Speaker Kit - Bs. 150.00</Option>
-                </Dropdown>
+                {paymentPackages.length > 0 ? (
+                  <Dropdown
+                      id="tier-select"
+                      placeholder="Selecciona un paquete"
+                      value={selectedPackage ? `${selectedPackage.nombre_paquete} - Bs. ${selectedPackage.monto}` : ''}
+                      onOptionSelect={(e, data) => {
+                          const pkg = paymentPackages.find(p => p.id_qr.toString() === data.optionValue);
+                          setSelectedPackage(pkg);
+                          setMonto(pkg.monto.toString());
+                      }}
+                      style={{ width: '100%' }}
+                  >
+                      {paymentPackages.map(pkg => (
+                          <Option key={pkg.id_qr} value={pkg.id_qr.toString()}>
+                              {pkg.nombre_paquete} - Bs. {pkg.monto}
+                          </Option>
+                      ))}
+                  </Dropdown>
+                ) : (
+                  <Dropdown
+                      id="tier-select"
+                      placeholder="Selecciona un paquete"
+                      value={monto ? `Bs. ${monto}` : ''}
+                      onOptionSelect={(e, data) => {
+                          setSelectedPackage(null);
+                          setMonto(data.optionValue);
+                      }}
+                      style={{ width: '100%' }}
+                  >
+                      <Option value="50">Básico - Bs. 50.00</Option>
+                      <Option value="100">VIP - Bs. 100.00</Option>
+                      <Option value="150">Speaker Kit - Bs. 150.00</Option>
+                  </Dropdown>
+                )}
               </div>
           )}
 
@@ -258,11 +351,14 @@ const Finanzas = () => {
                   <div style={{ textAlign: 'center', flex: 1, minWidth: '200px', backgroundColor: 'rgba(255,255,255,0.05)', padding: '16px', borderRadius: '12px' }}>
                       <MEHTypography variant="body" style={{ display: 'block', marginBottom: '16px', fontWeight: 'bold' }}>Escanea para pagar: Bs. {monto}</MEHTypography>
                       <div style={{ display: 'inline-block', padding: '16px', backgroundColor: 'white', borderRadius: '8px' }}>
-                          {/* Usando qrcode.react estático para el pago bancario */}
-                          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=bank_transfer_meh_${monto}`} alt="QR Bancario" />
+                          {selectedPackage ? (
+                              <img src={resolveApiFileUrl(selectedPackage.url_qr)} alt="QR Bancario" style={{ width: '150px', height: '150px', objectFit: 'contain' }} />
+                          ) : (
+                              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=bank_transfer_meh_${monto}`} alt="QR Bancario" />
+                          )}
                       </div>
                       <MEHTypography variant="caption" style={{ display: 'block', marginTop: '8px', opacity: 0.7 }}>
-                          Banco MEH - Cuenta: 123456789
+                          {selectedPackage ? `Paquete: ${selectedPackage.nombre_paquete}` : 'Banco MEH - Cuenta: 123456789'}
                       </MEHTypography>
                   </div>
               )}

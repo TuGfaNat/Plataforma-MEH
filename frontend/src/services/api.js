@@ -48,8 +48,8 @@ api.interceptors.response.use(
       }
     }
     if (error.response?.status === 403) {
-      if (window.location.pathname !== '/dashboard') {
-        window.location.href = '/dashboard';
+      if (window.location.pathname !== '/acceso-denegado') {
+        window.location.href = '/acceso-denegado';
       }
     }
     return Promise.reject(error);
