@@ -10,9 +10,9 @@ from ..core.permissions import ensure_permission, PERMISSION_COURSES_MANAGE
 
 router = APIRouter(prefix="/academia", tags=["academia"])
 
-// ==========================================
-// SECCIÓN DE LECCIONES DEL AULA VIRTUAL
-// ==========================================
+# ==========================================
+# SECCIÓN DE LECCIONES DEL AULA VIRTUAL
+# ==========================================
 
 @router.get("/cursos/{id_curso}/lecciones", response_model=List[schema.LeccionResponse])
 def get_lecciones(id_curso: int, db: Session = Depends(get_db)):
@@ -43,9 +43,9 @@ def get_tareas_leccion(id_leccion: int, db: Session = Depends(get_db)):
     """Lista todas las tareas asociadas a una lección (Acceso Público/Miembros)."""
     return academia_service.list_tareas_leccion(db, id_leccion)
 
-// ==========================================
-// SECCIÓN DE TAREAS Y EVALUACIONES
-// ==========================================
+# ==========================================
+# SECCIÓN DE TAREAS Y EVALUACIONES
+# ==========================================
 
 @router.post("/tareas", response_model=schema.TareaResponse, status_code=status.HTTP_201_CREATED)
 def create_tarea(data: schema.TareaCreate, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
@@ -66,9 +66,9 @@ def delete_tarea(id_tarea: int, db: Session = Depends(get_db), current_user: mod
     academia_service.delete_tarea(db, id_tarea, current_user.id_usuario)
     return None
 
-// ==========================================
-// SECCIÓN DE ENTREGAS Y CALIFICACIONES
-// ==========================================
+# ==========================================
+# SECCIÓN DE ENTREGAS Y CALIFICACIONES
+# ==========================================
 
 @router.get("/tareas/{id_tarea}/entregas", response_model=List[schema.EntregaTareaResponse])
 def get_entregas_tarea(id_tarea: int, db: Session = Depends(get_db), current_user: models.Usuario = Depends(get_current_user)):
@@ -87,9 +87,9 @@ def calificar_entrega(id_entrega: int, data: schema.EntregaTareaCalificar, db: S
     ensure_permission(current_user.rol, PERMISSION_COURSES_MANAGE)
     return academia_service.calificar_entrega(db, id_entrega, data, current_user.id_usuario)
 
-// ==========================================
-// SECCIÓN DE FOROS DE DISCUSIÓN
-// ==========================================
+# ==========================================
+# SECCIÓN DE FOROS DE DISCUSIÓN
+# ==========================================
 
 @router.get("/cursos/{id_curso}/foro", response_model=List[schema.PostForoResponse])
 def get_foro(id_curso: int, db: Session = Depends(get_db)):
