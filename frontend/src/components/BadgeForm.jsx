@@ -130,6 +130,7 @@ const BadgeForm = ({ onSuccess, editingBadge, onCancel }) => {
     }
   };
 
+  // Valida que el usuario posea el permiso técnico 'badges.manage' (ADMIN, ORGANIZADOR y SOPORTE) para gestionar insignias
   if (!user || !hasPermission(user.rol, PERMISSION_BADGES_MANAGE)) return null;
 
   return (

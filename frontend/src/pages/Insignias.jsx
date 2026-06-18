@@ -112,6 +112,7 @@ const Insignias = () => {
   const [loading, setLoading] = useState(true);
   const [editingBadge, setEditingBadge] = useState(null);
 
+  // Verifica si el usuario cuenta con el permiso técnico 'badges.manage' (ADMIN, ORGANIZADOR y SOPORTE) para habilitar opciones de gestión
   const isAdmin = hasPermission(user?.rol, PERMISSION_BADGES_MANAGE);
 
   const fetchData = async () => {

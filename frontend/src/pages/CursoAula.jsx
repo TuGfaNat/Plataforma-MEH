@@ -378,6 +378,7 @@ const CursoAula = () => {
                                   {t.instrucciones}
                                </MEHTypography>
                                <MEHTypography variant="caption" style={{ opacity: 0.6, display: 'block' }}>Puntaje máximo: {t.puntos_max} pts</MEHTypography>
+                               {/* Renderiza la fecha límite de entrega formateada para conocimiento del alumno */}
                                {t.fecha_entrega_limite && (
                                   <MEHTypography variant="caption" style={{ display: 'block', marginTop: '4px', opacity: 0.7 }}>
                                      📅 Fecha límite: {new Date(t.fecha_entrega_limite).toLocaleDateString()}

@@ -74,6 +74,10 @@ def assign_instructor(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    """
+    Asigna un docente o instructor a un curso específico.
+    Requiere el permiso técnico 'courses.manage' (ADMIN, ORGANIZADOR y SOPORTE).
+    """
     from ..core.permissions import ensure_permission, PERMISSION_COURSES_MANAGE
     ensure_permission(current_user.rol, PERMISSION_COURSES_MANAGE)
     return cursos_service.assign_instructor(db, id_curso, id_instructor)

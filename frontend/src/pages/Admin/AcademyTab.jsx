@@ -196,6 +196,7 @@ const AcademyTab = ({
   const styles = useStyles();
   const { t } = useTranslation();
 
+  // Convierte y formatea una cadena de fecha ISO a 'YYYY-MM-DD' para que sea compatible con <input type="date">
   const formatDateForInput = (dateStr) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
@@ -697,6 +698,7 @@ const AcademyTab = ({
                         <Input type="number" value={newTarea.puntos_max} onChange={(e, d) => setNewTarea({ ...newTarea, puntos_max: d.value })} />
                      </Field>
                      <Field label={t("admin_deadline")}>
+                        {/* Se utiliza tipo "date" para que el navegador renderice un mini-calendario nativo para escoger la fecha */}
                         <Input 
                           type="date" 
                           contentBefore={<CalendarLtr24Regular />}
