@@ -24,6 +24,14 @@ for i in $(seq 1 30); do
 done
 
 # ─────────────────────────────────────────────
+# 1b. Sincronizar archivos estáticos por defecto (evita enmascaramiento de volumen)
+# ─────────────────────────────────────────────
+echo "📁 Restaurando archivos estáticos por defecto (badges, etc.)..."
+mkdir -p /app/static/badges /app/static/uploads /app/static/certificados /app/static/comprobantes /app/static/qrs
+cp -rn /app/static_backup/* /app/static/ || true
+chmod -R 777 /app/static || true
+
+# ─────────────────────────────────────────────
 # 2. Ejecutar migraciones con Alembic
 # ─────────────────────────────────────────────
 echo "📦 Ejecutando migraciones..."

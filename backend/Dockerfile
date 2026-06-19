@@ -20,8 +20,8 @@ COPY . .
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Asegurar que el directorio de estáticos existe
-RUN mkdir -p static/uploads
+# Asegurar que el directorio de estáticos existe y hacer backup
+RUN mkdir -p static/uploads && cp -r static static_backup
 
 # Exponer el puerto que usa FastAPI
 EXPOSE 8000
