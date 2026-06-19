@@ -24,6 +24,8 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 # Sobrescribir la URL de sqlalchemy.url en el config con la de .env
 db_url = os.getenv("DATABASE_URL")
 if db_url:
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
     config.set_main_option("sqlalchemy.url", db_url)
 
 # Interpret the config file for Python logging.
@@ -76,6 +78,8 @@ def run_migrations_online() -> None:
     # Override the placeholder URL with the actual DATABASE_URL from environment
     db_url = os.getenv("DATABASE_URL")
     if db_url:
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
         configuration["sqlalchemy.url"] = db_url
 
     connectable = engine_from_config(

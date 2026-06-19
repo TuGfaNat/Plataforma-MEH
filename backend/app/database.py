@@ -11,6 +11,8 @@ SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 # Si no hay variable (local), usamos el default
 if not SQLALCHEMY_DATABASE_URL:
     SQLALCHEMY_DATABASE_URL = "postgresql://postgres:postgres@localhost/plataforma_meh"
+elif SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Configuración optimizada para nube (Neon/Render) y local
 # Eliminamos connect_args específicos de Windows para evitar conflictos en Linux/Cloud
