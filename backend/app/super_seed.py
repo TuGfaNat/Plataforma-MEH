@@ -382,6 +382,17 @@ def generate_super_seed():
                 ).first()
                 if not ub_extra:
                     db.add(models.UsuarioBadge(id_usuario=m.id_usuario, id_badge=random_badge.id_badge))
+
+        # Asignar insignias al staff y a Nataly para que se vea la sección al entrar con sus cuentas
+        all_staff_and_nataly = staff_users + ([nataly_user] if nataly_user else [])
+        for user in all_staff_and_nataly:
+            for b_idx in [0, 3]: # Primer Paso (0) y Python Ninja (3)
+                ub = db.query(models.UsuarioBadge).filter(
+                    models.UsuarioBadge.id_usuario == user.id_usuario,
+                    models.UsuarioBadge.id_badge == badges[b_idx].id_badge
+                ).first()
+                if not ub:
+                    db.add(models.UsuarioBadge(id_usuario=user.id_usuario, id_badge=badges[b_idx].id_badge))
         db.commit()
 
         # 9. ANUNCIOS Y CONFIG
