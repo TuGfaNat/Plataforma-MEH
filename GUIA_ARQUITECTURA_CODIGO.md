@@ -91,7 +91,128 @@ El frontend es una aplicación SPA estructurada con React y compilada de manera 
 
 ---
 
-## 💡 5. Algoritmos Especiales e Innovación Técnica
+## 🔍 5. Mapeo Exhaustivo de Funcionalidades (Pantallas y Backends)
+
+Aquí se detalla la correspondencia exacta de cada módulo del sistema, cruzando el frontend con sus respectivos endpoints, servicios y modelos de base de datos.
+
+### 📍 M1: Autenticación, Registro y Perfiles de Usuario
+* **Pantallas (Frontend)**:
+  * [Register.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/Register.jsx): Formulario de registro con desglose de datos personales y académicos/profesionales.
+  * [Login.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/Login.jsx): Formulario de acceso al sistema con autenticación síncrona.
+  * [Configuracion.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/Configuracion.jsx): Configuración de perfil, carga de foto (avatar), selección de idioma (i18n), cambio estético de tema (modo oscuro/claro) y visibilidad de perfil público.
+* **Backend (API/Endpoints)**:
+  * [backend/app/api/auth.py](file:///F:/Plataforma-MEH/backend/app/api/auth.py): Endpoint `/auth/register` (registro), `/auth/login` (generación de JWT), `/auth/profile` (consulta/actualización de perfil).
+* **Lógica (Servicios)**:
+  * [backend/app/services/auth_service.py](file:///F:/Plataforma-MEH/backend/app/services/auth_service.py): Métodos `create_user`, `authenticate_user`, `update_profile`.
+* **Persistencia (Modelos)**:
+  * Tabla `usuarios` (`Usuario`) en [models.py](file:///F:/Plataforma-MEH/backend/app/models/models.py).
+
+### 📍 M2: Centro de Aprendizaje (LMS / Aula Virtual)
+* **Pantallas (Frontend)**:
+  * [LearningHub.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/LearningHub.jsx): Biblioteca de cursos matriculados y disponibles, barra de progreso y horas académicas.
+  * [CursoAula.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/CursoAula.jsx): Reproductor de video de clases, panel interactivo lateral con el temario, foros de discusión del curso y cargador para entregas de tareas.
+* **Backend (API/Endpoints)**:
+  * [backend/app/api/cursos.py](file:///F:/Plataforma-MEH/backend/app/api/cursos.py): endpoints `/cursos` (listar, matricular).
+  * [backend/app/api/academia.py](file:///F:/Plataforma-MEH/backend/app/api/academia.py): `/academia/lecciones`, `/academia/tareas`, `/academia/entregas`, `/academia/foro`.
+* **Lógica (Servicios)**:
+  * `cursos_service.py` y `academia_service.py` en [backend/app/services/](file:///F:/Plataforma-MEH/backend/app/services/).
+* **Persistencia (Modelos)**:
+  * Tablas `cursos` (`Curso`), `lecciones` (`Leccion`), `tareas` (`Tarea`), `entregas_tareas` (`EntregaTarea`), y `foro_posts` (`ForoPost`) en [models.py](file:///F:/Plataforma-MEH/backend/app/models/models.py).
+
+### 📍 M3: Gestión de Eventos y Control de Puerta (Consola QR)
+* **Pantallas (Frontend)**:
+  * [EventsMaster.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/EventsMaster.jsx): Consola para organizadores (CRUD de eventos, agenda, asignación de auspiciadores y speakers).
+  * [EscaneoQR.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/EscaneoQR.jsx): Panel de la cámara para escaneo QR de tickets, selección de checkpoints activos, almacenamiento en base IndexedDB para escaneo offline y sincronización en lote FIFO.
+* **Backend (API/Endpoints)**:
+  * [backend/app/api/eventos.py](file:///F:/Plataforma-MEH/backend/app/api/eventos.py): CRUD `/eventos`.
+  * [backend/app/api/asistencia.py](file:///F:/Plataforma-MEH/backend/app/api/asistencia.py): Registro `/asistencia/scan` (marca individual) y `/asistencia/scan-batch` (marcas offline acumuladas).
+* **Lógica (Servicios)**:
+  * `eventos_service.py` y `asistencia_service.py` en [backend/app/services/](file:///F:/Plataforma-MEH/backend/app/services/).
+* **Persistencia (Modelos)**:
+  * Tablas `eventos` (`Evento`), `checkpoints` (`Checkpoint`), y `asistencia_detalles` (`AsistenciaDetalle`) en [models.py](file:///F:/Plataforma-MEH/backend/app/models/models.py).
+
+### 📍 M4: Emisión y Verificación de Certificados
+* **Pantallas (Frontend)**:
+  * `GeneradorCertificados.jsx`: Carga plantillas de fondos SVG/PNG y genera diplomas en PDF masivamente para aprobados o speakers.
+  * [Dashboard.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/Dashboard.jsx) / [VerificarCertificado.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/VerificarCertificado.jsx): Verificación pública de validez mediante escaneo de código alfanumérico/QR sin requerir cuenta.
+* **Backend (API/Endpoints)**:
+  * [backend/app/api/certificados_admin.py](file:///F:/Plataforma-MEH/backend/app/api/certificados_admin.py): Endpoint `/certificados-admin/generate-bulk` (generador de lotes).
+  * [backend/app/api/cursos.py](file:///F:/Plataforma-MEH/backend/app/api/cursos.py): Endpoint `/cursos/verificar/{uuid_cert}`.
+* **Lógica (Servicios)**:
+  * [backend/app/services/certificado_generator_service.py](file:///F:/Plataforma-MEH/backend/app/services/certificado_generator_service.py): Genera físicamente el archivo PDF, inyecta el hash criptográfico y escribe en la DB.
+* **Persistencia (Modelos)**:
+  * Tabla `certificados` (`Certificado`) en [models.py](file:///F:/Plataforma-MEH/backend/app/models/models.py).
+
+### 📍 M5: Control de Pagos, Lectura OCR y Conciliación Bancaria Difusa (Jaro-Winkler)
+* **Pantallas (Frontend)**:
+  * [GestionPagos.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/GestionPagos.jsx): Panel administrativo de auditoría de vouchers cargados por alumnos. Despliega la imagen subida a la izquierda y el análisis OCR a la derecha. Carga masiva de extractos CSV bancarios.
+  * [Finanzas.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/Finanzas.jsx): Historial de finanzas del estudiante y cargador de comprobantes (vouchers) para eventos/cursos de pago.
+* **Backend (API/Endpoints)**:
+  * [backend/app/api/pagos.py](file:///F:/Plataforma-MEH/backend/app/api/pagos.py): Endpoints `/pagos/upload` (subir voucher), `/pagos/upload-ocr` (análisis con OCR), `/pagos/conciliar-ocr` (reconciliar contra extracto CSV).
+* **Lógica (Servicios)**:
+  * `pagos_service.py` (registro y validación manual de depósitos) y `ocrm_service.py` (conciliación difusa y OCR) en [backend/app/services/](file:///F:/Plataforma-MEH/backend/app/services/).
+  * Algoritmo de distancia de Jaro-Winkler en [backend/app/utils/similarity.py](file:///F:/Plataforma-MEH/backend/app/utils/similarity.py).
+* **Persistencia (Modelos)**:
+  * Tabla `pagos` (`Pago`) en [models.py](file:///F:/Plataforma-MEH/backend/app/models/models.py).
+
+### 📍 M6: Validador de Talento (Catálogo Microsoft Learn)
+* **Pantallas (Frontend)**:
+  * [ValidadorTalento.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/ValidadorTalento.jsx): Entrada reactiva para ingresar el alias público de Microsoft Learn y sincronizar logros técnicos.
+* **Backend (API/Endpoints)**:
+  * [backend/app/api/learning_path.py](file:///F:/Plataforma-MEH/backend/app/api/learning_path.py): Proxy REST que consulta la API pública oficial `https://learn.microsoft.com/api/catalog/`.
+* **Persistencia (Modelos)**:
+  * Sincroniza datos contra la tabla `usuarios` (XP ganada) e inyecta medallas en `insignias_otorgadas`.
+
+### 📍 M7: Directorio de Aliados (Speakers, Auspiciadores y Comunidades)
+* **Pantallas (Frontend)**:
+  * [EcosystemDirectory.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/Admin/EcosystemDirectory.jsx): Panel de administración de las entidades externas vinculadas a los eventos en formato de tarjetas interactivas.
+  * [SpeakerKit.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/SpeakerKit.jsx): Repositorio privado para conferencistas con diapositivas oficiales de la comunidad, guías de oratoria y plantillas de diseño Microsoft.
+* **Backend (API/Endpoints)**:
+  * [backend/app/api/admin_directories.py](file:///F:/Plataforma-MEH/backend/app/api/admin_directories.py): `/directories/speakers`, `/directories/auspiciadores`, `/directories/comunidades`.
+* **Persistencia (Modelos)**:
+  * Tablas `speakers` (`Speaker`), `auspiciadores` (`Auspiciador`), y `comunidades_aliadas` (`ComunidadAliada`) en [models.py](file:///F:/Plataforma-MEH/backend/app/models/models.py).
+
+### 📍 M8: Tienda Virtual de Souvenirs, Inventario y Ventas
+* **Pantallas (Frontend)**:
+  * [SouvenirsTab.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/Admin/SouvenirsTab.jsx): POS (Point of Sale) del Administrador para gestionar inventario, cambiar precios, añadir productos y registrar ventas offline/presenciales.
+* **Backend (API/Endpoints)**:
+  * [backend/app/api/souvenirs.py](file:///F:/Plataforma-MEH/backend/app/api/souvenirs.py): `/souvenirs/` (CRUD productos) y `/souvenirs/ventas` (registrar pedidos realizados).
+* **Lógica (Servicios)**:
+  * `souvenirs_service.py` en [backend/app/services/](file:///F:/Plataforma-MEH/backend/app/services/).
+* **Persistencia (Modelos)**:
+  * Tablas `productos` (`Producto`) y `pedidos` (`Pedido`) en [models.py](file:///F:/Plataforma-MEH/backend/app/models/models.py).
+
+### 📍 M9: Gamificación y Open Badges (Insignias)
+* **Pantallas (Frontend)**:
+  * [Insignias.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/Insignias.jsx): Vitrina virtual de medallas obtenidas, nivel de experiencia XP del usuario y sistema integrado para compartir logros profesionales en redes.
+* **Backend (API/Endpoints)**:
+  * [backend/app/api/badges.py](file:///F:/Plataforma-MEH/backend/app/api/badges.py): endpoints `/badges` y `/badges/otorgar`.
+* **Lógica (Servicios)**:
+  * `badges_service.py` en [backend/app/services/](file:///F:/Plataforma-MEH/backend/app/services/).
+* **Persistencia (Modelos)**:
+  * Tablas `insignias` (`Insignia`) y `insignias_otorgadas` (`InsigniaOtorgada`) en [models.py](file:///F:/Plataforma-MEH/backend/app/models/models.py).
+
+### 📍 M10: Logs de Seguridad y Auditoría Forense
+* **Pantallas (Frontend)**:
+  * [Auditoria.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/Auditoria.jsx): Visor forense exclusivo para Administradores, listando eventos del sistema con filtrado IP e historial comparativo JSON (diffs).
+* **Backend (API/Endpoints)**:
+  * [backend/app/api/logs.py](file:///F:/Plataforma-MEH/backend/app/api/logs.py): Endpoint `/logs` para auditoría masiva.
+* **Lógica (Servicios/Core)**:
+  * `registrar_log` en [backend/app/core/logging.py](file:///F:/Plataforma-MEH/backend/app/core/logging.py).
+* **Persistencia (Modelos)**:
+  * Tabla `logs_sistema` (`RegistroAuditoria`) en [models.py](file:///F:/Plataforma-MEH/backend/app/models/models.py).
+
+### 📍 M11: Papelera de Reciclaje (Recuperación y Borrado Físico)
+* **Pantallas (Frontend)**:
+  * [PapeleraTab.jsx](file:///F:/Plataforma-MEH/frontend/src/pages/Admin/PapeleraTab.jsx): Consola para restaurar elementos eliminados lógicamente o aplicar borrado permanente.
+* **Backend (API/Endpoints)**:
+  * [backend/app/api/papelera.py](file:///F:/Plataforma-MEH/backend/app/api/papelera.py): `/papelera/restore/{category}/{id}` y `/papelera/hard-delete/{category}/{id}`.
+* **Lógica (Servicios/Mixins)**:
+  * `EstadoLifecycleMixin` en [backend/app/models/mixins.py](file:///F:/Plataforma-MEH/backend/app/models/mixins.py) que gestiona el campo `id_estado` (0 = Eliminado/Papelera, 1 = Inactivo, 2 = Activo).
+
+---
+
+## 🔑 6. Algoritmos Especiales e Innovación Técnica
 
 ### 📍 Reconciliación Bancaria Difusa (Jaro-Winkler):
 * **Ubicación**: [backend/app/utils/similarity.py](file:///F:/Plataforma-MEH/backend/app/utils/similarity.py)
@@ -105,7 +226,7 @@ El frontend es una aplicación SPA estructurada con React y compilada de manera 
 
 ---
 
-## 🎓 6. Preguntas y Respuestas Clave para la Defensa de Tesis
+## 🎓 7. Preguntas y Respuestas Clave para la Defensa de Tesis
 
 Estas preguntas abordan los aspectos técnicos del diseño y desarrollo del sistema que los evaluadores suelen indagar:
 
