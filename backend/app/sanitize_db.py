@@ -31,12 +31,20 @@ def sanitize():
         run_sql(db, "UPDATE eventos SET tipo_evento = 'CONFERENCIA' WHERE tipo_evento IS NULL", "Sanear tipo_evento en eventos")
         run_sql(db, "UPDATE eventos SET refrigerio_incluido = false WHERE refrigerio_incluido IS NULL", "Sanear refrigerio_incluido en eventos")
         
-        # 4. Asegurar que los anuncios tengan estado activo
+        # 4. Asegurar que los anuncios tengan estado activo y sus columnas
         run_sql(db, "UPDATE anuncios SET activo = true WHERE activo IS NULL", "Sanear activo en tabla anuncios")
+        run_sql(db, "ALTER TABLE anuncios ADD COLUMN IF NOT EXISTS exclusivo_embajadores BOOLEAN NOT NULL DEFAULT false", "Asegurar columna 'exclusivo_embajadores' en anuncios")
 
         # 5. Asegurar columnas OCR en tabla pagos
         run_sql(db, "ALTER TABLE pagos ADD COLUMN IF NOT EXISTS porcentaje_ocr NUMERIC(5, 2)", "Asegurar columna 'porcentaje_ocr' en pagos")
         run_sql(db, "ALTER TABLE pagos ADD COLUMN IF NOT EXISTS texto_ocr TEXT", "Asegurar columna 'texto_ocr' en pagos")
+
+        # 5b. Asegurar secuencia e id_inscripcion_curso autoincremental en inscripciones_cursos
+        run_sql(db, "CREATE SEQUENCE IF NOT EXISTS inscripciones_cursos_id_inscripcion_curso_seq", "Crear secuencia para inscripciones_cursos")
+        run_sql(db, "ALTER TABLE inscripciones_cursos ALTER COLUMN id_inscripcion_curso SET DEFAULT nextval('inscripciones_cursos_id_inscripcion_curso_seq')", "Establecer secuencia por defecto para id_inscripcion_curso")
+        run_sql(db, "ALTER SEQUENCE inscripciones_cursos_id_inscripcion_curso_seq OWNED BY inscripciones_cursos.id_inscripcion_curso", "Asociar secuencia a id_inscripcion_curso")
+        run_sql(db, "SELECT setval('inscripciones_cursos_id_inscripcion_curso_seq', COALESCE((SELECT MAX(id_inscripcion_curso) FROM inscripciones_cursos), 0) + 1, false)", "Inicializar valor de secuencia para inscripciones_cursos")
+        run_sql(db, "ALTER TABLE inscripciones_cursos ADD PRIMARY KEY (id_inscripcion_curso)", "Asegurar Primary Key en id_inscripcion_curso de inscripciones_cursos")
 
         # 6. Crear tabla catálogo 'estados_registro'
         run_sql(db, """
