@@ -44,6 +44,8 @@ echo "✅ Saneamiento estructural completado"
 if [ "$RUN_SEED" = "super" ]; then
     echo "🌱 Ejecutando SUPER SEED (datos completos de prueba)..."
     python -m app.super_seed
+    echo "🌱 Creando certificados de prueba..."
+    python -m app.create_test_certs
 elif [ "$RUN_SEED" = "basic" ]; then
     echo "🌱 Ejecutando SEED básico (usuarios staff)..."
     python -m app.seed
