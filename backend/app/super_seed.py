@@ -417,6 +417,13 @@ def generate_super_seed():
                 "titulo": "Hackathon MEH 2026 - ¡Quedan pocos cupos!",
                 "contenido": "¡Alerta de últimos cupos! El registro para la Hackathon MEH 2026 de este fin de semana está a punto de cerrarse debido al límite de capacidad del auditorio. Regístrate de inmediato para no quedar fuera.",
                 "tipo": "ALERTA"
+            },
+            {
+                "titulo": "prueba de anuncion",
+                "contenido": "Esta es una publicación de prueba para la comunidad tecnológica del Hub de Estudiantes de Microsoft.",
+                "tipo": "INFO",
+                "url_imagen": "/static/uploads/perfil_2_205631.jpeg",
+                "link_accion": "https://gdg.community.dev/"
             }
         ]
         for a_data in anuncios_data:
@@ -426,6 +433,8 @@ def generate_super_seed():
                     titulo=a_data["titulo"],
                     contenido=a_data["contenido"],
                     tipo=a_data["tipo"],
+                    url_imagen=a_data.get("url_imagen"),
+                    link_accion=a_data.get("link_accion"),
                     activo=True,
                     id_autor=admin_id,
                     creado_por=admin_id
@@ -434,6 +443,8 @@ def generate_super_seed():
             else:
                 anuncio.contenido = a_data["contenido"]
                 anuncio.tipo = a_data["tipo"]
+                anuncio.url_imagen = a_data.get("url_imagen")
+                anuncio.link_accion = a_data.get("link_accion")
                 anuncio.activo = True
         db.commit()
         
