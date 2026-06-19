@@ -420,6 +420,10 @@ def generate_super_seed():
                     creado_por=admin_id
                 )
                 db.add(anuncio)
+            else:
+                anuncio.contenido = a_data["contenido"]
+                anuncio.tipo = a_data["tipo"]
+                anuncio.activo = True
         db.commit()
         
         # Configuración Global
