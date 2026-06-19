@@ -20,11 +20,6 @@ Si un alumno se presenta en la puerta de entrada alegando que no puede cargar su
    * Si figura como `'PENDIENTE'` o `'REVISION_MANUAL'`, dirígete al panel de pagos para verificar físicamente el voucher.
    * Si la transacción bancaria es legítima, solicita al administrador la aprobación manual inmediata en el sistema.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_consola_soporte.png`  
-**Instrucciones de Captura:** Captura de la consola de soporte de mesa de entrada, mostrando la barra de búsqueda reactiva Fluent UI v9 y los resultados de coincidencia con sus estados de validación. Guardar la imagen en `website/static/img/img_consola_soporte.png`.
-:::
-
 ![Consola de Mesa de Soporte](/img/img_consola_soporte.png)
 
 ---

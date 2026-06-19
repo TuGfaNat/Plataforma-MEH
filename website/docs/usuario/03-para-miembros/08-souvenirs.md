@@ -17,11 +17,6 @@ Visita la tienda oficial de Microsoft Education Hub para adquirir merchandising,
 5. Haz clic en **Finalizar Pedido**.
 6. El estado del pedido se actualizará en tu panel financiero y podrás retirar el souvenir en las oficinas del Hub de la facultad una vez que el administrador valide tu depósito bancario.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_tienda_souvenirs.png`  
-**Instrucciones de Captura:** Captura de la interfaz de la tienda virtual de souvenirs en Fluent UI v9, mostrando la cuadrícula de productos con sus precios en bolivianos, stock actual y el botón de compra interactivo. Guardar la imagen en `website/static/img/img_tienda_souvenirs.png`.
-:::
-
 ![Tienda Virtual de Souvenirs](/img/img_tienda_souvenirs.png)
 
 ---

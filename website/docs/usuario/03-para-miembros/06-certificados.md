@@ -16,11 +16,6 @@ Una vez completados los requisitos de aprobación de un curso o un evento, la pl
    * Un **Código QR de Verificación**.
 5. Cualquiera puede escanear el QR impreso en el PDF para consultar directamente en el backend de la comunidad la autenticidad del documento sin comprometer la base de datos principal.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_mis_certificados.png`  
-**Instrucciones de Captura:** Captura de la sección "Mis Certificados" en el Dashboard, listando los diplomas disponibles para descargar y la vista de una tarjeta con el botón de descarga habilitado. Guardar la imagen en `website/static/img/img_mis_certificados.png`.
-:::
-
 ![Descargar Certificados Académicos](/img/img_mis_certificados.png)
 
 ---
@@ -28,5 +23,5 @@ Una vez completados los requisitos de aprobación de un curso o un evento, la pl
 ### 📋 Errores Comunes de Emisión
 Si el botón de descarga aparece inhabilitado, comprueba que:
 * Hayas marcado todas las lecciones del curso como completadas.
-* Tu pago por kit o souvenir esté en estado `'APROBADO'` o `'CONCILIADO'` (para eventos de pago).
+* Tu pago por kit o souvenir esté en estado `'VERIFICADO_AUTOMATICO'` o `'APROBADO'` (para eventos de pago).
 * Tu marca de checkpoint de salida presencial haya sido escaneada exitosamente por el staff en la puerta de egreso.

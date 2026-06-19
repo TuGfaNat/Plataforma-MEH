@@ -17,11 +17,6 @@ El Learning Management System (LMS) centraliza la formación curricular de la co
    * **Reproductor Multimedia:** Video de la clase seleccionada y descripción didáctica.
 6. Al finalizar de ver un video, haz clic en **Marcar lección como completada** para guardar tu avance físico en la base de datos relacional.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_learning_hub.png`  
-**Instrucciones de Captura:** Captura de la pantalla del aula virtual LMS (CursoAula.jsx), mostrando el panel lateral de lecciones, el reproductor de video central y el porcentaje de avance acumulado en Fluent UI v9. Guardar la imagen en `website/static/img/img_learning_hub.png`.
-:::
-
 ![Aula Virtual LMS (Learning Hub)](/img/img_learning_hub.png)
 
 ---

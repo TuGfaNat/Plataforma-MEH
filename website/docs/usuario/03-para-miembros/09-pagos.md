@@ -17,11 +17,6 @@ El panel financiero te permite auditar y realizar el seguimiento de todos los co
    * **Fecha de Registro:** Timestamp de auditoría.
    * **Estado de Validación:** Pendiente (`'PENDIENTE'`), Verificado Automático por OCR (`'VERIFICADO_AUTOMATICO'`), Aprobado por Admin (`'APROBADO'`) o Rechazado (`'RECHAZADO'`).
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_mis_finanzas.png`  
-**Instrucciones de Captura:** Captura del panel de "Mis Finanzas" del estudiante, listando el historial de depósitos con sus marcas de tiempo y el color dinámico de sus estados en Fluent UI v9. Guardar la imagen en `website/static/img/img_mis_finanzas.png`.
-:::
-
 ![Historial de Pagos y Finanzas](/img/img_mis_finanzas.png)
 
 ---

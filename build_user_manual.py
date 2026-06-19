@@ -124,11 +124,6 @@ Aprende a registrarte, iniciar sesión y configurar tu espacio de trabajo en la 
    * **Confirmar Contraseña:** Validación de correspondencia.
 4. Presiona **Crear Cuenta**. Recibirás una notificación visual en pantalla confirmando el registro exitoso.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_login.png`  
-**Instrucciones de Captura:** Captura de la pantalla de inicio de sesión (Login) de la plataforma, mostrando las cajas de texto de Correo, Contraseña y el botón de ingresar en Fluent UI v9. Guardar la imagen en `website/static/img/img_login.png`.
-:::
-
 ![Inicio de Sesión (Login)](/img/img_login.png)
 
 ### Inicio de Sesión
@@ -148,11 +143,6 @@ Una vez dentro de tu Dashboard, puedes configurar tu identidad digital:
 3. **Preferencias Estéticas (Tema):** Utiliza el selector de tema para cambiar entre el Modo Claro (*Light Theme*) y el Modo Oscuro (*Dark Theme*). La plataforma persistirá esta selección en el almacenamiento local de tu navegador (`localStorage`) para evitar parpadeos visuales indeseados en futuras visitas.
 4. **Soporte Multiidioma:** Conmuta entre Español e Inglés instantáneamente utilizando el control de idioma de la barra lateral. Las etiquetas y campos se traducirán dinámicamente mediante el motor `i18next`.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_perfil.png`  
-**Instrucciones de Captura:** Captura de la vista de "Mi Perfil" del usuario, mostrando los campos de edición de información personal y el selector de tema visual (claro/oscuro) en Fluent UI v9. Guardar la imagen en `website/static/img/img_perfil.png`.
-:::
-
 ![Mi Perfil y Preferencias](/img/img_perfil.png)
 
 ---
@@ -160,11 +150,6 @@ Una vez dentro de tu Dashboard, puedes configurar tu identidad digital:
 ## 3. Acceso al Dashboard Central
 
 Una vez autenticado, verás la consola de usuario que resume tu avance:
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_dashboard_member.png`  
-**Instrucciones de Captura:** Captura del Dashboard del Estudiante en modo oscuro, mostrando las métricas de desempeño, los cursos en curso y la galería de medallas obtenidas. Guardar la imagen en `website/static/img/img_dashboard_member.png`.
-:::
 
 ![Dashboard del Estudiante](/img/img_dashboard_member.png)
 """)
@@ -180,11 +165,6 @@ El módulo de Eventos te permite visualizar la agenda académica activa de la co
 2. Visualizarás una cuadrícula responsiva con las conferencias programadas (como el *Azure Fest* o *Road to Imagine Cup*).
 3. Utiliza los filtros de fecha y categoría para encontrar eventos de tu interés.
 4. Haz clic en **Ver Detalles** sobre cualquier evento para consultar la agenda horaria, los ponentes asignados y los requisitos de matriculación.
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_landing.png`  
-**Instrucciones de Captura:** Captura de la sección de eventos de la comunidad, mostrando las tarjetas de los eventos activos con sus descripciones, fechas e imágenes de portada en Fluent UI v9. Guardar la imagen en `website/static/img/img_landing.png`.
-:::
 
 ![Explorar Eventos de la Comunidad](/img/img_landing.png)
 
@@ -210,11 +190,6 @@ Aprende a registrar tu participación en un evento y a subir tu comprobante de p
    * Haz clic en **Cargar Comprobante**, introduce el número de transacción bancaria y sube el archivo de imagen.
    * Haz clic en **Enviar Solicitud**.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_formulario_inscripcion.png`  
-**Instrucciones de Captura:** Captura del formulario de inscripción para eventos de pago, mostrando las cajas de texto del número de transacción, el botón de subir imagen y los mensajes de validación Fluent UI v9. Guardar la imagen en `website/static/img/img_formulario_inscripcion.png`.
-:::
-
 ![Formulario de Inscripción y Voucher](/img/img_formulario_inscripcion.png)
 
 ---
@@ -235,11 +210,6 @@ Tu código QR es tu credencial inalterable para registrar tu asistencia a los ev
 3. Haz clic para desplegar una ventana modal que contiene tu código QR generado de forma dinámica y segura.
 4. **En la Entrada del Evento:** Presenta la pantalla de tu dispositivo móvil con el código QR para que el personal de staff lo escanee. El escaneo inyectará una marca de tiempo síncrona en PostgreSQL en menos de 50 ms.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_secuencia_qr.png`  
-**Instrucciones de Captura:** Captura de la ventana modal emergente en Fluent UI v9 del Dashboard del usuario que despliega el código QR personal de asistencia junto a las instrucciones del lector. Guardar la imagen en `website/static/img/img_secuencia_qr.png`.
-:::
-
 ![Código QR de Asistencia](/img/img_secuencia_qr.png)
 
 :::tip 💡 Consejo de Uso
@@ -257,11 +227,6 @@ Los checkpoints son puntos de control lógico distribuidos dentro de las confere
 3. El staff seleccionará el checkpoint correspondiente en su consola offline u online y escaneará tu QR.
 4. El sistema inyectará la marca temporal correspondiente en la tabla relacional `asistencia_detalles` de PostgreSQL.
 5. Al final del evento, la acumulación exitosa de registros en los checkpoints obligatorios es validada síncronamente para habilitar la descarga de tu certificado de aprobación.
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_checkpoints_list.png`  
-**Instrucciones de Captura:** Captura del listado del historial de checkpoints escaneados del miembro en su Dashboard personal, con sus marcas de tiempo y el estado verificado de cada punto. Guardar la imagen en `website/static/img/img_checkpoints_list.png`.
-:::
 
 ![Historial de Checkpoints de Asistencia](/img/img_checkpoints_list.png)
 
@@ -284,11 +249,6 @@ El Learning Management System (LMS) centraliza la formación curricular de la co
    * **Barra de Navegación del Curso:** Listado secuencial de lecciones por módulos.
    * **Reproductor Multimedia:** Video de la clase seleccionada y descripción didáctica.
 6. Al finalizar de ver un video, haz clic en **Marcar lección como completada** para guardar tu avance físico en la base de datos relacional.
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_learning_hub.png`  
-**Instrucciones de Captura:** Captura de la pantalla del aula virtual LMS (CursoAula.jsx), mostrando el panel lateral de lecciones, el reproductor de video central y el porcentaje de avance acumulado en Fluent UI v9. Guardar la imagen en `website/static/img/img_learning_hub.png`.
-:::
 
 ![Aula Virtual LMS (Learning Hub)](/img/img_learning_hub.png)
 
@@ -313,11 +273,6 @@ Una vez completados los requisitos de aprobación de un curso o un evento, la pl
    * Un **Código QR de Verificación**.
 5. Cualquiera puede escanear el QR impreso en el PDF para consultar directamente en el backend de la comunidad la autenticidad del documento sin comprometer la base de datos principal.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_mis_certificados.png`  
-**Instrucciones de Captura:** Captura de la sección "Mis Certificados" en el Dashboard, listando los diplomas disponibles para descargar y la vista de una tarjeta con el botón de descarga habilitado. Guardar la imagen en `website/static/img/img_mis_certificados.png`.
-:::
-
 ![Descargar Certificados Académicos](/img/img_mis_certificados.png)
 
 ---
@@ -339,11 +294,6 @@ El sistema de gamificación de la comunidad MEH premia tu avance técnico median
 3. Haz clic sobre cualquier medalla desbloqueada para ver sus metadatos detallados (Habilidad certificada, Fecha de otorgamiento, Emisor oficial y firma hash).
 4. Puedes descargar la imagen física de la medalla en formato PNG. El archivo lleva inyectado criptográficamente en sus metadatos físicos (PNG chunks) la firma JSON de validez internacional.
 5. Puedes enlazar e interoperar tu medalla virtual en redes profesionales como LinkedIn y Twitter para acreditar tus competencias.
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_vitrina_badges.png`  
-**Instrucciones de Captura:** Captura de la vitrina de medallas del miembro en Fluent UI v9, mostrando la galería de imágenes SVG de logros desbloqueados y el detalle de metadatos al hacer clic en uno de ellos. Guardar la imagen en `website/static/img/img_vitrina_badges.png`.
-:::
 
 ![Vitrina de Insignias (Open Badges)](/img/img_vitrina_badges.png)
 
@@ -369,11 +319,6 @@ Visita la tienda oficial de Microsoft Education Hub para adquirir merchandising,
 5. Haz clic en **Finalizar Pedido**.
 6. El estado del pedido se actualizará en tu panel financiero y podrás retirar el souvenir en las oficinas del Hub de la facultad una vez que el administrador valide tu depósito bancario.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_tienda_souvenirs.png`  
-**Instrucciones de Captura:** Captura de la interfaz de la tienda virtual de souvenirs en Fluent UI v9, mostrando la cuadrícula de productos con sus precios en bolivianos, stock actual y el botón de compra interactivo. Guardar la imagen en `website/static/img/img_tienda_souvenirs.png`.
-:::
-
 ![Tienda Virtual de Souvenirs](/img/img_tienda_souvenirs.png)
 
 ---
@@ -397,11 +342,6 @@ El panel financiero te permite auditar y realizar el seguimiento de todos los co
    * **Fecha de Registro:** Timestamp de auditoría.
    * **Estado de Validación:** Pendiente (`'PENDIENTE'`), Verificado Automático por OCR (`'VERIFICADO_AUTOMATICO'`), Aprobado por Admin (`'APROBADO'`) o Rechazado (`'RECHAZADO'`).
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_mis_finanzas.png`  
-**Instrucciones de Captura:** Captura del panel de "Mis Finanzas" del estudiante, listando el historial de depósitos con sus marcas de tiempo y el color dinámico de sus estados en Fluent UI v9. Guardar la imagen en `website/static/img/img_mis_finanzas.png`.
-:::
-
 ![Historial de Pagos y Finanzas](/img/img_mis_finanzas.png)
 
 ---
@@ -421,11 +361,6 @@ El Validador de Talento te permite sincronizar y certificar tus logros académic
 4. El backend se comunicará síncronamente con la API pública de perfiles de Microsoft Learn.
 5. El sistema extraerá tus rutas de aprendizaje (*learning paths*) completadas y las traducirá de forma segura en insignias y créditos locales dentro de la Plataforma MEH.
 6. El Dashboard se actualizará reflejando tus nuevas medallas.
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_validador_talento.png`  
-**Instrucciones de Captura:** Captura de la pantalla del Validador de Talento, mostrando el campo para el ID de Microsoft Learn, el botón de sincronización y la barra de carga de logros en Fluent UI v9. Guardar la imagen en `website/static/img/img_validador_talento.png`.
-:::
 
 ![Validador de Talento (Microsoft Learn)](/img/img_validador_talento.png)
 
@@ -464,11 +399,6 @@ Este bloque detalla las operaciones restringidas al personal de organización y 
    * **Switch de Publicación:** Conmuta si el evento es visible para los alumnos.
 3. Presiona **Guardar**. La tupla se insertará en PostgreSQL heredando las propiedades de `AuditMixin`.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_crear_evento.png`  
-**Instrucciones de Captura:** Captura del formulario de creación y edición de eventos del organizador, mostrando las cajas de entrada de datos y el switch de publicación rápida en Fluent UI v9. Guardar la imagen en `website/static/img/img_crear_evento.png`.
-:::
-
 ![Formulario de Creación de Evento](/img/img_crear_evento.png)
 
 ---
@@ -491,11 +421,6 @@ El escáner QR de puerta opera bajo una interfaz responsiva provista de telemetr
 2. Selecciona el **Checkpoint** activo del listado y otorga permisos de cámara a tu navegador.
 3. Enfoca el código QR del asistente. El sistema procesará el token en caliente enviando un request `POST /api/v1/asistencia/scan`.
 4. El backend devolverá una alerta verde si la marca es registrada correctamente, o roja si es inválida, duplicada o pertenece a otro evento.
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_escaneo_qr_consola.png`  
-**Instrucciones de Captura:** Captura de la consola del escáner QR de asistencia (EscaneoQR.jsx), con la cámara encendida, el selector de checkpoints y el panel lateral de marcas de tiempo capturadas. Guardar la imagen en `website/static/img/img_escaneo_qr_consola.png`.
-:::
 
 ![Consola de Escaneo QR (Soporte/Organizador)](/img/img_escaneo_qr_consola.png)
 
@@ -533,11 +458,6 @@ Este bloque documenta las operaciones privilegiadas del Administrador de la plat
 
 El administrador cuenta con una consola integrada para supervisar y parametrizar todo el sistema de la comunidad.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_admin_panel.png`  
-**Instrucciones de Captura:** Captura del Panel de Control de Administración en modo oscuro, mostrando las gráficas de Recharts, cantidad de registrados, y la barra superior de Fluent UI v9. Guardar la imagen en `website/static/img/img_admin_panel.png`.
-:::
-
 ![Panel de Control Maestro Administrativo](/img/img_admin_panel.png)
 
 ---
@@ -548,11 +468,6 @@ El administrador cuenta con una consola integrada para supervisar y parametrizar
 2. Visualizarás la cuadrícula interactiva con la nómina de la comunidad.
 3. **Cambio de Rol:** Selecciona un usuario y utiliza el menú desplegable para reasignar su rol (`ADMIN`, `ORGANIZADOR`, `MODERADOR`, `SOPORTE`, `EMBAJADOR`, `MIEMBRO`).
 4. **Estado de Cuenta:** Utiliza el switch para desactivar o activar una cuenta en vivo, inhabilitando accesos de inmediato.
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_gestion_usuarios.png`  
-**Instrucciones de Captura:** Captura de la cuadrícula de control de usuarios del administrador, mostrando los menús de selección de roles RBAC y los switches de estado en Fluent UI v9. Guardar la imagen en `website/static/img/img_gestion_usuarios.png`.
-:::
 
 ![Gestión de Usuarios y Roles RBAC](/img/img_gestion_usuarios.png)
 
@@ -570,11 +485,6 @@ La plataforma gestiona los depósitos bancarios de los alumnos combinando visió
    * Los **Metadatos Extraídos por OCR** (monto, ID de transacción, fecha) a la derecha.
 4. Puedes presionar **Aprobar Depósito** (habilitando la matrícula automática al LMS o evento) o **Rechazar Depósito** (solicitando que el alumno vuelva a cargar el voucher).
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_admin.png`  
-**Instrucciones de Captura:** Captura de la consola de validación de pagos del administrador (GestionPagos.jsx), visualizando el voucher del estudiante y los campos procesados por OCR al costado en Fluent UI v9. Guardar la imagen en `website/static/img/img_admin.png`.
-:::
-
 ![Consola de Validación de Pagos (OCR)](/img/img_admin.png)
 
 ### Conciliación Bancaria Difusa en Lote
@@ -586,11 +496,6 @@ La plataforma gestiona los depósitos bancarios de los alumnos combinando visió
    * Evaluará la proximidad en fechas de transacción (ventana temporal de ±3 días).
    * Buscará el ID de pago exacto en la glosa del banco (confianza 100%).
 4. El sistema mostrará la tabla de conciliados recomendados (> 60% de confianza) para confirmación masiva del administrador.
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_conciliacion_ocr.png`  
-**Instrucciones de Captura:** Captura del panel de conciliación bancaria en lote, mostrando la barra de carga del extracto CSV y la cuadrícula comparativa de coincidencias Jaro-Winkler detectadas. Guardar la imagen en `website/static/img/img_conciliacion_ocr.png`.
-:::
 
 ![Conciliación Bancaria Difusa en Lote](/img/img_conciliacion_ocr.png)
 
@@ -624,11 +529,6 @@ Para garantizar la seguridad de la información ante manipulaciones internas:
    * Tipo de mutación de datos.
    * Un reporte JSON comparativo (*diff*) contrastando los campos anteriores con los nuevos valores modificados.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_rbac_security.png`  
-**Instrucciones de Captura:** Captura de la consola de auditoría de logs del sistema (Auditoria.jsx), mostrando las columnas de IP, marca temporal, operador y el objeto JSON de auditoría forense. Guardar la imagen en `website/static/img/img_rbac_security.png`.
-:::
-
 ![Bitácora de Auditoría Forense (Logs)](/img/img_rbac_security.png)
 """)
 
@@ -655,11 +555,6 @@ Si un alumno se presenta en la puerta de entrada alegando que no puede cargar su
 4. **Verificar el Estado del QR:** Comprueba si el estado de su inscripción figura como `'CONFIRMADO'`:
    * Si figura como `'PENDIENTE'` o `'REVISION_MANUAL'`, dirígete al panel de pagos para verificar físicamente el voucher.
    * Si la transacción bancaria es legítima, solicita al administrador la aprobación manual inmediata en el sistema.
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_consola_soporte.png`  
-**Instrucciones de Captura:** Captura de la consola de soporte de mesa de entrada, mostrando la barra de búsqueda reactiva Fluent UI v9 y los resultados de coincidencia con sus estados de validación. Guardar la imagen en `website/static/img/img_consola_soporte.png`.
-:::
 
 ![Consola de Mesa de Soporte](/img/img_consola_soporte.png)
 

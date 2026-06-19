@@ -13,11 +13,6 @@ Este bloque documenta las operaciones privilegiadas del Administrador de la plat
 
 El administrador cuenta con una consola integrada para supervisar y parametrizar todo el sistema de la comunidad.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_admin_panel.png`  
-**Instrucciones de Captura:** Captura del Panel de Control de Administración en modo oscuro, mostrando las gráficas de Recharts, cantidad de registrados, y la barra superior de Fluent UI v9. Guardar la imagen en `website/static/img/img_admin_panel.png`.
-:::
-
 ![Panel de Control Maestro Administrativo](/img/img_admin_panel.png)
 
 ---
@@ -28,11 +23,6 @@ El administrador cuenta con una consola integrada para supervisar y parametrizar
 2. Visualizarás la cuadrícula interactiva con la nómina de la comunidad.
 3. **Cambio de Rol:** Selecciona un usuario y utiliza el menú desplegable para reasignar su rol (`ADMIN`, `ORGANIZADOR`, `MODERADOR`, `SOPORTE`, `EMBAJADOR`, `MIEMBRO`).
 4. **Estado de Cuenta:** Utiliza el switch para desactivar o activar una cuenta en vivo, inhabilitando accesos de inmediato.
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_gestion_usuarios.png`  
-**Instrucciones de Captura:** Captura de la cuadrícula de control de usuarios del administrador, mostrando los menús de selección de roles RBAC y los switches de estado en Fluent UI v9. Guardar la imagen en `website/static/img/img_gestion_usuarios.png`.
-:::
 
 ![Gestión de Usuarios y Roles RBAC](/img/img_gestion_usuarios.png)
 
@@ -50,45 +40,33 @@ La plataforma gestiona los depósitos bancarios de los alumnos combinando visió
    * Los **Metadatos Extraídos por OCR** (monto, ID de transacción, fecha) a la derecha.
 4. Puedes presionar **Aprobar Depósito** (habilitando la matrícula automática al LMS o evento) o **Rechazar Depósito** (solicitando que el alumno vuelva a cargar el voucher).
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_admin.png`  
-**Instrucciones de Captura:** Captura de la consola de validación de pagos del administrador (GestionPagos.jsx), visualizando el voucher del estudiante y los campos procesados por OCR al costado en Fluent UI v9. Guardar la imagen en `website/static/img/img_admin.png`.
-:::
-
 ![Consola de Validación de Pagos (OCR)](/img/img_admin.png)
 
-### Conciliación Bancaria Automatizada en Lote
-1. Para validar masivamente las transacciones contra la cuenta bancaria de la comunidad, solicita el archivo de extracto bancario en formato **Excel (.xlsx) o CSV**.
-2. Sube el archivo arrastrándolo a la zona de carga de extractos.
+### Conciliación Bancaria Difusa en Lote
+1. Para validar masivamente las transacciones contra la cuenta bancaria de la comunidad, solicita el archivo **CSV de extracto mensual** del banco.
+2. Haz clic en **Conciliar Extracto CSV** y sube el archivo.
 3. El motor de servicios del backend (`ocrm_service.py`):
-   * Filtrará las transacciones por montos equivalentes.
-   * Buscará coincidencia directa por códigos de transacción o referencias de pago (números de 6 o más dígitos) presentes en la glosa y en el texto extraído del comprobante PDF de los alumnos (confianza **100%**).
-   * Buscará el ID de pago exacto como una palabra completa en la glosa (confianza **100%**).
-   * Calculará de forma difusa la similitud del nombre del estudiante mediante la métrica **Jaro-Winkler** sobre las palabras de la glosa.
-   * Evaluará la proximidad temporal de las fechas de cobro (ventana temporal de ±3 días con bonus de confianza de hasta +15.0%).
-4. El sistema listará los resultados indicando las coincidencias recomendadas, permitiendo al administrador aprobarlas en bloque con un solo clic.
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_conciliacion_ocr.png`  
-**Instrucciones de Captura:** Captura del panel de conciliación bancaria en lote, mostrando la barra de carga del extracto bancario (Excel/CSV) y la cuadrícula comparativa de coincidencias detectadas. Guardar la imagen en `website/static/img/img_conciliacion_ocr.png`.
-:::
+   * Cruzará las transacciones por montos equivalentes.
+   * Calculará la similitud de nombres de estudiantes mediante el algoritmo **Jaro-Winkler** (umbral de tolerancia difusa del 85%).
+   * Evaluará la proximidad en fechas de transacción (ventana temporal de ±3 días).
+   * Buscará el ID de pago exacto en la glosa del banco (confianza 100%).
+4. El sistema mostrará la tabla de conciliados recomendados (> 60% de confianza) para confirmación masiva del administrador.
 
 ![Conciliación Bancaria Difusa en Lote](/img/img_conciliacion_ocr.png)
 
 ```mermaid
 flowchart TD
-    A[Voucher PDF/Imagen del Alumno] --> B[Extracción de texto con pypdf]
-    B -->|Válido y legible (confianza >= 95%)| C[Estado: PENDIENTE]
-    B -->|Baja confianza (< 95%)| D[Estado: REVISION_MANUAL]
+    A[Voucher Subido por Alumno] --> B[Motor de OCR Determinístico]
+    B -->|PDF/Imagen > 5 KB| C[Confianza 98% - VERIFICADO_AUTOMATICO]
+    B -->|Archivo pequeño < 5 KB| D[Confianza 50% - REVISION_MANUAL]
     
-    E[Cargar Extracto Bancario Excel o CSV] --> F[Motor de Conciliación Bancaria]
+    E[Cargar Extracto Bancario CSV] --> F[Motor de Conciliación Bancaria]
     F --> G[Fuzzy Matching Jaro-Winkler de Nombres]
-    F --> H[Búsqueda de ID de Pago en la Glosa]
-    F --> I[Match de Código de Referencia >= 6 dígitos con texto OCR]
-    F --> J[Bonus por Proximidad de Fecha ±3 días]
-    G & H & I & J --> K{¿Similitud >= 60% o Código Coincide?}
-    K -->|Sí| L[Emparejar y Autocompletar Conciliación]
-    K -->|No| M[Mantener Sin Coincidencias]
+    F --> H[Búsqueda de ID Exacto como Palabra Completa]
+    F --> I[Bonus por Ventana Temporal de Fecha ±3 días]
+    G & H & I --> J{¿Similitud >= 60.0%?}
+    J -->|Sí| K[Emparejar y Autocompletar Conciliación]
+    J -->|No| L[Mantener Pendiente]
 ```
 
 ---
@@ -105,10 +83,5 @@ Para garantizar la seguridad de la información ante manipulaciones internas:
    * Identificador del operador involucrado.
    * Tipo de mutación de datos.
    * Un reporte JSON comparativo (*diff*) contrastando los campos anteriores con los nuevos valores modificados.
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_rbac_security.png`  
-**Instrucciones de Captura:** Captura de la consola de auditoría de logs del sistema (Auditoria.jsx), mostrando las columnas de IP, marca temporal, operador y el objeto JSON de auditoría forense. Guardar la imagen en `website/static/img/img_rbac_security.png`.
-:::
 
 ![Bitácora de Auditoría Forense (Logs)](/img/img_rbac_security.png)

@@ -14,11 +14,6 @@ Los checkpoints son puntos de control lógico distribuidos dentro de las confere
 4. El sistema inyectará la marca temporal correspondiente en la tabla relacional `asistencia_detalles` de PostgreSQL.
 5. Al final del evento, la acumulación exitosa de registros en los checkpoints obligatorios es validada síncronamente para habilitar la descarga de tu certificado de aprobación.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_checkpoints_list.png`  
-**Instrucciones de Captura:** Captura del listado del historial de checkpoints escaneados del miembro en su Dashboard personal, con sus marcas de tiempo y el estado verificado de cada punto. Guardar la imagen en `website/static/img/img_checkpoints_list.png`.
-:::
-
 ![Historial de Checkpoints de Asistencia](/img/img_checkpoints_list.png)
 
 ---

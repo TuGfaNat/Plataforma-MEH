@@ -21,11 +21,6 @@ Aprende a registrarte, iniciar sesión y configurar tu espacio de trabajo en la 
    * **Confirmar Contraseña:** Validación de correspondencia.
 4. Presiona **Crear Cuenta**. Recibirás una notificación visual en pantalla confirmando el registro exitoso.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_login.png`  
-**Instrucciones de Captura:** Captura de la pantalla de inicio de sesión (Login) de la plataforma, mostrando las cajas de texto de Correo, Contraseña y el botón de ingresar en Fluent UI v9. Guardar la imagen en `website/static/img/img_login.png`.
-:::
-
 ![Inicio de Sesión (Login)](/img/img_login.png)
 
 ### Inicio de Sesión
@@ -45,11 +40,6 @@ Una vez dentro de tu Dashboard, puedes configurar tu identidad digital:
 3. **Preferencias Estéticas (Tema):** Utiliza el selector de tema para cambiar entre el Modo Claro (*Light Theme*) y el Modo Oscuro (*Dark Theme*). La plataforma persistirá esta selección en el almacenamiento local de tu navegador (`localStorage`) para evitar parpadeos visuales indeseados en futuras visitas.
 4. **Soporte Multiidioma:** Conmuta entre Español e Inglés instantáneamente utilizando el control de idioma de la barra lateral. Las etiquetas y campos se traducirán dinámicamente mediante el motor `i18next`.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_perfil.png`  
-**Instrucciones de Captura:** Captura de la vista de "Mi Perfil" del usuario, mostrando los campos de edición de información personal y el selector de tema visual (claro/oscuro) en Fluent UI v9. Guardar la imagen en `website/static/img/img_perfil.png`.
-:::
-
 ![Mi Perfil y Preferencias](/img/img_perfil.png)
 
 ---
@@ -57,10 +47,5 @@ Una vez dentro de tu Dashboard, puedes configurar tu identidad digital:
 ## 3. Acceso al Dashboard Central
 
 Una vez autenticado, verás la consola de usuario que resume tu avance:
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_dashboard_member.png`  
-**Instrucciones de Captura:** Captura del Dashboard del Estudiante en modo oscuro, mostrando las métricas de desempeño, los cursos en curso y la galería de medallas obtenidas. Guardar la imagen en `website/static/img/img_dashboard_member.png`.
-:::
 
 ![Dashboard del Estudiante](/img/img_dashboard_member.png)

@@ -13,11 +13,6 @@ El módulo de Eventos te permite visualizar la agenda académica activa de la co
 3. Utiliza los filtros de fecha y categoría para encontrar eventos de tu interés.
 4. Haz clic en **Ver Detalles** sobre cualquier evento para consultar la agenda horaria, los ponentes asignados y los requisitos de matriculación.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_landing.png`  
-**Instrucciones de Captura:** Captura de la sección de eventos de la comunidad, mostrando las tarjetas de los eventos activos con sus descripciones, fechas e imágenes de portada en Fluent UI v9. Guardar la imagen en `website/static/img/img_landing.png`.
-:::
-
 ![Explorar Eventos de la Comunidad](/img/img_landing.png)
 
 ---

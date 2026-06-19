@@ -20,11 +20,6 @@ Este bloque detalla las operaciones restringidas al personal de organización y 
    * **Switch de Publicación:** Conmuta si el evento es visible para los alumnos.
 3. Presiona **Guardar**. La tupla se insertará en PostgreSQL heredando las propiedades de `AuditMixin`.
 
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_crear_evento.png`  
-**Instrucciones de Captura:** Captura del formulario de creación y edición de eventos del organizador, mostrando las cajas de entrada de datos y el switch de publicación rápida en Fluent UI v9. Guardar la imagen en `website/static/img/img_crear_evento.png`.
-:::
-
 ![Formulario de Creación de Evento](/img/img_crear_evento.png)
 
 ---
@@ -47,11 +42,6 @@ El escáner QR de puerta opera bajo una interfaz responsiva provista de telemetr
 2. Selecciona el **Checkpoint** activo del listado y otorga permisos de cámara a tu navegador.
 3. Enfoca el código QR del asistente. El sistema procesará el token en caliente enviando un request `POST /api/v1/asistencia/scan`.
 4. El backend devolverá una alerta verde si la marca es registrada correctamente, o roja si es inválida, duplicada o pertenece a otro evento.
-
-:::caution 📷 ACCIÓN REQUERIDA: CAPTURA DE PANTALLA
-**Nombre de Archivo a Guardar:** `img/img_escaneo_qr_consola.png`  
-**Instrucciones de Captura:** Captura de la consola del escáner QR de asistencia (EscaneoQR.jsx), con la cámara encendida, el selector de checkpoints y el panel lateral de marcas de tiempo capturadas. Guardar la imagen en `website/static/img/img_escaneo_qr_consola.png`.
-:::
 
 ![Consola de Escaneo QR (Soporte/Organizador)](/img/img_escaneo_qr_consola.png)
 
