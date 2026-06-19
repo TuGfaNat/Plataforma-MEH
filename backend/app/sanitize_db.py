@@ -86,6 +86,10 @@ def sanitize():
             run_sql(db, f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS id_estado INTEGER NOT NULL DEFAULT 2", 
                     f"Asegurar columna 'id_estado' en tabla {tabla}")
             
+            # Sanear valores NULL en id_estado (evita que queden invisibles al hacer != 0)
+            run_sql(db, f"UPDATE {tabla} SET id_estado = 2 WHERE id_estado IS NULL", 
+                    f"Sanear valores NULL en id_estado para tabla {tabla}")
+            
             # Añadir columna fecha_modificacion_estado
             run_sql(db, f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS fecha_modificacion_estado TIMESTAMP", 
                     f"Asegurar columna 'fecha_modificacion_estado' en tabla {tabla}")
