@@ -1,10 +1,11 @@
-alembic
-fastapi
-uvicorn
-sqlalchemy
+alembic==1.18.4
+fastapi==0.134.0
+starlette==0.52.1
+uvicorn==0.41.0
+sqlalchemy==2.0.47
 psycopg2-binary
-pydantic
-pydantic-settings
+pydantic==2.12.5
+pydantic-settings==2.13.1
 python-jose[cryptography]
 passlib[bcrypt]
 bcrypt==4.0.1
@@ -13,6 +14,7 @@ python-dotenv
 email-validator
 gunicorn
 google-auth
-requests
-prometheus-fastapi-instrumentator
+prometheus-fastapi-instrumentator==7.1.0
 openpyxl
+requests
+
