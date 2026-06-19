@@ -2,7 +2,7 @@ import api from './api';
 
 const insigniasService = {
   getInsignias: async () => {
-    const response = await api.get('/insignias');
+    const response = await api.get('/insignias/');
     return response.data;
   },
 
@@ -12,7 +12,7 @@ const insigniasService = {
   },
 
   createInsignia: async (insigniaData) => {
-    const response = await api.post('/insignias', insigniaData);
+    const response = await api.post('/insignias/', insigniaData);
     return response.data;
   },
 
