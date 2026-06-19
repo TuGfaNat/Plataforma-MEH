@@ -23,7 +23,13 @@ TEMAS_EVENTOS = [
     ("Taller de Python para Data Science", "TALLER", "Aprende pandas, numpy y scikit-learn."),
     ("Networking Tech La Paz", "NETWORKING", "Conecta con los líderes de la industria."),
     ("Hackathon MEH 2026", "HACKATHON", "48 horas de código puro y pizza."),
-    ("Seminario de Ciberseguridad", "CONFERENCIA", "Protegiendo infraestructuras críticas.")
+    ("Seminario de Ciberseguridad", "CONFERENCIA", "Protegiendo infraestructuras críticas."),
+    ("Azure DevOps Bootcamp", "TALLER", "Integración continua y entrega continua con Azure Pipelines."),
+    ("Introducción a la Inteligencia Artificial", "CONFERENCIA", "Modelos de lenguaje grande y redes neuronales."),
+    ("Desarrollo de Mobile Apps con MAUI", "TALLER", "Creando aplicaciones multiplataforma con C# y .NET MAUI."),
+    ("Microsoft Student Ambassadors Meetup", "NETWORKING", "Comparte experiencias con embajadores de todo el país."),
+    ("Workshop de PowerBI Avanzado", "TALLER", "Visualización de datos y modelado DAX profesional."),
+    ("Imagine Cup Bolivia 2026 - Mentoría", "ASESORAMIENTO", "Sesión de retroalimentación para equipos competidores.")
 ]
 
 CURSOS_DATA = [
@@ -380,17 +386,41 @@ def generate_super_seed():
 
         # 9. ANUNCIOS Y CONFIG
         print("[INFO] Publicando Anuncios...")
-        anuncio = db.query(models.Anuncio).filter(models.Anuncio.titulo == "Bienvenidos a la nueva Plataforma MEH 2026").first()
-        if not anuncio:
-            anuncio = models.Anuncio(
-                titulo="Bienvenidos a la nueva Plataforma MEH 2026",
-                contenido="Hemos actualizado todos nuestros sistemas para brindarte la mejor experiencia tecnológica de Bolivia.",
-                tipo="SUCCESS",
-                id_autor=admin_id,
-                creado_por=admin_id
-            )
-            db.add(anuncio)
-            db.commit()
+        anuncios_data = [
+            {
+                "titulo": "Bienvenidos a la nueva Plataforma MEH 2026",
+                "contenido": "Hemos actualizado todos nuestros sistemas para brindarte la mejor experiencia tecnológica de Bolivia. Disfruta de la nueva interfaz optimizada con Fluent UI y nuestro nuevo Learning Hub.",
+                "tipo": "SUCCESS"
+            },
+            {
+                "titulo": "Convocatoria Abierta: Microsoft Learn Student Ambassadors 2026",
+                "contenido": "Si quieres liderar la comunidad tecnológica en nuestra facultad y acceder a beneficios exclusivos como suscripciones a Azure, licencias de desarrollo de Visual Studio Enterprise, y mentorías directas con profesionales de Microsoft, ¡postula hoy mismo en el validador de talento!",
+                "tipo": "INFO"
+            },
+            {
+                "titulo": "Inicio de Clases en el Learning Hub (LMS)",
+                "contenido": "Estimada comunidad, les informamos que el día lunes de la siguiente semana iniciamos oficialmente las clases del curso 'Fullstack React & FastAPI'. Asegúrate de estar matriculado y revisar la barra de navegación del curso.",
+                "tipo": "EVENTO"
+            },
+            {
+                "titulo": "Hackathon MEH 2026 - ¡Quedan pocos cupos!",
+                "contenido": "¡Alerta de últimos cupos! El registro para la Hackathon MEH 2026 de este fin de semana está a punto de cerrarse debido al límite de capacidad del auditorio. Regístrate de inmediato para no quedar fuera.",
+                "tipo": "ALERTA"
+            }
+        ]
+        for a_data in anuncios_data:
+            anuncio = db.query(models.Anuncio).filter(models.Anuncio.titulo == a_data["titulo"]).first()
+            if not anuncio:
+                anuncio = models.Anuncio(
+                    titulo=a_data["titulo"],
+                    contenido=a_data["contenido"],
+                    tipo=a_data["tipo"],
+                    activo=True,
+                    id_autor=admin_id,
+                    creado_por=admin_id
+                )
+                db.add(anuncio)
+        db.commit()
         
         # Configuración Global
         configs = [
