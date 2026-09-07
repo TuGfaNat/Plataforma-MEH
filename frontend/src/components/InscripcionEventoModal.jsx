@@ -16,9 +16,10 @@ import {
   Dropdown,
   Option,
   makeStyles,
-  shorthands
+  shorthands,
+  Badge
 } from '@fluentui/react-components';
-import { ReceiptMoney24Filled, Dismiss24Regular, Attach24Regular, ArrowDownload24Regular } from '@fluentui/react-icons';
+import { ReceiptMoney24Filled, Dismiss24Regular, Attach24Regular, ArrowDownload24Regular, Gift24Regular, People24Regular, CheckmarkCircle24Regular } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from './ui';
 import { useNotify } from '../App';
 import pagoService from '../services/pagoService';
@@ -37,10 +38,32 @@ const useStyles = makeStyles({
     width: '100%',
     boxSizing: 'border-box'
   },
+  waitlistContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    padding: '20px',
+    backgroundColor: 'rgba(255, 185, 0, 0.06)',
+    ...shorthands.borderRadius('16px'),
+    ...shorthands.border('1px', 'solid', 'rgba(255, 185, 0, 0.25)'),
+    width: '100%',
+    boxSizing: 'border-box'
+  },
   paidContainer: {
     display: 'flex',
     flexDirection: 'column',
     gap: '20px',
+    width: '100%',
+    boxSizing: 'border-box'
+  },
+  incluidosBanner: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    padding: '16px',
+    backgroundColor: 'rgba(127, 19, 236, 0.08)',
+    ...shorthands.borderRadius('14px'),
+    ...shorthands.border('1px', 'solid', 'rgba(127, 19, 236, 0.22)'),
     width: '100%',
     boxSizing: 'border-box'
   },
@@ -99,7 +122,14 @@ const useStyles = makeStyles({
   }
 });
 
-const InscripcionEventoModal = ({ evento, onInscribed }) => {
+const InscripcionEventoModal = ({ 
+  evento, 
+  onInscribed, 
+  trigger, 
+  buttonText, 
+  buttonSize = "medium", 
+  buttonAppearance = "primary" 
+}) => {
   const styles = useStyles();
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -109,6 +139,39 @@ const InscripcionEventoModal = ({ evento, onInscribed }) => {
   const [file, setFile] = useState(null);
   const [isQrZoomed, setIsQrZoomed] = useState(false);
   const { notify } = useNotify();
+
+  const cuposMax = evento?.capacidad_maxima ?? evento?.capacidad_max;
+  const cuposOcupados = evento?.cupos_ocupados ?? 0;
+  const cuposDisponibles = evento?.cupos_disponibles !== undefined 
+    ? evento.cupos_disponibles 
+    : (cuposMax ? Math.max(0, cuposMax - cuposOcupados) : undefined);
+  const isSoldOut = cuposDisponibles !== undefined ? cuposDisponibles <= 0 : false;
+
+  const parseIncluidos = () => {
+    const list = [];
+    if (evento?.refrigerio_incluido) {
+      list.push('Refrigerio');
+    }
+    if (evento?.incluidos) {
+      if (typeof evento.incluidos === 'string') {
+        const parts = evento.incluidos.split(',').map(s => s.trim()).filter(Boolean);
+        for (const p of parts) {
+          if (!list.some(existing => existing.toLowerCase() === p.toLowerCase())) {
+            list.push(p);
+          }
+        }
+      } else if (Array.isArray(evento.incluidos)) {
+        for (const p of evento.incluidos) {
+          if (p && !list.some(existing => existing.toLowerCase() === String(p).trim().toLowerCase())) {
+            list.push(String(p).trim());
+          }
+        }
+      }
+    }
+    return list;
+  };
+
+  const incluidosList = parseIncluidos();
 
   const handleDownloadQr = async () => {
     if (!selectedPackage?.url_qr) return;
@@ -126,13 +189,12 @@ const InscripcionEventoModal = ({ evento, onInscribed }) => {
       window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
       console.error("Error downloading QR:", error);
-      // Fallback: open in new tab
       window.open(resolveApiFileUrl(selectedPackage.url_qr), '_blank');
     }
   };
 
   useEffect(() => {
-    if (isOpen && evento?.id_evento) {
+    if (isOpen && evento?.id_evento && !isSoldOut) {
       const fetchPackages = async () => {
         setCheckingPackages(true);
         try {
@@ -149,34 +211,46 @@ const InscripcionEventoModal = ({ evento, onInscribed }) => {
       };
       fetchPackages();
     }
-  }, [isOpen, evento?.id_evento]);
+  }, [isOpen, evento?.id_evento, isSoldOut]);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
 
   const handleConfirmar = async () => {
-    const isPaid = packages.length > 0;
-
-    if (isPaid) {
-      if (!selectedPackage) {
-        notify("Validación", "Debes seleccionar un paquete de inscripción", "warning");
-        return;
-      }
-      if (!file) {
-        notify("Validación", "Debes adjuntar el comprobante de pago", "warning");
-        return;
-      }
-    }
-
     setLoading(true);
     try {
-      // 1. Inscribir al evento
-      const inscripcionResponse = await eventoService.inscribirse(evento.id_evento);
-      const idInscripcion = inscripcionResponse.id_inscripcion;
+      // Caso 1: Cupos agotados -> Ingreso a lista de espera
+      if (isSoldOut) {
+        await eventoService.inscribirse(evento.id_evento);
+        notify(
+          "Lista de espera", 
+          "Te has registrado en la Lista de Espera (PENDIENTE_APROBACION). Si el organizador amplía los cupos y aprueba tu registro, recibirás la confirmación.", 
+          "info"
+        );
+        setIsOpen(false);
+        if (onInscribed) onInscribed();
+        return;
+      }
 
-      // 2. Si es de pago, subir comprobante y asociarlo al pago
+      const isPaid = packages.length > 0;
+
+      // Caso 2: Evento de pago
       if (isPaid) {
+        if (!selectedPackage) {
+          notify("Validación", "Debes seleccionar un paquete de inscripción", "warning");
+          setLoading(false);
+          return;
+        }
+        if (!file) {
+          notify("Validación", "Debes adjuntar el comprobante de pago", "warning");
+          setLoading(false);
+          return;
+        }
+
+        const inscripcionResponse = await eventoService.inscribirse(evento.id_evento);
+        const idInscripcion = inscripcionResponse.id_inscripcion;
+
         const formData = new FormData();
         formData.append('id_referencia', idInscripcion);
         formData.append('tipo_referencia', 'EVENTO');
@@ -185,9 +259,19 @@ const InscripcionEventoModal = ({ evento, onInscribed }) => {
         formData.append('file', file);
 
         await pagoService.uploadComprobanteOcr(formData);
-        notify("Éxito", "Inscripción registrada y comprobante enviado. Pendiente de verificación.", "success");
+        notify(
+          "Comprobante enviado", 
+          "Inscripción registrada. Tu ticket QR se activará automáticamente una vez verificado el pago.", 
+          "success"
+        );
       } else {
-        notify("Éxito", "Te has inscrito correctamente en este evento gratuito.", "success");
+        // Caso 3: Evento gratuito con cupo disponible
+        await eventoService.inscribirse(evento.id_evento);
+        notify(
+          "Inscripción confirmada", 
+          "¡Te has inscrito con éxito! Se ha generado tu ticket QR único y te lo enviamos por correo electrónico.", 
+          "success"
+        );
       }
 
       setIsOpen(false);
@@ -203,26 +287,89 @@ const InscripcionEventoModal = ({ evento, onInscribed }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={(e, d) => setIsOpen(d.open)}>
-      <DialogTrigger disableButtonEnhancement>
-        <MEHButton appearance="primary" icon={<ReceiptMoney24Filled />}>Inscribirme</MEHButton>
-      </DialogTrigger>
+      {trigger ? (
+        <DialogTrigger disableButtonEnhancement>
+          {trigger}
+        </DialogTrigger>
+      ) : (
+        <DialogTrigger disableButtonEnhancement>
+          <MEHButton 
+            appearance={buttonAppearance} 
+            size={buttonSize} 
+            icon={<ReceiptMoney24Filled />}
+          >
+            {buttonText || (isSoldOut ? "Lista de Espera" : "Inscribirme")}
+          </MEHButton>
+        </DialogTrigger>
+      )}
       <DialogSurface style={{ backgroundColor: '#17171B', border: '1px solid rgba(127, 19, 236, 0.25)', borderRadius: '20px', maxWidth: '520px', width: '100%' }}>
         <DialogBody>
           <DialogTitle 
             style={{ color: tokens.colorNeutralForeground1, fontWeight: 'bold' }}
             action={<MEHButton appearance="subtle" icon={<Dismiss24Regular />} onClick={() => setIsOpen(false)} />}
           >
-            Inscripción a: {evento.titulo}
+            Inscripción: {evento.titulo}
           </DialogTitle>
           
           {checkingPackages ? (
             <div style={{ padding: '40px', textAlign: 'center', width: '100%' }}>
-              <Spinner label="Verificando modalidad del evento..." />
+              <Spinner label="Verificando modalidad y cupos del evento..." />
             </div>
           ) : (
             <DialogContent>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', boxSizing: 'border-box', padding: '8px 0', overflowX: 'hidden' }}>
-                {packages.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', boxSizing: 'border-box', padding: '8px 0', overflowX: 'hidden' }}>
+                
+                {/* Indicador de Cupos */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <People24Regular style={{ color: tokens.colorBrandForeground1 }} />
+                    <MEHTypography variant="caption" style={{ fontWeight: 'bold' }}>
+                      Cupos: {cuposOcupados} / {cuposMax || 'Ilimitados'}
+                    </MEHTypography>
+                  </div>
+                  {isSoldOut ? (
+                    <Badge appearance="filled" color="warning">Cupos Agotados</Badge>
+                  ) : cuposDisponibles !== undefined ? (
+                    <Badge appearance="tint" color="success">{cuposDisponibles} disponibles</Badge>
+                  ) : null}
+                </div>
+
+                {/* Ítems Incluidos Dinámicos */}
+                {incluidosList.length > 0 && (
+                  <div className={styles.incluidosBanner}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Gift24Regular style={{ color: tokens.colorBrandForeground1 }} />
+                      <MEHTypography variant="body" style={{ fontWeight: 'bold', fontSize: '13px' }}>
+                        Incluido con tu pase de entrada:
+                      </MEHTypography>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {incluidosList.map((item, idx) => (
+                        <Badge key={idx} appearance="outline" color="brand" icon={<CheckmarkCircle24Regular />}>
+                          {item}
+                        </Badge>
+                      ))}
+                    </div>
+                    <MEHTypography variant="caption" style={{ opacity: 0.75, fontSize: '11px', marginTop: '2px' }}>
+                      Tu código QR único servirá para acreditar tu ingreso y reclamar todos los ítems incluidos en los puntos de control.
+                    </MEHTypography>
+                  </div>
+                )}
+
+                {/* Estado de Inscripción según disponibilidad */}
+                {isSoldOut ? (
+                  // --- LISTA DE ESPERA (CUPOS AGOTADOS) ---
+                  <div className={styles.waitlistContainer}>
+                    <MessageBar intent="warning" layout="multiline" style={{ borderRadius: '10px', width: '100%' }}>
+                      <MessageBarBody>
+                        ⚠️ <b>Los cupos principales para este evento están completos.</b>
+                      </MessageBarBody>
+                    </MessageBar>
+                    <MEHTypography variant="body" style={{ opacity: 0.9, lineHeight: 1.5, fontSize: '13px' }}>
+                      Al unirte ingresarás en la <b>Lista de Espera</b> (estado <i>PENDIENTE_APROBACION</i>). No necesitas realizar ningún pago ahora. Si el organizador amplía los cupos y aprueba tu solicitud, serás notificado para habilitar tu pase.
+                    </MEHTypography>
+                  </div>
+                ) : packages.length === 0 ? (
                   // --- EVENTO GRATUITO ---
                   <div className={styles.freeContainer}>
                     <MessageBar intent="success" layout="multiline" style={{ borderRadius: '10px', width: '100%' }}>
@@ -230,15 +377,15 @@ const InscripcionEventoModal = ({ evento, onInscribed }) => {
                         🎉 Este evento es gratuito y de libre acceso. No necesitas comprobante ni realizar ningún pago.
                       </MessageBarBody>
                     </MessageBar>
-                    <MEHTypography variant="body" style={{ textAlign: 'center', opacity: 0.9, width: '100%' }}>
-                      Al confirmar, se registrará tu pase de entrada inmediatamente. ¡Te esperamos!
+                    <MEHTypography variant="body" style={{ textAlign: 'center', opacity: 0.9, width: '100%', fontSize: '13px' }}>
+                      Al confirmar, se emitirá tu código QR único de participante inmediatamente y se enviará a tu correo electrónico.
                     </MEHTypography>
                   </div>
                 ) : (
                   // --- EVENTO DE PAGO ---
                   <div className={styles.paidContainer}>
-                    <MEHTypography variant="body" style={{ opacity: 0.8 }}>
-                      Este evento requiere una inscripción previa de pago. Selecciona un paquete y escanea el código QR oficial correspondiente:
+                    <MEHTypography variant="body" style={{ opacity: 0.8, fontSize: '13px' }}>
+                      Este evento requiere inscripción de pago. Selecciona un paquete y transfiere al código QR bancario oficial:
                     </MEHTypography>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
@@ -276,7 +423,7 @@ const InscripcionEventoModal = ({ evento, onInscribed }) => {
                               title="Haz clic para ampliar y descargar"
                             />
                             <MEHTypography variant="caption" style={{ opacity: 0.8, marginTop: '4px', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setIsQrZoomed(true)}>
-                              🔍 Haz clic en la imagen para ampliar o descargar
+                              🔍 Haz clic en la imagen para ampliar o descargar QR de pago
                             </MEHTypography>
                           </div>
                         ) : (
@@ -307,7 +454,7 @@ const InscripcionEventoModal = ({ evento, onInscribed }) => {
 
                     <MessageBar intent="info" layout="multiline" style={{ borderRadius: '10px', width: '100%' }}>
                       <MessageBarBody>
-                        Tamaño máximo permitido del archivo: 5MB.
+                        Al aprobarse tu pago, recibirás tu código QR logístico único por correo y en tu dashboard.
                       </MessageBarBody>
                     </MessageBar>
                   </div>
@@ -324,11 +471,15 @@ const InscripcionEventoModal = ({ evento, onInscribed }) => {
               disabled={checkingPackages}
               onClick={handleConfirmar}
             >
-              {packages.length === 0 ? "Confirmar Inscripción" : "Subir y Confirmar"}
+              {isSoldOut 
+                ? "Unirme a Lista de Espera" 
+                : packages.length === 0 
+                  ? "Confirmar Inscripción" 
+                  : "Subir y Confirmar"}
             </MEHButton>
           </DialogActions>
 
-          {/* Dialog para Ampliar Código QR */}
+          {/* Dialog para Ampliar Código QR Bancario */}
           <Dialog open={isQrZoomed} onOpenChange={(e, d) => setIsQrZoomed(d.open)}>
             <DialogSurface style={{ backgroundColor: '#17171B', border: '1px solid rgba(127, 19, 236, 0.25)', borderRadius: '20px', maxWidth: '460px', width: '100%', padding: '16px' }}>
               <DialogBody>
@@ -336,12 +487,12 @@ const InscripcionEventoModal = ({ evento, onInscribed }) => {
                   style={{ color: tokens.colorNeutralForeground1, fontWeight: 'bold' }}
                   action={<MEHButton appearance="subtle" icon={<Dismiss24Regular />} onClick={() => setIsQrZoomed(false)} />}
                 >
-                  Código QR: {selectedPackage?.nombre_paquete}
+                  Código QR Bancario: {selectedPackage?.nombre_paquete}
                 </DialogTitle>
                 <DialogContent style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '16px 0' }}>
                   <img 
                     src={selectedPackage ? resolveApiFileUrl(selectedPackage.url_qr) : ''} 
-                    alt="QR Ampliado" 
+                    alt="QR Bancario Ampliado" 
                     style={{ 
                       width: '100%', 
                       maxWidth: '380px', 

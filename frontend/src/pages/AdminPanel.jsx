@@ -69,7 +69,7 @@ const AdminPanel = () => {
   const [selectedEventoId, setSelectedEventoId] = useState(null);
   const [isAddingEvento, setIsAddingEvento] = useState(false);
   const [isEditingEvento, setIsEditingEvento] = useState(false);
-  const [newEvento, setNewEvento] = useState({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', capacidad_max: 50, refrigerio_incluido: false, id_estado: 2 });
+  const [newEvento, setNewEvento] = useState({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', capacidad_max: 50, refrigerio_incluido: false, incluidos: '', id_estado: 2 });
 
   // Souvenirs & POS
   const [isEditingSouvenir, setIsEditingSouvenir] = useState(false);
@@ -207,7 +207,7 @@ const AdminPanel = () => {
               await api.post('/eventos/', dataToSave);
               notify("Éxito", "Evento publicado", "success");
           }
-          setNewEvento({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', link_mapas: '', capacidad_max: 50, refrigerio_incluido: false, id_estado: 2 });
+          setNewEvento({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', link_mapas: '', capacidad_max: 50, refrigerio_incluido: false, incluidos: '', id_estado: 2 });
           setIsAddingEvento(false); setIsEditingEvento(false); fetchData();
       } catch (e) { notify("Error", "Fallo al guardar evento", "error"); }
   };
@@ -222,8 +222,9 @@ const AdminPanel = () => {
           modalidad: ev.modalidad, 
           ubicacion: ev.ubicacion || '', 
           link_mapas: ev.link_mapas || '',
-          capacidad_max: ev.capacidad_max, 
+          capacidad_max: ev.capacidad_max || ev.capacidad_maxima || 50, 
           refrigerio_incluido: ev.refrigerio_incluido,
+          incluidos: ev.incluidos || '',
           id_estado: ev.id_estado ?? 2
       });
       setIsEditingEvento(true); setIsAddingEvento(true);

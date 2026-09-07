@@ -54,6 +54,36 @@ def cancelar_inscripcion(
     inscripciones_service.cancelar_inscripcion_evento(db, current_user.id_usuario, id_inscripcion, ip_address)
     return None
 
+@router.put("/eventos/{id_inscripcion}/aprobar", response_model=inscripcion_schema.InscripcionEventoResponse)
+def aprobar_inscripcion(
+    id_inscripcion: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Aprueba a un participante en lista de espera (Solo Staff)."""
+    ip_address = request.client.host if request.client else None
+    return inscripciones_service.aprobar_inscripcion_espera(db, current_user, id_inscripcion, ip_address)
+
+@router.get("/eventos/{id_evento}/lista-espera", response_model=List[inscripcion_schema.InscripcionEventoResponse])
+def obtener_lista_espera(
+    id_evento: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Obtiene la lista de espera de un evento (Solo Staff)."""
+    return inscripciones_service.list_lista_espera(db, id_evento, current_user)
+
+@router.get("/eventos/{id_evento}/participantes")
+def obtener_participantes_evento(
+    id_evento: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Obtiene la lista completa de inscritos y sus estados para un evento (Solo Staff)."""
+    from ..services import eventos_service
+    return eventos_service.get_evento_participantes(db, id_evento, current_user)
+
 @router.post("/cursos/{id_curso}", response_model=inscripcion_schema.InscripcionCursoResponse, status_code=status.HTTP_201_CREATED)
 def inscribir_curso(
     id_curso: int,

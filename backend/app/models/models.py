@@ -234,6 +234,7 @@ class Evento(Base, AuditMixin, EstadoLifecycleMixin):
     estado = Column(String, default="PROGRAMADO")
     imagen_url = Column(String, nullable=True)
     refrigerio_incluido = Column(Boolean, default=False)
+    incluidos = Column(TEXT, nullable=True) # Almacena lista JSON de entregables incluidos
     token_qr = Column(String, nullable=True)
     id_organizador = Column(Integer, ForeignKey("usuarios.id_usuario"), index=True)
 
@@ -265,7 +266,11 @@ class InscripcionEvento(Base, AuditMixin, EstadoLifecycleMixin):
 
     usuario = relationship("Usuario", back_populates="inscripciones_eventos", foreign_keys="[InscripcionEvento.id_usuario]")
     evento = relationship("Evento", back_populates="inscripciones")
-    asistencia = relationship("AsistenciaDetalle", back_populates="inscripcion", uselist=False)
+    asistencias = relationship("AsistenciaDetalle", back_populates="inscripcion", cascade="all, delete-orphan")
+
+    @property
+    def asistencia(self):
+        return self.asistencias[0] if self.asistencias else None
 
 class Checkpoint(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "checkpoints"
@@ -291,7 +296,7 @@ class AsistenciaDetalle(Base, AuditMixin, EstadoLifecycleMixin):
     fecha_escaneo = Column(DateTime, default=datetime.utcnow)
     escaneado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), index=True)
 
-    inscripcion = relationship("InscripcionEvento", back_populates="asistencia")
+    inscripcion = relationship("InscripcionEvento", back_populates="asistencias")
     checkpoint = relationship("Checkpoint", back_populates="asistencias")
     escaneador = relationship("Usuario", foreign_keys="[AsistenciaDetalle.escaneado_por]")
 
