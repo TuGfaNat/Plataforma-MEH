@@ -251,7 +251,12 @@ const EventsMaster = () => {
                           <MEHTypography variant="caption" style={{ opacity: 0.6 }}>📍 {event.modalidad}</MEHTypography>
                           {activeTab === 'upcoming' && (
                               isInscribed ? (
-                                  <Badge appearance="filled" color="success">Inscrito</Badge>
+                                  <Badge 
+                                    appearance={isInscribed.estado_inscripcion === 'CONFIRMADA' ? "filled" : "tint"} 
+                                    color={isInscribed.estado_inscripcion === 'CONFIRMADA' ? "success" : isInscribed.estado_inscripcion === 'PENDIENTE_APROBACION' ? "informative" : "warning"}
+                                  >
+                                    {isInscribed.estado_inscripcion === 'CONFIRMADA' ? 'Inscrito' : isInscribed.estado_inscripcion === 'PENDIENTE_APROBACION' ? 'En espera' : 'Pendiente pago'}
+                                  </Badge>
                               ) : (
                                   <InscripcionEventoModal evento={event} onInscribed={fetchData} />
                               )
@@ -302,6 +307,14 @@ const EventsMaster = () => {
                 {selectedEventForDetails?.refrigerio_incluido && (
                   <Badge color="success" appearance="tint">🍪 Refrigerio Incluido</Badge>
                 )}
+                {selectedEventForDetails?.incluidos && selectedEventForDetails.incluidos.split(',').map(s => s.trim()).filter(Boolean).map((item, idx) => (
+                  <Badge key={idx} color="brand" appearance="tint">🎁 {item}</Badge>
+                ))}
+                {(selectedEventForDetails?.capacidad_maxima || selectedEventForDetails?.capacidad_max) && (
+                  <Badge color="informative" appearance="outline">
+                    👥 Cupos: {selectedEventForDetails.cupos_ocupados || 0} / {selectedEventForDetails.capacidad_maxima || selectedEventForDetails.capacidad_max}
+                  </Badge>
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -351,7 +364,15 @@ const EventsMaster = () => {
                 (() => {
                   const isInscribed = inscripciones.find(i => i.id_evento === selectedEventForDetails.id_evento);
                   if (isInscribed) {
-                    return <Badge appearance="filled" color="success" style={{ padding: '6px 12px' }}>Ya inscrito</Badge>;
+                    return (
+                      <Badge 
+                        appearance="filled" 
+                        color={isInscribed.estado_inscripcion === 'CONFIRMADA' ? 'success' : isInscribed.estado_inscripcion === 'PENDIENTE_APROBACION' ? 'informative' : 'warning'} 
+                        style={{ padding: '6px 12px' }}
+                      >
+                        {isInscribed.estado_inscripcion === 'CONFIRMADA' ? 'Ya inscrito' : isInscribed.estado_inscripcion === 'PENDIENTE_APROBACION' ? 'En lista de espera' : 'Pendiente de pago'}
+                      </Badge>
+                    );
                   }
                   return (
                     <InscripcionEventoModal 

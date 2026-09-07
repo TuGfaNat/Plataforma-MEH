@@ -1,5 +1,7 @@
+import uuid
+import json
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
@@ -18,13 +20,109 @@ from ..core.permissions import (
     has_permission
 )
 
+def parse_incluidos_list(incluidos_raw) -> List[str]:
+    """Parsea el campo incluidos a una lista de strings."""
+    if not incluidos_raw:
+        return []
+    if isinstance(incluidos_raw, list):
+        return [str(i).strip() for i in incluidos_raw if str(i).strip()]
+    if isinstance(incluidos_raw, str):
+        try:
+            parsed = json.loads(incluidos_raw)
+            if isinstance(parsed, list):
+                return [str(i).strip() for i in parsed if str(i).strip()]
+        except Exception:
+            pass
+        return [item.strip() for item in incluidos_raw.split(",") if item.strip()]
+    return []
+
+def sync_evento_checkpoints(db: Session, evento: models.Evento):
+    """Genera automáticamente los checkpoints de entrega logística y acreditación según los incluidos del evento."""
+    checkpoints_existentes = db.query(models.Checkpoint).filter(
+        models.Checkpoint.id_evento == evento.id_evento,
+        models.Checkpoint.activo == True
+    ).all()
+    nombres_existentes = {cp.nombre_checkpoint.strip().lower() for cp in checkpoints_existentes}
+
+    orden = len(checkpoints_existentes) + 1
+
+    # 1. Asegurar checkpoint base de Acreditación
+    has_acreditacion = any(
+        "acreditaci" in name or "entrada" in name or "acceso" in name
+        for name in nombres_existentes
+    )
+    if not has_acreditacion:
+        cp_acreditacion = models.Checkpoint(
+            id_evento=evento.id_evento,
+            nombre_checkpoint="Acreditación y Entrada",
+            tipo_checkpoint="ACREDITACION",
+            orden=1,
+            activo=True
+        )
+        db.add(cp_acreditacion)
+        nombres_existentes.add("acreditación y entrada")
+        orden += 1
+
+    # 2. Checkpoints por entregables incluidos dinámicos
+    items_incluidos = parse_incluidos_list(evento.incluidos)
+    for item in items_incluidos:
+        nombre_cp = f"Entrega: {item}" if not item.lower().startswith("entrega") else item
+        if nombre_cp.lower() not in nombres_existentes:
+            tipo_cp = "REFRIGERIO" if any(k in item.lower() for k in ["refrigerio", "almuerzo", "comida", "snack"]) else "ENTREGABLE"
+            cp_item = models.Checkpoint(
+                id_evento=evento.id_evento,
+                nombre_checkpoint=nombre_cp,
+                tipo_checkpoint=tipo_cp,
+                orden=orden,
+                activo=True
+            )
+            db.add(cp_item)
+            nombres_existentes.add(nombre_cp.lower())
+            orden += 1
+
+    # 3. Si refrigerio_incluido es True y no hay checkpoint de refrigerio
+    if evento.refrigerio_incluido:
+        has_refrigerio = any("refrigerio" in name or "almuerzo" in name for name in nombres_existentes)
+        if not has_refrigerio:
+            cp_refrig = models.Checkpoint(
+                id_evento=evento.id_evento,
+                nombre_checkpoint="Entrega: Refrigerio",
+                tipo_checkpoint="REFRIGERIO",
+                orden=orden,
+                activo=True
+            )
+            db.add(cp_refrig)
+            nombres_existentes.add("entrega: refrigerio")
+            orden += 1
+
+    db.commit()
+
+def populate_evento_cupos(db: Session, evento: models.Evento):
+    """Calcula y rellena los cupos ocupados, disponibles y lista de espera para un evento."""
+    if not evento.token_qr:
+        evento.token_qr = f"EVENTO_{uuid.uuid4().hex[:12].upper()}"
+        db.commit()
+
+    inscripciones = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_evento == evento.id_evento,
+        models.InscripcionEvento.id_estado != 0
+    ).all()
+    
+    ocupados = sum(1 for i in inscripciones if i.estado_inscripcion in ("CONFIRMADA", "PENDIENTE"))
+    espera = sum(1 for i in inscripciones if i.estado_inscripcion == "PENDIENTE_APROBACION")
+    
+    evento.cupos_ocupados = ocupados
+    evento.cupos_disponibles = max(0, (evento.capacidad_max or 0) - ocupados)
+    evento.total_en_espera = espera
+    evento.capacidad_maxima = evento.capacidad_max
+
 def create_evento(
     db: Session,
     admin_user: models.Usuario,
     evento_data: evento_schema.EventoCreate,
     ip_address: Optional[str] = None
 ) -> models.Evento:
-    """Crea un nuevo evento en el sistema (Solo Staff autorizado)."""
+    """Crea un nuevo evento en el sistema (Solo Staff autorizado), generando token_qr y auto-checkpoints."""
     if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
         raise PermisoDenegadoError("No tienes permisos para crear eventos")
 
@@ -32,9 +130,16 @@ def create_evento(
     id_speakers = data.pop("id_speakers", [])
     id_auspiciadores = data.pop("id_auspiciadores", [])
     id_comunidades = data.pop("id_comunidades", [])
+    cap_maxima = data.pop("capacidad_maxima", None)
+    if cap_maxima is not None:
+        data["capacidad_max"] = cap_maxima
+
+    # Generar token_qr del evento al crearlo
+    token_qr = f"EVENTO_{uuid.uuid4().hex[:12].upper()}"
 
     db_evento = models.Evento(
         **data,
+        token_qr=token_qr,
         id_organizador=admin_user.id_usuario
     )
     
@@ -49,6 +154,10 @@ def create_evento(
     db.add(db_evento)
     db.commit()
     db.refresh(db_evento)
+
+    # Auto-generar checkpoints para logística
+    sync_evento_checkpoints(db, db_evento)
+    populate_evento_cupos(db, db_evento)
 
     registrar_log(
         db=db,
@@ -80,13 +189,17 @@ def list_eventos(db: Session, skip: int = 0, limit: int = 100) -> List[models.Ev
     if modificado:
         db.commit()
 
-    return db.query(models.Evento).offset(skip).limit(limit).all()
+    eventos = db.query(models.Evento).offset(skip).limit(limit).all()
+    for ev in eventos:
+        populate_evento_cupos(db, ev)
+    return eventos
 
 def get_evento_by_id(db: Session, id_evento: int) -> models.Evento:
     """Obtiene un evento por su ID o lanza error de dominio."""
     db_evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
     if not db_evento:
         raise EventoNoEncontradoError()
+    populate_evento_cupos(db, db_evento)
     return db_evento
 
 def update_evento(
@@ -96,7 +209,7 @@ def update_evento(
     evento_update: evento_schema.EventoUpdate,
     ip_address: Optional[str] = None
 ) -> models.Evento:
-    """Actualiza un evento existente (Solo Staff autorizado)."""
+    """Actualiza un evento existente (Solo Staff autorizado) y sincroniza checkpoints."""
     if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
         raise PermisoDenegadoError("No tienes permisos para modificar eventos")
         
@@ -113,6 +226,9 @@ def update_evento(
     id_speakers = update_data.pop("id_speakers", None)
     id_auspiciadores = update_data.pop("id_auspiciadores", None)
     id_comunidades = update_data.pop("id_comunidades", None)
+    cap_maxima = update_data.pop("capacidad_maxima", None)
+    if cap_maxima is not None:
+        update_data["capacidad_max"] = cap_maxima
 
     for key, value in update_data.items():
         setattr(db_evento, key, value)
@@ -124,8 +240,16 @@ def update_evento(
     if id_comunidades is not None:
         db_evento.comunidades = db.query(models.ComunidadAliada).filter(models.ComunidadAliada.id_comunidad.in_(id_comunidades)).all()
 
+    # Asegurar token_qr
+    if not db_evento.token_qr:
+        db_evento.token_qr = f"EVENTO_{uuid.uuid4().hex[:12].upper()}"
+
     db.commit()
     db.refresh(db_evento)
+
+    # Sincronizar checkpoints según los incluidos
+    sync_evento_checkpoints(db, db_evento)
+    populate_evento_cupos(db, db_evento)
 
     registrar_log(
         db=db,
@@ -151,13 +275,16 @@ def registrar_asistencia_qr(
         raise PermisoDenegadoError("No tienes permisos para registrar asistencia")
 
     inscripcion = db.query(models.InscripcionEvento).filter(
-        models.InscripcionEvento.codigo_qr == codigo_qr
+        models.InscripcionEvento.codigo_qr == codigo_qr,
+        models.InscripcionEvento.id_estado != 0
     ).first()
     
     if not inscripcion:
         raise ValidacionNegocioError("El código QR no pertenece a ninguna inscripción válida")
 
     if inscripcion.estado_inscripcion != "CONFIRMADA":
+        if inscripcion.estado_inscripcion == "PENDIENTE_APROBACION":
+            raise ValidacionNegocioError("La inscripción está en lista de espera (PENDIENTE_APROBACION). Requiere confirmación/ampliación del cupo.")
         raise ValidacionNegocioError(f"La inscripción está en estado {inscripcion.estado_inscripcion}. Requiere confirmación de pago.")
 
     checkpoint = None
@@ -201,6 +328,27 @@ def registrar_asistencia_qr(
             
         inscripcion.asistio = True
         inscripcion.fecha_validacion = datetime.utcnow()
+
+        # Vincular con checkpoint de Acreditación si existe para trazabilidad
+        cp_acred = db.query(models.Checkpoint).filter(
+            models.Checkpoint.id_evento == inscripcion.id_evento,
+            models.Checkpoint.activo == True,
+            models.Checkpoint.tipo_checkpoint == "ACREDITACION"
+        ).first()
+        if cp_acred:
+            asistencia_acred = db.query(models.AsistenciaDetalle).filter(
+                models.AsistenciaDetalle.id_inscripcion == inscripcion.id_inscripcion,
+                models.AsistenciaDetalle.id_checkpoint == cp_acred.id_checkpoint
+            ).first()
+            if not asistencia_acred:
+                nueva_asistencia = models.AsistenciaDetalle(
+                    id_inscripcion=inscripcion.id_inscripcion,
+                    id_checkpoint=cp_acred.id_checkpoint,
+                    fecha_escaneo=datetime.utcnow(),
+                    escaneado_por=staff_user.id_usuario,
+                    id_estado=2
+                )
+                db.add(nueva_asistencia)
 
     # Obtener info para el log y respuesta
     usuario = inscripcion.usuario
@@ -412,5 +560,60 @@ def delete_pago_qr(
         ip_direccion=ip_address
     )
     return True
+
+def get_evento_token_qr(db: Session, id_evento: int) -> dict:
+    """Obtiene o genera el token_qr único del evento para difusión y acreditación."""
+    evento = get_evento_by_id(db, id_evento)
+    if not evento.token_qr:
+        evento.token_qr = f"EVENTO_{uuid.uuid4().hex[:12].upper()}"
+        db.commit()
+        db.refresh(evento)
+    return {
+        "id_evento": evento.id_evento,
+        "titulo": evento.titulo,
+        "token_qr": evento.token_qr
+    }
+
+def get_evento_qr_image(db: Session, id_evento: int) -> Tuple[bytes, str]:
+    """Genera y retorna los bytes de la imagen PNG del token_qr del evento para descargar."""
+    evento = get_evento_by_id(db, id_evento)
+    if not evento.token_qr:
+        evento.token_qr = f"EVENTO_{uuid.uuid4().hex[:12].upper()}"
+        db.commit()
+        db.refresh(evento)
+
+    from .email_service import generate_qr_image_bytes
+    qr_bytes = generate_qr_image_bytes(evento.token_qr)
+    safe_title = "".join(c for c in evento.titulo if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+    filename = f"QR_EVENTO_{evento.id_evento}_{safe_title}.png"
+    return qr_bytes, filename
+
+def get_evento_participantes(db: Session, id_evento: int, staff_user: models.Usuario) -> List[dict]:
+    """Obtiene todos los participantes inscritos en el evento con sus respectivos estados de inscripción."""
+    if not has_permission(staff_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError("No tienes permisos para ver los participantes de este evento")
+
+    evento = get_evento_by_id(db, id_evento)
+    inscripciones = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_evento == id_evento,
+        models.InscripcionEvento.id_estado != 0
+    ).order_by(models.InscripcionEvento.fecha_inscripcion.asc()).all()
+
+    resultado = []
+    for ins in inscripciones:
+        usuario = ins.usuario
+        resultado.append({
+            "id_inscripcion": ins.id_inscripcion,
+            "id_usuario": ins.id_usuario,
+            "nombre_completo": f"{usuario.nombres} {usuario.apellidos}" if usuario else f"Usuario #{ins.id_usuario}",
+            "correo": usuario.correo if usuario else "",
+            "estado_inscripcion": ins.estado_inscripcion,
+            "codigo_qr": ins.codigo_qr,
+            "asistio": ins.asistio,
+            "fecha_inscripcion": ins.fecha_inscripcion.isoformat() if ins.fecha_inscripcion else None,
+            "id_pago": ins.id_pago
+        })
+    return resultado
+
 
 

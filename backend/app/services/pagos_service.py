@@ -312,13 +312,16 @@ def validar_pago(
             db_pago.tipo_referencia
         )
         if pago_update.estado_pago == "APROBADO" and db_pago.tipo_referencia == "EVENTO" and inscripcion:
+            from .eventos_service import parse_incluidos_list
+            items_incluidos = parse_incluidos_list(inscripcion.evento.incluidos) if inscripcion.evento else []
             email_service.notify_ticket_qr(
                 email=db_pago.usuario.correo,
                 nombre=db_pago.usuario.nombres,
-                titulo_evento=inscripcion.evento.titulo,
-                fecha=str(inscripcion.evento.fecha_inicio.date()) if inscripcion.evento.fecha_inicio else "",
+                titulo_evento=inscripcion.evento.titulo if inscripcion.evento else "Evento",
+                fecha=str(inscripcion.evento.fecha_inicio.date()) if (inscripcion.evento and inscripcion.evento.fecha_inicio) else "",
                 codigo_qr=inscripcion.codigo_qr,
-                frontend_url=os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+                frontend_url=os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/"),
+                incluidos=items_incluidos
             )
     except Exception:
         pass

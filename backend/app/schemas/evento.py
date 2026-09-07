@@ -35,8 +35,10 @@ class EventoBase(BaseModel):
     link_mapas: Optional[str] = None
     agenda: Optional[str] = None # JSON string
     capacidad_max: int = 50
+    capacidad_maxima: Optional[int] = None
     imagen_url: Optional[str] = None
     refrigerio_incluido: bool = False
+    incluidos: Optional[str] = None
 
 class EventoCreate(EventoBase):
     id_speakers: Optional[List[int]] = []
@@ -57,8 +59,10 @@ class EventoUpdate(BaseModel):
     agenda: Optional[str] = None
     estado: Optional[str] = None
     capacidad_max: Optional[int] = None
+    capacidad_maxima: Optional[int] = None
     imagen_url: Optional[str] = None
     refrigerio_incluido: Optional[bool] = None
+    incluidos: Optional[str] = None
     id_speakers: Optional[List[int]] = None
     id_auspiciadores: Optional[List[int]] = None
     id_comunidades: Optional[List[int]] = None
@@ -69,6 +73,10 @@ class EventoResponse(EventoBase):
     estado: str
     token_qr: Optional[str] = None
     id_organizador: Optional[int] = None
+    cupos_disponibles: Optional[int] = None
+    cupos_ocupados: Optional[int] = None
+    total_en_espera: Optional[int] = None
+    capacidad_maxima: Optional[int] = None
     
     speakers: List[SpeakerSimple] = []
     auspiciadores: List[AuspiciadorSimple] = []

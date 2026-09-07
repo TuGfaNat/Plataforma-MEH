@@ -28,7 +28,8 @@ import {
   CalendarStar24Regular,
   Target24Regular,
   QrCode24Regular,
-  MegaphoneLoud24Filled
+  MegaphoneLoud24Filled,
+  ArrowDownload24Regular
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -43,6 +44,7 @@ import dashboardService from '../services/dashboardService';
 import comunidadService from '../services/comunidadService';
 import { QRCodeSVG } from 'qrcode.react';
 import BadgeDetailModal from '../components/BadgeDetailModal';
+import InscripcionEventoModal from '../components/InscripcionEventoModal';
 
 const useStyles = makeStyles({
   dashboardContainer: {
@@ -221,10 +223,16 @@ const Dashboard = () => {
         comunidadService.getAnuncios()
       ]);
       
+      const misIds = new Set((inscripcionesData || []).map(i => i.id_evento));
       const proximos = eventosData
-        .filter(e => e.estado === 'PROGRAMADO')
-        .sort((a, b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio))
-        .slice(0, 3);
+        .filter(e => e.estado === 'PROGRAMADO' || misIds.has(e.id_evento))
+        .sort((a, b) => {
+          const aInsc = misIds.has(a.id_evento) ? 0 : 1;
+          const bInsc = misIds.has(b.id_evento) ? 0 : 1;
+          if (aInsc !== bInsc) return aInsc - bInsc;
+          return new Date(a.fecha_inicio) - new Date(b.fecha_inicio);
+        })
+        .slice(0, 6);
         
       setEventos(proximos);
       setStats(statsData);
@@ -256,6 +264,28 @@ const Dashboard = () => {
     } finally {
       setSubmittingInscripcion(null);
     }
+  };
+
+  const handleDownloadUserQr = (eventoTitulo, codigoQr) => {
+    const svg = document.getElementById(`ticket-qr-${codigoQr}`);
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width + 40;
+      canvas.height = img.height + 40;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 20, 20);
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `Ticket_QR_${eventoTitulo.replace(/\s+/g, '_')}.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
   };
 
   if (!user) return <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}><Spinner label="Cargando perfil..." /></div>;
@@ -444,20 +474,36 @@ const Dashboard = () => {
                             <DialogTrigger disableButtonEnhancement>
                               <MEHButton appearance="primary" size="small" icon={<QrCode24Regular />}>Mi QR</MEHButton>
                             </DialogTrigger>
-                            <DialogSurface style={{ backgroundColor: '#1A1A1A', border: `1px solid ${tokens.colorBrandForeground1}` }}>
+                            <DialogSurface style={{ backgroundColor: '#1A1A1A', border: `1px solid ${tokens.colorBrandForeground1}`, maxWidth: '420px', width: '90%' }}>
                               <DialogBody>
-                                <DialogTitle>Ticket de Entrada</DialogTitle>
-                                <DialogContent style={{ textAlign: 'center', padding: '24px' }}>
-                                  <MEHTypography variant="body" style={{ display: 'block', marginBottom: '16px' }}>
-                                    Muestra este código QR al ingresar a <b>{evento.titulo}</b>.
+                                <DialogTitle>Ticket de Entrada y Logística</DialogTitle>
+                                <DialogContent style={{ textAlign: 'center', padding: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                                  <MEHTypography variant="body" style={{ display: 'block', fontSize: '13px', opacity: 0.9 }}>
+                                    Presenta este código QR único para tu <b>acreditación</b> y retiro de <b>ítems incluidos</b> en <b>{evento.titulo}</b>.
                                   </MEHTypography>
-                                  <div style={{ display: 'inline-block', backgroundColor: 'white', padding: '16px', borderRadius: '8px' }}>
-                                    <QRCodeSVG value={isInscribed.codigo_qr} size={200} />
+                                  <div style={{ display: 'inline-block', backgroundColor: 'white', padding: '16px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
+                                    <QRCodeSVG id={`ticket-qr-${isInscribed.codigo_qr}`} value={isInscribed.codigo_qr} size={200} />
                                   </div>
+                                  <MEHTypography variant="caption" style={{ opacity: 0.7, fontSize: '11px' }}>
+                                    Código: {isInscribed.codigo_qr}
+                                  </MEHTypography>
                                 </DialogContent>
+                                <DialogActions style={{ justifyContent: 'center', gap: '12px' }}>
+                                  <MEHButton 
+                                    appearance="primary" 
+                                    icon={<ArrowDownload24Regular />}
+                                    onClick={() => handleDownloadUserQr(evento.titulo, isInscribed.codigo_qr)}
+                                  >
+                                    Descargar QR
+                                  </MEHButton>
+                                </DialogActions>
                               </DialogBody>
                             </DialogSurface>
                           </Dialog>
+                      ) : isInscribed?.estado_inscripcion === 'PENDIENTE_APROBACION' ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Badge appearance="tint" color="informative">En lista de espera</Badge>
+                          </div>
                       ) : isInscribed ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Badge appearance="outline" color="warning">Pendiente pago</Badge>
@@ -470,14 +516,11 @@ const Dashboard = () => {
                             </MEHButton>
                           </div>
                       ) : (
-                          <MEHButton 
-                            appearance="primary" 
-                            size="small" 
-                            disabled={submittingInscripcion === evento.id_evento}
-                            onClick={() => handleInscribirse(evento.id_evento)}
-                          >
-                            {submittingInscripcion === evento.id_evento ? <Spinner size="tiny" /> : "Inscribirme"}
-                          </MEHButton>
+                          <InscripcionEventoModal 
+                            evento={evento} 
+                            onInscribed={fetchData} 
+                            buttonSize="small" 
+                          />
                       )}
                     </div>
                   );

@@ -15,7 +15,8 @@ export const useEventsManager = (notify, refreshGlobalData) => {
     ubicacion: '', 
     link_mapas: '', 
     capacidad_max: 50, 
-    refrigerio_incluido: false 
+    refrigerio_incluido: false,
+    incluidos: ''
   });
 
   const handleSaveEvento = async (eventData) => {
@@ -28,7 +29,7 @@ export const useEventsManager = (notify, refreshGlobalData) => {
         await api.post('/eventos/', dataToSave);
         notify("Éxito", "Evento publicado", "success");
       }
-      setNewEvento({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', link_mapas: '', capacidad_max: 50, refrigerio_incluido: false });
+      setNewEvento({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', link_mapas: '', capacidad_max: 50, refrigerio_incluido: false, incluidos: '' });
       setIsAddingEvento(false);
       setIsEditingEvento(false);
       refreshGlobalData();
@@ -47,8 +48,9 @@ export const useEventsManager = (notify, refreshGlobalData) => {
       modalidad: ev.modalidad,
       ubicacion: ev.ubicacion || '',
       link_mapas: ev.link_mapas || '',
-      capacidad_max: ev.capacidad_max,
-      refrigerio_incluido: ev.refrigerio_incluido
+      capacidad_max: ev.capacidad_max || ev.capacidad_maxima || 50,
+      refrigerio_incluido: ev.refrigerio_incluido,
+      incluidos: ev.incluidos || ''
     });
     setSelectedEventoId(ev.id_evento);
     setIsEditingEvento(true);

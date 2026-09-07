@@ -17,4 +17,5 @@ google-auth
 prometheus-fastapi-instrumentator==7.1.0
 openpyxl
 requests
+qrcode[pil]
 

@@ -1,9 +1,13 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 import os
-from typing import Optional
+import io
+import base64
+from typing import Optional, List, Dict, Tuple
 import logging
+import qrcode
 from pydantic import EmailStr, ValidationError, TypeAdapter
 
 # Logger
@@ -21,6 +25,22 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 FRONTEND_DASHBOARD = FRONTEND_URL + os.getenv("FRONTEND_DASHBOARD", "/dashboard")
 FRONTEND_LEARNING = FRONTEND_URL + os.getenv("FRONTEND_LEARNING", "/learning")
 FRONTEND_FINANZAS = FRONTEND_URL + os.getenv("FRONTEND_FINANZAS", "/finanzas")
+
+
+def generate_qr_image_bytes(data: str) -> bytes:
+    """Genera los bytes de una imagen PNG con el código QR utilizando la librería qrcode localmente."""
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=8,
+        border=2,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
 
 
 def is_smtp_configured() -> bool:
@@ -41,7 +61,13 @@ def validate_email(email: str) -> bool:
         return False
 
 
-def send_email(to_email: str, subject: str, html_content: str, retry_count: int = 3) -> bool:
+def send_email(
+    to_email: str, 
+    subject: str, 
+    html_content: str, 
+    retry_count: int = 3,
+    images: Optional[Dict[str, Tuple[bytes, str]]] = None
+) -> bool:
     """
     Función base para envío de correos vía SMTP
     
@@ -50,6 +76,7 @@ def send_email(to_email: str, subject: str, html_content: str, retry_count: int 
         subject: Asunto del correo
         html_content: Contenido HTML
         retry_count: Número de reintentos en caso de fallo
+        images: Diccionario opcional de imágenes inline {cid: (bytes, subtype)}
     
     Returns:
         bool: True si se envió, False si falló
@@ -67,14 +94,24 @@ def send_email(to_email: str, subject: str, html_content: str, retry_count: int 
     
     try:
         # Construir mensaje
-        message = MIMEMultipart("alternative")
+        if images:
+            message = MIMEMultipart("related")
+            alt_part = MIMEMultipart("alternative")
+            alt_part.attach(MIMEText(html_content, "html", "utf-8"))
+            message.attach(alt_part)
+            for cid, (img_bytes, subtype) in images.items():
+                mime_img = MIMEImage(img_bytes, _subtype=subtype)
+                mime_img.add_header("Content-ID", f"<{cid}>")
+                mime_img.add_header("Content-Disposition", "inline", filename=f"{cid}.png")
+                message.attach(mime_img)
+        else:
+            message = MIMEMultipart("alternative")
+            part = MIMEText(html_content, "html", "utf-8")
+            message.attach(part)
+
         message["Subject"] = subject
         message["From"] = f"{EMAIL_FROM_NAME} <{SMTP_USER}>"
         message["To"] = to_email
-        
-        # Versión HTML del correo
-        part = MIMEText(html_content, "html", "utf-8")
-        message.attach(part)
         
         # Conexión segura al servidor SMTP (con reintentos)
         attempt = 0
@@ -241,12 +278,36 @@ def notify_reset_password(email: str, nombre: str, token: str) -> bool:
     return send_email(email, subject, html)
 
 
-def notify_ticket_qr(email: str, nombre: str, titulo_evento: str, fecha: str, codigo_qr: str, frontend_url: str) -> bool:
-    """Envía el ticket de entrada con su código QR para un evento."""
+def notify_ticket_qr(
+    email: str, 
+    nombre: str, 
+    titulo_evento: str, 
+    fecha: str, 
+    codigo_qr: str, 
+    frontend_url: str,
+    incluidos: Optional[List[str]] = None
+) -> bool:
+    """Envía el ticket de entrada con su código QR para un evento generado internamente con la librería qrcode."""
     subject = f"🎟️ Tu entrada para {titulo_evento}"
     
-    # Usar un servicio público confiable para generar la imagen del código QR
-    qr_image_url = f"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={codigo_qr}"
+    # Generar imagen QR localmente con librería qrcode
+    qr_bytes = generate_qr_image_bytes(codigo_qr)
+    
+    # Renderizar sección de incluidos si existen
+    incluidos_html = ""
+    if incluidos and len(incluidos) > 0:
+        items_list = "".join([f"<li style='margin-bottom: 6px;'><b>{item}</b></li>" for item in incluidos])
+        incluidos_html = f"""
+        <div style="margin: 16px 0; padding: 14px; background: rgba(127, 19, 236, 0.08); border-radius: 8px; border: 1px solid rgba(127, 19, 236, 0.2); text-align: left;">
+            <p style="margin: 0 0 8px 0; font-weight: bold; color: #7f13ec; font-size: 0.95rem;">🎁 Incluido con tu inscripción:</p>
+            <ul style="margin: 0; padding-left: 20px; color: #333; font-size: 0.9rem;">
+                {items_list}
+            </ul>
+            <p style="margin: 8px 0 0 0; font-size: 0.8rem; color: #666; font-style: italic;">
+                💡 Tu mismo código QR servirá para la acreditación y para recibir cada uno de tus entregables en los checkpoints del evento.
+            </p>
+        </div>
+        """
     
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
@@ -262,11 +323,12 @@ def notify_ticket_qr(email: str, nombre: str, titulo_evento: str, fecha: str, co
             <p style="margin: 5px 0; color: #666;"><b>Fecha:</b> {fecha}</p>
             
             <div style="margin: 20px 0;">
-                <img src="{qr_image_url}" alt="Código QR de Entrada" style="border: 1px solid #ddd; padding: 10px; background: white; border-radius: 8px; width: 180px; height: 180px;" />
+                <img src="cid:ticket_qr" alt="Código QR de Entrada" style="border: 1px solid #ddd; padding: 10px; background: white; border-radius: 8px; width: 180px; height: 180px;" />
             </div>
             
             <p style="font-family: monospace; font-size: 0.85rem; color: #888; margin: 5px 0;">Código: {codigo_qr}</p>
-            <p style="font-size: 0.9rem; color: #333; font-weight: bold; margin-top: 15px;">⚠️ Muestra este código QR en el ingreso para registrar tu asistencia.</p>
+            {incluidos_html}
+            <p style="font-size: 0.9rem; color: #333; font-weight: bold; margin-top: 15px;">⚠️ Muestra este código QR en el ingreso para registrar tu acreditación y recibir tus entregables.</p>
         </div>
         
         <p>También puedes ver tu ticket en cualquier momento desde tu **Dashboard** en la sección de eventos inscritos.</p>
@@ -281,5 +343,6 @@ def notify_ticket_qr(email: str, nombre: str, titulo_evento: str, fecha: str, co
         </footer>
     </div>
     """
-    return send_email(email, subject, html)
+    return send_email(email, subject, html, images={"ticket_qr": (qr_bytes, "png")})
+
 

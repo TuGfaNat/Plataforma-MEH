@@ -19,6 +19,9 @@ class EventoSimple(BaseModel):
     ubicacion: Optional[str] = None
     modalidad: str
     imagen_url: Optional[str] = None
+    refrigerio_incluido: Optional[bool] = False
+    incluidos: Optional[str] = None
+    capacidad_max: Optional[int] = None
     
     model_config = ConfigDict(from_attributes=True)
 

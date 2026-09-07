@@ -117,6 +117,22 @@ def get_inscritos_confirmados(
     """Obtiene la lista de inscritos confirmados para descargarlos localmente para escaneo offline."""
     return eventos_service.get_inscritos_confirmados(db, id_evento, current_user)
 
+@router.get("/{id_evento}/token-qr")
+def get_evento_token_qr(id_evento: int, db: Session = Depends(get_db)):
+    """Obtiene el token_qr del evento para difusión y acreditación."""
+    return eventos_service.get_evento_token_qr(db, id_evento)
+
+@router.get("/{id_evento}/qr-image")
+def get_evento_qr_image(id_evento: int, db: Session = Depends(get_db)):
+    """Descarga la imagen PNG del QR del evento generada localmente en el backend."""
+    from fastapi import Response
+    qr_bytes, filename = eventos_service.get_evento_qr_image(db, id_evento)
+    return Response(
+        content=qr_bytes,
+        media_type="image/png",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
 @router.get("/{id_evento}/pagos-qr", response_model=List[EventoPagoQRResponse])
 def get_pagos_qr(id_evento: int, db: Session = Depends(get_db)):
     """Obtiene los paquetes y QRs de pago configurados para un evento."""

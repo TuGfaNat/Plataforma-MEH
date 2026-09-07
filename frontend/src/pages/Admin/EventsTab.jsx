@@ -7,10 +7,11 @@ import {
 import { 
   CalendarLtr24Regular, Add24Regular, Map24Regular, Edit24Regular, Delete24Regular,
   Food24Regular, QrCode24Regular, PeopleTeam24Regular, Mic24Regular, Link24Regular,
-  Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled
+  Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled, ArrowDownload24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
+import eventoService from '../../services/eventoService';
 
 const useStyles = makeStyles({
   grid: { 
@@ -83,6 +84,9 @@ const EventsTab = ({
   const [errors, setErrors] = useState({});
   const [pagosQr, setPagosQr] = useState([]);
   const [loadingQr, setLoadingQr] = useState(false);
+  const [listaEspera, setListaEspera] = useState([]);
+  const [participantes, setParticipantes] = useState([]);
+  const [loadingParticipantes, setLoadingParticipantes] = useState(false);
   const [nuevoNombrePaquete, setNuevoNombrePaquete] = useState('');
   const [nuevoMonto, setNuevoMonto] = useState('');
   const [qrFile, setQrFile] = useState(null);
@@ -91,8 +95,11 @@ const EventsTab = ({
   useEffect(() => {
     if (selectedEventoId) {
       fetchPagosQr();
+      fetchParticipantesYEspera();
     } else {
       setPagosQr([]);
+      setListaEspera([]);
+      setParticipantes([]);
     }
   }, [selectedEventoId]);
 
@@ -105,6 +112,36 @@ const EventsTab = ({
       console.error("Error fetching pagos qr:", err);
     } finally {
       setLoadingQr(false);
+    }
+  };
+
+  const fetchParticipantesYEspera = async () => {
+    if (!selectedEventoId) return;
+    setLoadingParticipantes(true);
+    try {
+      const [esperaData, partData] = await Promise.all([
+        eventoService.getListaEspera(selectedEventoId),
+        eventoService.getParticipantes(selectedEventoId)
+      ]);
+      setListaEspera(esperaData || []);
+      setParticipantes(partData || []);
+    } catch (err) {
+      console.error("Error fetching waitlist/participants:", err);
+    } finally {
+      setLoadingParticipantes(false);
+    }
+  };
+
+  const handleAprobarInscripcion = async (idInscripcion) => {
+    try {
+      await eventoService.aprobarInscripcion(idInscripcion);
+      alert("Inscripción aprobada exitosamente. Se ha habilitado el cupo y notificado al participante.");
+      await fetchParticipantesYEspera();
+      if (fetchData) fetchData();
+    } catch (err) {
+      console.error("Error al aprobar inscripción:", err);
+      const detail = err.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : "No se pudo aprobar la inscripción.");
     }
   };
 
@@ -214,12 +251,22 @@ const EventsTab = ({
 
   const currentEvent = eventosList.find(e => e.id_evento === selectedEventoId);
 
+  const handleDownloadEventoQr = async () => {
+    if (!currentEvent) return;
+    try {
+      await eventoService.downloadEventoQr(currentEvent.id_evento, currentEvent.titulo);
+    } catch (err) {
+      console.error("Error al descargar QR del evento:", err);
+      alert("Error al descargar el código QR del evento.");
+    }
+  };
+
   return (
     <div className={styles.grid}>
       <div className={styles.sidebar}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <MEHTypography variant="h3">{t("admin_active_events")}</MEHTypography>
-          <MEHButton size="small" icon={<Add24Regular />} appearance="primary" onClick={() => { setIsAddingEvento(true); setIsEditingEvento(false); setNewEvento({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', link_mapas: '', capacidad_max: 50, refrigerio_incluido: false }); setAgenda([]); setSelectedSpeakers([]); }}>
+          <MEHButton size="small" icon={<Add24Regular />} appearance="primary" onClick={() => { setIsAddingEvento(true); setIsEditingEvento(false); setNewEvento({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', link_mapas: '', capacidad_max: 50, refrigerio_incluido: false, incluidos: '' }); setAgenda([]); setSelectedSpeakers([]); }}>
             {t("admin_new_event") || "Nuevo Evento"}
           </MEHButton>
         </div>
@@ -339,6 +386,13 @@ const EventsTab = ({
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <Field label="Ítems Incluidos para Entrega Logística (Separados por coma: comida, souvenirs, kits...)">
+                <Input 
+                  value={newEvento.incluidos || ''} 
+                  onChange={(e, d) => setNewEvento({...newEvento, incluidos: d.value})} 
+                  placeholder="Ej: Refrigerio, Kit de bienvenida, Souvenirs" 
+                />
+              </Field>
               <Switch label={t("admin_includes_catering")} checked={newEvento.refrigerio_incluido} onChange={(e, d) => setNewEvento({...newEvento, refrigerio_incluido: d.checked})} />
               <Switch 
                 label="Evento Publicado (Activo en Plataforma)" 
@@ -396,8 +450,37 @@ const EventsTab = ({
                         <MEHButton size="small" icon={<Link24Regular />} onClick={() => window.open(currentEvent.link_mapas, '_blank')}>{t("admin_view_in_maps")}</MEHButton>
                     )}
                 </div>
+
+                {/* Indicador de Cupos y Espera */}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginTop: '6px' }}>
+                  <Badge appearance="outline" color="brand">
+                    Cupos: {currentEvent.cupos_ocupados || 0} / {currentEvent.capacidad_max || currentEvent.capacidad_maxima || 50}
+                  </Badge>
+                  {currentEvent.cupos_disponibles !== undefined && (
+                    <Badge appearance="tint" color={currentEvent.cupos_disponibles > 0 ? "success" : "warning"}>
+                      {currentEvent.cupos_disponibles} disponibles
+                    </Badge>
+                  )}
+                  <Badge appearance="tint" color="informative">
+                    {listaEspera.length || currentEvent.total_en_espera || 0} en lista de espera
+                  </Badge>
+                </div>
+
+                {/* Ítems Incluidos */}
+                {(currentEvent.incluidos || currentEvent.refrigerio_incluido) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                    <MEHTypography variant="caption" style={{ fontWeight: 'bold', opacity: 0.8 }}>🎁 Incluidos (Checkpoints automáticos):</MEHTypography>
+                    {currentEvent.refrigerio_incluido && <Badge appearance="outline" color="success">Refrigerio</Badge>}
+                    {currentEvent.incluidos && currentEvent.incluidos.split(',').map(s => s.trim()).filter(Boolean).map((item, idx) => (
+                      <Badge key={idx} appearance="outline" color="brand">{item}</Badge>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div style={{display: 'flex', gap: '8px'}}>
+              <div style={{display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
+                <MEHButton size="small" icon={<ArrowDownload24Regular />} onClick={handleDownloadEventoQr}>
+                  Descargar QR del Evento
+                </MEHButton>
                 <MEHButton size="small" icon={<Edit24Regular />} onClick={() => handleEditEvento(currentEvent)}>{t("edit")}</MEHButton>
                 <Button icon={<Delete24Regular />} size="small" appearance="subtle" style={{color: tokens.colorPaletteRedForeground1}} onClick={() => confirmDelete('evento', selectedEventoId, t("event").toLowerCase())} />
               </div>
@@ -472,6 +555,100 @@ const EventsTab = ({
                         Guardar Paquete y QR
                     </MEHButton>
                 </div>
+            </div>
+
+            {/* Gestión de Lista de Espera y Participantes */}
+            <div className={styles.infoCard} style={{ backgroundColor: tokens.colorNeutralBackground2, marginBottom: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <MEHTypography variant="h3">
+                  <PeopleTeam24Regular style={{ verticalAlign: 'middle', marginRight: '8px' }} />
+                  Lista de Espera y Participantes
+                </MEHTypography>
+                <MEHButton size="small" appearance="subtle" onClick={fetchParticipantesYEspera}>
+                  Actualizar Lista
+                </MEHButton>
+              </div>
+
+              {/* LISTA DE ESPERA */}
+              <div style={{ marginTop: '12px' }}>
+                <MEHTypography variant="h4" style={{ marginBottom: '8px' }}>
+                  ⏳ Lista de Espera ({listaEspera.length} en espera de cupo)
+                </MEHTypography>
+                <MEHTypography variant="caption" style={{ opacity: 0.7, display: 'block', marginBottom: '10px' }}>
+                  Participantes en estado PENDIENTE_APROBACION por cupos completos. Si amplías la capacidad máxima, puedes aprobar a los participantes para confirmar su cupo.
+                </MEHTypography>
+
+                {loadingParticipantes ? (
+                  <Spinner size="small" label="Cargando participantes..." />
+                ) : listaEspera.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {listaEspera.map(item => (
+                      <div key={item.id_inscripcion} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '10px', border: `1px solid ${tokens.colorNeutralBackground3}`, flexWrap: 'wrap', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <Avatar name={`${item.usuario?.nombres || ''} ${item.usuario?.apellidos || ''}`} size={36} />
+                          <div>
+                            <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>
+                              {item.usuario ? `${item.usuario.nombres} ${item.usuario.apellidos}` : `Inscripción #${item.id_inscripcion}`}
+                            </MEHTypography>
+                            <MEHTypography variant="caption" style={{ opacity: 0.7, display: 'block' }}>
+                              {item.usuario?.email} • Registrado: {new Date(item.fecha_inscripcion).toLocaleDateString()}
+                            </MEHTypography>
+                          </div>
+                        </div>
+                        <MEHButton 
+                          appearance="primary" 
+                          size="small" 
+                          onClick={() => handleAprobarInscripcion(item.id_inscripcion)}
+                        >
+                          Aprobar Cupo
+                        </MEHButton>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ padding: '14px', textAlign: 'center', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '10px' }}>
+                    <MEHTypography variant="caption" style={{ opacity: 0.6 }}>No hay participantes en lista de espera para este evento.</MEHTypography>
+                  </div>
+                )}
+              </div>
+
+              <Divider style={{ margin: '20px 0' }} />
+
+              {/* PARTICIPANTES CONFIRMADOS / PENDIENTES */}
+              <div>
+                <MEHTypography variant="h4" style={{ marginBottom: '8px' }}>
+                  👥 Participantes Registrados ({participantes.length})
+                </MEHTypography>
+                {participantes.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {participantes.map(p => (
+                      <div key={p.id_inscripcion} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '10px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <Avatar name={`${p.usuario?.nombres || ''} ${p.usuario?.apellidos || ''}`} size={32} />
+                          <div>
+                            <MEHTypography variant="body" style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                              {p.usuario ? `${p.usuario.nombres} ${p.usuario.apellidos}` : `ID ${p.id_usuario}`}
+                            </MEHTypography>
+                            <MEHTypography variant="caption" style={{ opacity: 0.7, fontSize: '11px' }}>
+                              {p.usuario?.email} {p.codigo_qr ? `• QR: ${p.codigo_qr}` : ''}
+                            </MEHTypography>
+                          </div>
+                        </div>
+                        <Badge 
+                          appearance="filled" 
+                          color={p.estado_inscripcion === 'CONFIRMADA' ? 'success' : p.estado_inscripcion === 'PENDIENTE_APROBACION' ? 'warning' : 'brand'}
+                        >
+                          {p.estado_inscripcion}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ padding: '14px', textAlign: 'center', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '10px' }}>
+                    <MEHTypography variant="caption" style={{ opacity: 0.6 }}>No hay participantes registrados aún.</MEHTypography>
+                  </div>
+                )}
+              </div>
             </div>
 
             {currentEvent.agenda && (
