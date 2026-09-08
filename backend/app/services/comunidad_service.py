@@ -26,16 +26,59 @@ def get_perfil_publico(db: Session, id_usuario: int) -> models.Usuario:
         raise RecursoNoEncontradoError("Perfil no encontrado o privado")
     return perfil
 
-def list_anuncios_activos(db: Session, current_user: models.Usuario) -> List[models.Anuncio]:
-    """Lista anuncios para la comunidad (solo activos)."""
+def list_anuncios_activos(
+    db: Session, 
+    current_user: models.Usuario,
+    id_evento: Optional[int] = None,
+    categoria: Optional[str] = None
+) -> List[models.Anuncio]:
+    """Lista anuncios activos para la comunidad, aplicando segmentación por rol, categorías y eventos."""
     query = db.query(models.Anuncio).filter(models.Anuncio.activo == True)
     
-    # Si no es rol privilegiado, ocultamos los anuncios exclusivos para embajadores
+    if id_evento:
+        query = query.filter(models.Anuncio.id_evento == id_evento)
+
+    if categoria and categoria.strip().upper() not in ["TODAS", "ALL", ""]:
+        query = query.filter(models.Anuncio.categoria == categoria.strip().upper())
+
+    anuncios = query.order_by(models.Anuncio.fecha_publicacion.desc()).all()
+
+    # Si es ADMIN, tiene visibilidad completa para supervisión
+    if current_user.rol == 'ADMIN':
+        return anuncios
+
     roles_privilegiados = {'ADMIN', 'ORGANIZADOR', 'MODERADOR', 'SOPORTE', 'EMBAJADOR'}
-    if current_user.rol not in roles_privilegiados:
-        query = query.filter(models.Anuncio.exclusivo_embajadores == False)
-        
-    return query.order_by(models.Anuncio.fecha_publicacion.desc()).all()
+    
+    # Obtener IDs de eventos en los que el usuario está inscrito activamente
+    eventos_inscritos_ids = set()
+    inscripciones = db.query(models.InscripcionEvento.id_evento).filter(
+        models.InscripcionEvento.id_usuario == current_user.id_usuario,
+        models.InscripcionEvento.id_estado != 0,
+        models.InscripcionEvento.estado_inscripcion.in_(["CONFIRMADA", "PENDIENTE", "PENDIENTE_APROBACION"])
+    ).all()
+    for row in inscripciones:
+        eventos_inscritos_ids.add(row[0])
+
+    anuncios_visibles = []
+    for an in anuncios:
+        # 1. Filtro legacy de embajadores
+        if an.exclusivo_embajadores and current_user.rol not in roles_privilegiados:
+            continue
+
+        # 2. Filtro de roles objetivo (roles_destino)
+        if an.roles_destino and an.roles_destino.strip().upper() != "TODOS":
+            target_roles = {r.strip().upper() for r in an.roles_destino.split(",") if r.strip()}
+            if current_user.rol.upper() not in target_roles:
+                continue
+
+        # 3. Filtro de evento (solo_inscritos_evento)
+        if an.id_evento and an.solo_inscritos_evento:
+            if current_user.rol not in {'ADMIN', 'ORGANIZADOR'} and an.id_evento not in eventos_inscritos_ids:
+                continue
+
+        anuncios_visibles.append(an)
+
+    return anuncios_visibles
 
 def list_all_anuncios(db: Session, role: str) -> List[models.Anuncio]:
     """Lista todos los anuncios incluyendo inactivos (Solo Staff)."""
@@ -49,7 +92,7 @@ def create_anuncio(
     anuncio: anuncio_schema.AnuncioCreate,
     ip_address: Optional[str] = None
 ) -> models.Anuncio:
-    """Crea un nuevo anuncio y opcionalmente notifica por email (Solo Staff)."""
+    """Crea un nuevo anuncio y opcionalmente notifica por email a la audiencia segmentada (Solo Staff)."""
     if not has_permission(current_user.rol, PERMISSION_ANNOUNCEMENTS_MANAGE):
         raise PermisoDenegadoError("No tienes permisos para publicar anuncios")
 
@@ -75,11 +118,29 @@ def create_anuncio(
         ip_direccion=ip_address
     )
 
-    # Notificaciones (Manejadas con precaución)
+    # Notificaciones segmentadas por email
     if enviar_email:
         try:
             from .email_service import notify_nuevo_anuncio
-            miembros = db.query(models.Usuario).filter(models.Usuario.activo == True).all()
+            query_miembros = db.query(models.Usuario).filter(models.Usuario.activo == True)
+
+            # Segmentar por rol
+            if db_anuncio.roles_destino and db_anuncio.roles_destino.strip().upper() != "TODOS":
+                target_roles = [r.strip().upper() for r in db_anuncio.roles_destino.split(",") if r.strip()]
+                query_miembros = query_miembros.filter(models.Usuario.rol.in_(target_roles))
+            elif db_anuncio.exclusivo_embajadores:
+                query_miembros = query_miembros.filter(models.Usuario.rol.in_(['EMBAJADOR', 'ORGANIZADOR', 'ADMIN']))
+
+            # Segmentar si es exclusivo para inscritos en un evento
+            if db_anuncio.id_evento and db_anuncio.solo_inscritos_evento:
+                inscritos_ids = db.query(models.InscripcionEvento.id_usuario).filter(
+                    models.InscripcionEvento.id_evento == db_anuncio.id_evento,
+                    models.InscripcionEvento.id_estado != 0,
+                    models.InscripcionEvento.estado_inscripcion.in_(["CONFIRMADA", "PENDIENTE", "PENDIENTE_APROBACION"])
+                ).subquery()
+                query_miembros = query_miembros.filter(models.Usuario.id_usuario.in_(inscritos_ids))
+
+            miembros = query_miembros.all()
             for miembro in miembros:
                 try:
                     notify_nuevo_anuncio(

@@ -486,7 +486,18 @@ class Anuncio(Base, AuditMixin, EstadoLifecycleMixin):
     activo = Column(Boolean, default=True)
     exclusivo_embajadores = Column(Boolean, default=False)
 
+    # Segmentación y grupos objetivo
+    roles_destino = Column(String, default="TODOS") # 'TODOS' o lista ej. 'MIEMBRO,EMBAJADOR'
+    categoria = Column(String, default="GENERAL")   # 'GENERAL', 'EVENTO', 'ACADEMIA', 'COMUNIDAD', 'OPORTUNIDAD', 'URGENTE'
+    id_evento = Column(Integer, ForeignKey("eventos.id_evento", ondelete="SET NULL"), nullable=True)
+    solo_inscritos_evento = Column(Boolean, default=False)
+
     autor = relationship("Usuario", foreign_keys="[Anuncio.id_autor]")
+    evento = relationship("Evento", foreign_keys=[id_evento])
+
+    @property
+    def evento_titulo(self):
+        return self.evento.titulo if self.evento else None
 
 class EventoPagoQR(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "eventos_pagos_qr"

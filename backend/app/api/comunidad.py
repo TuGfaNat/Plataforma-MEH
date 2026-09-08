@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from ..database import get_db
 from ..models import models
 from ..schemas import anuncio as anuncio_schema
@@ -25,11 +25,18 @@ def get_miembro_detalle(id_usuario: int, db: Session = Depends(get_db)):
 
 @router.get("/anuncios", response_model=List[anuncio_schema.AnuncioResponse])
 def get_anuncios(
+    id_evento: Optional[int] = None,
+    categoria: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
     """Muestra los anuncios activos para la comunidad."""
-    return comunidad_service.list_anuncios_activos(db, current_user)
+    return comunidad_service.list_anuncios_activos(
+        db, 
+        current_user,
+        id_evento=id_evento,
+        categoria=categoria
+    )
 
 @router.get("/anuncios/all", response_model=List[anuncio_schema.AnuncioResponse])
 def get_all_anuncios(

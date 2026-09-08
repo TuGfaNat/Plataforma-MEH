@@ -34,6 +34,10 @@ def sanitize():
         # 4. Asegurar que los anuncios tengan estado activo y sus columnas
         run_sql(db, "UPDATE anuncios SET activo = true WHERE activo IS NULL", "Sanear activo en tabla anuncios")
         run_sql(db, "ALTER TABLE anuncios ADD COLUMN IF NOT EXISTS exclusivo_embajadores BOOLEAN NOT NULL DEFAULT false", "Asegurar columna 'exclusivo_embajadores' en anuncios")
+        run_sql(db, "ALTER TABLE anuncios ADD COLUMN IF NOT EXISTS roles_destino VARCHAR DEFAULT 'TODOS'", "Asegurar columna 'roles_destino' en anuncios")
+        run_sql(db, "ALTER TABLE anuncios ADD COLUMN IF NOT EXISTS categoria VARCHAR DEFAULT 'GENERAL'", "Asegurar columna 'categoria' en anuncios")
+        run_sql(db, "ALTER TABLE anuncios ADD COLUMN IF NOT EXISTS id_evento INTEGER REFERENCES eventos(id_evento) ON DELETE SET NULL", "Asegurar columna 'id_evento' en anuncios")
+        run_sql(db, "ALTER TABLE anuncios ADD COLUMN IF NOT EXISTS solo_inscritos_evento BOOLEAN NOT NULL DEFAULT false", "Asegurar columna 'solo_inscritos_evento' en anuncios")
         
         # 4b. Marcar usuarios de prueba y administradores como no nuevos (evitar redirección a cambio de contraseña)
         run_sql(db, "UPDATE usuarios SET es_nuevo = false WHERE correo = 'natalygemio@gmail.com' OR correo LIKE '%@meh.com' OR correo LIKE 'user%@test.com'", "Establecer es_nuevo = false para usuarios del seed")
