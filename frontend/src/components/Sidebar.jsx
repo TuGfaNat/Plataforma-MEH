@@ -48,6 +48,9 @@ import {
   Globe24Regular,
   CalendarStar24Regular,
   CalendarStar24Filled,
+  Drop24Regular,
+  Eye24Regular,
+  ShieldCheckmark24Filled,
 } from "@fluentui/react-icons";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -462,26 +465,33 @@ const Sidebar = ({ onClose }) => {
             {currentLanguageLabel}
           </Button>
 
-          <Button
-            appearance="subtle"
-            size="small"
-            className={styles.themeButton}
-            icon={
-              currentTheme === "light" ? (
-                <WeatherMoon24Regular />
-              ) : currentTheme === "dark" ? (
-                <WeatherSunny24Regular />
-              ) : currentTheme === "ash" ? (
-                <Library24Regular />
-              ) : (
-                <Globe24Regular />
-              )
-            }
-            onClick={toggleTheme}
-            style={{ color: tokens.colorNeutralForeground1 }}
-          >
-            {currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)}
-          </Button>
+          {(() => {
+            const THEME_DISPLAY = {
+              dark: { icon: WeatherMoon24Regular, label: "Oscuro" },
+              light: { icon: WeatherSunny24Regular, label: "Claro" },
+              blue: { icon: Globe24Regular, label: "Blue" },
+              ash: { icon: Library24Regular, label: "Ceniza" },
+              highContrast: { icon: ShieldCheckmark24Filled, label: "Contraste" },
+              ocean: { icon: Drop24Regular, label: "Ocean" },
+              colorblind: { icon: Eye24Regular, label: "Accesible" },
+            };
+            const currentConfig = THEME_DISPLAY[currentTheme] || { icon: WeatherMoon24Regular, label: currentTheme };
+            const IconComponent = currentConfig.icon;
+            return (
+              <Button
+                appearance="subtle"
+                size="small"
+                className={styles.themeButton}
+                icon={<IconComponent aria-hidden="true" />}
+                onClick={toggleTheme}
+                style={{ color: tokens.colorNeutralForeground1 }}
+                aria-label={`Cambiar tema visual. Tema actual: ${currentConfig.label}`}
+                title={`Cambiar tema (Actual: ${currentConfig.label})`}
+              >
+                {currentConfig.label}
+              </Button>
+            );
+          })()}
         </div>
 
         <NavItem

@@ -14,7 +14,9 @@ import {
   WeatherMoon24Regular,
   Library24Regular,
   Globe24Regular,
-  ShieldCheckmark24Filled
+  ShieldCheckmark24Filled,
+  Drop24Regular,
+  Eye24Regular
 } from "@fluentui/react-icons";
 import { designTokens } from "../../theme/theme";
 import { useTheme } from "../../App";
@@ -64,7 +66,11 @@ export const LandingHeader = () => {
   return (
     <header className={styles.header}>
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <img src={designTokens.logo} alt="logo" style={{ width: "40px" }} />
+        <img 
+          src={designTokens.logo} 
+          alt="Logotipo oficial de la Plataforma Microsoft Education Hub" 
+          style={{ width: "40px" }} 
+        />
         <MEHTypography
           variant="h3"
           style={{ fontWeight: tokens.fontWeightBold }}
@@ -83,28 +89,33 @@ export const LandingHeader = () => {
         </MEHButton>
         <MEHButton
           appearance="subtle"
-          icon={<Translate24Regular />}
+          icon={<Translate24Regular aria-hidden="true" />}
           onClick={changeLanguage}
+          aria-label="Cambiar Idioma / Change Language"
           title="Cambiar Idioma / Change Language"
         />
-        <MEHButton 
-          appearance="subtle" 
-          icon={
-            currentTheme === 'light' ? <WeatherMoon24Regular /> : 
-            currentTheme === 'dark' ? <WeatherSunny24Regular /> :
-            currentTheme === 'blue' ? <Globe24Regular /> :
-            currentTheme === 'ash' ? <Library24Regular /> :
-            <ShieldCheckmark24Filled />
-          } 
-          onClick={toggleTheme}
-          title={
-            currentTheme === 'dark' ? "Cambiar a Modo Claro" :
-            currentTheme === 'light' ? "Cambiar a Modo Blue" :
-            currentTheme === 'blue' ? "Cambiar a Modo Ceniza" :
-            currentTheme === 'ash' ? "Cambiar a Modo Alto Contraste" :
-            "Cambiar a Modo Oscuro"
-          }
-        />
+        {(() => {
+          const THEME_DISPLAY = {
+            dark: { icon: WeatherMoon24Regular, label: "Oscuro" },
+            light: { icon: WeatherSunny24Regular, label: "Claro" },
+            blue: { icon: Globe24Regular, label: "Blue" },
+            ash: { icon: Library24Regular, label: "Ceniza" },
+            highContrast: { icon: ShieldCheckmark24Filled, label: "Alto Contraste" },
+            ocean: { icon: Drop24Regular, label: "Ocean" },
+            colorblind: { icon: Eye24Regular, label: "Accesible CUD" },
+          };
+          const currentConfig = THEME_DISPLAY[currentTheme] || { icon: WeatherMoon24Regular, label: currentTheme };
+          const IconComponent = currentConfig.icon;
+          return (
+            <MEHButton 
+              appearance="subtle" 
+              icon={<IconComponent aria-hidden="true" />} 
+              onClick={toggleTheme}
+              aria-label={`Cambiar tema visual. Tema actual: ${currentConfig.label}`}
+              title={`Cambiar tema (Actual: ${currentConfig.label})`}
+            />
+          );
+        })()}
         <Link
           to="/login"
           style={{ textDecoration: "none", marginLeft: "12px" }}

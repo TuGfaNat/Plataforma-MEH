@@ -26,7 +26,10 @@ import {
   Link24Regular,
   WeatherSunny24Regular,
   WeatherMoon24Regular,
-  Library24Regular
+  Library24Regular,
+  Drop24Regular,
+  Eye24Regular,
+  ShieldCheckmark24Filled
 } from "@fluentui/react-icons";
 import { MEHCard, MEHButton, MEHTypography } from "../components/ui";
 import { useAuth, useNotify, useTheme } from "../App";
@@ -80,11 +83,19 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground2,
     cursor: 'pointer',
     boxShadow: tokens.shadow4,
+    outline: 'none',
     ':hover': {
         ...shorthands.borderColor(tokens.colorBrandBackground),
         backgroundColor: tokens.colorBrandBackground2,
         transform: 'translateY(-2px)',
         boxShadow: tokens.shadow8,
+    },
+    ':focus-visible': {
+      outlineWidth: '2px',
+      outlineStyle: 'solid',
+      outlineColor: tokens.colorStrokeFocus2,
+      outlineOffset: '2px',
+      ...shorthands.borderColor(tokens.colorBrandBackground),
     }
   },
   cardPreview: {
@@ -134,9 +145,17 @@ const useStyles = makeStyles({
     cursor: "pointer",
     transition: "all 0.2s",
     backgroundColor: tokens.colorNeutralBackground3,
+    outline: 'none',
     ':hover': {
       backgroundColor: tokens.colorNeutralBackground2,
       ...shorthands.borderColor(tokens.colorBrandStroke1),
+    },
+    ':focus-visible': {
+      outlineWidth: '2px',
+      outlineStyle: 'solid',
+      outlineColor: tokens.colorStrokeFocus2,
+      outlineOffset: '2px',
+      ...shorthands.borderColor(tokens.colorBrandBackground),
     }
   },
   themeCardSelected: {
@@ -374,13 +393,26 @@ const Configuracion = () => {
                 {errors.alias && <MEHTypography variant="caption" style={{ color: tokens.colorPaletteRedForeground1 }}>{errors.alias}</MEHTypography>}
               </div>
               <div className={styles.fieldGroup}>
-                <Label>Foto de Perfil</Label>
-                <div className={styles.uploadAction} onClick={() => document.getElementById('photo-input').click()}>
+                <Label htmlFor="photo-upload-button">Foto de Perfil</Label>
+                <div 
+                  id="photo-upload-button"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Actualizar foto de perfil. Formatos PNG o JPG hasta 5MB"
+                  className={styles.uploadAction} 
+                  onClick={() => document.getElementById('photo-input').click()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      document.getElementById('photo-input')?.click();
+                    }
+                  }}
+                >
                   {uploading ? (
-                    <Spinner size="small" label="Subiendo..." />
+                    <Spinner size="small" label="Subiendo..." aria-live="polite" />
                   ) : (
                     <>
-                      <Camera24Regular style={{ fontSize: '32px', color: tokens.colorBrandForeground1 }} />
+                      <Camera24Regular style={{ fontSize: '32px', color: tokens.colorBrandForeground1 }} aria-hidden="true" />
                       <div>
                         <MEHTypography variant="body" style={{ fontWeight: 'bold', display: 'block' }}>Actualizar Imagen</MEHTypography>
                         <MEHTypography variant="caption" style={{ opacity: 0.6 }}>PNG, JPG hasta 5MB</MEHTypography>
@@ -390,6 +422,7 @@ const Configuracion = () => {
                         type="file" 
                         onChange={handlePhotoUpload} 
                         accept="image/*" 
+                        aria-label="Seleccionar archivo de imagen para foto de perfil"
                         style={{ display: 'none' }} 
                       />
                     </>
@@ -497,42 +530,39 @@ const Configuracion = () => {
             <MEHTypography variant="h3">4. Personalización del Sistema</MEHTypography>
             <MEHTypography variant="caption" style={{ opacity: 0.6 }}>Elige el estilo que mejor se adapte a ti. El cambio se aplica instantáneamente.</MEHTypography>
 
-            <div className={styles.themeGrid}>
-              <div 
-                className={mergeClasses(styles.themeCard, currentTheme === 'dark' && styles.themeCardSelected)}
-                onClick={() => handleThemeChange('dark')}
-              >
-                <WeatherMoon24Regular style={{ fontSize: '24px' }} />
-                <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Oscuro</MEHTypography>
-                <MEHTypography variant="caption" style={{ opacity: 0.6, textAlign: 'center' }}>Por defecto y elegante</MEHTypography>
-              </div>
-
-              <div 
-                className={mergeClasses(styles.themeCard, currentTheme === 'light' && styles.themeCardSelected)}
-                onClick={() => handleThemeChange('light')}
-              >
-                <WeatherSunny24Regular style={{ fontSize: '24px' }} />
-                <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Claro</MEHTypography>
-                <MEHTypography variant="caption" style={{ opacity: 0.6, textAlign: 'center' }}>Máxima claridad diurna</MEHTypography>
-              </div>
-
-              <div 
-                className={mergeClasses(styles.themeCard, currentTheme === 'ash' && styles.themeCardSelected)}
-                onClick={() => handleThemeChange('ash')}
-              >
-                <Library24Regular style={{ fontSize: '24px' }} />
-                <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Ceniza</MEHTypography>
-                <MEHTypography variant="caption" style={{ opacity: 0.6, textAlign: 'center' }}>Grises suaves y neutros</MEHTypography>
-              </div>
-
-              <div 
-                className={mergeClasses(styles.themeCard, currentTheme === 'ocean' && styles.themeCardSelected)}
-                onClick={() => handleThemeChange('ocean')}
-              >
-                <Globe24Regular style={{ fontSize: '24px' }} />
-                <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>Ocean</MEHTypography>
-                <MEHTypography variant="caption" style={{ opacity: 0.6, textAlign: 'center' }}>Azules y plomos técnicos</MEHTypography>
-              </div>
+            <div className={styles.themeGrid} role="radiogroup" aria-label="Selección de tema visual">
+              {[
+                { key: 'dark', label: 'Oscuro', desc: 'Por defecto y elegante', icon: <WeatherMoon24Regular style={{ fontSize: '24px' }} /> },
+                { key: 'light', label: 'Claro', desc: 'Máxima claridad diurna', icon: <WeatherSunny24Regular style={{ fontSize: '24px' }} /> },
+                { key: 'blue', label: 'Blue', desc: 'Azul corporativo Microsoft', icon: <Globe24Regular style={{ fontSize: '24px' }} /> },
+                { key: 'ash', label: 'Ceniza', desc: 'Grises suaves y neutros', icon: <Library24Regular style={{ fontSize: '24px' }} /> },
+                { key: 'highContrast', label: 'Alto Contraste', desc: 'Máxima nitidez y bordes WCAG', icon: <ShieldCheckmark24Filled style={{ fontSize: '24px' }} /> },
+                { key: 'ocean', label: 'Ocean', desc: 'Paleta marina y tonos aqua', icon: <Drop24Regular style={{ fontSize: '24px' }} /> },
+                { key: 'colorblind', label: 'Accesible CUD', desc: 'Optimizado para daltónicos sin rojo/verde', icon: <Eye24Regular style={{ fontSize: '24px' }} /> },
+              ].map((themeItem) => {
+                const isSelected = currentTheme === themeItem.key;
+                return (
+                  <div 
+                    key={themeItem.key}
+                    role="radio"
+                    aria-checked={isSelected}
+                    tabIndex={0}
+                    className={mergeClasses(styles.themeCard, isSelected && styles.themeCardSelected)}
+                    onClick={() => handleThemeChange(themeItem.key)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleThemeChange(themeItem.key);
+                      }
+                    }}
+                    aria-label={`Tema ${themeItem.label}: ${themeItem.desc}${isSelected ? ' (Seleccionado)' : ''}`}
+                  >
+                    {themeItem.icon}
+                    <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>{themeItem.label}</MEHTypography>
+                    <MEHTypography variant="caption" style={{ opacity: 0.6, textAlign: 'center' }}>{themeItem.desc}</MEHTypography>
+                  </div>
+                );
+              })}
             </div>
 
             <Divider />
