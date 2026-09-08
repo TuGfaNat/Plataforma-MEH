@@ -23,6 +23,22 @@ export const ashBrand = {
   130: "#F0F0F0", 140: "#F7F7F7", 150: "#FAFAFA", 160: "#FFFFFF"
 };
 
+// Paleta Ocean (Marina / Deep Ocean / Teal / Cyan)
+export const oceanBrand = {
+  10: "#010D12", 20: "#021B24", 30: "#042B3A", 40: "#063D52",
+  50: "#09516D", 60: "#0D688B", 70: "#1282AC", 80: "#179ECF",
+  90: "#2BB5E8", 100: "#4FC4EE", 110: "#76D2F3", 120: "#9FDFFA",
+  130: "#C4EDFD", 140: "#DCF5FE", 150: "#EDFAFF", 160: "#FFFFFF"
+};
+
+// Paleta CUD Accesible para Daltónicos (Color Universal Design - Okabe & Ito)
+export const colorblindBrand = {
+  10: "#020B1A", 20: "#051A3B", 30: "#0A2D5E", 40: "#104284",
+  50: "#185AA8", 60: "#2274CC", 70: "#368EF0", 80: "#5CA4F5",
+  90: "#80BAF8", 100: "#A3D0FB", 110: "#C4E3FD", 120: "#DDF0FE",
+  130: "#EDF7FF", 140: "#F5FAFF", 150: "#FAFDFF", 160: "#FFFFFF"
+};
+
 export const mlsaDarkTheme = {
   ...createDarkTheme(mlsaBrand),
   colorNeutralBackground1: "#06020D",
@@ -59,12 +75,62 @@ export const highContrastTheme = {
   colorBrandForeground1: "#FFFF00",
 };
 
+export const oceanTheme = {
+  ...createDarkTheme(oceanBrand),
+  colorNeutralBackground1: "#03131A",
+  colorNeutralBackground2: "#07202B",
+  colorNeutralBackground3: "#0C2E3D",
+  colorNeutralBackground4: "#103C4F",
+  colorBrandBackground: "#0D688B",
+  colorBrandBackgroundHover: "#1282AC",
+  colorBrandForeground1: "#4FC4EE",
+  colorBrandForeground2: "#76D2F3",
+  colorNeutralForeground1: "#F0F9FC",
+  colorNeutralForeground2: "#B0D4E3",
+  colorNeutralForeground3: "#7CA7BC",
+  colorNeutralStroke1: "#14485F",
+  colorNeutralStroke2: "#0E3647",
+};
+
+export const colorblindTheme = {
+  ...createDarkTheme(colorblindBrand),
+  colorNeutralBackground1: "#070B14",
+  colorNeutralBackground2: "#0E1626",
+  colorNeutralBackground3: "#16233B",
+  colorBrandBackground: "#2274CC",
+  colorBrandForeground1: "#5CA4F5",
+  colorNeutralForeground1: "#FFFFFF",
+  colorNeutralForeground2: "#D9E5F5",
+  // Paleta CUD sin confusión rojo/verde
+  colorPaletteRedForeground1: "#E69F00", // Naranja / Bermellón CUD para errores
+  colorPaletteRedBackground1: "#3D2400",
+  colorPaletteRedBorder1: "#E69F00",
+  colorPaletteGreenForeground1: "#56B4E9", // Azul cielo CUD para éxito
+  colorPaletteGreenBackground1: "#042B3A",
+  colorPaletteGreenBorder1: "#56B4E9",
+  colorPaletteYellowForeground1: "#F0E442", // Amarillo oro CUD para advertencias
+  colorPaletteYellowBackground1: "#3B3800",
+  colorPaletteYellowBorder1: "#F0E442",
+};
+
 export const themes = {
   dark: mlsaDarkTheme,
   light: mlsaLightTheme,
   blue: blueTheme,
   ash: ashTheme,
-  highContrast: highContrastTheme
+  highContrast: highContrastTheme,
+  ocean: oceanTheme,
+  colorblind: colorblindTheme
+};
+
+export const themeMetadata = {
+  dark: { key: 'dark', label: 'Oscuro', description: 'Por defecto y elegante', mode: 'dark' },
+  light: { key: 'light', label: 'Claro', description: 'Máxima claridad diurna', mode: 'light' },
+  blue: { key: 'blue', label: 'Blue', description: 'Azul corporativo Microsoft', mode: 'dark' },
+  ash: { key: 'ash', label: 'Ceniza', description: 'Grises suaves y neutros', mode: 'dark' },
+  highContrast: { key: 'highContrast', label: 'Alto Contraste', description: 'Máxima nitidez y bordes WCAG', mode: 'contrast' },
+  ocean: { key: 'ocean', label: 'Ocean', description: 'Paleta marina y tonos aqua', mode: 'dark' },
+  colorblind: { key: 'colorblind', label: 'Accesible CUD', description: 'Optimizado para daltónicos sin rojo/verde', mode: 'dark' }
 };
 
 export const designTokens = {

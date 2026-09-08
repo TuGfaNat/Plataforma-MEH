@@ -1,5 +1,6 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { FluentProvider, Toaster, useId, useToastController, Toast, ToastTitle, ToastBody, Spinner } from '@fluentui/react-components';
+import { FluentProvider, Toaster, useId, useToastController, Toast, ToastTitle, ToastBody, Spinner, tokens } from '@fluentui/react-components';
+import { CheckmarkCircle20Filled, DismissCircle20Filled, Warning20Filled, Info20Filled } from '@fluentui/react-icons';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { themes } from './theme/theme';
 import authService from './services/authService';
@@ -98,9 +99,37 @@ export default function App() {
   const { dispatchToast } = useToastController(toasterId);
 
   const notify = (title, message, intent = "info") => {
+    let IntentIcon = Info20Filled;
+    let iconColor = tokens.colorBrandForeground1;
+    let labelPrefix = "Información: ";
+
+    if (intent === "success") {
+      IntentIcon = CheckmarkCircle20Filled;
+      iconColor = tokens.colorPaletteGreenForeground1;
+      labelPrefix = "Éxito: ";
+    } else if (intent === "error") {
+      IntentIcon = DismissCircle20Filled;
+      iconColor = tokens.colorPaletteRedForeground1;
+      labelPrefix = "Error: ";
+    } else if (intent === "warning") {
+      IntentIcon = Warning20Filled;
+      iconColor = tokens.colorPaletteYellowForeground1;
+      labelPrefix = "Advertencia: ";
+    }
+
     dispatchToast(
-      <Toast>
-        <ToastTitle>{title}</ToastTitle>
+      <Toast 
+        role={intent === "error" ? "alert" : "status"}
+        aria-live={intent === "error" ? "assertive" : "polite"}
+      >
+        <ToastTitle 
+          media={<IntentIcon aria-hidden="true" style={{ color: iconColor }} />}
+        >
+          <span style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', border: 0 }}>
+            {labelPrefix}
+          </span>
+          {title}
+        </ToastTitle>
         <ToastBody>{message}</ToastBody>
       </Toast>,
       { intent }

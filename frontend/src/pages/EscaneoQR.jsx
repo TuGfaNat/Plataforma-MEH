@@ -566,7 +566,12 @@ const EscaneoQR = () => {
             <div className={styles.generatorCard} style={{ alignItems: 'center', justifyContent: 'center' }}>
               {generatorValue ? (
                 <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '8px' }}>
-                  <QRCodeSVG value={generatorValue} size={180} />
+                  <QRCodeSVG 
+                    value={generatorValue} 
+                    size={180} 
+                    role="img"
+                    aria-label={`Código QR generado: ${generatorValue}`}
+                  />
                 </div>
               ) : (
                 <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
