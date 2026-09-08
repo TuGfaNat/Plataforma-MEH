@@ -482,7 +482,13 @@ const Dashboard = () => {
                                     Presenta este código QR único para tu <b>acreditación</b> y retiro de <b>ítems incluidos</b> en <b>{evento.titulo}</b>.
                                   </MEHTypography>
                                   <div style={{ display: 'inline-block', backgroundColor: 'white', padding: '16px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
-                                    <QRCodeSVG id={`ticket-qr-${isInscribed.codigo_qr}`} value={isInscribed.codigo_qr} size={200} />
+                                    <QRCodeSVG 
+                                      id={`ticket-qr-${isInscribed.codigo_qr}`} 
+                                      value={isInscribed.codigo_qr} 
+                                      size={200} 
+                                      role="img"
+                                      aria-label={`Código QR de entrada y logística para el evento ${evento.titulo}`}
+                                    />
                                   </div>
                                   <MEHTypography variant="caption" style={{ opacity: 0.7, fontSize: '11px' }}>
                                     Código: {isInscribed.codigo_qr}
@@ -640,10 +646,27 @@ const Dashboard = () => {
                         <div style={{ backgroundColor: 'rgba(127, 19, 236, 0.1)', padding: '8px', borderRadius: '8px', height: 'fit-content' }}>
                             <Mail24Filled style={{ color: tokens.colorBrandForeground1 }} />
                         </div>
-                        <div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                              <Badge appearance="tint" color={an.tipo === 'ALERTA' ? 'danger' : 'brand'} size="small">
+                                {an.tipo}
+                              </Badge>
+                              {an.categoria && (
+                                <Badge appearance="outline" size="small">
+                                  {an.categoria}
+                                </Badge>
+                              )}
+                              {an.evento_titulo && (
+                                <Badge appearance="tint" color="informative" size="small" icon={<CalendarStar24Regular />}>
+                                  {an.evento_titulo}
+                                </Badge>
+                              )}
+                            </div>
                             <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>{an.titulo}</MEHTypography>
-                            <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.6, marginTop: '4px' }}>{an.contenido.substring(0, 80)}...</MEHTypography>
-                            <MEHTypography variant="caption" style={{ fontSize: '10px', opacity: 0.4 }}>{new Date(an.fecha_publicacion).toLocaleDateString()}</MEHTypography>
+                            <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.6, marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {an.contenido ? an.contenido.replace(/<[^>]*>?/gm, '').substring(0, 80) : ''}...
+                            </MEHTypography>
+                            <MEHTypography variant="caption" style={{ fontSize: '10px', opacity: 0.4, marginTop: '2px', display: 'block' }}>{new Date(an.fecha_publicacion).toLocaleDateString()}</MEHTypography>
                         </div>
                     </div>
                  ))
@@ -684,6 +707,21 @@ const Dashboard = () => {
         <Dialog open={!!selectedAnnouncement} onOpenChange={(e, data) => { if (!data.open) setSelectedAnnouncement(null); }}>
           <DialogSurface style={{ backgroundColor: '#1A1A1A', border: `1px solid ${tokens.colorBrandForeground1}` }}>
             <DialogBody>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '8px' }}>
+                <Badge appearance="tint" color={selectedAnnouncement?.tipo === 'ALERTA' ? 'danger' : 'brand'} size="small">
+                  {selectedAnnouncement?.tipo}
+                </Badge>
+                {selectedAnnouncement?.categoria && (
+                  <Badge appearance="outline" size="small">
+                    {selectedAnnouncement.categoria}
+                  </Badge>
+                )}
+                {selectedAnnouncement?.evento_titulo && (
+                  <Badge appearance="tint" color="informative" size="small" icon={<CalendarStar24Regular />}>
+                    {selectedAnnouncement.evento_titulo}
+                  </Badge>
+                )}
+              </div>
               <DialogTitle>{selectedAnnouncement?.titulo}</DialogTitle>
               <DialogContent style={{ padding: '16px 0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {selectedAnnouncement?.url_imagen && (
@@ -693,9 +731,10 @@ const Dashboard = () => {
                     style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} 
                   />
                 )}
-                <MEHTypography variant="body" style={{ display: 'block', whiteSpace: 'pre-wrap', lineHeight: '1.5', opacity: 0.9 }}>
-                  {selectedAnnouncement?.contenido}
-                </MEHTypography>
+                <div 
+                  style={{ lineHeight: '1.6', opacity: 0.9, fontSize: '14px' }}
+                  dangerouslySetInnerHTML={{ __html: selectedAnnouncement?.contenido || '' }}
+                />
                 
                 {selectedAnnouncement?.link_accion && (
                   <div style={{ marginTop: '8px' }}>

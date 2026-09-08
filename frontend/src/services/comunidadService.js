@@ -11,8 +11,8 @@ const comunidadService = {
     return response.data;
   },
 
-  getAnuncios: async () => {
-    const response = await api.get('/comunidad/anuncios');
+  getAnuncios: async (params = {}) => {
+    const response = await api.get('/comunidad/anuncios', { params });
     return response.data;
   },
 

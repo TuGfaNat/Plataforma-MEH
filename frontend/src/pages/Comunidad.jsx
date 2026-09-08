@@ -19,7 +19,8 @@ import {
   Globe24Regular,
   Link24Regular,
   Search24Regular,
-  Filter24Regular
+  Filter24Regular,
+  Calendar24Regular
 } from '@fluentui/react-icons';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import comunidadService from '../services/comunidadService';
@@ -172,6 +173,21 @@ const Comunidad = () => {
   const [filterRol, setFilterRol] = useState('ALL');
   const [filterTipoEntidad, setFilterTipoEntidad] = useState('ALL');
   const [filterDepartamento, setFilterDepartamento] = useState('ALL');
+  const [filterCategoriaAnuncio, setFilterCategoriaAnuncio] = useState('TODAS');
+  const [loadingAnuncios, setLoadingAnuncios] = useState(false);
+
+  const fetchAnuncios = async (cat = filterCategoriaAnuncio) => {
+    setLoadingAnuncios(true);
+    try {
+      const params = cat !== 'TODAS' ? { categoria: cat } : {};
+      const data = await comunidadService.getAnuncios(params);
+      setAnuncios(data);
+    } catch (err) {
+      console.error("Error fetching anuncios:", err);
+    } finally {
+      setLoadingAnuncios(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -191,6 +207,11 @@ const Comunidad = () => {
     };
     fetchData();
   }, []);
+
+  const handleCategoriaAnuncioChange = (newCat) => {
+    setFilterCategoriaAnuncio(newCat);
+    fetchAnuncios(newCat);
+  };
 
   const uniqueRoles = React.useMemo(() => {
     const roles = miembros.map(m => m.rol).filter(Boolean);
@@ -427,31 +448,66 @@ const Comunidad = () => {
         <div>
           {/* Muro de Avisos Real */}
           <MEHCard style={{ position: 'sticky', top: '24px' }}>
-            <MEHTypography variant="h3" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <MEHTypography variant="h3" style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Megaphone24Regular /> Muro de Avisos
             </MEHTypography>
+
+            {/* Selector de Categoría de Avisos */}
+            <div style={{ marginBottom: '16px' }}>
+              <Select
+                value={filterCategoriaAnuncio}
+                onChange={(e, data) => handleCategoriaAnuncioChange(data.value)}
+                style={{ width: '100%' }}
+                aria-label="Filtrar avisos por categoría"
+              >
+                <option value="TODAS">Todas las categorías</option>
+                <option value="GENERAL">General</option>
+                <option value="EVENTO">Eventos</option>
+                <option value="ACADEMIA">Academia / Cursos</option>
+                <option value="COMUNIDAD">Comunidad</option>
+                <option value="OPORTUNIDAD">Oportunidades</option>
+                <option value="URGENTE">Urgente</option>
+              </Select>
+            </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {loading ? (
-                <Spinner size="small" />
+              {loading || loadingAnuncios ? (
+                <Spinner size="small" label="Cargando avisos..." />
               ) : anuncios.length > 0 ? (
                 anuncios.map(anuncio => (
                   <div key={anuncio.id_anuncio} className={styles.noticeItem}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <Badge color={anuncio.tipo === 'ALERTA' ? 'danger' : 'brand'} appearance="tint">
-                        {anuncio.tipo}
-                      </Badge>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '4px' }}>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Badge color={anuncio.tipo === 'ALERTA' ? 'danger' : 'brand'} appearance="tint" size="small">
+                          {anuncio.tipo}
+                        </Badge>
+                        {anuncio.categoria && (
+                          <Badge appearance="outline" size="small">
+                            {anuncio.categoria}
+                          </Badge>
+                        )}
+                      </div>
                       <MEHTypography variant="caption" style={{ opacity: 0.5 }}>
                         {new Date(anuncio.fecha_publicacion).toLocaleDateString()}
                       </MEHTypography>
                     </div>
+
+                    {anuncio.evento_titulo && (
+                      <div style={{ marginBottom: '4px' }}>
+                        <Badge appearance="tint" color="informative" size="small" icon={<Calendar24Regular />}>
+                          {anuncio.evento_titulo}
+                        </Badge>
+                      </div>
+                    )}
+
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                       {getAnuncioIcon(anuncio.tipo)}
-                      <div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <MEHTypography variant="body" style={{ display: 'block', fontWeight: 'bold' }}>{anuncio.titulo}</MEHTypography>
-                        <MEHTypography variant="caption" style={{ opacity: 0.7, marginTop: '4px', display: 'block' }}>
-                          {anuncio.contenido}
-                        </MEHTypography>
+                        <div 
+                          style={{ opacity: 0.8, marginTop: '4px', fontSize: '13px', lineHeight: '1.4' }}
+                          dangerouslySetInnerHTML={{ __html: anuncio.contenido }}
+                        />
                       </div>
                     </div>
                     {anuncio.url_imagen && (
@@ -474,7 +530,7 @@ const Comunidad = () => {
                   </div>
                 ))
               ) : (
-                <MEHTypography variant="caption" style={{ opacity: 0.5, textAlign: 'center' }}>No hay avisos recientes.</MEHTypography>
+                <MEHTypography variant="caption" style={{ opacity: 0.5, textAlign: 'center' }}>No hay avisos recientes en esta categoría.</MEHTypography>
               )}
             </div>
           </MEHCard>
