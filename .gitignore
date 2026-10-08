@@ -53,3 +53,11 @@ backend/static/uploads/*
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# --- Carta Tesis / Documentación de apoyo (no es código) ---
+tesis/
+DOCUMENTACION_TESIS.md
+docUser.md
+docuTec.md
+MATRIZ_ERRORES_QA.md
+specs/
