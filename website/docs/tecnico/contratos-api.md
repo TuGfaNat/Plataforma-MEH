@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 19  
-**Total de endpoints expuestos:** 114
+**Total de endpoints expuestos:** 120
 
 ---
 
@@ -69,9 +69,15 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`POST`** | `/api/auth/google` | Endpoint para autenticación mediante Google OAuth. | `payload: dict` | `200 OK` | Público / Abierto |
 | **`GET`** | `/api/auth/me` | Obtiene el perfil del usuario autenticado. | - | `200 OK` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/auth/me` | Actualiza los datos del perfil del usuario autenticado. | `user_update: UserUpdate` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/auth/verificar-email` | Verifica el correo electrónico de un usuario con el código recibido. | - | `200 OK` | Público / Abierto |
+| **`POST`** | `/api/auth/reenviar-codigo` | Reenvía un nuevo código de verificación al correo. | - | `200 OK` | Público / Abierto |
 | **`GET`** | `/api/auth/usuarios` | Lista todos los usuarios (Solo para personal con permisos). | - | `200 OK` | Requiere Auth (JWT) |
+| **`PUT`** | `/api/auth/usuarios/{id_usuario}` | Actualiza datos de un usuario desde administración (Solo ADMIN). | `id_usuario: int`, `payload: AdminUserUpdate` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/auth/usuarios/{id_usuario}/reset-password` | Restablece la contraseña de un usuario directamente (Solo ADMIN). | `id_usuario: int`, `payload: AdminResetPasswordRequest` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/auth/usuarios/{id_usuario}/suspender` | Suspende a un usuario con motivo (Solo ADMIN). | `id_usuario: int`, `payload: SuspenderUsuarioRequest` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/auth/usuarios/{id_usuario}/restaurar` | Restaura una cuenta de usuario suspendida (Solo ADMIN). | `id_usuario: int` | `200 OK` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/auth/usuarios/{id_usuario}/rol` | Cambia el rango de un usuario (Solo para Administradores). | `id_usuario: int`, `nuevo_rol: str` | `200 OK` | Requiere Auth (JWT) |
-| **`DELETE`** | `/api/auth/usuarios/{id_usuario}` | Elimina lógicamente un usuario (Solo Administradores). | `id_usuario: int` | `204 No Content` | Requiere Auth (JWT) |
+| **`DELETE`** | `/api/auth/usuarios/{id_usuario}` | Suspende lógicamente un usuario sin borrado físico (Solo Administradores). | `id_usuario: int` | `204 No Content` | Requiere Auth (JWT) |
 
 ## Módulo `badges` (Prefix: `/insignias`)
 

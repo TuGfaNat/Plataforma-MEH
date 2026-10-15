@@ -59,6 +59,7 @@ async def log_requests(request: Request, call_next):
 
 # Incluir routers
 app.include_router(auth.router)
+app.include_router(auth.router_usuarios)
 app.include_router(eventos.router)
 app.include_router(cursos.router)
 app.include_router(academia.router) # Habilitado el motor de aula virtual

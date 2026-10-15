@@ -165,7 +165,18 @@ const Login = () => {
           </MEHTypography>
         </div>
 
-        {errorApi && <MessageBar intent="error">{errorApi}</MessageBar>}
+        {errorApi && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <MessageBar intent="error">{errorApi}</MessageBar>
+            {errorApi.toLowerCase().includes('verifi') && (
+              <div style={{ textAlign: 'center' }}>
+                <Link to={`/verificar-email?email=${encodeURIComponent(formData.correo)}`} className={styles.link} style={{ fontSize: '13px' }}>
+                  👉 Haz clic aquí para verificar tu correo electrónico
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <MEHInput 

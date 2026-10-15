@@ -346,3 +346,42 @@ def notify_ticket_qr(
     return send_email(email, subject, html, images={"ticket_qr": (qr_bytes, "png")})
 
 
+def notify_email_verification(email: str, nombre: str, codigo: str) -> bool:
+    """Envía el código numérico de verificación de correo electrónico."""
+    subject = f"🔐 Código de verificación: {codigo} - Plataforma MEH"
+    verification_url = f"{FRONTEND_URL}/verificar-email?email={email}"
+
+    # Log seguro para desarrollo / tests cuando no hay SMTP configurado
+    logger.info(f"📧 [EMAIL VERIFICATION] Para: {email} | Código: {codigo} | URL: {verification_url}")
+
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 24px; border-radius: 12px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <span style="background: #7f13ec; color: white; padding: 6px 18px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">VERIFICACIÓN DE CUENTA</span>
+        </div>
+        <h2 style="color: #333; text-align: center;">¡Hola, {nombre}! 👋</h2>
+        <p style="color: #555; font-size: 1rem; line-height: 1.5;">Gracias por registrarte en la <b>Plataforma Microsoft Education Hub</b>. Para activar tu cuenta y poder iniciar sesión, ingresa el siguiente código de verificación:</p>
+        
+        <div style="background: #f4f0ff; border: 2px dashed #7f13ec; padding: 20px; margin: 25px 0; border-radius: 10px; text-align: center;">
+            <p style="margin: 0 0 8px 0; color: #7f13ec; font-size: 0.9rem; font-weight: bold; text-transform: uppercase;">Tu código de seguridad</p>
+            <span style="font-size: 2.2rem; font-weight: bold; letter-spacing: 6px; color: #1a1a2e; font-family: monospace;">{codigo}</span>
+            <p style="margin: 8px 0 0 0; color: #888; font-size: 0.8rem;">Este código expira en 30 minutos.</p>
+        </div>
+
+        <p style="color: #666; font-size: 0.9rem;">También puedes completar tu verificación directamente haciendo clic en el siguiente botón:</p>
+        <div style="text-align: center; margin: 25px 0;">
+            <a href="{verification_url}" style="display: inline-block; background: #7f13ec; color: white; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">Verificar mi Correo</a>
+        </div>
+
+        <p style="font-size: 0.85rem; color: #888;">Si no has intentado registrarte en la plataforma, puedes ignorar este mensaje.</p>
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <footer style="font-size: 0.8rem; color: #888; text-align: center;">
+            Plataforma Microsoft Education Hub - Innovando el futuro, juntos.<br>
+            Mensaje automático de seguridad.
+        </footer>
+    </div>
+    """
+    return send_email(email, subject, html)
+
+
+
