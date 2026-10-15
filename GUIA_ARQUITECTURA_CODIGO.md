@@ -47,6 +47,8 @@ FastAPI estructura la lógica en tres capas independientes: **API (Endpoints/Con
 * **Servicios de Base de Datos (Lógica de Negocio)**: Carpeta [backend/app/services/](file:///F:/Plataforma-MEH/backend/app/services/)
   * Capa encargada de la lógica transaccional y consultas complejas (`db.add()`, `db.commit()`, `db.query()`).
   * Ejemplos: `auth_service.py`, `cursos_service.py`, `eventos_service.py`, `ocrm_service.py` (análisis OCR y conciliación bancaria difusa).
+  * `asistencia_service.py`: Gestión universal de asistencia para eventos y cursos (`progreso = 100`, `finalizado = True`), preservando la integridad del esquema sin columnas redundantes de fecha.
+  * `certificado_generator_service.py`: Generación masiva con regla dual de aprobación para cursos (`finalizado == True` y `nota_final IS NULL OR nota_final >= 61`).
 * **Validación y Serialización de Datos (Schemas)**: Carpeta [backend/app/schemas/](file:///F:/Plataforma-MEH/backend/app/schemas/)
   * Esquemas basados en **Pydantic** que validan el tipo y estructura del cuerpo JSON entrante y saliente, sanitizando las peticiones (ej. `curso.py`, `pago.py`).
 

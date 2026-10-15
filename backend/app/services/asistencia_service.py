@@ -27,6 +27,14 @@ def registrar_asistencia_universal(
     id_actividad: int,
     id_usuario: int
 ):
+    """Registra asistencia universal para un EVENTO o CURSO.
+
+    - Para EVENTO: Actualiza 'asistio = True' y 'fecha_validacion = datetime.utcnow()'.
+    - Para CURSO: Actualiza 'progreso = 100' y 'finalizado = True'.
+      Decisión de diseño: Se preserva el esquema relacional de InscripcionCurso sin
+      agregar columnas redundantes de fecha (ej. fecha_completado), manteniendo el
+      flujo estándar de auditoría mediante AuditMixin / fecha_modificacion.
+    """
     ensure_permission(current_user.rol, PERMISSION_ATTENDANCE_SCAN, "No tienes permiso para registrar asistencia")
 
     if tipo == 'EVENTO':
@@ -48,10 +56,10 @@ def registrar_asistencia_universal(
         if not inscripcion:
             raise HTTPException(status_code=404, detail="El miembro no está inscrito a este curso")
         
-        # Para cursos, marcamos progreso al 100% como asistencia
-        inscripcion.progreso = 100.00
-        inscripcion.fecha_completado = datetime.utcnow()
-        inscripcion.completado = True
+        # Para cursos, marcamos progreso al 100% y finalizado como asistencia
+        # Nota arquitectónica: no se almacena fecha de completado al no existir dicha columna en el modelo InscripcionCurso
+        inscripcion.progreso = 100
+        inscripcion.finalizado = True
 
     db.commit()
     

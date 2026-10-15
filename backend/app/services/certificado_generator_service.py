@@ -2,6 +2,7 @@ import os
 import uuid
 import json
 from datetime import datetime
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -23,6 +24,13 @@ def generate_bulk_certificates(
     background_path: str,
     firmas_paths: List[str]
 ):
+    """Genera certificados masivos para participantes de un EVENTO o CURSO.
+
+    Regla Dual para Cursos (Criterio 'APROBADOS'):
+    - Cursos evaluados (nota_final NOT NULL): Requieren 'finalizado == True' Y 'nota_final >= 61'.
+    - Cursos sin nota/no evaluados (nota_final IS NULL): Requieren únicamente 'finalizado == True'.
+    Esta definición está alineada con las métricas de rendimiento académico de dashboard_service.py.
+    """
     if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
         raise PermisoDenegadoError("No tienes permisos para generar certificados")
 
@@ -64,7 +72,16 @@ def generate_bulk_certificates(
     elif tipo == 'CURSO':
         query = db.query(models.InscripcionCurso).filter(models.InscripcionCurso.id_curso == id_referencia)
         if criterio == 'APROBADOS':
-            query = query.filter(models.InscripcionCurso.completado == True)
+            # Regla dual de APROBADOS:
+            # - Cursos evaluados (nota_final NOT NULL): exigen finalizado AND nota_final >= 61
+            # - Cursos sin nota/no evaluados (nota_final IS NULL): exigen únicamente finalizado
+            query = query.filter(
+                models.InscripcionCurso.finalizado == True,
+                or_(
+                    models.InscripcionCurso.nota_final.is_(None),
+                    models.InscripcionCurso.nota_final >= 61
+                )
+            )
 
         inscripciones = query.all()
         usuarios_ids = [ins.id_usuario for ins in inscripciones]
