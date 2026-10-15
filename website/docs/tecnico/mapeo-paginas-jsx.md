@@ -92,7 +92,7 @@ Estos componentes residen físicamente bajo la carpeta de control `pages/Admin/`
 
 ## 🔗 Recursos y Artículos Relacionados
 
-* [01. Arquitectura y Contexto C4](file:///f:/Plataforma-MEH/website/docs/tecnico/01-arquitectura-contexto.md)
-* [02. Detalle de Frontend React](file:///f:/Plataforma-MEH/website/docs/tecnico/02-detalle-frontend.md)
-* [04. Detalle de Backend FastAPI](file:///f:/Plataforma-MEH/website/docs/tecnico/04-detalle-backend.md)
-* [05. Base de Datos y Seguridad](file:///f:/Plataforma-MEH/website/docs/tecnico/05-base-datos-seguridad.md)
+* [01. Arquitectura y Contexto C4](./arquitectura-contexto.md)
+* [02. Detalle de Frontend React](./detalle-frontend.md)
+* [04. Detalle de Backend FastAPI](./detalle-backend.md)
+* [05. Base de Datos y Seguridad](./base-datos-seguridad.md)

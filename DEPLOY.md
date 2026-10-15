@@ -218,21 +218,45 @@ meh-proxy     meh-nginx-proxy      "nginx -g 'daemon off…"  nginx-proxy    Up 
 
 | Recurso | URL |
 |---|---|
-| Frontend (SPA) | `http://<IP-del-servidor>` |
-| API (documentación Swagger) | `http://<IP-del-servidor>/api/docs` |
-| Documentación de usuario/técnica | `http://<IP-del-servidor>/docs/` |
+| Frontend (SPA) | `http://<IP-del-servidor>:8099` (o `:80`) |
+| API (documentación Swagger) | `http://<IP-del-servidor>:8099/api/docs` |
+| Documentación interna (Docusaurus) | `http://<IP-del-servidor>:8099/docs/` |
+| Documentación pública (GitHub Pages) | `https://TuGfaNat.github.io/Plataforma-MEH/` |
 
 Donde `<IP-del-servidor>` puede ser `localhost` si se accede localmente, o la IP pública del servidor.
 
-### 5.3. Verificar que la API responde
+### 5.3. Despliegue Híbrido de Documentación ("Una fuente, dos superficies")
+
+El ecosistema aplica el principio **Docs-as-Code** (ISO/IEC/IEEE 26511-26515 + Diátaxis):
+- **Superficie A (Pública / GitHub Pages):** Se compila automáticamente con `BASE_URL=/` mediante GitHub Actions (`.github/workflows/deploy-docs.yml`) únicamente cuando se hace push a la rama `main`.
+- **Superficie B (Interna / Docker Stack):** Se compila con `BASE_URL=/docs/` en el servicio `website` de Docker Compose y se sirve a través del proxy Nginx en la ruta `/docs/`.
+
+#### Comandos de Documentación (Docs-as-Code):
 
 ```bash
-curl http://localhost/api/docs
+# Regenerar toda la documentación técnica, contratos M3, diccionario M2 y RBAC desde el código:
+npm run docs:gen
+
+# Verificar en local o CI si la documentación está sincronizada con el código:
+npm run docs:gen:check
+
+# Validar compilación limpia y enlaces de Docusaurus:
+npm run docs:build
 ```
 
-Debería devolver el HTML de Swagger UI.
+### 5.4. Verificar que la API y Documentación responden
 
-### 5.4. Verificar logs de cada servicio
+```bash
+# Verificar API Swagger
+curl http://localhost:8099/api/docs
+
+# Verificar Documentación interna
+curl -I http://localhost:8099/docs/
+```
+
+Debería devolver `HTTP/1.1 200 OK`.
+
+### 5.5. Verificar logs de cada servicio
 
 ```bash
 # Todos los servicios

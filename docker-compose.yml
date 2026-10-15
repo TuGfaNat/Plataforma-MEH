@@ -52,7 +52,10 @@ services:
 
   # Documentación (Docusaurus)
   website:
-    build: ./website
+    build:
+      context: ./website
+      args:
+        - BASE_URL=/docs/
     container_name: meh-docs
     restart: always
     # Solo comunicación interna — no exponer puerto
