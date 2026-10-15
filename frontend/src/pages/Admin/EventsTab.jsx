@@ -2,18 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Divider, Badge, Field, Input, Textarea, Select, Switch, Button, tokens, makeStyles, shorthands,
-  Avatar, Tooltip, Tag, TagGroup, InteractionTag, InteractionTagPrimary, Spinner
+  Avatar, Tooltip, Tag, TagGroup, InteractionTag, InteractionTagPrimary, Spinner,
+  Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions
 } from '@fluentui/react-components';
 import { 
   CalendarLtr24Regular, Add24Regular, Map24Regular, Edit24Regular, Delete24Regular,
   Food24Regular, QrCode24Regular, PeopleTeam24Regular, Mic24Regular, Link24Regular,
   Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled, ArrowDownload24Regular,
-  Share24Regular
+  Megaphone24Regular, DismissCircle24Regular, Share24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
 import eventoService from '../../services/eventoService';
 import { useNotify } from '../../App';
+import AcreditacionPanel from './AcreditacionPanel';
 
 const useStyles = makeStyles({
   grid: { 
@@ -88,12 +90,22 @@ const EventsTab = ({
   const [pagosQr, setPagosQr] = useState([]);
   const [loadingQr, setLoadingQr] = useState(false);
   const [listaEspera, setListaEspera] = useState([]);
-  const [participantes, setParticipantes] = useState([]);
   const [loadingParticipantes, setLoadingParticipantes] = useState(false);
   const [nuevoNombrePaquete, setNuevoNombrePaquete] = useState('');
   const [nuevoMonto, setNuevoMonto] = useState('');
   const [qrFile, setQrFile] = useState(null);
   const [fileInputKey, setFileInputKey] = useState(0);
+
+  // Estados para cancelación y aviso a inscritos
+  const [isCancelarModalOpen, setIsCancelarModalOpen] = useState(false);
+  const [motivoCancelacion, setMotivoCancelacion] = useState('');
+  const [canceling, setCanceling] = useState(false);
+
+  const [isAvisarModalOpen, setIsAvisarModalOpen] = useState(false);
+  const [avisoTitulo, setAvisoTitulo] = useState('');
+  const [avisoMensaje, setAvisoMensaje] = useState('');
+  const [avisoEnviarEmail, setAvisoEnviarEmail] = useState(false);
+  const [avisando, setAvisando] = useState(false);
 
   useEffect(() => {
     if (selectedEventoId) {
@@ -102,7 +114,6 @@ const EventsTab = ({
     } else {
       setPagosQr([]);
       setListaEspera([]);
-      setParticipantes([]);
     }
   }, [selectedEventoId]);
 
@@ -122,14 +133,10 @@ const EventsTab = ({
     if (!selectedEventoId) return;
     setLoadingParticipantes(true);
     try {
-      const [esperaData, partData] = await Promise.all([
-        eventoService.getListaEspera(selectedEventoId),
-        eventoService.getParticipantes(selectedEventoId)
-      ]);
+      const esperaData = await eventoService.getListaEspera(selectedEventoId);
       setListaEspera(esperaData || []);
-      setParticipantes(partData || []);
     } catch (err) {
-      console.error("Error fetching waitlist/participants:", err);
+      console.error("Error fetching waitlist:", err);
     } finally {
       setLoadingParticipantes(false);
     }
@@ -194,6 +201,53 @@ const EventsTab = ({
       alert("Error al eliminar el paquete de pago QR.");
     } finally {
       setLoadingQr(false);
+    }
+  };
+
+  const handleCancelarEvento = async () => {
+    if (!motivoCancelacion.trim()) {
+      alert("Debes indicar un motivo de cancelación.");
+      return;
+    }
+    setCanceling(true);
+    try {
+      await eventoService.cancelarEvento(selectedEventoId, motivoCancelacion.trim());
+      alert("Evento cancelado correctamente. Se notificó a todos los inscritos.");
+      setIsCancelarModalOpen(false);
+      setMotivoCancelacion('');
+      if (fetchData) fetchData();
+    } catch (err) {
+      console.error("Error al cancelar evento:", err);
+      const detail = err.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : "No se pudo cancelar el evento.");
+    } finally {
+      setCanceling(false);
+    }
+  };
+
+  const handleAvisarInscritos = async () => {
+    if (!avisoTitulo.trim() || !avisoMensaje.trim()) {
+      alert("El título y el mensaje son obligatorios.");
+      return;
+    }
+    setAvisando(true);
+    try {
+      const res = await eventoService.avisarInscritos(selectedEventoId, {
+        titulo: avisoTitulo.trim(),
+        mensaje: avisoMensaje.trim(),
+        enviar_email: avisoEnviarEmail
+      });
+      alert(`Aviso enviado con éxito a ${res.inscritos_notificados || 0} inscritos confirmados.`);
+      setIsAvisarModalOpen(false);
+      setAvisoTitulo('');
+      setAvisoMensaje('');
+      setAvisoEnviarEmail(false);
+    } catch (err) {
+      console.error("Error al avisar a los inscritos:", err);
+      const detail = err.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : "No se pudo enviar el aviso a los inscritos.");
+    } finally {
+      setAvisando(false);
     }
   };
 
@@ -289,8 +343,8 @@ const EventsTab = ({
                     <MEHTypography variant="caption">{new Date(ev.fecha_inicio).toLocaleDateString()}</MEHTypography>
                   </div>
                 </div>
-                <Badge color={ev.estado === 'FINALIZADO' ? 'neutral' : ev.id_estado === 1 ? 'warning' : 'success'} appearance="tint">
-                  {ev.estado === 'FINALIZADO' ? 'Finalizado' : ev.id_estado === 1 ? 'Inactivo' : 'Activo'}
+                <Badge color={ev.estado === 'CANCELADO' ? 'danger' : ev.estado === 'FINALIZADO' ? 'neutral' : ev.id_estado === 1 ? 'warning' : 'success'} appearance="tint">
+                  {ev.estado === 'CANCELADO' ? 'Cancelado' : ev.estado === 'FINALIZADO' ? 'Finalizado' : ev.id_estado === 1 ? 'Inactivo' : 'Activo'}
                 </Badge>
               </div>
             </div>
@@ -415,10 +469,31 @@ const EventsTab = ({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <MEHTypography variant="h1" style={{ margin: 0 }}>{currentEvent.titulo}</MEHTypography>
-                  <Badge color={currentEvent.id_estado === 1 ? 'warning' : 'success'} appearance="filled">
-                    {currentEvent.id_estado === 1 ? 'INACTIVO' : 'ACTIVO'}
-                  </Badge>
+                  {currentEvent.estado === 'CANCELADO' ? (
+                    <Badge color="danger" appearance="filled" size="large">CANCELADO</Badge>
+                  ) : (
+                    <Badge color={currentEvent.id_estado === 1 ? 'warning' : 'success'} appearance="filled">
+                      {currentEvent.id_estado === 1 ? 'INACTIVO' : 'ACTIVO'}
+                    </Badge>
+                  )}
                 </div>
+                {currentEvent.estado === 'CANCELADO' && (
+                  <div style={{
+                    padding: '10px 14px',
+                    backgroundColor: tokens.colorPaletteRedBackground1,
+                    border: `1px solid ${tokens.colorPaletteRedBorder2}`,
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginTop: '4px'
+                  }}>
+                    <DismissCircle24Regular style={{ color: tokens.colorPaletteRedForeground1 }} />
+                    <MEHTypography variant="caption" style={{ color: tokens.colorPaletteRedForeground1 }}>
+                      <b>Evento cancelado:</b> {currentEvent.motivo_cancelacion || 'Sin motivo especificado.'}
+                    </MEHTypography>
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <Badge color="brand" appearance="filled">{t(currentEvent.tipo_evento)}</Badge>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.7 }}>
@@ -487,13 +562,27 @@ const EventsTab = ({
                   appearance="outline"
                   onClick={() => {
                     const url = `${window.location.origin}/evento/${currentEvent.id_evento}`;
-                    navigator.clipboard.writeText(url);
+                    void navigator.clipboard.writeText(url);
                     if (notify) notify("Enlace copiado", "Se ha copiado el enlace público del evento al portapapeles", "success");
                     else alert("¡Enlace público copiado al portapapeles!");
                   }}
                 >
                   {t("copy_link") || "Copiar link"}
                 </MEHButton>
+                <MEHButton size="small" icon={<Megaphone24Regular />} appearance="outline" onClick={() => setIsAvisarModalOpen(true)}>
+                  Avisar inscritos
+                </MEHButton>
+                {currentEvent.estado !== 'CANCELADO' && (
+                  <MEHButton 
+                    size="small" 
+                    icon={<DismissCircle24Regular />} 
+                    appearance="subtle" 
+                    style={{ color: tokens.colorPaletteRedForeground1 }} 
+                    onClick={() => setIsCancelarModalOpen(true)}
+                  >
+                    Cancelar evento
+                  </MEHButton>
+                )}
                 <MEHButton size="small" icon={<ArrowDownload24Regular />} onClick={handleDownloadEventoQr}>
                   Descargar QR del Evento
                 </MEHButton>
@@ -630,40 +719,13 @@ const EventsTab = ({
 
               <Divider style={{ margin: '20px 0' }} />
 
-              {/* PARTICIPANTES CONFIRMADOS / PENDIENTES */}
+              {/* PANEL DE ACREDITACIÓN Y CONTROL DE ASISTENCIA */}
               <div>
-                <MEHTypography variant="h4" style={{ marginBottom: '8px' }}>
-                  👥 Participantes Registrados ({participantes.length})
-                </MEHTypography>
-                {participantes.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
-                    {participantes.map(p => (
-                      <div key={p.id_inscripcion} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '10px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <Avatar name={`${p.usuario?.nombres || ''} ${p.usuario?.apellidos || ''}`} size={32} />
-                          <div>
-                            <MEHTypography variant="body" style={{ fontSize: '13px', fontWeight: 'bold' }}>
-                              {p.usuario ? `${p.usuario.nombres} ${p.usuario.apellidos}` : `ID ${p.id_usuario}`}
-                            </MEHTypography>
-                            <MEHTypography variant="caption" style={{ opacity: 0.7, fontSize: '11px' }}>
-                              {p.usuario?.email} {p.codigo_qr ? `• QR: ${p.codigo_qr}` : ''}
-                            </MEHTypography>
-                          </div>
-                        </div>
-                        <Badge 
-                          appearance="filled" 
-                          color={p.estado_inscripcion === 'CONFIRMADA' ? 'success' : p.estado_inscripcion === 'PENDIENTE_APROBACION' ? 'warning' : 'brand'}
-                        >
-                          {p.estado_inscripcion}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ padding: '14px', textAlign: 'center', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '10px' }}>
-                    <MEHTypography variant="caption" style={{ opacity: 0.6 }}>No hay participantes registrados aún.</MEHTypography>
-                  </div>
-                )}
+                <AcreditacionPanel 
+                  eventoId={selectedEventoId} 
+                  eventoTitulo={currentEvent?.titulo}
+                  onParticipantesChange={fetchParticipantesYEspera}
+                />
               </div>
             </div>
 
@@ -693,6 +755,90 @@ const EventsTab = ({
           </div>
         )}
       </div>
+
+      {/* Modal Cancelar Evento */}
+      <Dialog open={isCancelarModalOpen} onOpenChange={(e, d) => { if (!canceling) setIsCancelarModalOpen(d.open); }}>
+        <DialogSurface style={{ backgroundColor: tokens.colorNeutralBackground1, maxWidth: '480px', width: '90%', borderRadius: '16px' }}>
+          <DialogBody>
+            <DialogTitle style={{ color: tokens.colorPaletteRedForeground1 }}>Cancelar Evento</DialogTitle>
+            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px 0' }}>
+              <MEHTypography variant="body">
+                ¿Estás seguro de que deseas cancelar <b>"{currentEvent?.titulo}"</b>?
+              </MEHTypography>
+              <MEHTypography variant="caption" style={{ opacity: 0.8 }}>
+                Esta acción marcará el evento como <b>CANCELADO</b> manteniendo el historial, y enviará automáticamente un correo electrónico y una alerta en la plataforma a todos los participantes inscritos.
+              </MEHTypography>
+              <Field label="Motivo de Cancelación" required>
+                <Textarea 
+                  rows={3} 
+                  value={motivoCancelacion} 
+                  onChange={(e, d) => setMotivoCancelacion(d.value)} 
+                  placeholder="Explica la razón por la cual se cancela el evento (ej: motivos de fuerza mayor, indisponibilidad del local, etc.)" 
+                />
+              </Field>
+            </DialogContent>
+            <DialogActions style={{ gap: '10px' }}>
+              <Button appearance="secondary" onClick={() => setIsCancelarModalOpen(false)} disabled={canceling}>
+                Volver
+              </Button>
+              <MEHButton 
+                appearance="primary" 
+                style={{ backgroundColor: tokens.colorPaletteRedBackground3, borderColor: tokens.colorPaletteRedBorder2 }} 
+                onClick={handleCancelarEvento}
+                disabled={canceling || !motivoCancelacion.trim()}
+              >
+                {canceling ? "Cancelando..." : "Confirmar Cancelación"}
+              </MEHButton>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      {/* Modal Avisar Inscritos */}
+      <Dialog open={isAvisarModalOpen} onOpenChange={(e, d) => { if (!avisando) setIsAvisarModalOpen(d.open); }}>
+        <DialogSurface style={{ backgroundColor: tokens.colorNeutralBackground1, maxWidth: '520px', width: '90%', borderRadius: '16px' }}>
+          <DialogBody>
+            <DialogTitle><Megaphone24Regular style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Avisar a los Inscritos</DialogTitle>
+            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px 0' }}>
+              <MEHTypography variant="caption" style={{ opacity: 0.8 }}>
+                Envía un aviso o comunicado especial únicamente a los participantes con inscripción <b>CONFIRMADA</b> para este evento.
+              </MEHTypography>
+              <Field label="Título del Comunicado" required>
+                <Input 
+                  value={avisoTitulo} 
+                  onChange={(e, d) => setAvisoTitulo(d.value)} 
+                  placeholder="Ej: Recordatorio: Llevar laptop y carnet" 
+                />
+              </Field>
+              <Field label="Mensaje" required>
+                <Textarea 
+                  rows={4} 
+                  value={avisoMensaje} 
+                  onChange={(e, d) => setAvisoMensaje(d.value)} 
+                  placeholder="Detalles importantes para los asistentes confirmados..." 
+                />
+              </Field>
+              <Switch 
+                label="Enviar también notificación por correo electrónico" 
+                checked={avisoEnviarEmail} 
+                onChange={(e, d) => setAvisoEnviarEmail(d.checked)} 
+              />
+            </DialogContent>
+            <DialogActions style={{ gap: '10px' }}>
+              <Button appearance="secondary" onClick={() => setIsAvisarModalOpen(false)} disabled={avisando}>
+                Cancelar
+              </Button>
+              <MEHButton 
+                appearance="primary" 
+                onClick={handleAvisarInscritos}
+                disabled={avisando || !avisoTitulo.trim() || !avisoMensaje.trim()}
+              >
+                {avisando ? "Enviando..." : "Enviar Aviso"}
+              </MEHButton>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 };

@@ -15,6 +15,7 @@ import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
+import VerificarEmail from './pages/VerificarEmail.jsx';
 import Auditoria from './pages/Auditoria.jsx';
 import Insignias from './pages/Insignias.jsx';
 import Finanzas from './pages/Finanzas.jsx';
@@ -198,6 +199,7 @@ export default function App() {
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/verificar-email" element={<VerificarEmail />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/verificar/:uuid" element={<UniversalVerification />} />

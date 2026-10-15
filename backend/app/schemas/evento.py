@@ -39,6 +39,7 @@ class EventoBase(BaseModel):
     imagen_url: Optional[str] = None
     refrigerio_incluido: bool = False
     incluidos: Optional[str] = None
+    motivo_cancelacion: Optional[str] = None
 
 class EventoCreate(EventoBase):
     id_speakers: Optional[List[int]] = []
@@ -58,6 +59,7 @@ class EventoUpdate(BaseModel):
     link_mapas: Optional[str] = None
     agenda: Optional[str] = None
     estado: Optional[str] = None
+    motivo_cancelacion: Optional[str] = None
     capacidad_max: Optional[int] = None
     capacidad_maxima: Optional[int] = None
     imagen_url: Optional[str] = None
@@ -110,4 +112,27 @@ class InscriptoConfirmadoResponse(BaseModel):
     asistio: bool
     nombre_completo: str
     model_config = ConfigDict(from_attributes=True)
+
+class AcreditarParticipanteRequest(BaseModel):
+    id_inscripcion: Optional[int] = None
+    codigo_qr: Optional[str] = None
+
+class AcreditacionResponse(BaseModel):
+    status: str
+    message: str
+    id_inscripcion: int
+    presente: bool
+    asistio: bool
+    fecha_acreditacion: Optional[str] = None
+    checkpoint: Optional[str] = None
+
+class EventoCancelarRequest(BaseModel):
+    motivo: str
+
+class EventoAvisarRequest(BaseModel):
+    titulo: str
+    mensaje: str
+    enviar_email: Optional[bool] = False
+
+
 

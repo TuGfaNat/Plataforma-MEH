@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 19  
-**Total de endpoints expuestos:** 114
+**Total de endpoints expuestos:** 123
 
 ---
 
@@ -69,9 +69,15 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`POST`** | `/api/auth/google` | Endpoint para autenticación mediante Google OAuth. | `payload: dict` | `200 OK` | Público / Abierto |
 | **`GET`** | `/api/auth/me` | Obtiene el perfil del usuario autenticado. | - | `200 OK` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/auth/me` | Actualiza los datos del perfil del usuario autenticado. | `user_update: UserUpdate` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/auth/verificar-email` | Verifica el correo electrónico de un usuario con el código recibido. | - | `200 OK` | Público / Abierto |
+| **`POST`** | `/api/auth/reenviar-codigo` | Reenvía un nuevo código de verificación al correo. | - | `200 OK` | Público / Abierto |
 | **`GET`** | `/api/auth/usuarios` | Lista todos los usuarios (Solo para personal con permisos). | - | `200 OK` | Requiere Auth (JWT) |
+| **`PUT`** | `/api/auth/usuarios/{id_usuario}` | Actualiza datos de un usuario desde administración (Solo ADMIN). | `id_usuario: int`, `payload: AdminUserUpdate` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/auth/usuarios/{id_usuario}/reset-password` | Restablece la contraseña de un usuario directamente (Solo ADMIN). | `id_usuario: int`, `payload: AdminResetPasswordRequest` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/auth/usuarios/{id_usuario}/suspender` | Suspende a un usuario con motivo (Solo ADMIN). | `id_usuario: int`, `payload: SuspenderUsuarioRequest` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/auth/usuarios/{id_usuario}/restaurar` | Restaura una cuenta de usuario suspendida (Solo ADMIN). | `id_usuario: int` | `200 OK` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/auth/usuarios/{id_usuario}/rol` | Cambia el rango de un usuario (Solo para Administradores). | `id_usuario: int`, `nuevo_rol: str` | `200 OK` | Requiere Auth (JWT) |
-| **`DELETE`** | `/api/auth/usuarios/{id_usuario}` | Elimina lógicamente un usuario (Solo Administradores). | `id_usuario: int` | `204 No Content` | Requiere Auth (JWT) |
+| **`DELETE`** | `/api/auth/usuarios/{id_usuario}` | Suspende lógicamente un usuario sin borrado físico (Solo Administradores). | `id_usuario: int` | `204 No Content` | Requiere Auth (JWT) |
 
 ## Módulo `badges` (Prefix: `/insignias`)
 
@@ -133,6 +139,8 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`GET`** | `/api/eventos` | Lista todos los eventos disponibles. | `skip: int`, `limit: int` | `200 OK` | Público / Abierto |
 | **`GET`** | `/api/eventos/{id_evento}` | Obtiene los detalles de un evento específico. | `id_evento: int` | `200 OK` | Público / Abierto |
 | **`PUT`** | `/api/eventos/{id_evento}` | Actualiza la información de un evento (Solo Staff). | `id_evento: int`, `evento: EventoUpdate` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/{id_evento}/cancelar` | Cancela un evento con un motivo específico y notifica a todos los inscritos (Solo Staff autorizado). | `id_evento: int`, `payload: EventoCancelarRequest` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/{id_evento}/avisar` | Emite un aviso oficial in-app (y opcionalmente email) exclusivamente a los inscritos confirmados (Solo Staff autorizado). | `id_evento: int`, `payload: EventoAvisarRequest` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/eventos/asistencia-qr` | Registra asistencia mediante el escaneo de un código QR, soportando checkpoints dinámicos. | `payload: QRScanRequest` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/eventos/{id_evento}/asistencia-qr` | Compatibilidad legacy para el frontend anterior. | `id_evento: int`, `token_qr: str` | `200 OK` | Requiere Auth (JWT) |
 | **`GET`** | `/api/eventos/{id_evento}/checkpoints` | Operación get_checkpoints | `id_evento: int` | `200 OK` | Público / Abierto |
@@ -144,6 +152,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`GET`** | `/api/eventos/{id_evento}/pagos-qr` | Obtiene los paquetes y QRs de pago configurados para un evento. | `id_evento: int` | `200 OK` | Público / Abierto |
 | **`POST`** | `/api/eventos/{id_evento}/pagos-qr` | Crea un paquete de pago y QR asociado a un evento (Admin, Organizador, Moderador). | `id_evento: int`, `nombre_paquete: str`, `monto: float`, `file: UploadFile` | `201 Created` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/eventos/pagos-qr/{id_qr}` | Elimina lógicamente un paquete de pago QR (Admin, Organizador, Moderador). | `id_qr: int` | `204 No Content` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/{id_evento}/acreditar` | Acredita manualmente a un participante en el evento (Solo ADMIN y ORGANIZADOR). | `id_evento: int`, `payload: AcreditarParticipanteRequest` | `200 OK` | Requiere Auth (JWT) |
 
 ## Módulo `files` (Prefix: `/files`)
 

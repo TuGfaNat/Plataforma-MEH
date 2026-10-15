@@ -115,9 +115,8 @@ const Register = () => {
         ...formData,
         rol: 'MIEMBRO'
       });
-      await authService.login(formData.correo, formData.password);
-      if (checkAuth) await checkAuth(); 
-      navigate(returnTo || '/dashboard');
+      const returnParam = returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : '';
+      navigate(`/verificar-email?email=${encodeURIComponent(formData.correo)}${returnParam}`);
     } catch (err) {
       setErrorApi(err.response?.data?.detail || 'Error al crear la cuenta.');
       setLoading(false);
