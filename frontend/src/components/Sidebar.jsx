@@ -355,7 +355,7 @@ const Sidebar = ({ onClose }) => {
             />
             {(user?.rol === 'ADMIN' || user?.rol === 'ORGANIZADOR') && (
               <NavItem
-                to="/admin/notificaciones"
+                to="/admin?tab=anuncios"
                 icon={MegaphoneLoud24Regular}
                 activeIcon={MegaphoneLoud24Filled}
                 label={t("admin_announcements_management")}

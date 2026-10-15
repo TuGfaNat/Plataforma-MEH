@@ -25,6 +25,7 @@ import SouvenirsTab from './Admin/SouvenirsTab';
 import LibraryTab from './Admin/LibraryTab';
 import AcademyTab from './Admin/AcademyTab';
 import PapeleraTab from './Admin/PapeleraTab';
+import AnnouncementsTab from './Admin/AnnouncementsTab';
 
 const useStyles = makeStyles({
   container: {
@@ -52,8 +53,19 @@ const AdminPanel = () => {
   const styles = useStyles();
   const { user: currentUser } = useAuth();
   const { notify } = useNotify();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
   
-  const [selectedTab, setSelectedTab] = useState('usuarios');
+  const getDefaultTab = () => {
+    if (tabParam) return tabParam;
+    if (currentUser?.rol === 'ADMIN') return 'usuarios';
+    if (currentUser?.rol === 'ORGANIZADOR') return 'eventos';
+    if (currentUser?.rol === 'MODERADOR') return 'academia';
+    if (currentUser?.rol === 'SOPORTE') return 'usuarios';
+    return 'usuarios';
+  };
+
+  const [selectedTab, setSelectedTab] = useState(() => tabParam || 'usuarios');
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]); 
   const [usuariosList, setUsuariosList] = useState([]);
@@ -92,19 +104,13 @@ const AdminPanel = () => {
   const [currentLeccionId, setCurrentLeccionId] = useState(null);
   const [newLeccion, setNewLeccion] = useState({ titulo: '', contenido_video_url: '', contenido_texto: '', orden: 1 });
 
-  const getDefaultTab = () => {
-    if (currentUser?.rol === 'ADMIN') return 'usuarios';
-    if (currentUser?.rol === 'ORGANIZADOR') return 'eventos';
-    if (currentUser?.rol === 'MODERADOR') return 'academia';
-    if (currentUser?.rol === 'SOPORTE') return 'usuarios';
-    return 'usuarios';
-  };
-
   useEffect(() => {
-    if (currentUser?.rol) {
+    if (tabParam) {
+      setSelectedTab(tabParam);
+    } else if (currentUser?.rol) {
       setSelectedTab(getDefaultTab());
     }
-  }, [currentUser]);
+  }, [tabParam, currentUser]);
 
   const fetchData = async () => {
     if (!selectedTab) return;
@@ -112,10 +118,11 @@ const AdminPanel = () => {
     // Validar permisos del tab actual
     if (selectedTab === 'usuarios' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'SOPORTE') return;
     if (selectedTab === 'eventos' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'MODERADOR') return;
+    if (selectedTab === 'anuncios' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR') return;
     if (selectedTab === 'souvenirs' && currentUser?.rol !== 'ADMIN') return;
     if (selectedTab === 'biblioteca' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'MODERADOR') return;
     if (selectedTab === 'academia' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'MODERADOR' && currentUser?.rol !== 'SOPORTE') return;
-    if (selectedTab === 'papelera') return;
+    if (selectedTab === 'anuncios' || selectedTab === 'papelera') return;
     
     setData([]);
     setLoading(true);
@@ -356,9 +363,10 @@ const AdminPanel = () => {
           </div>
       </div>
 
-      <TabList selectedValue={selectedTab} onTabSelect={(e, d) => { setData([]); setSelectedTab(d.value); }} style={{ overflowX: 'auto' }}>
+      <TabList selectedValue={selectedTab} onTabSelect={(e, d) => { setData([]); setSelectedTab(d.value); setSearchParams({ tab: d.value }); }} style={{ overflowX: 'auto' }}>
         {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'SOPORTE') && <Tab value="usuarios" icon={<People24Regular />}>Miembros</Tab>}
         {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="eventos" icon={<CalendarLtr24Regular />}>Eventos</Tab>}
+        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR') && <Tab value="anuncios" icon={<MegaphoneLoud24Regular />}>Anuncios</Tab>}
         {currentUser?.rol === 'ADMIN' && <Tab value="souvenirs" icon={<Box24Regular />}>POS & Stock</Tab>}
         {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="biblioteca" icon={<Library24Regular />}>Biblioteca</Tab>}
         {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR' || currentUser?.rol === 'SOPORTE') && <Tab value="academia" icon={<HatGraduation24Regular />}>Aula Virtual</Tab>}

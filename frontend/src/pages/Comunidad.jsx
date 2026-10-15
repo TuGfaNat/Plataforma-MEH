@@ -267,10 +267,20 @@ const Comunidad = () => {
   }, [miembros, searchQuery, filterRol, filterTipoEntidad, filterDepartamento]);
 
   const getAnuncioIcon = (tipo) => {
-    switch(tipo) {
-      case 'NUEVO': return <Star24Regular style={{ color: '#FFD700' }} />;
+    switch(tipo?.toUpperCase()) {
       case 'ALERTA': return <Alert24Regular style={{ color: '#FF5722' }} />;
+      case 'EVENTO': return <Calendar24Regular style={{ color: tokens.colorBrandForeground1 }} />;
+      case 'INFO':
       default: return <Info24Regular style={{ color: tokens.colorBrandForeground1 }} />;
+    }
+  };
+
+  const getAnuncioBadgeColor = (tipo) => {
+    switch(tipo?.toUpperCase()) {
+      case 'ALERTA': return 'danger';
+      case 'EVENTO': return 'informative';
+      case 'INFO':
+      default: return 'brand';
     }
   };
 
@@ -478,7 +488,7 @@ const Comunidad = () => {
                   <div key={anuncio.id_anuncio} className={styles.noticeItem}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '4px' }}>
                       <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <Badge color={anuncio.tipo === 'ALERTA' ? 'danger' : 'brand'} appearance="tint" size="small">
+                        <Badge color={getAnuncioBadgeColor(anuncio.tipo)} appearance="tint" size="small">
                           {anuncio.tipo}
                         </Badge>
                         {anuncio.categoria && (

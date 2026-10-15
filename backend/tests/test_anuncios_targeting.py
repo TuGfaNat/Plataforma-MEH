@@ -3,10 +3,11 @@ import uuid
 from datetime import datetime
 from fastapi.testclient import TestClient
 from main import app
-from app.database import SessionLocal
+from app.database import SessionLocal, engine
 from app.models import models
 from app.core import auth as auth_core
 
+models.Base.metadata.create_all(bind=engine)
 client = TestClient(app)
 
 def test_anuncios_targeting_and_category_filtering():
@@ -241,4 +242,127 @@ def test_create_anuncio_targeted_email():
             db.rollback()
         finally:
             db.close()
+
+def test_cadena_completa_anuncios_roles_y_borrado_logico():
+    """Valida la cadena completa de anuncios:
+    1. Publicación con tipos INFO/EVENTO/ALERTA.
+    2. Visibilidad segmentada: 'exclusivo_embajadores=True' oculto a MIEMBRO pero visible a STAFF/EMBAJADOR.
+    3. Inactivos (activo=False) ocultos del muro activo.
+    4. Borrado lógico (delete_anuncio -> id_estado=0) inmediatamente oculto de list_anuncios_activos y list_all_anuncios.
+    """
+    db = SessionLocal()
+    unique_id = uuid.uuid4().hex[:8]
+
+    try:
+        admin_user = models.Usuario(
+            nombres="AdminCadena", apellidos="Test", correo=f"admin_cad_{unique_id}@meh.com",
+            password_hash="fake", rol="ADMIN", activo=True
+        )
+        embajador_user = models.Usuario(
+            nombres="EmbajadorCadena", apellidos="Test", correo=f"emb_cad_{unique_id}@meh.com",
+            password_hash="fake", rol="EMBAJADOR", activo=True
+        )
+        miembro_user = models.Usuario(
+            nombres="MiembroCadena", apellidos="Test", correo=f"miembro_cad_{unique_id}@meh.com",
+            password_hash="fake", rol="MIEMBRO", activo=True
+        )
+        db.add_all([admin_user, embajador_user, miembro_user])
+        db.commit()
+        db.refresh(admin_user)
+        db.refresh(embajador_user)
+        db.refresh(miembro_user)
+
+        token_admin = auth_core.create_access_token(data={"sub": admin_user.correo, "rol": admin_user.rol})
+        token_emb = auth_core.create_access_token(data={"sub": embajador_user.correo, "rol": embajador_user.rol})
+        token_miembro = auth_core.create_access_token(data={"sub": miembro_user.correo, "rol": miembro_user.rol})
+
+        h_admin = {"Authorization": f"Bearer {token_admin}"}
+        h_emb = {"Authorization": f"Bearer {token_emb}"}
+        h_miembro = {"Authorization": f"Bearer {token_miembro}"}
+
+        # 1. Publicar anuncio VIP (exclusivo_embajadores=True) con tipo EVENTO
+        res_vip = client.post("/comunidad/anuncios", json={
+            "titulo": f"VIP Announce {unique_id}",
+            "contenido": "Solo embajadores y staff",
+            "tipo": "EVENTO",
+            "categoria": "GENERAL",
+            "exclusivo_embajadores": True,
+            "activo": True
+        }, headers=h_admin)
+        assert res_vip.status_code == 201
+        vip_data = res_vip.json()
+        assert vip_data["tipo"] == "EVENTO"
+
+        # MIEMBRO NO debe ver el anuncio VIP
+        res_m_vip = client.get("/comunidad/anuncios", headers=h_miembro)
+        assert res_m_vip.status_code == 200
+        titulos_m = [a["titulo"] for a in res_m_vip.json()]
+        assert vip_data["titulo"] not in titulos_m
+
+        # EMBAJADOR SI debe ver el anuncio VIP
+        res_e_vip = client.get("/comunidad/anuncios", headers=h_emb)
+        assert res_e_vip.status_code == 200
+        titulos_e = [a["titulo"] for a in res_e_vip.json()]
+        assert vip_data["titulo"] in titulos_e
+
+        # 2. Publicar anuncio normal (INFO)
+        res_info = client.post("/comunidad/anuncios", json={
+            "titulo": f"Info Announce {unique_id}",
+            "contenido": "Para toda la comunidad",
+            "tipo": "INFO",
+            "categoria": "GENERAL",
+            "exclusivo_embajadores": False,
+            "activo": True
+        }, headers=h_admin)
+        assert res_info.status_code == 201
+        info_data = res_info.json()
+        assert info_data["tipo"] == "INFO"
+
+        # MIEMBRO SI debe ver el anuncio INFO
+        res_m_info = client.get("/comunidad/anuncios", headers=h_miembro)
+        assert any(a["id_anuncio"] == info_data["id_anuncio"] for a in res_m_info.json())
+
+        # 3. Marcar inactivo (activo=False) -> Debe desaparecer del muro activo
+        client.put(f"/comunidad/anuncios/{info_data['id_anuncio']}", json={"activo": False}, headers=h_admin)
+        res_m_after_inact = client.get("/comunidad/anuncios", headers=h_miembro)
+        assert not any(a["id_anuncio"] == info_data["id_anuncio"] for a in res_m_after_inact.json())
+
+        # 4. Publicar anuncio ALERTA y luego borrarlo (DELETE -> id_estado=0)
+        res_alerta = client.post("/comunidad/anuncios", json={
+            "titulo": f"Alerta Announce {unique_id}",
+            "contenido": "Mantenimiento del servidor",
+            "tipo": "ALERTA",
+            "categoria": "GENERAL",
+            "activo": True
+        }, headers=h_admin)
+        assert res_alerta.status_code == 201
+        alerta_data = res_alerta.json()
+        assert alerta_data["tipo"] == "ALERTA"
+
+        # Validar que está en el muro antes de borrar
+        res_before_del = client.get("/comunidad/anuncios", headers=h_admin)
+        assert any(a["id_anuncio"] == alerta_data["id_anuncio"] for a in res_before_del.json())
+
+        # Borrar anuncio (borrado lógico a id_estado=0)
+        del_res = client.delete(f"/comunidad/anuncios/{alerta_data['id_anuncio']}", headers=h_admin)
+        assert del_res.status_code == 204
+
+        # Anuncio borrado NO debe verse en el muro activo (incluso para ADMIN)
+        res_after_del = client.get("/comunidad/anuncios", headers=h_admin)
+        assert not any(a["id_anuncio"] == alerta_data["id_anuncio"] for a in res_after_del.json())
+
+        # Anuncio borrado NO debe verse en la lista administrativa de activos
+        res_all_after_del = client.get("/comunidad/anuncios/all", headers=h_admin)
+        assert not any(a["id_anuncio"] == alerta_data["id_anuncio"] for a in res_all_after_del.json())
+
+    finally:
+        try:
+            db.query(models.Anuncio).filter(models.Anuncio.titulo.like(f"%{unique_id}%")).delete(synchronize_session=False)
+            db.query(models.Usuario).filter(models.Usuario.id_usuario.in_([admin_user.id_usuario, embajador_user.id_usuario, miembro_user.id_usuario])).delete(synchronize_session=False)
+            db.commit()
+        except Exception:
+            db.rollback()
+        finally:
+            db.close()
+
 
