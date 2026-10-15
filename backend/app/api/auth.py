@@ -80,6 +80,17 @@ def update_user_me(
     ip_address = request.client.host if request.client else None
     return auth_service.update_profile(db, current_user.id_usuario, user_update, ip_address)
 
+@router.post("/verificar-email")
+def verificar_email(request: user_schema.VerificarEmailRequest, req: Request, db: Session = Depends(get_db)):
+    """Verifica el correo electrónico de un usuario con el código recibido."""
+    ip_address = req.client.host if req.client else None
+    return auth_service.verificar_email(db, request, ip_address)
+
+@router.post("/reenviar-codigo")
+def reenviar_codigo(request: user_schema.ReenviarCodigoRequest, db: Session = Depends(get_db)):
+    """Reenvía un nuevo código de verificación al correo."""
+    return auth_service.reenviar_codigo_verificacion(db, request.correo)
+
 @router.get("/usuarios", response_model=List[user_schema.UserResponse])
 def get_usuarios(
     search: Optional[str] = None,
@@ -89,6 +100,53 @@ def get_usuarios(
 ):
     """Lista todos los usuarios (Solo para personal con permisos)."""
     return auth_service.list_users(db, current_user.rol, search, rol)
+
+@router.put("/usuarios/{id_usuario}", response_model=user_schema.UserResponse)
+def update_user_admin(
+    id_usuario: int,
+    payload: user_schema.AdminUserUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Actualiza datos de un usuario desde administración (Solo ADMIN)."""
+    ip_address = request.client.host if request.client else None
+    return auth_service.admin_update_user(db, current_user, id_usuario, payload, ip_address)
+
+@router.post("/usuarios/{id_usuario}/reset-password")
+def reset_password_admin(
+    id_usuario: int,
+    payload: user_schema.AdminResetPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Restablece la contraseña de un usuario directamente (Solo ADMIN)."""
+    ip_address = request.client.host if request.client else None
+    return auth_service.admin_reset_password(db, current_user, id_usuario, payload.nueva_password, ip_address)
+
+@router.post("/usuarios/{id_usuario}/suspender")
+def suspender_usuario(
+    id_usuario: int,
+    payload: user_schema.SuspenderUsuarioRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Suspende a un usuario con motivo (Solo ADMIN)."""
+    ip_address = request.client.host if request.client else None
+    return auth_service.suspender_usuario(db, current_user, id_usuario, payload.motivo, ip_address)
+
+@router.post("/usuarios/{id_usuario}/restaurar")
+def restaurar_usuario(
+    id_usuario: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Restaura una cuenta de usuario suspendida (Solo ADMIN)."""
+    ip_address = request.client.host if request.client else None
+    return auth_service.restaurar_usuario(db, current_user, id_usuario, ip_address)
 
 @router.put("/usuarios/{id_usuario}/rol", response_model=user_schema.UserResponse)
 def update_user_role(
@@ -102,7 +160,6 @@ def update_user_role(
     ip_address = request.client.host if request.client else None
     return auth_service.update_user_role(db, current_user, id_usuario, nuevo_rol, ip_address)
 
-
 @router.delete("/usuarios/{id_usuario}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_usuario(
     id_usuario: int,
@@ -110,7 +167,58 @@ def delete_usuario(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    """Elimina lógicamente un usuario (Solo Administradores)."""
+    """Suspende lógicamente un usuario sin borrado físico (Solo Administradores)."""
     ip_address = request.client.host if request.client else None
     auth_service.delete_usuario(db, current_user, id_usuario, ip_address)
+
+
+# --- ROUTER ALIAS DIRECTO /usuarios ---
+router_usuarios = APIRouter(
+    prefix="/usuarios",
+    tags=["usuarios"]
+)
+
+@router_usuarios.put("/{id_usuario}", response_model=user_schema.UserResponse)
+def update_user_direct(
+    id_usuario: int,
+    payload: user_schema.AdminUserUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    ip_address = request.client.host if request.client else None
+    return auth_service.admin_update_user(db, current_user, id_usuario, payload, ip_address)
+
+@router_usuarios.post("/{id_usuario}/reset-password")
+def reset_password_direct(
+    id_usuario: int,
+    payload: user_schema.AdminResetPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    ip_address = request.client.host if request.client else None
+    return auth_service.admin_reset_password(db, current_user, id_usuario, payload.nueva_password, ip_address)
+
+@router_usuarios.post("/{id_usuario}/suspender")
+def suspender_direct(
+    id_usuario: int,
+    payload: user_schema.SuspenderUsuarioRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    ip_address = request.client.host if request.client else None
+    return auth_service.suspender_usuario(db, current_user, id_usuario, payload.motivo, ip_address)
+
+@router_usuarios.post("/{id_usuario}/restaurar")
+def restaurar_direct(
+    id_usuario: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    ip_address = request.client.host if request.client else None
+    return auth_service.restaurar_usuario(db, current_user, id_usuario, ip_address)
+
 

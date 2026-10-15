@@ -69,6 +69,9 @@ class UserResponse(UserBase):
     id_usuario: int
     fecha_registro: datetime
     activo: bool
+    email_verificado: bool = False
+    motivo_suspension: Optional[str] = None
+    id_estado: Optional[int] = 2
     badge_count: Optional[int] = 0
     souvenir_count: Optional[int] = 0
     total_invertido: Optional[float] = 0.0
@@ -105,3 +108,31 @@ class TokenData(BaseModel):
     correo: Optional[str] = None
     rol: Optional[str] = None
     id_usuario: Optional[int] = None
+
+class VerificarEmailRequest(BaseModel):
+    correo: EmailStr
+    codigo: str
+
+class ReenviarCodigoRequest(BaseModel):
+    correo: EmailStr
+
+class SuspenderUsuarioRequest(BaseModel):
+    motivo: str
+
+class AdminResetPasswordRequest(BaseModel):
+    nueva_password: str
+
+class AdminUserUpdate(BaseModel):
+    nombres: Optional[str] = None
+    apellidos: Optional[str] = None
+    correo: Optional[EmailStr] = None
+    alias: Optional[str] = None
+    rol: Optional[str] = None
+    institucion: Optional[str] = None
+    estudia_en: Optional[str] = None
+    tipo_entidad: Optional[str] = None
+    pais: Optional[str] = None
+    departamento: Optional[str] = None
+    bio: Optional[str] = None
+    email_verificado: Optional[bool] = None
+
