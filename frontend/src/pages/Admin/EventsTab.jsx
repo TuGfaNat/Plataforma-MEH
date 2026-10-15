@@ -88,7 +88,6 @@ const EventsTab = ({
   const [pagosQr, setPagosQr] = useState([]);
   const [loadingQr, setLoadingQr] = useState(false);
   const [listaEspera, setListaEspera] = useState([]);
-  const [participantes, setParticipantes] = useState([]);
   const [loadingParticipantes, setLoadingParticipantes] = useState(false);
   const [nuevoNombrePaquete, setNuevoNombrePaquete] = useState('');
   const [nuevoMonto, setNuevoMonto] = useState('');
@@ -113,7 +112,6 @@ const EventsTab = ({
     } else {
       setPagosQr([]);
       setListaEspera([]);
-      setParticipantes([]);
     }
   }, [selectedEventoId]);
 
@@ -133,14 +131,10 @@ const EventsTab = ({
     if (!selectedEventoId) return;
     setLoadingParticipantes(true);
     try {
-      const [esperaData, partData] = await Promise.all([
-        eventoService.getListaEspera(selectedEventoId),
-        eventoService.getParticipantes(selectedEventoId)
-      ]);
+      const esperaData = await eventoService.getListaEspera(selectedEventoId);
       setListaEspera(esperaData || []);
-      setParticipantes(partData || []);
     } catch (err) {
-      console.error("Error fetching waitlist/participants:", err);
+      console.error("Error fetching waitlist:", err);
     } finally {
       setLoadingParticipantes(false);
     }

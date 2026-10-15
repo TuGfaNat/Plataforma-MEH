@@ -1,6 +1,6 @@
 import uuid
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -807,12 +807,55 @@ def get_evento_qr_image(db: Session, id_evento: int) -> Tuple[bytes, str]:
     filename = f"QR_EVENTO_{evento.id_evento}_{safe_title}.png"
     return qr_bytes, filename
 
+def _calcular_asistencia_y_fecha(ins: models.InscripcionEvento) -> Tuple[bool, Optional[str]]:
+    """Calcula el estado presente y la fecha de acreditación de una inscripción."""
+    asistencias = ins.asistencias
+    presente = bool(ins.asistio or (asistencias and len(asistencias) > 0))
+    fecha_acred = None
+    if asistencias:
+        fechas = [ad.fecha_escaneo for ad in asistencias if ad.fecha_escaneo]
+        if fechas:
+            fecha_acred = max(fechas).isoformat()
+    if not fecha_acred and ins.fecha_validacion:
+        fecha_acred = ins.fecha_validacion.isoformat()
+    return presente, fecha_acred
+
+
+def _obtener_o_crear_checkpoint_acreditacion(db: Session, id_evento: int) -> models.Checkpoint:
+    """Busca o crea el checkpoint por defecto para acreditación manual."""
+    cp_default = db.query(models.Checkpoint).filter(
+        models.Checkpoint.id_evento == id_evento,
+        models.Checkpoint.activo.is_(True),
+        models.Checkpoint.tipo_checkpoint == "ACREDITACION"
+    ).first()
+
+    if not cp_default:
+        cp_default = db.query(models.Checkpoint).filter(
+            models.Checkpoint.id_evento == id_evento,
+            models.Checkpoint.activo.is_(True)
+        ).order_by(models.Checkpoint.orden.asc()).first()
+
+    if not cp_default:
+        cp_default = models.Checkpoint(
+            id_evento=id_evento,
+            nombre_checkpoint="Acreditación y Entrada",
+            tipo_checkpoint="ACREDITACION",
+            orden=1,
+            activo=True
+        )
+        db.add(cp_default)
+        db.commit()
+        db.refresh(cp_default)
+
+    return cp_default
+
+
 def get_evento_participantes(db: Session, id_evento: int, staff_user: models.Usuario) -> List[dict]:
     """Obtiene todos los participantes inscritos en el evento con sus respectivos estados de inscripción y asistencia."""
     if not has_permission(staff_user.rol, PERMISSION_EVENTS_MANAGE):
         raise PermisoDenegadoError("No tienes permisos para ver los participantes de este evento")
 
-    evento = get_evento_by_id(db, id_evento)
+    get_evento_by_id(db, id_evento)
     inscripciones = db.query(models.InscripcionEvento).filter(
         models.InscripcionEvento.id_evento == id_evento,
         models.InscripcionEvento.id_estado != 0
@@ -821,16 +864,7 @@ def get_evento_participantes(db: Session, id_evento: int, staff_user: models.Usu
     resultado = []
     for ins in inscripciones:
         usuario = ins.usuario
-        # Derivar estado presente desde AsistenciaDetalle o inscripcion.asistio
-        asistencias = ins.asistencias
-        presente = bool(ins.asistio or (asistencias and len(asistencias) > 0))
-        fecha_acred = None
-        if asistencias:
-            fechas = [ad.fecha_escaneo for ad in asistencias if ad.fecha_escaneo]
-            if fechas:
-                fecha_acred = max(fechas).isoformat()
-        if not fecha_acred and ins.fecha_validacion:
-            fecha_acred = ins.fecha_validacion.isoformat()
+        presente, fecha_acred = _calcular_asistencia_y_fecha(ins)
 
         resultado.append({
             "id_inscripcion": ins.id_inscripcion,
@@ -867,7 +901,7 @@ def acreditar_participante(
     if staff_user.rol not in ADMIN_OR_ORGANIZER_ROLES:
         raise PermisoDenegadoError("Solo administradores y organizadores pueden realizar esta acción")
 
-    evento = get_evento_by_id(db, id_evento)
+    get_evento_by_id(db, id_evento)
 
     if not id_inscripcion and not codigo_qr:
         raise ValidacionNegocioError("Debe proporcionar id_inscripcion o codigo_qr para la acreditación")
@@ -887,30 +921,7 @@ def acreditar_participante(
     if inscripcion.id_estado == 0 or inscripcion.estado_inscripcion == "CANCELADA":
         raise ValidacionNegocioError("No se puede acreditar una inscripción cancelada")
 
-    # Obtener o asegurar checkpoint por defecto de Acreditación
-    cp_default = db.query(models.Checkpoint).filter(
-        models.Checkpoint.id_evento == id_evento,
-        models.Checkpoint.activo == True,
-        models.Checkpoint.tipo_checkpoint == "ACREDITACION"
-    ).first()
-
-    if not cp_default:
-        cp_default = db.query(models.Checkpoint).filter(
-            models.Checkpoint.id_evento == id_evento,
-            models.Checkpoint.activo == True
-        ).order_by(models.Checkpoint.orden.asc()).first()
-
-    if not cp_default:
-        cp_default = models.Checkpoint(
-            id_evento=id_evento,
-            nombre_checkpoint="Acreditación y Entrada",
-            tipo_checkpoint="ACREDITACION",
-            orden=1,
-            activo=True
-        )
-        db.add(cp_default)
-        db.commit()
-        db.refresh(cp_default)
+    cp_default = _obtener_o_crear_checkpoint_acreditacion(db, id_evento)
 
     # Validar anti-duplicado: ya marcado asistio o con detalle en este checkpoint
     asistencia_existente = db.query(models.AsistenciaDetalle).filter(
@@ -922,17 +933,19 @@ def acreditar_participante(
         raise RegistroDuplicadoError("El participante ya se encuentra acreditado / marcado como presente")
 
     # Registrar AsistenciaDetalle físico
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
     nueva_asistencia = models.AsistenciaDetalle(
         id_inscripcion=inscripcion.id_inscripcion,
         id_checkpoint=cp_default.id_checkpoint,
-        fecha_escaneo=datetime.utcnow(),
+        fecha_escaneo=now_utc,
         escaneado_por=staff_user.id_usuario,
         id_estado=2
     )
     db.add(nueva_asistencia)
+    db.flush()
 
     inscripcion.asistio = True
-    inscripcion.fecha_validacion = datetime.utcnow()
+    inscripcion.fecha_validacion = now_utc
     if inscripcion.estado_inscripcion != "CONFIRMADA":
         inscripcion.estado_inscripcion = "CONFIRMADA"
 

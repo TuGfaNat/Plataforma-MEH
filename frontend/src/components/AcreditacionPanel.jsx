@@ -20,16 +20,14 @@ import {
   CheckmarkCircle24Filled, 
   DismissCircle24Filled, 
   Copy24Regular, 
-  QrCode24Regular, 
   Checkmark24Regular,
   PeopleTeam24Regular,
   ArrowClockwise24Regular,
   Dismiss24Regular,
-  ShieldCheckmark24Regular,
-  AlertUrgent24Filled
+  ShieldCheckmark24Regular
 } from '@fluentui/react-icons';
 import { QRCodeSVG } from 'qrcode.react';
-import { MEHButton, MEHTypography, MEHCard } from './ui';
+import { MEHButton, MEHTypography } from './ui';
 import { useAuth, useNotify } from '../App';
 import eventoService from '../services/eventoService';
 
@@ -184,9 +182,15 @@ const AcreditacionPanel = ({
     }
   };
 
+  const getInscripcionBadgeColor = (estado) => {
+    if (estado === 'CONFIRMADA') return 'brand';
+    if (estado === 'PENDIENTE_APROBACION') return 'warning';
+    return 'informative';
+  };
+
   useEffect(() => {
     if (eventoId) {
-      fetchParticipantes();
+      void fetchParticipantes();
     } else {
       setParticipantes([]);
     }
@@ -282,6 +286,154 @@ const AcreditacionPanel = ({
     }
   };
 
+  const renderListContent = () => {
+    if (loading) {
+      return (
+        <div style={{ padding: '30px', textAlign: 'center' }}>
+          <Spinner size="medium" label="Cargando participantes y estado de asistencia..." />
+        </div>
+      );
+    }
+
+    if (filteredParticipantes.length === 0) {
+      return (
+        <div className={styles.emptyState}>
+          <Search24Regular style={{ fontSize: '32px', opacity: 0.5 }} />
+          <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>
+            {searchTerm ? 'No se encontraron resultados' : 'No hay participantes registrados'}
+          </MEHTypography>
+          <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
+            {searchTerm 
+              ? `No hay coincidencias para "${searchTerm}". Intenta buscar con otro término.`
+              : 'Cuando los participantes se inscriban al evento, aparecerán aquí para su acreditación.'}
+          </MEHTypography>
+        </div>
+      );
+    }
+
+    return (
+      <div className={styles.listContainer}>
+        {filteredParticipantes.map(p => {
+          const isPresente = Boolean(p.presente || p.asistio);
+          const nombre = p.nombre_completo || `${p.usuario?.nombres || ''} ${p.usuario?.apellidos || ''}`.trim() || `Inscrito #${p.id_inscripcion}`;
+          const correo = p.correo || p.usuario?.email || p.usuario?.correo || '';
+          const codigoQr = p.codigo_qr;
+
+          return (
+            <div key={p.id_inscripcion} className={styles.participantCard}>
+              {/* IZQUIERDA: Miniatura QR + Datos */}
+              <div className={styles.participantLeft}>
+                {codigoQr ? (
+                  <Tooltip content="Clic para expandir código QR" relationship="description">
+                    <button 
+                      type="button"
+                      className={styles.qrThumbnailWrapper}
+                      onClick={() => setExpandedQr({ codigo: codigoQr, nombre, correo })}
+                      aria-label={`Expandir código QR de ${nombre}`}
+                      style={{ border: 'none', background: '#ffffff', cursor: 'pointer', padding: '4px' }}
+                    >
+                      <QRCodeSVG 
+                        value={codigoQr} 
+                        size={46} 
+                        level="M" 
+                        role="img"
+                        aria-label={`QR de ${nombre}`}
+                      />
+                    </button>
+                  </Tooltip>
+                ) : (
+                  <Avatar name={nombre} size={40} />
+                )}
+
+                <div className={styles.participantInfo}>
+                  <MEHTypography variant="body" style={{ fontWeight: 600, fontSize: '13px', lineHeight: 1.2 }}>
+                    {nombre}
+                  </MEHTypography>
+                  <MEHTypography variant="caption" style={{ opacity: 0.7, fontSize: '11px' }}>
+                    {correo || 'Sin correo registrado'}
+                  </MEHTypography>
+                  {codigoQr && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                      <code style={{ fontSize: '10px', backgroundColor: tokens.colorNeutralBackground3, padding: '1px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>
+                        {codigoQr}
+                      </code>
+                      <Tooltip content="Copiar código QR" relationship="label">
+                        <button 
+                          type="button"
+                          aria-label="Copiar código QR"
+                          style={{ cursor: 'pointer', display: 'inline-flex', opacity: 0.6, border: 'none', background: 'transparent', padding: 0 }}
+                          onClick={(e) => handleCopyCode(codigoQr, e)}
+                        >
+                          <Copy24Regular style={{ fontSize: '13px' }} />
+                        </button>
+                      </Tooltip>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* DERECHA: Badges + Botón de Acreditación */}
+              <div className={styles.actionsGroup}>
+                {/* Badge de Asistencia */}
+                {isPresente ? (
+                  <Badge 
+                    appearance="filled" 
+                    color="success" 
+                    icon={<CheckmarkCircle24Filled />}
+                  >
+                    PRESENTE
+                  </Badge>
+                ) : (
+                  <Badge 
+                    appearance="tint" 
+                    color="danger"
+                    icon={<DismissCircle24Filled />}
+                  >
+                    AUSENTE
+                  </Badge>
+                )}
+
+                {/* Badge de Estado de Inscripción */}
+                <Badge 
+                  appearance="outline" 
+                  color={getInscripcionBadgeColor(p.estado_inscripcion)}
+                >
+                  {p.estado_inscripcion || 'REGISTRADO'}
+                </Badge>
+
+                {/* Botón Marcar Presente */}
+                {!isPresente ? (
+                  <MEHButton 
+                    appearance="primary" 
+                    size="small"
+                    icon={<Checkmark24Regular />}
+                    onClick={() => handleOpenConfirm(p)}
+                  >
+                    Marcar Presente
+                  </MEHButton>
+                ) : (
+                  <Tooltip 
+                    content={p.fecha_acreditacion ? `Acreditado: ${new Date(p.fecha_acreditacion).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Participante acreditado'} 
+                    relationship="description"
+                  >
+                    <MEHButton 
+                      appearance="subtle" 
+                      size="small"
+                      disabled
+                      icon={<CheckmarkCircle24Filled style={{ color: tokens.colorPaletteGreenForeground1 }} />}
+                    >
+                      Acreditado
+                    </MEHButton>
+                  </Tooltip>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   if (!isStaff) {
     return (
       <div className={styles.emptyState}>
@@ -366,138 +518,7 @@ const AcreditacionPanel = ({
       </div>
 
       {/* LISTA DE PARTICIPANTES */}
-      {loading ? (
-        <div style={{ padding: '30px', textAlign: 'center' }}>
-          <Spinner size="medium" label="Cargando participantes y estado de asistencia..." />
-        </div>
-      ) : filteredParticipantes.length > 0 ? (
-        <div className={styles.listContainer}>
-          {filteredParticipantes.map(p => {
-            const isPresente = Boolean(p.presente || p.asistio);
-            const nombre = p.nombre_completo || `${p.usuario?.nombres || ''} ${p.usuario?.apellidos || ''}`.trim() || `Inscrito #${p.id_inscripcion}`;
-            const correo = p.correo || p.usuario?.email || p.usuario?.correo || '';
-            const codigoQr = p.codigo_qr;
-
-            return (
-              <div key={p.id_inscripcion} className={styles.participantCard}>
-                {/* IZQUIERDA: Miniatura QR + Datos */}
-                <div className={styles.participantLeft}>
-                  {codigoQr ? (
-                    <Tooltip content="Clic para expandir código QR" relationship="description">
-                      <div 
-                        className={styles.qrThumbnailWrapper}
-                        onClick={() => setExpandedQr({ codigo: codigoQr, nombre, correo })}
-                      >
-                        <QRCodeSVG 
-                          value={codigoQr} 
-                          size={46} 
-                          level="M" 
-                          role="img"
-                          aria-label={`QR de ${nombre}`}
-                        />
-                      </div>
-                    </Tooltip>
-                  ) : (
-                    <Avatar name={nombre} size={40} />
-                  )}
-
-                  <div className={styles.participantInfo}>
-                    <MEHTypography variant="body" style={{ fontWeight: 600, fontSize: '13px', lineHeight: 1.2 }}>
-                      {nombre}
-                    </MEHTypography>
-                    <MEHTypography variant="caption" style={{ opacity: 0.7, fontSize: '11px' }}>
-                      {correo || 'Sin correo registrado'}
-                    </MEHTypography>
-                    {codigoQr && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                        <code style={{ fontSize: '10px', backgroundColor: tokens.colorNeutralBackground3, padding: '1px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>
-                          {codigoQr}
-                        </code>
-                        <Tooltip content="Copiar código QR" relationship="label">
-                          <span 
-                            style={{ cursor: 'pointer', display: 'inline-flex', opacity: 0.6 }}
-                            onClick={(e) => handleCopyCode(codigoQr, e)}
-                          >
-                            <Copy24Regular style={{ fontSize: '13px' }} />
-                          </span>
-                        </Tooltip>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* DERECHA: Badges + Botón de Acreditación */}
-                <div className={styles.actionsGroup}>
-                  {/* Badge de Asistencia */}
-                  {isPresente ? (
-                    <Badge 
-                      appearance="filled" 
-                      color="success" 
-                      icon={<CheckmarkCircle24Filled />}
-                    >
-                      PRESENTE
-                    </Badge>
-                  ) : (
-                    <Badge 
-                      appearance="tint" 
-                      color="danger"
-                      icon={<DismissCircle24Filled />}
-                    >
-                      AUSENTE
-                    </Badge>
-                  )}
-
-                  {/* Badge de Estado de Inscripción */}
-                  <Badge 
-                    appearance="outline" 
-                    color={p.estado_inscripcion === 'CONFIRMADA' ? 'brand' : p.estado_inscripcion === 'PENDIENTE_APROBACION' ? 'warning' : 'informative'}
-                  >
-                    {p.estado_inscripcion || 'REGISTRADO'}
-                  </Badge>
-
-                  {/* Botón Marcar Presente */}
-                  {!isPresente ? (
-                    <MEHButton 
-                      appearance="primary" 
-                      size="small"
-                      icon={<Checkmark24Regular />}
-                      onClick={() => handleOpenConfirm(p)}
-                    >
-                      Marcar Presente
-                    </MEHButton>
-                  ) : (
-                    <Tooltip 
-                      content={p.fecha_acreditacion ? `Acreditado: ${new Date(p.fecha_acreditacion).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Participante acreditado'} 
-                      relationship="description"
-                    >
-                      <MEHButton 
-                        appearance="subtle" 
-                        size="small"
-                        disabled
-                        icon={<CheckmarkCircle24Filled style={{ color: tokens.colorPaletteGreenForeground1 }} />}
-                      >
-                        Acreditado
-                      </MEHButton>
-                    </Tooltip>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className={styles.emptyState}>
-          <Search24Regular style={{ fontSize: '32px', opacity: 0.5 }} />
-          <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>
-            {searchTerm ? 'No se encontraron resultados' : 'No hay participantes registrados'}
-          </MEHTypography>
-          <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
-            {searchTerm 
-              ? `No hay coincidencias para "${searchTerm}". Intenta buscar con otro término.`
-              : 'Cuando los participantes se inscriban al evento, aparecerán aquí para su acreditación.'}
-          </MEHTypography>
-        </div>
-      )}
+      {renderListContent()}
 
       {/* DIÁLOGO MODAL: QR EXPANDIBLE */}
       <Dialog 
