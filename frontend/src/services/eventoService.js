@@ -66,6 +66,16 @@ const eventoService = {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(blobUrl);
+  },
+
+  cancelarEvento: async (idEvento, motivo) => {
+    const response = await api.post(`/eventos/${idEvento}/cancelar`, { motivo });
+    return response.data;
+  },
+
+  avisarInscritos: async (idEvento, data) => {
+    const response = await api.post(`/eventos/${idEvento}/avisar`, data);
+    return response.data;
   }
 };
 

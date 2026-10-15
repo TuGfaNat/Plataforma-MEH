@@ -54,6 +54,31 @@ def update_evento(
     ip_address = request.client.host if request.client else None
     return eventos_service.update_evento(db, current_user, id_evento, evento, ip_address)
 
+@router.post("/{id_evento}/cancelar", response_model=evento_schema.EventoResponse)
+def cancelar_evento(
+    request: Request,
+    id_evento: int,
+    payload: evento_schema.EventoCancelarRequest,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Cancela un evento con un motivo específico y notifica a todos los inscritos (Solo Staff autorizado)."""
+    ip_address = request.client.host if request.client else None
+    return eventos_service.cancelar_evento(db, current_user, id_evento, payload.motivo, ip_address)
+
+@router.post("/{id_evento}/avisar")
+def avisar_inscritos_evento(
+    request: Request,
+    id_evento: int,
+    payload: evento_schema.EventoAvisarRequest,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Emite un aviso oficial in-app (y opcionalmente email) exclusivamente a los inscritos confirmados (Solo Staff autorizado)."""
+    ip_address = request.client.host if request.client else None
+    return eventos_service.avisar_inscritos_evento(db, current_user, id_evento, payload, ip_address)
+
+
 @router.post("/asistencia-qr")
 def registrar_asistencia_qr(
     request: Request,

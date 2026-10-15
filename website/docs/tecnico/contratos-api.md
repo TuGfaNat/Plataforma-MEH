@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 19  
-**Total de endpoints expuestos:** 120
+**Total de endpoints expuestos:** 122
 
 ---
 
@@ -139,6 +139,8 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`GET`** | `/api/eventos` | Lista todos los eventos disponibles. | `skip: int`, `limit: int` | `200 OK` | Público / Abierto |
 | **`GET`** | `/api/eventos/{id_evento}` | Obtiene los detalles de un evento específico. | `id_evento: int` | `200 OK` | Público / Abierto |
 | **`PUT`** | `/api/eventos/{id_evento}` | Actualiza la información de un evento (Solo Staff). | `id_evento: int`, `evento: EventoUpdate` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/{id_evento}/cancelar` | Cancela un evento con un motivo específico y notifica a todos los inscritos (Solo Staff autorizado). | `id_evento: int`, `payload: EventoCancelarRequest` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/{id_evento}/avisar` | Emite un aviso oficial in-app (y opcionalmente email) exclusivamente a los inscritos confirmados (Solo Staff autorizado). | `id_evento: int`, `payload: EventoAvisarRequest` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/eventos/asistencia-qr` | Registra asistencia mediante el escaneo de un código QR, soportando checkpoints dinámicos. | `payload: QRScanRequest` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/eventos/{id_evento}/asistencia-qr` | Compatibilidad legacy para el frontend anterior. | `id_evento: int`, `token_qr: str` | `200 OK` | Requiere Auth (JWT) |
 | **`GET`** | `/api/eventos/{id_evento}/checkpoints` | Operación get_checkpoints | `id_evento: int` | `200 OK` | Público / Abierto |

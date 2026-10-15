@@ -276,6 +276,7 @@ erDiagram
 | `agenda` | `TEXT` | **-** | SÍ | - |
 | `capacidad_max` | `INTEGER` | **-** | SÍ | - |
 | `estado` | `STRING` | **-** | SÍ | default=PROGRAMADO |
+| `motivo_cancelacion` | `TEXT` | **-** | SÍ | - |
 | `imagen_url` | `STRING` | **-** | SÍ | - |
 | `refrigerio_incluido` | `BOOLEAN` | **-** | SÍ | default=False |
 | `incluidos` | `TEXT` | **-** | SÍ | - |

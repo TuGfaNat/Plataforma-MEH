@@ -384,4 +384,114 @@ def notify_email_verification(email: str, nombre: str, codigo: str) -> bool:
     return send_email(email, subject, html)
 
 
+def notify_evento_cancelado(email: str, nombre: str, titulo_evento: str, motivo: str) -> bool:
+    """Notifica la cancelación de un evento con su motivo correspondiente."""
+    subject = f"❌ Cancelación de evento: {titulo_evento} - Plataforma MEH"
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <span style="background: #e53935; color: white; padding: 6px 18px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">EVENTO CANCELADO</span>
+        </div>
+        <h2 style="color: #333; text-align: center;">Aviso Importante</h2>
+        <p>Hola <b>{nombre}</b>,</p>
+        <p>Te informamos que el evento <b>{titulo_evento}</b> en el cual estabas registrado ha sido <b>cancelado</b>.</p>
+        
+        <div style="background: #fff5f5; border: 2px dashed #e53935; padding: 20px; margin: 25px 0; border-radius: 10px; text-align: left;">
+            <p style="margin: 0 0 6px 0; font-weight: bold; color: #e53935; font-size: 0.95rem;">Motivo de la cancelación:</p>
+            <p style="margin: 0; color: #444; font-size: 0.95rem; line-height: 1.5;">{motivo}</p>
+        </div>
+
+        <p style="color: #666; font-size: 0.9rem;">Lamentamos los inconvenientes que esto pueda ocasionar. Si tienes dudas o consultas sobre reembolsos o próximas fechas, por favor contacta a nuestro equipo organizador.</p>
+        <div style="text-align: center; margin: 25px 0;">
+            <a href="{FRONTEND_URL}/dashboard" style="display: inline-block; background: #7f13ec; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ir a mi Portal</a>
+        </div>
+        
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <footer style="font-size: 0.8rem; color: #888; text-align: center;">
+            Plataforma Microsoft Education Hub - Innovando el futuro, juntos.<br>
+            Mensaje automático de notificación.
+        </footer>
+    </div>
+    """
+    return send_email(email, subject, html)
+
+
+def notify_evento_reprogramado(
+    email: str, 
+    nombre: str, 
+    titulo_evento: str, 
+    nueva_fecha: str, 
+    nuevo_horario: Optional[str] = None
+) -> bool:
+    """Notifica la reprogramación de fecha u horario de un evento."""
+    subject = f"📅 Reprogramación de fecha: {titulo_evento} - Plataforma MEH"
+    horario_texto = f"<p style='margin: 6px 0 0 0; color: #333;'><b>Nuevo Horario:</b> {nuevo_horario}</p>" if nuevo_horario else ""
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <span style="background: #f59e0b; color: white; padding: 6px 18px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">CAMBIO DE FECHA</span>
+        </div>
+        <h2 style="color: #333; text-align: center;">¡Atención, nueva fecha confirmada! 📅</h2>
+        <p>Hola <b>{nombre}</b>,</p>
+        <p>El evento <b>{titulo_evento}</b> ha sido reprogramado. A continuación encontrarás los nuevos detalles del evento:</p>
+        
+        <div style="background: #fffbeb; border: 2px dashed #f59e0b; padding: 20px; margin: 25px 0; border-radius: 10px; text-align: left;">
+            <h3 style="margin-top: 0; color: #b45309; font-size: 1.2rem;">{titulo_evento}</h3>
+            <p style="margin: 0; color: #333;"><b>Nueva Fecha:</b> {nueva_fecha}</p>
+            {horario_texto}
+            <p style="margin: 12px 0 0 0; font-size: 0.85rem; color: #78350f;">💡 Tu inscripción y tu código QR de acceso siguen siendo válidos para esta nueva fecha.</p>
+        </div>
+
+        <p style="color: #666; font-size: 0.9rem;">Puedes consultar tu ticket actualizado directamente desde tu portal de usuario.</p>
+        <div style="text-align: center; margin: 25px 0;">
+            <a href="{FRONTEND_URL}/dashboard" style="display: inline-block; background: #7f13ec; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver mi Entrada</a>
+        </div>
+        
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <footer style="font-size: 0.8rem; color: #888; text-align: center;">
+            Plataforma Microsoft Education Hub - Innovando el futuro, juntos.<br>
+            Mensaje automático de notificación.
+        </footer>
+    </div>
+    """
+    return send_email(email, subject, html)
+
+
+def notify_aviso_evento(
+    email: str, 
+    nombre: str, 
+    titulo_evento: str, 
+    titulo_aviso: str, 
+    mensaje: str
+) -> bool:
+    """Envía un aviso oficial de los organizadores a los inscritos confirmados de un evento."""
+    subject = f"📢 Comunicado: {titulo_evento} - {titulo_aviso}"
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <span style="background: #7f13ec; color: white; padding: 6px 18px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">COMUNICADO OFICIAL</span>
+        </div>
+        <h2 style="color: #333; text-align: center;">{titulo_aviso}</h2>
+        <p>Hola <b>{nombre}</b>,</p>
+        <p>Los organizadores del evento <b>{titulo_evento}</b> han publicado el siguiente comunicado para los asistentes confirmados:</p>
+        
+        <div style="background: #f7f3fd; border-left: 4px solid #7f13ec; padding: 18px; margin: 25px 0; border-radius: 4px; text-align: left;">
+            <p style="margin: 0; color: #222; font-size: 0.95rem; line-height: 1.6; white-space: pre-line;">{mensaje}</p>
+        </div>
+
+        <p style="color: #666; font-size: 0.9rem;">Mantente atento a tu portal y a la comunidad para más novedades sobre este evento.</p>
+        <div style="text-align: center; margin: 25px 0;">
+            <a href="{FRONTEND_URL}/dashboard" style="display: inline-block; background: #7f13ec; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ir a mi Portal</a>
+        </div>
+        
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+        <footer style="font-size: 0.8rem; color: #888; text-align: center;">
+            Plataforma Microsoft Education Hub - Innovando el futuro, juntos.<br>
+            Mensaje automático de la organización.
+        </footer>
+    </div>
+    """
+    return send_email(email, subject, html)
+
+
 
