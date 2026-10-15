@@ -33,7 +33,10 @@ def list_anuncios_activos(
     categoria: Optional[str] = None
 ) -> List[models.Anuncio]:
     """Lista anuncios activos para la comunidad, aplicando segmentación por rol, categorías y eventos."""
-    query = db.query(models.Anuncio).filter(models.Anuncio.activo == True)
+    query = db.query(models.Anuncio).filter(
+        models.Anuncio.activo == True,
+        models.Anuncio.id_estado != 0
+    )
     
     if id_evento:
         query = query.filter(models.Anuncio.id_evento == id_evento)
@@ -81,10 +84,12 @@ def list_anuncios_activos(
     return anuncios_visibles
 
 def list_all_anuncios(db: Session, role: str) -> List[models.Anuncio]:
-    """Lista todos los anuncios incluyendo inactivos (Solo Staff)."""
+    """Lista todos los anuncios incluyendo inactivos (Solo Staff), excluyendo eliminados (id_estado=0)."""
     if not has_permission(role, PERMISSION_ANNOUNCEMENTS_MANAGE):
         raise PermisoDenegadoError()
-    return db.query(models.Anuncio).order_by(models.Anuncio.fecha_publicacion.desc()).all()
+    return db.query(models.Anuncio).filter(
+        models.Anuncio.id_estado != 0
+    ).order_by(models.Anuncio.fecha_publicacion.desc()).all()
 
 def create_anuncio(
     db: Session,

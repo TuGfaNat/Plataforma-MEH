@@ -31,7 +31,6 @@ import ValidadorTalento from './pages/ValidadorTalento.jsx';
 import Analytics from './pages/Admin/Analytics.jsx';
 import GeneradorCertificados from './pages/Admin/GeneradorCertificados.jsx';
 import EcosystemDirectory from './pages/Admin/EcosystemDirectory.jsx';
-import NotificacionesAdmin from './pages/NotificacionesAdmin.jsx';
 import DashboardLayout from './components/layout/DashboardLayout.jsx';
 import CursoAula from './pages/CursoAula.jsx';
 import AccesoDenegado from './pages/AccesoDenegado.jsx';
@@ -226,7 +225,6 @@ export default function App() {
                   <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR', 'SOPORTE']}><AdminPanel /></ProtectedRoute>} />
                   <Route path="/admin/ecosistema" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}><EcosystemDirectory /></ProtectedRoute>} />
                   <Route path="/admin/generador-certificados" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR']}><GeneradorCertificados /></ProtectedRoute>} />
-                  <Route path="/admin/notificaciones" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}><NotificacionesAdmin /></ProtectedRoute>} />
                   <Route path="/gestion-pagos" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'SOPORTE']}><GestionPagos /></ProtectedRoute>} />
                   <Route path="/escaneo-qr" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}><EscaneoQR /></ProtectedRoute>} />
                   <Route path="/auditoria" element={<ProtectedRoute allowedRoles={['ADMIN']}><Auditoria /></ProtectedRoute>} />
