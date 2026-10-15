@@ -10,11 +10,20 @@ load_dotenv()
 # Obtiene la clave del entorno
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-# VALIDACIÓN CRÍTICA
+# VALIDACIÓN DE SEGURIDAD
 if not SECRET_KEY:
-    # En desarrollo esto te avisará que olvidaste el .env
-    # En producción (Render/Vercel) evitará que el sistema sea inseguro
-    raise ValueError("CRÍTICO: No se encontró la variable SECRET_KEY. El sistema no puede iniciar por seguridad.")
+    environment = os.getenv("ENVIRONMENT", "development").lower()
+    if environment in ("production", "prod"):
+        raise ValueError("CRÍTICO: No se encontró la variable SECRET_KEY en producción. El sistema no puede iniciar por seguridad.")
+    import warnings
+    warnings.warn(
+        "ADVERTENCIA DE SEGURIDAD: SECRET_KEY no está configurada. "
+        "Usando una clave de desarrollo temporal e insegura. "
+        "NO USAR EN ENTORNOS DE PRODUCCIÓN.",
+        UserWarning,
+        stacklevel=2
+    )
+    SECRET_KEY = "dev_insecure_secret_key_change_in_production"
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 

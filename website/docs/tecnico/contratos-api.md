@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 19  
-**Total de endpoints expuestos:** 114
+**Total de endpoints expuestos:** 115
 
 ---
 
@@ -69,6 +69,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`POST`** | `/api/auth/google` | Endpoint para autenticación mediante Google OAuth. | `payload: dict` | `200 OK` | Público / Abierto |
 | **`GET`** | `/api/auth/me` | Obtiene el perfil del usuario autenticado. | - | `200 OK` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/auth/me` | Actualiza los datos del perfil del usuario autenticado. | `user_update: UserUpdate` | `200 OK` | Requiere Auth (JWT) |
+| **`PUT`** | `/api/auth/me/password` | Cambia la contraseña del usuario autenticado (primer login o cambio voluntario). | `datos: CambiarPasswordRequest` | `200 OK` | Requiere Auth (JWT) |
 | **`GET`** | `/api/auth/usuarios` | Lista todos los usuarios (Solo para personal con permisos). | - | `200 OK` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/auth/usuarios/{id_usuario}/rol` | Cambia el rango de un usuario (Solo para Administradores). | `id_usuario: int`, `nuevo_rol: str` | `200 OK` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/auth/usuarios/{id_usuario}` | Elimina lógicamente un usuario (Solo Administradores). | `id_usuario: int` | `204 No Content` | Requiere Auth (JWT) |

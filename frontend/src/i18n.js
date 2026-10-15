@@ -420,7 +420,17 @@ const resources = {
       announcement_saved_success: "Announcement saved",
       published: "Published",
       announcement_created_success: "Announcement created successfully",
-      announcement_process_error: "Could not process the announcement"
+      announcement_process_error: "Could not process the announcement",
+      change_password_title: "Change Password",
+      change_password_first_login_notice: "Welcome! For your security, you must update your temporary password before accessing the platform.",
+      change_password_subtitle: "Enter your current password and choose a secure new one.",
+      current_password: "Current Password",
+      new_password: "New Password",
+      confirm_new_password: "Confirm New Password",
+      passwords_dont_match: "Passwords do not match",
+      change_password_button: "Update Password",
+      change_password_success: "Password updated successfully! Redirecting to dashboard...",
+      change_password_error: "Could not update password. Please check your current password."
     },
   },
   es: {
@@ -825,7 +835,17 @@ const resources = {
       admin_feedback_placeholder: "Buen trabajo, pero falta...",
       admin_confirm_grade: "Confirmar Nota",
       close: "Cerrar",
-      admin_close_list: "Cerrar Listado"
+      admin_close_list: "Cerrar Listado",
+      change_password_title: "Cambiar Contraseña",
+      change_password_first_login_notice: "¡Bienvenido! Por tu seguridad, debes actualizar tu contraseña temporal antes de ingresar a la plataforma.",
+      change_password_subtitle: "Ingresa tu contraseña actual y define una nueva clave segura.",
+      current_password: "Contraseña Actual",
+      new_password: "Nueva Contraseña",
+      confirm_new_password: "Confirmar Nueva Contraseña",
+      passwords_dont_match: "Las contraseñas no coinciden",
+      change_password_button: "Actualizar Contraseña",
+      change_password_success: "¡Contraseña actualizada con éxito! Redirigiendo al panel...",
+      change_password_error: "No se pudo actualizar la contraseña. Verifica tu contraseña actual."
     },
   },
 };

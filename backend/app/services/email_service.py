@@ -260,6 +260,14 @@ def notify_reset_password(email: str, nombre: str, token: str) -> bool:
     subject = "Restablece tu contraseña - Plataforma MEH"
     reset_url = f"{FRONTEND_URL}/reset-password?token={token}"
     
+    if not is_smtp_configured():
+        env = os.getenv("ENVIRONMENT", "development").lower()
+        if env not in ("production", "prod"):
+            logger.info(f"📧 [DEV] URL de recuperación de contraseña para {email}: {reset_url}")
+        else:
+            logger.warning(f"⚠️ SMTP no configurado en producción. No se pudo enviar el correo de recuperación a {email}")
+        return False
+
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
         <h2 style="color: #7f13ec;">Hola {nombre},</h2>

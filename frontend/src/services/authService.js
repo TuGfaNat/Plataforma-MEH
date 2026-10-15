@@ -32,6 +32,11 @@ const authService = {
     return response.data;
   },
 
+  cambiarPassword: async (password_actual, nuevo_password) => {
+    const response = await api.put('/auth/me/password', { password_actual, nuevo_password });
+    return response.data;
+  },
+
   getMe: async () => {
     const response = await api.get('/auth/me');
     return response.data;
