@@ -7,11 +7,13 @@ import {
 import { 
   CalendarLtr24Regular, Add24Regular, Map24Regular, Edit24Regular, Delete24Regular,
   Food24Regular, QrCode24Regular, PeopleTeam24Regular, Mic24Regular, Link24Regular,
-  Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled, ArrowDownload24Regular
+  Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled, ArrowDownload24Regular,
+  Share24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
 import eventoService from '../../services/eventoService';
+import { useNotify } from '../../App';
 
 const useStyles = makeStyles({
   grid: { 
@@ -78,6 +80,7 @@ const EventsTab = ({
   handleEditEvento, confirmDelete, fetchData
 }) => {
   const { t } = useTranslation();
+  const { notify } = useNotify();
   const styles = useStyles();
   const [agenda, setAgenda] = useState([]);
   const [selectedSpeakers, setSelectedSpeakers] = useState([]);
@@ -478,6 +481,19 @@ const EventsTab = ({
                 )}
               </div>
               <div style={{display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
+                <MEHButton 
+                  size="small" 
+                  icon={<Share24Regular />} 
+                  appearance="outline"
+                  onClick={() => {
+                    const url = `${window.location.origin}/evento/${currentEvent.id_evento}`;
+                    navigator.clipboard.writeText(url);
+                    if (notify) notify("Enlace copiado", "Se ha copiado el enlace público del evento al portapapeles", "success");
+                    else alert("¡Enlace público copiado al portapapeles!");
+                  }}
+                >
+                  {t("copy_link") || "Copiar link"}
+                </MEHButton>
                 <MEHButton size="small" icon={<ArrowDownload24Regular />} onClick={handleDownloadEventoQr}>
                   Descargar QR del Evento
                 </MEHButton>

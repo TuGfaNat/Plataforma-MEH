@@ -26,6 +26,11 @@ def inscribir_evento(
     if not evento:
         raise EventoNoEncontradoError()
 
+    # Verificar que el usuario esté activo
+    usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == user_id).first()
+    if not usuario or not usuario.activo or usuario.id_estado == 0:
+        raise ValidacionNegocioError("Tu cuenta de usuario está inactiva o desactivada. Contacta al administrador.")
+
     # Verificar si ya existe una inscripción activa
     inscripcion_existente = db.query(models.InscripcionEvento).filter(
         models.InscripcionEvento.id_usuario == user_id,

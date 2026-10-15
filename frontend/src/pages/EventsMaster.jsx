@@ -16,11 +16,12 @@ import {
   DialogActions
 } from '@fluentui/react-components';
 import { useNavigate } from 'react-router-dom';
-import { CalendarStar24Filled, DataTrending24Regular, ChevronRight24Regular } from '@fluentui/react-icons';
+import { CalendarStar24Filled, DataTrending24Regular, ChevronRight24Regular, Share24Regular } from '@fluentui/react-icons';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import { resolveApiFileUrl } from '../services/api';
 import eventoService from '../services/eventoService';
 import InscripcionEventoModal from '../components/InscripcionEventoModal';
+import { useNotify } from '../App';
 
 const DEFAULT_EVENT_IMG = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop";
 
@@ -107,12 +108,22 @@ const useStyles = makeStyles({
 const EventsMaster = () => {
   const styles = useStyles();
   const navigate = useNavigate();
+  const { notify } = useNotify();
   const [activeTab, setActiveTab] = useState('upcoming');
   const [events, setEvents] = useState([]);
   const [inscripciones, setInscripciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedEventForDetails, setSelectedEventForDetails] = useState(null);
+
+  const handleCopyLink = (idEvento, e) => {
+    if (e) e.stopPropagation();
+    const url = `${window.location.origin}/evento/${idEvento}`;
+    navigator.clipboard.writeText(url);
+    if (notify) {
+      notify("Link copiado", "Enlace público copiado al portapapeles", "success");
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -245,10 +256,19 @@ const EventsMaster = () => {
                       </MEHTypography>
                       <div style={{ flexGrow: 1 }} />
                       <div 
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', gap: '8px', flexWrap: 'wrap' }}
                         onClick={(e) => e.stopPropagation()}
                       >
-                          <MEHTypography variant="caption" style={{ opacity: 0.6 }}>📍 {event.modalidad}</MEHTypography>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <MEHTypography variant="caption" style={{ opacity: 0.6 }}>📍 {event.modalidad}</MEHTypography>
+                            <MEHButton 
+                              size="small" 
+                              appearance="subtle" 
+                              icon={<Share24Regular />} 
+                              onClick={(e) => handleCopyLink(event.id_evento, e)}
+                              title="Copiar link público del evento"
+                            />
+                          </div>
                           {activeTab === 'upcoming' && (
                               isInscribed ? (
                                   <Badge 
@@ -384,6 +404,15 @@ const EventsMaster = () => {
                     />
                   );
                 })()
+              )}
+              {selectedEventForDetails && (
+                <MEHButton 
+                  appearance="subtle" 
+                  icon={<Share24Regular />} 
+                  onClick={() => handleCopyLink(selectedEventForDetails.id_evento)}
+                >
+                  Copiar link
+                </MEHButton>
               )}
               <MEHButton appearance="secondary" onClick={() => setSelectedEventForDetails(null)}>Cerrar</MEHButton>
             </DialogActions>

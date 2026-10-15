@@ -570,7 +570,7 @@ const Landing = () => {
                     <MEHButton
                       appearance="primary"
                       icon={<CalendarClock24Regular />}
-                      onClick={() => navigate("/login")}
+                      onClick={() => navigate(`/evento/${evento.id_evento}`)}
                     >
                       {t("asegurar_lugar")}
                     </MEHButton>

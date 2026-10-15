@@ -8,7 +8,7 @@ import {
   Select,
   Label
 } from '@fluentui/react-components';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { 
   LockClosed24Filled, 
   Mail24Filled,
@@ -73,6 +73,8 @@ const useStyles = makeStyles({
 const Register = () => {
   const styles = useStyles();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
   const { checkAuth } = useAuth();
   
   const [formData, setFormData] = useState({ 
@@ -115,7 +117,7 @@ const Register = () => {
       });
       await authService.login(formData.correo, formData.password);
       if (checkAuth) await checkAuth(); 
-      navigate('/dashboard');
+      navigate(returnTo || '/dashboard');
     } catch (err) {
       setErrorApi(err.response?.data?.detail || 'Error al crear la cuenta.');
       setLoading(false);
@@ -243,7 +245,7 @@ const Register = () => {
 
         <div style={{ textAlign: 'center' }}>
           <MEHTypography variant="body" style={{ opacity: 0.7 }}>
-            ¿Ya tienes cuenta? <Link to="/login" style={{ color: tokens.colorBrandForeground1, fontWeight: 'bold', textDecoration: 'none' }}>Inicia sesión</Link>
+            ¿Ya tienes cuenta? <Link to={returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : "/login"} style={{ color: tokens.colorBrandForeground1, fontWeight: 'bold', textDecoration: 'none' }}>Inicia sesión</Link>
           </MEHTypography>
         </div>
       </MEHCard>

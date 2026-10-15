@@ -34,6 +34,7 @@ import EcosystemDirectory from './pages/Admin/EcosystemDirectory.jsx';
 import DashboardLayout from './components/layout/DashboardLayout.jsx';
 import CursoAula from './pages/CursoAula.jsx';
 import AccesoDenegado from './pages/AccesoDenegado.jsx';
+import EventoPublico from './pages/EventoPublico.jsx';
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
@@ -200,6 +201,7 @@ export default function App() {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/verificar/:uuid" element={<UniversalVerification />} />
+                <Route path="/evento/:id" element={<EventoPublico />} />
                 
                 {/* Validador Público (Sin Sidebar) */}
                 <Route path="/validador-publico" element={<ValidadorTalento />} />

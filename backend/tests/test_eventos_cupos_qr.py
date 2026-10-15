@@ -6,6 +6,8 @@ from app.database import SessionLocal
 from app.models import models
 from app.services import eventos_service, inscripciones_service, pagos_service, email_service
 from app.schemas import evento as evento_schema, pago as pago_schema
+from fastapi.testclient import TestClient
+from main import app
 from app.core.exceptions import ValidacionNegocioError, PermisoDenegadoError
 
 @pytest.fixture
@@ -372,3 +374,105 @@ def test_cancelacion_libera_cupo(db):
         db.delete(u2)
         db.delete(admin)
         db.commit()
+
+
+def test_get_evento_publico_sin_login(db):
+    """Verifica que el endpoint GET /eventos/{id} sea público y retorne los detalles completos sin autenticación."""
+    unique_id = uuid.uuid4().hex[:8]
+    organizador = models.Usuario(
+        nombres="Org",
+        apellidos="Luma",
+        correo=f"org_luma_{unique_id}@meh.com",
+        password_hash="pwd",
+        rol="ORGANIZADOR"
+    )
+    db.add(organizador)
+    db.commit()
+
+    evento = models.Evento(
+        titulo=f"Conferencia Publica Luma {unique_id}",
+        descripcion="Detalles completos del evento sin truncar",
+        fecha_inicio=datetime.utcnow() + timedelta(days=5),
+        modalidad="HIBRIDO",
+        ubicacion="Auditorio Central MEH",
+        capacidad_max=50,
+        id_organizador=organizador.id_usuario,
+        id_estado=2
+    )
+    db.add(evento)
+    db.commit()
+    db.refresh(evento)
+
+    try:
+        client = TestClient(app)
+        # Petición pública sin headers de autenticación
+        resp = client.get(f"/eventos/{evento.id_evento}")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["id_evento"] == evento.id_evento
+        assert data["titulo"] == evento.titulo
+        assert data["modalidad"] == "HIBRIDO"
+        assert data["cupos_disponibles"] == 50
+        assert "speakers" in data
+        assert "auspiciadores" in data
+        assert "comunidades" in data
+    finally:
+        db.delete(evento)
+        db.delete(organizador)
+        db.commit()
+
+
+def test_inscripcion_usuario_inactivo_rechazada(db):
+    """Verifica que un usuario inactivo (activo=False o id_estado=0) no pueda inscribirse a eventos."""
+    unique_id = uuid.uuid4().hex[:8]
+    organizador = models.Usuario(
+        nombres="Org",
+        apellidos="Test",
+        correo=f"org_inac_{unique_id}@meh.com",
+        password_hash="pwd",
+        rol="ORGANIZADOR"
+    )
+    # Usuario inactivo (activo=False)
+    usuario_inactivo = models.Usuario(
+        nombres="Inactivo",
+        apellidos="Test",
+        correo=f"inac_{unique_id}@meh.com",
+        password_hash="pwd",
+        rol="MIEMBRO",
+        activo=False
+    )
+    db.add_all([organizador, usuario_inactivo])
+    db.commit()
+
+    evento = models.Evento(
+        titulo=f"Evento Inactivo Test {unique_id}",
+        fecha_inicio=datetime.utcnow() + timedelta(days=3),
+        modalidad="VIRTUAL",
+        capacidad_max=20,
+        id_organizador=organizador.id_usuario,
+        id_estado=2
+    )
+    db.add(evento)
+    db.commit()
+    db.refresh(evento)
+
+    try:
+        with pytest.raises(ValidacionNegocioError) as exc_info:
+            inscripciones_service.inscribir_evento(db, usuario_inactivo.id_usuario, evento.id_evento)
+        assert "inactiva o desactivada" in str(exc_info.value)
+
+        # Probar también con id_estado=0
+        usuario_inactivo.activo = True
+        usuario_inactivo.id_estado = 0
+        db.commit()
+
+        with pytest.raises(ValidacionNegocioError) as exc_info2:
+            inscripciones_service.inscribir_evento(db, usuario_inactivo.id_usuario, evento.id_evento)
+        assert "inactiva o desactivada" in str(exc_info2.value)
+
+    finally:
+        db.delete(evento)
+        db.delete(usuario_inactivo)
+        db.delete(organizador)
+        db.commit()
+
