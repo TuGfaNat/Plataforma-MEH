@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "description": "🚀 **Sistema Integral de Gestión para Comunidades Tecnológicas**",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "docs:gen": "python tools/docs_gen.py all",
+    "docs:gen:check": "python tools/docs_gen.py check",
+    "docs:build": "npm --prefix website run build"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/TuGfaNat/Plataforma-MEH.git"

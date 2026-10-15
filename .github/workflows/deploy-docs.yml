@@ -1,23 +1,73 @@
-name: Deploy Docusaurus to GitHub Pages
+name: Docs-as-Code CI/CD & GitHub Pages Deploy
 
 on:
   push:
     branches:
       - main
-    # Solo se dispara si hay cambios en la carpeta de la web o en este workflow
     paths:
       - 'website/**'
+      - 'tools/**'
+      - 'backend/app/api/**'
+      - 'backend/app/models/**'
+      - 'backend/app/core/permissions.py'
+      - 'frontend/src/auth/rbac.js'
+      - '.github/workflows/deploy-docs.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'website/**'
+      - 'tools/**'
+      - 'backend/app/api/**'
+      - 'backend/app/models/**'
+      - 'backend/app/core/permissions.py'
+      - 'frontend/src/auth/rbac.js'
       - '.github/workflows/deploy-docs.yml'
 
 permissions:
   contents: write
 
 jobs:
-  deploy:
-    name: Deploy to GitHub Pages
+  validate-docs:
+    name: Validate Docs & Check Drift
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check Documentation Drift (Docs-as-Code)
+        run: |
+          python tools/docs_gen.py check
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install website dependencies
+        run: npm ci
+        working-directory: website
+
+      - name: Build Docusaurus (onBrokenLinks check)
+        run: npm run build
+        working-directory: website
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: [validate-docs]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -33,9 +83,11 @@ jobs:
         run: npm ci
         working-directory: website
 
-      - name: Build website
+      - name: Build website for GitHub Pages (BASE_URL=/)
         run: npm run build
         working-directory: website
+        env:
+          BASE_URL: "/"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

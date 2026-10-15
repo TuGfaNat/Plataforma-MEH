@@ -40,6 +40,10 @@ jobs:
           export PYTHONPATH=$PYTHONPATH:.
           pytest tests/test_master_suite.py
 
+      - name: Verify Documentation Synchronization (Docs-as-Code)
+        run: |
+          python tools/docs_gen.py check
+
   frontend-quality:
     runs-on: ubuntu-latest
     steps:

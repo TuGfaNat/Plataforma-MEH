@@ -817,7 +817,7 @@ El backend implementa un patrón interceptor centralizado en `backend/app/core/e
 
 ## 🔗 Recursos y Artículos Relacionados
 
-* [01. Arquitectura y Contexto C4](file:///f:/Plataforma-MEH/website/docs/tecnico/01-arquitectura-contexto.md)
-* [02. Detalle de Frontend React](file:///f:/Plataforma-MEH/website/docs/tecnico/02-detalle-frontend.md)
-* [03. Mapeo de Componentes .jsx](file:///f:/Plataforma-MEH/website/docs/tecnico/03-mapeo-paginas-jsx.md)
-* [04. Detalle de Backend FastAPI](file:///f:/Plataforma-MEH/website/docs/tecnico/04-detalle-backend.md)
+* [01. Arquitectura y Contexto C4](./arquitectura-contexto.md)
+* [02. Detalle de Frontend React](./detalle-frontend.md)
+* [03. Mapeo de Componentes .jsx](./mapeo-paginas-jsx.md)
+* [04. Detalle de Backend FastAPI](./detalle-backend.md)

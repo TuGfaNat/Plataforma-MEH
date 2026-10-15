@@ -70,15 +70,15 @@ El MEH actúa como un **Single Point of Truth (Única Fuente de Verdad)** median
        +-----------------------------------------------------------+
        |   PILAR 2: BACKEND (CAPA DE SERVICIOS)                    |
        |   Tecnología: FastAPI + Python 3.11                       |
-       |   Arquitectura: Módulos asíncronos, RBAC Middleware       |
+       |   Arquitectura: Monolito Modular Síncrono, RBAC           |
        |   Seguridad: JWT HS256 + Bcrypt / Argon2                  |
        +----------------------------+------------------------------+
                                     |
-                                    | [ SQLAlchemy / Pool Pre-Ping ]
+                                    | [ SQLAlchemy Síncrono / psycopg2 ]
                                     v
        +-----------------------------------------------------------+
        |   PILAR 3: PERSISTENCIA (CAPA DE DATOS)                   |
-       |   Motor: PostgreSQL (Neon / Render)                       |
+       |   Motor: PostgreSQL (INTEGER SERIAL, ADR-002)             |
        |   Lógica: AuditMixin (Trazabilidad Universal)             |
        |   Storage: Gestión de Comprobantes y Certificados         |
        +-----------------------------------------------------------+
@@ -86,12 +86,16 @@ El MEH actúa como un **Single Point of Truth (Única Fuente de Verdad)** median
 
 ---
 
-## 📖 Guía de Manuales
+## 📖 Índice Maestro de Documentación (Taxonomía Diátaxis)
 
-| Manual                | Audiencia           | Contenido Clave                                               |
-| :-------------------- | :------------------ | :------------------------------------------------------------ |
-| **Manual Técnico**    | Ingenieros / DevOps | Arquitectura, Diccionario de Datos, Referencia de API y RBAC. |
-| **Manual de Usuario** | Staff / Miembros    | Operación de Eventos, Pagos y Guía de Instalación.            |
+El sistema de documentación está estructurado según la metodología internacional **Diátaxis**:
+
+| Modo Diátaxis | Enfoque | Audiencia | Secciones Clave |
+|---|---|---|---|
+| **1. Tutoriales** | Aprendizaje guiado | Nuevos usuarios y desarrolladores | • [Bienvenida e Introducción](./usuario/introduccion)<br/>• [Guía Rápida de Inicio](./usuario/guia-rapida) |
+| **2. Guías Prácticas** | Resolución de tareas específicas | Miembros, Staff, Organizadores, Admins | • [Manual para Miembros](./usuario/para-miembros/eventos)<br/>• [Manual para Organizadores](./usuario/para-organizadores)<br/>• [Manual para Administradores](./usuario/para-administradores)<br/>• [Manual para Soporte](./usuario/para-soporte)<br/>• [Solución de Problemas](./usuario/solucion-de-problemas)<br/>• [Preguntas Frecuentes](./usuario/preguntas-frecuentes) |
+| **3. Referencia** | Información técnica formal (Docs-as-Code) | Ingenieros, DevOps, Auditores | • [Contratos de APIs REST (M3)](./tecnico/contratos-api)<br/>• [Diccionario de Datos (M2)](./tecnico/diccionario-datos)<br/>• [Matriz RBAC y Permisos](./tecnico/matriz-rbac) |
+| **4. Explicación** | Comprensión y diseño de software | Arquitectos, Evaluadores Académicos | • [Arquitectura y Contexto C4](./tecnico/arquitectura-contexto)<br/>• [Detalle de Frontend React](./tecnico/detalle-frontend)<br/>• [Mapeo de Páginas JSX](./tecnico/mapeo-paginas-jsx)<br/>• [Detalle de Backend FastAPI](./tecnico/detalle-backend)<br/>• [Base de Datos y Seguridad](./tecnico/base-datos-seguridad)<br/>• [Decisiones Arquitectónicas (ADRs)](./tecnico/decisiones-arquitectonicas) |
 
 ---
 
@@ -101,4 +105,4 @@ El MEH actúa como un **Single Point of Truth (Única Fuente de Verdad)** median
 
 ---
 
-_Para iniciar con el despliegue técnico, diríjase a la sección de **[Guía de Instalación](./usuario/introduccion)**._
+_Para comenzar a explorar el sistema, diríjase a los **[Tutoriales de Inicio](./usuario/introduccion)**._
