@@ -111,3 +111,17 @@ class InscriptoConfirmadoResponse(BaseModel):
     nombre_completo: str
     model_config = ConfigDict(from_attributes=True)
 
+class AcreditarParticipanteRequest(BaseModel):
+    id_inscripcion: Optional[int] = None
+    codigo_qr: Optional[str] = None
+
+class AcreditacionResponse(BaseModel):
+    status: str
+    message: str
+    id_inscripcion: int
+    presente: bool
+    asistio: bool
+    fecha_acreditacion: Optional[str] = None
+    checkpoint: Optional[str] = None
+
+

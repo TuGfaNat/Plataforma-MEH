@@ -12,6 +12,7 @@ import {
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
 import eventoService from '../../services/eventoService';
+import AcreditacionPanel from './AcreditacionPanel';
 
 const useStyles = makeStyles({
   grid: { 
@@ -614,40 +615,13 @@ const EventsTab = ({
 
               <Divider style={{ margin: '20px 0' }} />
 
-              {/* PARTICIPANTES CONFIRMADOS / PENDIENTES */}
+              {/* PANEL DE ACREDITACIÓN Y CONTROL DE ASISTENCIA */}
               <div>
-                <MEHTypography variant="h4" style={{ marginBottom: '8px' }}>
-                  👥 Participantes Registrados ({participantes.length})
-                </MEHTypography>
-                {participantes.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
-                    {participantes.map(p => (
-                      <div key={p.id_inscripcion} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '10px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <Avatar name={`${p.usuario?.nombres || ''} ${p.usuario?.apellidos || ''}`} size={32} />
-                          <div>
-                            <MEHTypography variant="body" style={{ fontSize: '13px', fontWeight: 'bold' }}>
-                              {p.usuario ? `${p.usuario.nombres} ${p.usuario.apellidos}` : `ID ${p.id_usuario}`}
-                            </MEHTypography>
-                            <MEHTypography variant="caption" style={{ opacity: 0.7, fontSize: '11px' }}>
-                              {p.usuario?.email} {p.codigo_qr ? `• QR: ${p.codigo_qr}` : ''}
-                            </MEHTypography>
-                          </div>
-                        </div>
-                        <Badge 
-                          appearance="filled" 
-                          color={p.estado_inscripcion === 'CONFIRMADA' ? 'success' : p.estado_inscripcion === 'PENDIENTE_APROBACION' ? 'warning' : 'brand'}
-                        >
-                          {p.estado_inscripcion}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ padding: '14px', textAlign: 'center', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '10px' }}>
-                    <MEHTypography variant="caption" style={{ opacity: 0.6 }}>No hay participantes registrados aún.</MEHTypography>
-                  </div>
-                )}
+                <AcreditacionPanel 
+                  eventoId={selectedEventoId} 
+                  eventoTitulo={currentEvent?.titulo}
+                  onParticipantesChange={fetchParticipantesYEspera}
+                />
               </div>
             </div>
 

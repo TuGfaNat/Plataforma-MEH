@@ -182,3 +182,24 @@ def delete_pago_qr(
     eventos_service.delete_pago_qr(db, current_user, id_qr, ip_address)
 
 
+@router.post("/{id_evento}/acreditar", response_model=evento_schema.AcreditacionResponse)
+def acreditar_participante(
+    id_evento: int,
+    payload: evento_schema.AcreditarParticipanteRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Acredita manualmente a un participante en el evento (Solo ADMIN y ORGANIZADOR)."""
+    ip_address = request.client.host if request.client else None
+    return eventos_service.acreditar_participante(
+        db=db,
+        staff_user=current_user,
+        id_evento=id_evento,
+        id_inscripcion=payload.id_inscripcion,
+        codigo_qr=payload.codigo_qr,
+        ip_address=ip_address
+    )
+
+
+

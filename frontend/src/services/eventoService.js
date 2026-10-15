@@ -66,6 +66,11 @@ const eventoService = {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(blobUrl);
+  },
+
+  acreditarParticipante: async (idEvento, payload) => {
+    const response = await api.post(`/eventos/${idEvento}/acreditar`, payload);
+    return response.data;
   }
 };
 
