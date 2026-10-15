@@ -53,7 +53,8 @@ test.describe('E2E Eventos: Cupos, QR Logístico Único, Incluidos y Lista de Es
 
     // 2. Asignar rol ADMIN en la base de datos y marcar es_nuevo=False
     const pyCmd = `from app.database import SessionLocal; from app.models import models; db = SessionLocal(); u = db.query(models.Usuario).filter(models.Usuario.correo == '${adminEmail}').first(); u.rol = 'ADMIN'; db.query(models.Usuario).filter(models.Usuario.correo.in_(['${adminEmail}', '${user1Email}', '${user2Email}'])).update({'es_nuevo': False}); db.commit(); db.close()`;
-    execSync(`"F:\\Plataforma-MEH\\backend\\venv\\Scripts\\python.exe" -c "${pyCmd}"`, { cwd: 'F:\\Plataforma-MEH\\backend' });
+    const pythonBin = process.env.PYTHON_BIN || (process.platform === 'win32' ? 'python' : 'python3');
+    execSync(`${pythonBin} -c "${pyCmd}"`, { cwd: 'backend' });
 
     // 3. Login de los tres usuarios
     const loginAdminRes = await request.post('http://127.0.0.1:8000/auth/login', {

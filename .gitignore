@@ -28,6 +28,7 @@ frontend/.env.local
 
 # --- Base de Datos / SQL ---
 *.sqlite3
+*.db
 backend/alembic/__pycache__/
 
 # --- IDEs / Editores ---

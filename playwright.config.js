@@ -14,6 +14,8 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests',
+  /* Ignore heavy local E2E unless RUN_E2E is set */
+  testIgnore: process.env.RUN_E2E ? [] : ['**/e2e_event_qr_flow.spec.js'],
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
