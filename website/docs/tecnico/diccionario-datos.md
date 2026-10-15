@@ -90,6 +90,10 @@ erDiagram
 | `es_nuevo` | `BOOLEAN` | **-** | SÍ | default=True |
 | `reset_token` | `STRING` | **-** | SÍ | - |
 | `reset_token_exp` | `DATETIME` | **-** | SÍ | - |
+| `email_verificado` | `BOOLEAN` | **-** | SÍ | default=False |
+| `codigo_verificacion` | `STRING` | **-** | SÍ | - |
+| `codigo_verificacion_exp` | `DATETIME` | **-** | SÍ | - |
+| `motivo_suspension` | `STRING` | **-** | SÍ | - |
 | `creado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |
 | `fecha_creacion` | `DATETIME` | **-** | SÍ | AuditMixin default=utcnow |
 | `modificado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |
