@@ -51,3 +51,14 @@ def test_security_exceptions():
     with pytest.raises(Exception) as excinfo:
         perms.ensure_admin(perms.ROLE_MIEMBRO)
     assert "403" in str(excinfo.value)
+
+## 4. TEST DE CERTIFICADOS Y ASISTENCIA (TICKET 20-MEH-003)
+from tests.test_certificados_y_asistencia import (
+    test_certificados_curso_regla_dual_aprobados,
+    test_certificados_curso_sin_aprobados_lanza_error_negocio,
+    test_asistencia_curso_asigna_finalizado_y_progreso,
+    test_asistencia_evento_permanece_intacto,
+    db_session,
+    test_users
+)
+
