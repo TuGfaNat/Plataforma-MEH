@@ -68,6 +68,11 @@ const eventoService = {
     window.URL.revokeObjectURL(blobUrl);
   },
 
+  acreditarParticipante: async (idEvento, payload) => {
+    const response = await api.post(`/eventos/${idEvento}/acreditar`, payload);
+    return response.data;
+  },
+
   cancelarEvento: async (idEvento, motivo) => {
     const response = await api.post(`/eventos/${idEvento}/cancelar`, { motivo });
     return response.data;

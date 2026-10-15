@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 19  
-**Total de endpoints expuestos:** 122
+**Total de endpoints expuestos:** 123
 
 ---
 
@@ -152,6 +152,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`GET`** | `/api/eventos/{id_evento}/pagos-qr` | Obtiene los paquetes y QRs de pago configurados para un evento. | `id_evento: int` | `200 OK` | Público / Abierto |
 | **`POST`** | `/api/eventos/{id_evento}/pagos-qr` | Crea un paquete de pago y QR asociado a un evento (Admin, Organizador, Moderador). | `id_evento: int`, `nombre_paquete: str`, `monto: float`, `file: UploadFile` | `201 Created` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/eventos/pagos-qr/{id_qr}` | Elimina lógicamente un paquete de pago QR (Admin, Organizador, Moderador). | `id_qr: int` | `204 No Content` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/{id_evento}/acreditar` | Acredita manualmente a un participante en el evento (Solo ADMIN y ORGANIZADOR). | `id_evento: int`, `payload: AcreditarParticipanteRequest` | `200 OK` | Requiere Auth (JWT) |
 
 ## Módulo `files` (Prefix: `/files`)
 
