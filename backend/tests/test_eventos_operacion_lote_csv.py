@@ -328,7 +328,7 @@ def test_duplicar_evento_success(db: Session):
         id_usuario=u_part.id_usuario,
         id_evento=original.id_evento,
         estado_inscripcion="CONFIRMADA",
-        codigo_qr="ORIGINAL_QR_123",
+        codigo_qr=f"ORIGINAL_QR_{uuid.uuid4().hex[:8]}",
         id_estado=2
     )
     db.add(ins)

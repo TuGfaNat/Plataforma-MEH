@@ -6,14 +6,23 @@ import {
   Input, 
   Spinner,
   Badge,
-  Button
+  Button,
+  Avatar,
+  Tooltip
 } from '@fluentui/react-components';
 import { 
   People24Filled, 
   Search24Regular, 
   Filter24Regular,
   Mail24Regular,
-  MoreHorizontal24Regular
+  CheckmarkCircle24Regular,
+  Cart24Regular,
+  HatGraduation24Regular,
+  Trophy24Regular,
+  ArrowUp24Regular,
+  ArrowDown24Regular,
+  ArrowSort24Regular,
+  Eye24Regular
 } from '@fluentui/react-icons';
 import { 
   DataGrid, 
@@ -27,17 +36,18 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import { MEHCard, MEHTypography } from '../components/ui';
 import authService from '../services/authService';
+import UserProfileModal from '../components/UserProfileModal';
 
 const useStyles = makeStyles({
   container: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '32px',
+    gap: '24px',
     animationName: {
       from: { opacity: 0, transform: 'translateY(10px)' },
       to: { opacity: 1, transform: 'translateY(0)' },
     },
-    animationDuration: '0.5s',
+    animationDuration: '0.4s',
   },
   header: {
     display: 'flex',
@@ -65,10 +75,40 @@ const useStyles = makeStyles({
     '-webkit-overflow-scrolling': 'touch',
     ...shorthands.borderRadius('12px'),
     ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+  },
+  sortableHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    cursor: 'pointer',
+    userSelect: 'none',
+    ':hover': {
+      color: tokens.colorBrandForeground1,
+    }
+  },
+  metricPill: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '13px',
+    fontWeight: '600',
+  },
+  levelBadge: {
+    fontWeight: '700',
+    letterSpacing: '0.5px',
   }
 });
 
 const ROLES = ['Todos', 'MIEMBRO', 'EMBAJADOR', 'ADMIN', 'MODERADOR', 'ORGANIZADOR'];
+
+const LEVEL_COLORS = {
+  Beginner: 'informative',
+  Novato: 'informative',
+  Explorer: 'warning',
+  Legend: 'success',
+  Master: 'danger',
+  Champion: 'important',
+};
 
 const Users = () => {
   const styles = useStyles();
@@ -78,33 +118,34 @@ const Users = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [selectedRole, setSelectedRole] = useState(searchParams.get('role') || 'Todos');
+  const [sortBy, setSortBy] = useState('nombres');
+  const [sortOrder, setSortOrder] = useState('asc');
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
-    fetchUsers(searchTerm, selectedRole);
+    fetchUsers(searchTerm, selectedRole, sortBy, sortOrder);
   }, []);
 
-  const fetchUsers = async (searchStr = '', roleStr = 'Todos') => {
+  const fetchUsers = async (searchStr = '', roleStr = 'Todos', sortCol = 'nombres', sortDir = 'asc') => {
     setLoading(true);
     try {
-      const roleFilter = roleStr === 'Todos' ? '' : roleStr;
-      const data = await authService.getAllUsers();
-      
-      // Filtrado manual (simulado ya que el backend trae todos)
-      let filtered = data;
-      if (searchStr) {
-        filtered = filtered.filter(u => 
-          u.nombres.toLowerCase().includes(searchStr.toLowerCase()) || 
-          u.apellidos.toLowerCase().includes(searchStr.toLowerCase()) ||
-          u.correo.toLowerCase().includes(searchStr.toLowerCase())
-        );
-      }
-      if (roleFilter) {
-        filtered = filtered.filter(u => u.rol === roleFilter);
-      }
-      
-      setUsers(filtered);
+      const data = await authService.getDirectorio({
+        search: searchStr,
+        rol: roleStr === 'Todos' ? '' : roleStr,
+        sort_by: sortCol,
+        sort_order: sortDir,
+        limit: 500
+      });
+      setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Error fetching users:", err);
+      console.warn("Fallback to getAllUsers:", err);
+      try {
+        const fallback = await authService.getAllUsers(searchStr, roleStr === 'Todos' ? '' : roleStr);
+        setUsers(Array.isArray(fallback) ? fallback : []);
+      } catch (e) {
+        console.error("Error fetching users:", e);
+      }
     } finally {
       setLoading(false);
     }
@@ -114,49 +155,179 @@ const Users = () => {
     const val = e.target.value;
     setSearchTerm(val);
     setSearchParams({ search: val, role: selectedRole });
-    fetchUsers(val, selectedRole);
+    fetchUsers(val, selectedRole, sortBy, sortOrder);
   };
 
   const handleRoleFilter = (role) => {
     setSelectedRole(role);
     setSearchParams({ search: searchTerm, role });
-    fetchUsers(searchTerm, role);
+    fetchUsers(searchTerm, role, sortBy, sortOrder);
+  };
+
+  const handleSort = (columnId) => {
+    let newOrder = 'asc';
+    if (sortBy === columnId) {
+      newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+    }
+    setSortBy(columnId);
+    setSortOrder(newOrder);
+    fetchUsers(searchTerm, selectedRole, columnId, newOrder);
+  };
+
+  const renderSortIcon = (columnId) => {
+    if (sortBy !== columnId) {
+      return <ArrowSort24Regular style={{ opacity: 0.25, fontSize: '14px' }} />;
+    }
+    return sortOrder === 'asc' ? 
+      <ArrowUp24Regular style={{ color: tokens.colorBrandForeground1, fontSize: '14px' }} /> : 
+      <ArrowDown24Regular style={{ color: tokens.colorBrandForeground1, fontSize: '14px' }} />;
+  };
+
+  const openProfile = (user) => {
+    if (user && user.id_usuario) {
+      setSelectedUserId(user.id_usuario);
+      setIsProfileModalOpen(true);
+    }
   };
 
   const columns = [
     createTableColumn({
-      columnId: 'usuario',
-      renderHeaderCell: () => 'Nombre Completo',
-      renderCell: (item) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 0' }}>
-          <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>{item.nombres} {item.apellidos}</MEHTypography>
+      columnId: 'nombres',
+      renderHeaderCell: () => (
+        <div className={styles.sortableHeader} onClick={() => handleSort('nombres')}>
+          <span>Miembro</span>
+          {renderSortIcon('nombres')}
         </div>
       ),
-    }),
-    createTableColumn({
-      columnId: 'email',
-      renderHeaderCell: () => 'Correo Electrónico',
       renderCell: (item) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Mail24Regular style={{ opacity: 0.5 }} />
-          <span>{item.correo}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0' }}>
+          <Avatar 
+            name={`${item.nombres || ''} ${item.apellidos || ''}`} 
+            image={item.foto_url ? { src: item.foto_url } : undefined}
+            size={36}
+          />
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>
+              {item.nombres} {item.apellidos}
+            </MEHTypography>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.65, fontSize: '12px' }}>
+              <Mail24Regular style={{ fontSize: '12px' }} />
+              <span>{item.correo}</span>
+            </div>
+          </div>
         </div>
       ),
     }),
     createTableColumn({
       columnId: 'rol',
-      renderHeaderCell: () => 'Rol del Sistema',
+      renderHeaderCell: () => (
+        <div className={styles.sortableHeader} onClick={() => handleSort('rol')}>
+          <span>Rol</span>
+          {renderSortIcon('rol')}
+        </div>
+      ),
       renderCell: (item) => (
-        <Badge appearance="outline" className={styles.roleBadge} color={item.rol === 'ADMIN' ? 'danger' : item.rol === 'EMBAJADOR' ? 'success' : 'informative'}>
+        <Badge 
+          appearance="outline" 
+          className={styles.roleBadge} 
+          color={item.rol === 'ADMIN' ? 'danger' : item.rol === 'ORGANIZADOR' ? 'important' : item.rol === 'EMBAJADOR' ? 'success' : 'informative'}
+        >
           {item.rol}
         </Badge>
       ),
     }),
     createTableColumn({
+      columnId: 'nivel',
+      renderHeaderCell: () => (
+        <div className={styles.sortableHeader} onClick={() => handleSort('nivel')}>
+          <span>Nivel</span>
+          {renderSortIcon('nivel')}
+        </div>
+      ),
+      renderCell: (item) => {
+        const lvl = item.nivel || 'Beginner';
+        return (
+          <Badge 
+            appearance="filled" 
+            className={styles.levelBadge}
+            color={LEVEL_COLORS[lvl] || 'informative'}
+          >
+            {lvl}
+          </Badge>
+        );
+      },
+    }),
+    createTableColumn({
+      columnId: 'asistencias',
+      renderHeaderCell: () => (
+        <div className={styles.sortableHeader} onClick={() => handleSort('asistencias')}>
+          <span>Asistencias</span>
+          {renderSortIcon('asistencias')}
+        </div>
+      ),
+      renderCell: (item) => (
+        <div className={styles.metricPill}>
+          <CheckmarkCircle24Regular style={{ color: '#107c10' }} />
+          <span>{item.asistencias || 0}</span>
+        </div>
+      ),
+    }),
+    createTableColumn({
+      columnId: 'compras',
+      renderHeaderCell: () => (
+        <div className={styles.sortableHeader} onClick={() => handleSort('compras')}>
+          <span>Compras</span>
+          {renderSortIcon('compras')}
+        </div>
+      ),
+      renderCell: (item) => (
+        <div className={styles.metricPill}>
+          <Cart24Regular style={{ color: '#d83b01' }} />
+          <span>{item.compras || 0}</span>
+        </div>
+      ),
+    }),
+    createTableColumn({
+      columnId: 'cursos',
+      renderHeaderCell: () => (
+        <div className={styles.sortableHeader} onClick={() => handleSort('cursos')}>
+          <span>Cursos</span>
+          {renderSortIcon('cursos')}
+        </div>
+      ),
+      renderCell: (item) => (
+        <div className={styles.metricPill}>
+          <HatGraduation24Regular style={{ color: '#7f13ec' }} />
+          <span>{item.cursos || 0}</span>
+        </div>
+      ),
+    }),
+    createTableColumn({
+      columnId: 'badges',
+      renderHeaderCell: () => 'Badges',
+      renderCell: (item) => {
+        const badgeList = item.badges || [];
+        const count = badgeList.length;
+        return (
+          <Tooltip content={badgeList.map(b => b.nombre_badge).join(', ') || 'Sin insignias'} relationship="label">
+            <div className={styles.metricPill} style={{ cursor: 'pointer' }}>
+              <Trophy24Regular style={{ color: '#ffb900' }} />
+              <span>{count}</span>
+            </div>
+          </Tooltip>
+        );
+      },
+    }),
+    createTableColumn({
       columnId: 'acciones',
       renderHeaderCell: () => '',
       renderCell: (item) => (
-        <Button icon={<MoreHorizontal24Regular />} appearance="subtle" />
+        <Button 
+          icon={<Eye24Regular />} 
+          appearance="subtle" 
+          onClick={() => openProfile(item)}
+          title="Ver perfil"
+        />
       ),
     }),
   ];
@@ -170,7 +341,7 @@ const Users = () => {
             <MEHTypography variant="h1">Directorio de Miembros</MEHTypography>
           </div>
           <MEHTypography variant="body" style={{ opacity: 0.6 }}>
-            Gestiona y visualiza a todos los integrantes de la plataforma.
+            Directorio con métricas en tiempo real: nivel, asistencias, compras, cursos e insignias.
           </MEHTypography>
         </div>
       </div>
@@ -180,7 +351,7 @@ const Users = () => {
           <div className={styles.searchBar}>
             <Input 
               contentBefore={<Search24Regular />} 
-              placeholder="Buscar por nombre o correo..." 
+              placeholder="Buscar por nombre, correo o alias..." 
               style={{ flexGrow: 1 }}
               value={searchTerm}
               onChange={handleSearch}
@@ -213,7 +384,7 @@ const Users = () => {
       <MEHCard className={styles.tableCard}>
         {loading ? (
           <div style={{ padding: '80px', textAlign: 'center' }}>
-            <Spinner label="Sincronizando directorio..." />
+            <Spinner label="Sincronizando directorio de miembros..." />
           </div>
         ) : (
           <div className={styles.tableWrapper}>
@@ -245,6 +416,14 @@ const Users = () => {
           </div>
         )}
       </MEHCard>
+
+      {isProfileModalOpen && (
+        <UserProfileModal 
+          isOpen={isProfileModalOpen}
+          onOpenChange={(open) => setIsProfileModalOpen(open)}
+          userId={selectedUserId}
+        />
+      )}
     </div>
   );
 };
