@@ -227,4 +227,59 @@ def acreditar_participante(
     )
 
 
+@router.get("/{id_evento}/inscritos.csv")
+def exportar_inscritos_csv(
+    id_evento: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Exporta la lista completa de inscritos y su asistencia en formato CSV con UTF-8 BOM (Solo Staff)."""
+    from fastapi import Response
+    csv_bytes, filename = eventos_service.export_inscritos_csv(db, current_user, id_evento)
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
+
+@router.post("/{id_evento}/aprobar-lista-espera", response_model=evento_schema.LoteAprobacionResponse)
+def aprobar_lista_espera_lote(
+    id_evento: int,
+    request: Request,
+    payload: Optional[evento_schema.LoteAprobacionRequest] = None,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Aprueba en lote a los inscritos en lista de espera respetando los cupos disponibles (Solo Staff)."""
+    ip_address = request.client.host if request.client else None
+    cantidad = payload.cantidad if payload else None
+    return eventos_service.aprobar_lista_espera_lote(
+        db=db,
+        current_user=current_user,
+        id_evento=id_evento,
+        cantidad=cantidad,
+        ip_address=ip_address
+    )
+
+
+@router.post("/{id_evento}/duplicar", response_model=evento_schema.EventoResponse, status_code=status.HTTP_201_CREATED)
+def duplicar_evento(
+    id_evento: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Duplica un evento existente copiando su configuración, agenda, speakers y paquetes de pago (Solo Staff)."""
+    ip_address = request.client.host if request.client else None
+    return eventos_service.duplicar_evento(
+        db=db,
+        current_user=current_user,
+        id_evento=id_evento,
+        ip_address=ip_address
+    )
+
+
 

@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 19  
-**Total de endpoints expuestos:** 124
+**Total de endpoints expuestos:** 127
 
 ---
 
@@ -154,6 +154,9 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`POST`** | `/api/eventos/{id_evento}/pagos-qr` | Crea un paquete de pago y QR asociado a un evento (Admin, Organizador, Moderador). | `id_evento: int`, `nombre_paquete: str`, `monto: float`, `file: UploadFile` | `201 Created` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/eventos/pagos-qr/{id_qr}` | Elimina lógicamente un paquete de pago QR (Admin, Organizador, Moderador). | `id_qr: int` | `204 No Content` | Requiere Auth (JWT) |
 | **`POST`** | `/api/eventos/{id_evento}/acreditar` | Acredita manualmente a un participante en el evento (Solo ADMIN y ORGANIZADOR). | `id_evento: int`, `payload: AcreditarParticipanteRequest` | `200 OK` | Requiere Auth (JWT) |
+| **`GET`** | `/api/eventos/{id_evento}/inscritos.csv` | Exporta la lista completa de inscritos y su asistencia en formato CSV con UTF-8 BOM (Solo Staff). | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/{id_evento}/aprobar-lista-espera` | Aprueba en lote a los inscritos en lista de espera respetando los cupos disponibles (Solo Staff). | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/{id_evento}/duplicar` | Duplica un evento existente copiando su configuración, agenda, speakers y paquetes de pago (Solo Staff). | `id_evento: int` | `201 Created` | Requiere Auth (JWT) |
 
 ## Módulo `files` (Prefix: `/files`)
 

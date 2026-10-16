@@ -1,5 +1,8 @@
 import uuid
 import json
+import csv
+import io
+import codecs
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
@@ -237,6 +240,7 @@ def update_evento(
     id_auspiciadores = update_data.pop("id_auspiciadores", None)
     id_comunidades = update_data.pop("id_comunidades", None)
     cap_maxima = update_data.pop("capacidad_maxima", None)
+    auto_aprobar_espera = update_data.pop("auto_aprobar_espera", False)
     if cap_maxima is not None:
         update_data["capacidad_max"] = cap_maxima
 
@@ -309,6 +313,13 @@ def update_evento(
     # Sincronizar checkpoints según los incluidos
     sync_evento_checkpoints(db, db_evento)
     populate_evento_cupos(db, db_evento)
+
+    if auto_aprobar_espera:
+        try:
+            aprobar_lista_espera_lote(db, admin_user, id_evento, cantidad=None, ip_address=ip_address)
+            populate_evento_cupos(db, db_evento)
+        except Exception as e:
+            print("Error en auto_aprobar_espera:", e)
 
     registrar_log(
         db=db,
@@ -977,6 +988,234 @@ def acreditar_participante(
         "fecha_acreditacion": nueva_asistencia.fecha_escaneo.isoformat() if nueva_asistencia.fecha_escaneo else None,
         "checkpoint": cp_default.nombre_checkpoint
     }
+
+
+def export_inscritos_csv(db: Session, current_user: models.Usuario, id_evento: int) -> Tuple[bytes, str]:
+    """Genera y descarga un archivo CSV con la lista de todos los inscritos del evento con UTF-8 BOM (Solo Staff)."""
+    if current_user.rol not in ADMIN_OR_ORGANIZER_ROLES and not has_permission(current_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError("Solo administradores y organizadores pueden exportar la lista de inscritos")
+
+    get_evento_by_id(db, id_evento)
+
+    inscripciones = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_evento == id_evento,
+        models.InscripcionEvento.id_estado != 0
+    ).order_by(models.InscripcionEvento.fecha_inscripcion.asc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+    writer.writerow([
+        "Nombre Completo",
+        "Correo",
+        "Estado Inscripcion",
+        "Fecha Registro",
+        "Codigo QR",
+        "Estado Asistencia"
+    ])
+
+    for insc in inscripciones:
+        u = insc.usuario
+        nombre = f"{u.nombres} {u.apellidos}".strip() if u else f"Usuario #{insc.id_usuario}"
+        correo = u.correo if u else ""
+        estado = insc.estado_inscripcion
+        fecha_dt = getattr(insc, "fecha_inscripcion", None) or getattr(insc, "fecha_creacion", None)
+        fecha_str = fecha_dt.strftime("%Y-%m-%d %H:%M:%S") if fecha_dt else ""
+        codigo_qr = insc.codigo_qr or ""
+        asistio_flag = bool(insc.asistio or (insc.asistencias and len(insc.asistencias) > 0))
+        asistencia_estado = "PRESENTE" if asistio_flag else "AUSENTE"
+
+        writer.writerow([nombre, correo, estado, fecha_str, codigo_qr, asistencia_estado])
+
+    csv_bytes = codecs.BOM_UTF8 + output.getvalue().encode("utf-8")
+    filename = f"inscritos_evento_{id_evento}.csv"
+    return csv_bytes, filename
+
+
+def aprobar_lista_espera_lote(
+    db: Session,
+    current_user: models.Usuario,
+    id_evento: int,
+    cantidad: Optional[int] = None,
+    ip_address: Optional[str] = None
+) -> dict:
+    """Aprueba en lote a los inscritos en lista de espera (PENDIENTE_APROBACION) respetando cupos (Solo Staff)."""
+    if current_user.rol not in ADMIN_OR_ORGANIZER_ROLES and not has_permission(current_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError("Solo administradores y organizadores pueden gestionar la lista de espera")
+
+    evento = get_evento_by_id(db, id_evento)
+
+    capacidad = evento.capacidad_max or evento.capacidad_maxima or 0
+    ocupados = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_evento == id_evento,
+        models.InscripcionEvento.estado_inscripcion.in_(["CONFIRMADA", "PENDIENTE"]),
+        models.InscripcionEvento.id_estado != 0
+    ).count()
+
+    cupos_disponibles = max(0, capacidad - ocupados)
+
+    query_espera = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_evento == id_evento,
+        models.InscripcionEvento.estado_inscripcion == "PENDIENTE_APROBACION",
+        models.InscripcionEvento.id_estado != 0
+    ).order_by(models.InscripcionEvento.fecha_inscripcion.asc())
+
+    total_espera = query_espera.count()
+
+    limite = cupos_disponibles
+    if cantidad is not None and cantidad > 0:
+        limite = min(limite, cantidad)
+
+    a_aprobar = query_espera.limit(limite).all() if limite > 0 else []
+
+    tiene_pagos = db.query(models.EventoPagoQR).filter(
+        models.EventoPagoQR.id_evento == id_evento,
+        models.EventoPagoQR.id_estado == 2
+    ).first() is not None
+
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    items_incluidos = parse_incluidos_list(evento.incluidos)
+
+    from . import email_service
+    import os
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+
+    for insc in a_aprobar:
+        if tiene_pagos:
+            insc.estado_inscripcion = "PENDIENTE"
+            insc.codigo_qr = None
+        else:
+            insc.estado_inscripcion = "CONFIRMADA"
+            insc.codigo_qr = str(uuid.uuid4())
+            insc.fecha_validacion = now_utc
+
+            if insc.usuario:
+                try:
+                    email_service.notify_ticket_qr(
+                        email=insc.usuario.correo,
+                        nombre=insc.usuario.nombres,
+                        titulo_evento=evento.titulo,
+                        fecha=str(evento.fecha_inicio.date()) if evento.fecha_inicio else "",
+                        codigo_qr=insc.codigo_qr,
+                        frontend_url=frontend_url,
+                        incluidos=items_incluidos
+                    )
+                except Exception as e:
+                    print(f"Error enviando email tras aprobación lote: {e}")
+
+    if a_aprobar:
+        registrar_log(
+            db=db,
+            id_admin=current_user.id_usuario,
+            accion="APROBAR_LOTE_LISTA_ESPERA",
+            tabla_afectada="inscripciones_eventos",
+            id_registro_afectado=id_evento,
+            valor_nuevo={
+                "id_evento": id_evento,
+                "aprobados_count": len(a_aprobar),
+                "ids_inscripciones": [ins.id_inscripcion for ins in a_aprobar]
+            },
+            ip_direccion=ip_address
+        )
+        db.commit()
+
+    return {
+        "status": "success",
+        "id_evento": id_evento,
+        "aprobados": len(a_aprobar),
+        "restantes_en_espera": total_espera - len(a_aprobar),
+        "cupos_disponibles": max(0, cupos_disponibles - len(a_aprobar))
+    }
+
+
+def duplicar_evento(
+    db: Session,
+    current_user: models.Usuario,
+    id_evento: int,
+    ip_address: Optional[str] = None
+) -> models.Evento:
+    """Duplica un evento existente con sus campos, agenda, speakers y paquetes, sin inscripciones (Solo Staff)."""
+    if current_user.rol not in ADMIN_OR_ORGANIZER_ROLES and not has_permission(current_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError("Solo administradores y organizadores pueden duplicar eventos")
+
+    original = get_evento_by_id(db, id_evento)
+
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    nuevo_evento = models.Evento(
+        titulo=f"{original.titulo} (Copia)",
+        descripcion=original.descripcion,
+        tipo_evento=original.tipo_evento,
+        fecha_inicio=original.fecha_inicio,
+        fecha_fin=original.fecha_fin,
+        hora_inicio=original.hora_inicio,
+        hora_fin=original.hora_fin,
+        modalidad=original.modalidad,
+        ubicacion=original.ubicacion,
+        link_mapas=original.link_mapas,
+        agenda=original.agenda,
+        capacidad_max=original.capacidad_max,
+        imagen_url=original.imagen_url,
+        refrigerio_incluido=original.refrigerio_incluido,
+        incluidos=original.incluidos,
+        id_estado=2,
+        estado="PROGRAMADO" if original.estado != "BORRADOR" else "BORRADOR",
+        motivo_cancelacion=None,
+        token_qr=f"EVENTO_{uuid.uuid4().hex[:12].upper()}",
+        id_organizador=current_user.id_usuario,
+        creado_por=current_user.id_usuario,
+        fecha_creacion=now_utc
+    )
+    db.add(nuevo_evento)
+    db.flush()
+
+    # Copiar relaciones Many-to-Many
+    if original.speakers:
+        for spk in original.speakers:
+            nuevo_evento.speakers.append(spk)
+    if original.auspiciadores:
+        for ausp in original.auspiciadores:
+            nuevo_evento.auspiciadores.append(ausp)
+    if original.comunidades:
+        for com in original.comunidades:
+            nuevo_evento.comunidades.append(com)
+
+    # Copiar paquetes de pago QR si existen
+    paquetes = db.query(models.EventoPagoQR).filter(
+        models.EventoPagoQR.id_evento == original.id_evento,
+        models.EventoPagoQR.id_estado == 2
+    ).all()
+    for pkg in paquetes:
+        nuevo_pkg = models.EventoPagoQR(
+            id_evento=nuevo_evento.id_evento,
+            nombre_paquete=pkg.nombre_paquete,
+            monto=pkg.monto,
+            url_qr=pkg.url_qr,
+            creado_por=current_user.id_usuario,
+            fecha_creacion=now_utc,
+            id_estado=2
+        )
+        db.add(nuevo_pkg)
+
+    sync_evento_checkpoints(db, nuevo_evento)
+
+    registrar_log(
+        db=db,
+        id_admin=current_user.id_usuario,
+        accion="DUPLICAR_EVENTO",
+        tabla_afectada="eventos",
+        id_registro_afectado=nuevo_evento.id_evento,
+        valor_nuevo={
+            "id_evento_origen": original.id_evento,
+            "titulo": nuevo_evento.titulo,
+            "id_evento_nuevo": nuevo_evento.id_evento
+        },
+        ip_direccion=ip_address
+    )
+
+    db.commit()
+    db.refresh(nuevo_evento)
+    populate_evento_cupos(db, nuevo_evento)
+    return nuevo_evento
+
 
 
 

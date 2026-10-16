@@ -81,6 +81,30 @@ const eventoService = {
   avisarInscritos: async (idEvento, data) => {
     const response = await api.post(`/eventos/${idEvento}/avisar`, data);
     return response.data;
+  },
+
+  exportInscritosCsv: async (idEvento, titulo = '') => {
+    const response = await api.get(`/eventos/${idEvento}/inscritos.csv`, { responseType: 'blob' });
+    const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    const safeTitle = titulo ? `_${titulo.replace(/\s+/g, '_')}` : '';
+    link.download = `inscritos_evento_${idEvento}${safeTitle}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+  },
+
+  aprobarListaEsperaLote: async (idEvento, cantidad = null) => {
+    const payload = cantidad ? { cantidad } : {};
+    const response = await api.post(`/eventos/${idEvento}/aprobar-lista-espera`, payload);
+    return response.data;
+  },
+
+  duplicarEvento: async (idEvento) => {
+    const response = await api.post(`/eventos/${idEvento}/duplicar`);
+    return response.data;
   }
 };
 
