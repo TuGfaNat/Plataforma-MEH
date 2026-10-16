@@ -137,8 +137,8 @@ const Login = () => {
       if (checkAuth) await checkAuth(); 
       
       if (response.es_nuevo) {
-        // Redirigir a recuperación para que cambie su clave temporal/inicial
-        navigate('/forgot-password?first_time=true' + (returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''));
+        // Redirigir a flujo autenticado para actualizar la contraseña inicial
+        navigate('/cambiar-contrasena' + (returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''));
       } else if (returnTo) {
         navigate(returnTo);
       } else {

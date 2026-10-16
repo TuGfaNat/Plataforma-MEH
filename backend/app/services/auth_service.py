@@ -1,5 +1,6 @@
 import os
 import secrets
+import hashlib
 from datetime import datetime, timedelta
 from typing import List, Optional
 from sqlalchemy.orm import Session
@@ -21,6 +22,7 @@ from ..core.exceptions import (
 )
 from ..core.permissions import (
     ROLE_MIEMBRO,
+    ROLE_ADMIN,
     ALL_DB_ROLES,
     PERMISSION_USERS_READ,
     PERMISSION_AUDIT_READ,
@@ -93,24 +95,28 @@ def login_user(db: Session, credentials: user_schema.UserLogin, ip_address: Opti
     }
 
 def forgot_password(db: Session, request: user_schema.ForgotPasswordRequest) -> bool:
-    """Inicia el flujo de recuperación de contraseña."""
+    """Inicia el flujo de recuperación de contraseña generando un token hasheado (sha256)."""
     user = db.query(models.Usuario).filter(models.Usuario.correo == request.correo).first()
     
     if not user:
         # Por seguridad no revelamos si el usuario existe o no
         return True
 
-    # Generar token aleatorio seguro
-    token = secrets.token_urlsafe(32)
-    user.reset_token = token
-    user.reset_token_exp = datetime.utcnow() + timedelta(hours=1)
+    # Generar token aleatorio seguro en texto plano para el correo
+    raw_token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    
+    # Invalida automáticamente cualquier token previo y configura expiración configurable
+    expire_minutes = int(os.getenv("RESET_TOKEN_EXPIRE_MINUTES", 60))
+    user.reset_token = token_hash
+    user.reset_token_exp = datetime.utcnow() + timedelta(minutes=expire_minutes)
     
     db.commit()
 
-    # Enviar email
+    # Enviar email con el token sin hashear
     try:
         from . import email_service
-        email_service.notify_reset_password(user.correo, user.nombres, token)
+        email_service.notify_reset_password(user.correo, user.nombres, raw_token)
     except Exception as e:
         print(f"Error enviando email de reset: {e}")
         return False
@@ -118,16 +124,17 @@ def forgot_password(db: Session, request: user_schema.ForgotPasswordRequest) -> 
     return True
 
 def reset_password(db: Session, request: user_schema.ResetPasswordRequest) -> bool:
-    """Completa el flujo de recuperación de contraseña."""
+    """Completa el flujo de recuperación de contraseña buscando por el hash sha256 del token."""
+    token_hash = hashlib.sha256(request.token.encode("utf-8")).hexdigest()
     user = db.query(models.Usuario).filter(
-        models.Usuario.reset_token == request.token,
+        models.Usuario.reset_token == token_hash,
         models.Usuario.reset_token_exp > datetime.utcnow()
     ).first()
     
     if not user:
         raise ValidacionNegocioError("El token es inválido o ha expirado")
 
-    # Actualizar contraseña
+    # Actualizar contraseña e invalidar token
     user.password_hash = auth_core.get_password_hash(request.nuevo_password)
     user.reset_token = None
     user.reset_token_exp = None
@@ -136,6 +143,31 @@ def reset_password(db: Session, request: user_schema.ResetPasswordRequest) -> bo
     db.commit()
     
     return True
+
+def cambiar_password(
+    db: Session,
+    current_user: models.Usuario,
+    request: user_schema.CambiarPasswordRequest,
+    ip_address: Optional[str] = None
+) -> dict:
+    """Cambia la contraseña de un usuario autenticado (primer login es_nuevo o voluntario)."""
+    if not auth_core.verify_password(request.password_actual, current_user.password_hash):
+        raise CredencialesInvalidasError("La contraseña actual es incorrecta")
+
+    current_user.password_hash = auth_core.get_password_hash(request.nuevo_password)
+    current_user.es_nuevo = False
+    db.commit()
+
+    registrar_log(
+        db=db,
+        id_admin=current_user.id_usuario,
+        accion="CAMBIO_PASSWORD",
+        tabla_afectada="usuarios",
+        id_registro_afectado=current_user.id_usuario,
+        ip_direccion=ip_address
+    )
+
+    return {"mensaje": "Contraseña actualizada exitosamente"}
 
 def login_with_google(db: Session, google_jwt: str, ip_address: Optional[str] = None) -> dict:
     """Valida un token de Google y genera un token JWT de la plataforma."""
@@ -288,9 +320,24 @@ def update_user_role(
     if not has_permission(admin_user.rol, PERMISSION_AUDIT_READ):
         raise PermisoDenegadoError("Solo los administradores pueden cambiar roles")
     
+    if nuevo_rol not in ALL_DB_ROLES:
+        raise ValidacionNegocioError(f"Rol inválido: '{nuevo_rol}'. Los roles permitidos son: {', '.join(ALL_DB_ROLES)}")
+
+    if admin_user.id_usuario == id_usuario:
+        raise ValidacionNegocioError("No puedes cambiarte el rol a ti mismo")
+
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     if not usuario:
         raise UsuarioNoEncontradoError()
+
+    if usuario.rol == ROLE_ADMIN and nuevo_rol != ROLE_ADMIN:
+        active_admins = db.query(models.Usuario).filter(
+            models.Usuario.rol == ROLE_ADMIN,
+            models.Usuario.activo == True,
+            models.Usuario.id_estado != 0
+        ).count()
+        if active_admins <= 1:
+            raise ValidacionNegocioError("No se puede degradar al único administrador activo del sistema")
     
     rol_anterior = usuario.rol
     usuario.rol = nuevo_rol

@@ -80,6 +80,17 @@ def update_user_me(
     ip_address = request.client.host if request.client else None
     return auth_service.update_profile(db, current_user.id_usuario, user_update, ip_address)
 
+@router.put("/me/password")
+def cambiar_password(
+    request: Request,
+    datos: user_schema.CambiarPasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Cambia la contraseña del usuario autenticado (primer login o cambio voluntario)."""
+    ip_address = request.client.host if request.client else None
+    return auth_service.cambiar_password(db, current_user, datos, ip_address)
+
 @router.post("/verificar-email")
 def verificar_email(request: user_schema.VerificarEmailRequest, req: Request, db: Session = Depends(get_db)):
     """Verifica el correo electrónico de un usuario con el código recibido."""

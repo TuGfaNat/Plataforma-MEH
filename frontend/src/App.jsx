@@ -35,6 +35,7 @@ import EcosystemDirectory from './pages/Admin/EcosystemDirectory.jsx';
 import DashboardLayout from './components/layout/DashboardLayout.jsx';
 import CursoAula from './pages/CursoAula.jsx';
 import AccesoDenegado from './pages/AccesoDenegado.jsx';
+import CambiarContrasena from './pages/CambiarContrasena.jsx';
 import EventoPublico from './pages/EventoPublico.jsx';
 
 const AuthContext = createContext();
@@ -202,6 +203,7 @@ export default function App() {
                 <Route path="/verificar-email" element={<VerificarEmail />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/cambiar-contrasena" element={<ProtectedRoute><CambiarContrasena /></ProtectedRoute>} />
                 <Route path="/verificar/:uuid" element={<UniversalVerification />} />
                 <Route path="/evento/:id" element={<EventoPublico />} />
                 

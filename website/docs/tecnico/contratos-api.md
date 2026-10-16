@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 19  
-**Total de endpoints expuestos:** 123
+**Total de endpoints expuestos:** 124
 
 ---
 
@@ -69,6 +69,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`POST`** | `/api/auth/google` | Endpoint para autenticación mediante Google OAuth. | `payload: dict` | `200 OK` | Público / Abierto |
 | **`GET`** | `/api/auth/me` | Obtiene el perfil del usuario autenticado. | - | `200 OK` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/auth/me` | Actualiza los datos del perfil del usuario autenticado. | `user_update: UserUpdate` | `200 OK` | Requiere Auth (JWT) |
+| **`PUT`** | `/api/auth/me/password` | Cambia la contraseña del usuario autenticado (primer login o cambio voluntario). | `datos: CambiarPasswordRequest` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/auth/verificar-email` | Verifica el correo electrónico de un usuario con el código recibido. | - | `200 OK` | Público / Abierto |
 | **`POST`** | `/api/auth/reenviar-codigo` | Reenvía un nuevo código de verificación al correo. | - | `200 OK` | Público / Abierto |
 | **`GET`** | `/api/auth/usuarios` | Lista todos los usuarios (Solo para personal con permisos). | - | `200 OK` | Requiere Auth (JWT) |
