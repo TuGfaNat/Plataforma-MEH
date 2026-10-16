@@ -133,7 +133,7 @@ def test_directorio_miembros_metricas_y_permisos():
         assert "No tienes privilegios" in res_miembro.json()["detail"]
 
         # --- TEST 2: Acceso 200 OK para ADMIN y ORGANIZADOR ---
-        res_admin = client.get("/usuarios/directorio", headers={"Authorization": f"Bearer {admin_token}"})
+        res_admin = client.get("/usuarios/directorio?limit=1000", headers={"Authorization": f"Bearer {admin_token}"})
         assert res_admin.status_code == 200
         data_admin = res_admin.json()
         assert isinstance(data_admin, list)

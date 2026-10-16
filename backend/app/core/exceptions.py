@@ -34,14 +34,18 @@ class EventoNoEncontradoError(RecursoNoEncontradoError):
     def __init__(self, message: str = "Evento no encontrado"):
         super().__init__(message)
 
-# --- ERRORES DE NEGOCIO (400) ---
+# --- ERRORES DE NEGOCIO (400 / 409) ---
 class ValidacionNegocioError(BaseDomainError):
-    def __init__(self, message: str):
-        super().__init__(message, status.HTTP_400_BAD_REQUEST)
+    def __init__(self, message: str, status_code: int = status.HTTP_400_BAD_REQUEST):
+        super().__init__(message, status_code)
 
 class CupoExcedidoError(ValidacionNegocioError):
     def __init__(self, message: str = "El evento ha alcanzado su capacidad máxima"):
-        super().__init__(message)
+        super().__init__(message, status.HTTP_409_CONFLICT)
+
+class ConflictoInscripcionError(ValidacionNegocioError):
+    def __init__(self, message: str = "Conflicto con la inscripción al evento"):
+        super().__init__(message, status.HTTP_409_CONFLICT)
 
 class RegistroDuplicadoError(ValidacionNegocioError):
     def __init__(self, message: str = "Ya existe un registro con estos datos"):
