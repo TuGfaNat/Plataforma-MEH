@@ -9,22 +9,31 @@ from ..core.exceptions import (
     EventoNoEncontradoError,
     CupoExcedidoError,
     ValidacionNegocioError,
-    RecursoNoEncontradoError
+    RecursoNoEncontradoError,
+    ConflictoInscripcionError
 )
 
 def inscribir_evento(
     db: Session,
     user_id: int,
     id_evento: int,
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
+    idempotency_key: Optional[str] = None
 ) -> models.InscripcionEvento:
-    """Inscribe a un usuario en un evento con gestión de cupos, lista de espera y token QR único."""
+    """Inscribe a un usuario en un evento con gestión de cupos, lista de espera, token QR único e idempotencia."""
     evento = db.query(models.Evento).filter(
         models.Evento.id_evento == id_evento,
         models.Evento.id_estado != 0
     ).first()
     if not evento:
         raise EventoNoEncontradoError()
+
+    # Validar estado del evento
+    estado_evento = getattr(evento, "estado", None)
+    if estado_evento == "CANCELADO":
+        raise ConflictoInscripcionError("El evento ha sido cancelado y no admite inscripciones")
+    if estado_evento == "FINALIZADO":
+        raise ConflictoInscripcionError("El evento ha finalizado y no admite nuevas inscripciones")
 
     # Verificar que el usuario esté activo
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == user_id).first()
@@ -39,7 +48,10 @@ def inscribir_evento(
     
     if inscripcion_existente:
         if inscripcion_existente.id_estado != 0 and inscripcion_existente.estado_inscripcion != "CANCELADA":
-            raise ValidacionNegocioError("Ya estás inscrito en este evento")
+            # Idempotencia: si se provee idempotency_key, retornar la inscripción activa sin duplicar
+            if idempotency_key:
+                return inscripcion_existente
+            raise ConflictoInscripcionError("Ya estás inscrito en este evento")
 
     # Contar cupos ocupados (CONFIRMADA y PENDIENTE ocupan cupo)
     conteo_ocupados = db.query(models.InscripcionEvento).filter(

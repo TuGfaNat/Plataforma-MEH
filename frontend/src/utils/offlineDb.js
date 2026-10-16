@@ -1,9 +1,27 @@
 const DB_NAME = 'meh_offline_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
+
+export const notificarCambioOffline = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('meh_offline_sync_updated'));
+  }
+};
+
+export const getIDBInstance = () => {
+  if (typeof indexedDB !== 'undefined') return indexedDB;
+  if (typeof window !== 'undefined' && window.indexedDB) return window.indexedDB;
+  if (typeof globalThis !== 'undefined' && globalThis.indexedDB) return globalThis.indexedDB;
+  return null;
+};
 
 export const abrirDB = () => {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const idb = getIDBInstance();
+    if (!idb) {
+      reject(new Error('IndexedDB no está soportado en este entorno'));
+      return;
+    }
+    const request = idb.open(DB_NAME, DB_VERSION);
 
     request.onerror = (event) => {
       console.error('IndexedDB open error:', event.target.error);
@@ -31,6 +49,14 @@ export const abrirDB = () => {
       // Store cola de asistencia para sincronizar luego
       if (!db.objectStoreNames.contains('cola_asistencia')) {
         db.createObjectStore('cola_asistencia', { keyPath: 'id', autoIncrement: true });
+      }
+
+      // Store cola de inscripciones offline con idempotencia y estado
+      if (!db.objectStoreNames.contains('cola_inscripciones')) {
+        const storeInscripciones = db.createObjectStore('cola_inscripciones', { keyPath: 'id', autoIncrement: true });
+        storeInscripciones.createIndex('id_evento', 'id_evento', { unique: false });
+        storeInscripciones.createIndex('id_usuario', 'id_usuario', { unique: false });
+        storeInscripciones.createIndex('estado', 'estado', { unique: false });
       }
     };
   });
@@ -154,6 +180,8 @@ export const validarQROffline = async (codigoQR, idCheckpoint, idEventoSeleccion
           storeInscritos.put(inscrito);
         }
 
+        notificarCambioOffline();
+
         resolve({
           success: true,
           usuario: { nombre: inscrito.nombre_completo },
@@ -187,6 +215,8 @@ export const validarQROffline = async (codigoQR, idCheckpoint, idEventoSeleccion
         // Actualizar registro local
         inscrito.asistio = true;
         storeInscritos.put(inscrito);
+
+        notificarCambioOffline();
 
         resolve({
           success: true,
@@ -227,26 +257,279 @@ export const eliminarDeCola = async (id) => {
     };
 
     request.onsuccess = () => {
+      notificarCambioOffline();
       resolve(true);
     };
   });
 };
 
+// ==========================================
+// NUEVO: GESTIÓN DE COLA DE INSCRIPCIONES OFFLINE
+// ==========================================
+
+export const agregarInscripcionOffline = async ({
+  id_evento,
+  titulo_evento = '',
+  id_usuario = null,
+  correo_usuario = '',
+  nombre_usuario = '',
+}) => {
+  const db = await abrirDB();
+  const colaExistente = await obtenerColaInscripciones();
+
+  // Verificar si ya está en cola pendiente para evitar duplicar localmente
+  const yaEncolada = colaExistente.some(
+    (item) =>
+      item.id_evento === parseInt(id_evento) &&
+      (!id_usuario || item.id_usuario === id_usuario) &&
+      item.estado === 'PENDIENTE'
+  );
+
+  if (yaEncolada) {
+    return {
+      success: false,
+      alreadyEnqueued: true,
+      message: 'Esta inscripción ya se encuentra pendiente en la cola de sincronización',
+    };
+  }
+
+  const idempotency_key =
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `offline_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+  const nuevoRegistro = {
+    id_evento: parseInt(id_evento),
+    titulo_evento: titulo_evento || `Evento #${id_evento}`,
+    id_usuario: id_usuario || null,
+    correo_usuario: correo_usuario || '',
+    nombre_usuario: nombre_usuario || '',
+    idempotency_key,
+    fecha_creacion: new Date().toISOString(),
+    estado: 'PENDIENTE', // 'PENDIENTE' | 'ERROR' | 'SINCRONIZADO'
+    error_detalle: null,
+    intentos: 0,
+  };
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['cola_inscripciones'], 'readwrite');
+    const store = transaction.objectStore('cola_inscripciones');
+    const request = store.add(nuevoRegistro);
+
+    request.onerror = (event) => {
+      reject(event.target.error);
+    };
+
+    request.onsuccess = (event) => {
+      nuevoRegistro.id = event.target.result;
+      notificarCambioOffline();
+      resolve({
+        success: true,
+        alreadyEnqueued: false,
+        item: nuevoRegistro,
+        message: 'Inscripción guardada en cola local offline',
+      });
+    };
+  });
+};
+
+export const obtenerColaInscripciones = async () => {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['cola_inscripciones'], 'readonly');
+    const store = transaction.objectStore('cola_inscripciones');
+    const request = store.getAll();
+
+    request.onerror = (event) => {
+      reject(event.target.error);
+    };
+
+    request.onsuccess = (event) => {
+      resolve(event.target.result || []);
+    };
+  });
+};
+
+export const actualizarInscripcionOffline = async (id, updates) => {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['cola_inscripciones'], 'readwrite');
+    const store = transaction.objectStore('cola_inscripciones');
+    const getReq = store.get(id);
+
+    getReq.onerror = (event) => reject(event.target.error);
+
+    getReq.onsuccess = (event) => {
+      const item = event.target.result;
+      if (!item) {
+        resolve(null);
+        return;
+      }
+
+      const updated = { ...item, ...updates };
+      const putReq = store.put(updated);
+      putReq.onerror = (ev) => reject(ev.target.error);
+      putReq.onsuccess = () => {
+        notificarCambioOffline();
+        resolve(updated);
+      };
+    };
+  });
+};
+
+export const eliminarInscripcionOffline = async (id) => {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['cola_inscripciones'], 'readwrite');
+    const store = transaction.objectStore('cola_inscripciones');
+    const request = store.delete(id);
+
+    request.onerror = (event) => reject(event.target.error);
+    request.onsuccess = () => {
+      notificarCambioOffline();
+      resolve(true);
+    };
+  });
+};
+
+export const limpiarColaInscripciones = async () => {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['cola_inscripciones'], 'readwrite');
+    const store = transaction.objectStore('cola_inscripciones');
+    const request = store.clear();
+
+    request.onerror = (event) => reject(event.target.error);
+    request.onsuccess = () => {
+      notificarCambioOffline();
+      resolve(true);
+    };
+  });
+};
+
+export const obtenerTotalPendientesOffline = async () => {
+  try {
+    const asistencias = await obtenerColaAsistencia();
+    const inscripciones = await obtenerColaInscripciones();
+    const inscripcionesPendientes = inscripciones.filter(
+      (i) => i.estado === 'PENDIENTE' || i.estado === 'ERROR'
+    );
+    const errores = inscripciones.filter((i) => i.estado === 'ERROR').length;
+
+    return {
+      total: asistencias.length + inscripcionesPendientes.length,
+      asistencias: asistencias.length,
+      inscripciones: inscripcionesPendientes.length,
+      inscripcionesError: errores,
+      tieneErrores: errores > 0,
+    };
+  } catch (err) {
+    console.error('Error al obtener total pendientes offline:', err);
+    return {
+      total: 0,
+      asistencias: 0,
+      inscripciones: 0,
+      inscripcionesError: 0,
+      tieneErrores: false,
+    };
+  }
+};
+
+export const sincronizarInscripcionItem = async (item, api) => {
+  try {
+    const res = await api.post(
+      `/inscripciones/eventos/${item.id_evento}`,
+      {},
+      {
+        headers: {
+          'X-Idempotency-Key': item.idempotency_key,
+        },
+      }
+    );
+
+    // Sincronización exitosa -> eliminar de cola
+    await eliminarInscripcionOffline(item.id);
+    notificarCambioOffline();
+    return {
+      success: true,
+      id: item.id,
+      data: res.data,
+      message: 'Inscripción sincronizada con éxito',
+    };
+  } catch (err) {
+    const status = err.response?.status;
+    const detail =
+      err.response?.data?.detail || err.message || 'Error desconocido al sincronizar';
+
+    // Conflictos conocidos (409 o 400 por cupo/duplicado)
+    const isConflict = status === 409 || status === 400;
+    const errorPrefix = status === 409 ? 'Conflicto (409): ' : status ? `[${status}]: ` : 'Error de red: ';
+    const mensajeError = `${errorPrefix}${detail}`;
+
+    await actualizarInscripcionOffline(item.id, {
+      estado: isConflict ? 'ERROR' : 'PENDIENTE',
+      error_detalle: mensajeError,
+      intentos: (item.intentos || 0) + 1,
+    });
+
+    notificarCambioOffline();
+    return {
+      success: false,
+      id: item.id,
+      status,
+      error: mensajeError,
+      isConflict,
+    };
+  }
+};
+
+export const sincronizarColaInscripciones = async (api) => {
+  const cola = await obtenerColaInscripciones();
+  const pendientes = cola.filter((i) => i.estado === 'PENDIENTE' || i.estado === 'ERROR');
+
+  let exitosos = 0;
+  let fallidos = 0;
+  const resultados = [];
+
+  for (const item of pendientes) {
+    const res = await sincronizarInscripcionItem(item, api);
+    resultados.push(res);
+    if (res.success) {
+      exitosos++;
+    } else {
+      fallidos++;
+    }
+  }
+
+  return {
+    total: pendientes.length,
+    exitosos,
+    fallidos,
+    resultados,
+  };
+};
+
 export const limpiarBaseLocal = async () => {
   const db = await abrirDB();
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['eventos', 'inscritos', 'cola_asistencia'], 'readwrite');
-    
+    const stores = ['eventos', 'inscritos', 'cola_asistencia'];
+    if (db.objectStoreNames.contains('cola_inscripciones')) {
+      stores.push('cola_inscripciones');
+    }
+
+    const transaction = db.transaction(stores, 'readwrite');
+
     transaction.onerror = (event) => {
       reject(event.target.error);
     };
 
     transaction.oncomplete = () => {
+      notificarCambioOffline();
       resolve(true);
     };
 
-    transaction.objectStore('eventos').clear();
-    transaction.objectStore('inscritos').clear();
-    transaction.objectStore('cola_asistencia').clear();
+    stores.forEach((storeName) => {
+      transaction.objectStore(storeName).clear();
+    });
   });
 };

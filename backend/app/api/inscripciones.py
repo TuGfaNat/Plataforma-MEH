@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, Request
+from fastapi import APIRouter, Depends, status, Request, Header
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..database import get_db
@@ -17,22 +17,36 @@ def inscribir_evento(
     id_evento: int,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(get_current_user)
+    current_user: models.Usuario = Depends(get_current_user),
+    x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key")
 ):
-    """Inscribe al usuario actual en un evento."""
+    """Inscribe al usuario actual en un evento con soporte de idempotencia."""
     ip_address = request.client.host if request.client else None
-    return inscripciones_service.inscribir_evento(db, current_user.id_usuario, id_evento, ip_address)
+    return inscripciones_service.inscribir_evento(
+        db,
+        current_user.id_usuario,
+        id_evento,
+        ip_address,
+        idempotency_key=x_idempotency_key
+    )
 
 @router.post("/inscribir/{id_evento}", response_model=inscripcion_schema.InscripcionEventoResponse)
 def inscribir_evento_legacy(
     id_evento: int,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(get_current_user)
+    current_user: models.Usuario = Depends(get_current_user),
+    x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key")
 ):
-    """Compatibilidad legacy para el flujo de inscripción anterior."""
+    """Compatibilidad legacy para el flujo de inscripción anterior con idempotencia."""
     ip_address = request.client.host if request.client else None
-    return inscripciones_service.inscribir_evento(db, current_user.id_usuario, id_evento, ip_address)
+    return inscripciones_service.inscribir_evento(
+        db,
+        current_user.id_usuario,
+        id_evento,
+        ip_address,
+        idempotency_key=x_idempotency_key
+    )
 
 @router.get("/eventos/mis-inscripciones", response_model=List[inscripcion_schema.InscripcionEventoResponse])
 def obtener_mis_inscripciones(
