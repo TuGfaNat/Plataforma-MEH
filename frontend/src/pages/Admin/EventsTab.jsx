@@ -3,13 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { 
   Divider, Badge, Field, Input, Textarea, Select, Switch, Button, tokens, makeStyles, shorthands,
   Avatar, Tooltip, Tag, TagGroup, InteractionTag, InteractionTagPrimary, Spinner,
-  Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions
+  Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions,
+  Checkbox
 } from '@fluentui/react-components';
 import { 
   CalendarLtr24Regular, Add24Regular, Map24Regular, Edit24Regular, Delete24Regular,
   Food24Regular, QrCode24Regular, PeopleTeam24Regular, Mic24Regular, Link24Regular,
   Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled, ArrowDownload24Regular,
-  Megaphone24Regular, DismissCircle24Regular, Share24Regular
+  Megaphone24Regular, DismissCircle24Regular, Share24Regular, Copy24Regular, DocumentTable24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
@@ -264,6 +265,57 @@ const EventsTab = ({
     }
   };
 
+  const [approvingLote, setApprovingLote] = useState(false);
+
+  const handleExportCsv = async () => {
+    if (!currentEvent) return;
+    try {
+      await eventoService.exportInscritosCsv(currentEvent.id_evento, currentEvent.titulo);
+      if (notify) notify("CSV descargado", "La lista de inscritos se descargó correctamente", "success");
+      else alert("La lista de inscritos se descargó correctamente.");
+    } catch (err) {
+      console.error("Error al exportar CSV:", err);
+      alert("No se pudo exportar la lista de inscritos.");
+    }
+  };
+
+  const handleDuplicarEvento = async () => {
+    if (!currentEvent) return;
+    if (!window.confirm(`¿Deseas duplicar el evento "${currentEvent.titulo}"? Se creará una copia con los mismos datos y agenda sin inscripciones.`)) {
+      return;
+    }
+    try {
+      const nuevoEvento = await eventoService.duplicarEvento(currentEvent.id_evento);
+      if (notify) notify("Evento duplicado", `Se ha creado "${nuevoEvento.titulo}"`, "success");
+      else alert(`Evento duplicado con éxito: "${nuevoEvento.titulo}"`);
+      if (fetchData) void fetchData();
+      setSelectedEventoId(nuevoEvento.id_evento);
+    } catch (err) {
+      console.error("Error al duplicar evento:", err);
+      alert("No se pudo duplicar el evento.");
+    }
+  };
+
+  const handleAprobarLoteEspera = async () => {
+    if (!selectedEventoId) return;
+    if (!window.confirm("¿Aprobar todos los participantes posibles de la lista de espera según los cupos disponibles?")) {
+      return;
+    }
+    setApprovingLote(true);
+    try {
+      const res = await eventoService.aprobarListaEsperaLote(selectedEventoId);
+      alert(`Se aprobaron ${res.aprobados} inscripciones en lote. Restantes en espera: ${res.restantes_en_espera}.`);
+      await fetchParticipantesYEspera();
+      if (fetchData) void fetchData();
+    } catch (err) {
+      console.error("Error al aprobar en lote:", err);
+      const detail = err.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : "No se pudo realizar la aprobación en lote.");
+    } finally {
+      setApprovingLote(false);
+    }
+  };
+
   useEffect(() => {
     if (isEditingEvento && selectedEventoId) {
       const ev = eventosList.find(e => e.id_evento === selectedEventoId);
@@ -406,6 +458,16 @@ const EventsTab = ({
                 <Input type="number" value={newEvento.capacidad_max} onChange={(e, d) => setNewEvento({...newEvento, capacidad_max: d.value})} />
               </Field>
             </div>
+
+            {isEditingEvento && (
+              <div style={{ margin: '4px 0 8px 0' }}>
+                <Checkbox 
+                  label="Auto-aprobar lista de espera si se aumentan los cupos"
+                  checked={Boolean(newEvento.auto_aprobar_espera)}
+                  onChange={(e, d) => setNewEvento({...newEvento, auto_aprobar_espera: d.checked})}
+                />
+              </div>
+            )}
 
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
               <Field label={t("admin_location")} required validationState={errors.ubicacion ? "error" : "none"} validationMessage={errors.ubicacion}>
@@ -594,8 +656,24 @@ const EventsTab = ({
                     Cancelar evento
                   </MEHButton>
                 )}
-                <MEHButton size="small" icon={<ArrowDownload24Regular />} onClick={handleDownloadEventoQr}>
+                <MEHButton size="small" icon={<ArrowDownload24Regular />} onClick={() => { void handleDownloadEventoQr(); }}>
                   Descargar QR del Evento
+                </MEHButton>
+                <MEHButton 
+                  size="small" 
+                  icon={<DocumentTable24Regular />} 
+                  appearance="outline" 
+                  onClick={() => { void handleExportCsv(); }}
+                >
+                  Exportar CSV
+                </MEHButton>
+                <MEHButton 
+                  size="small" 
+                  icon={<Copy24Regular />} 
+                  appearance="outline" 
+                  onClick={() => { void handleDuplicarEvento(); }}
+                >
+                  Duplicar
                 </MEHButton>
                 <MEHButton size="small" icon={<Edit24Regular />} onClick={() => handleEditEvento(currentEvent)}>{t("edit")}</MEHButton>
                 <Button icon={<Delete24Regular />} size="small" appearance="subtle" style={{color: tokens.colorPaletteRedForeground1}} onClick={() => confirmDelete('evento', selectedEventoId, t("event").toLowerCase())} />
@@ -687,9 +765,21 @@ const EventsTab = ({
 
               {/* LISTA DE ESPERA */}
               <div style={{ marginTop: '12px' }}>
-                <MEHTypography variant="h4" style={{ marginBottom: '8px' }}>
-                  ⏳ Lista de Espera ({listaEspera.length} en espera de cupo)
-                </MEHTypography>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+                  <MEHTypography variant="h4" style={{ margin: 0 }}>
+                    ⏳ Lista de Espera ({listaEspera.length} en espera de cupo)
+                  </MEHTypography>
+                  {listaEspera.length > 0 && (
+                    <MEHButton 
+                      size="small" 
+                      appearance="primary" 
+                      disabled={approvingLote}
+                      onClick={() => { void handleAprobarLoteEspera(); }}
+                    >
+                      {approvingLote ? "Aprobando..." : "Aprobar cupos en lote"}
+                    </MEHButton>
+                  )}
+                </div>
                 <MEHTypography variant="caption" style={{ opacity: 0.7, display: 'block', marginBottom: '10px' }}>
                   Participantes en estado PENDIENTE_APROBACION por cupos completos. Si amplías la capacidad máxima, puedes aprobar a los participantes para confirmar su cupo.
                 </MEHTypography>
@@ -795,7 +885,7 @@ const EventsTab = ({
               <MEHButton 
                 appearance="primary" 
                 style={{ backgroundColor: tokens.colorPaletteRedBackground3, borderColor: tokens.colorPaletteRedBorder2 }} 
-                onClick={handleCancelarEvento}
+                onClick={() => { void handleCancelarEvento(); }}
                 disabled={canceling || !motivoCancelacion.trim()}
               >
                 {canceling ? "Cancelando..." : "Confirmar Cancelación"}
@@ -841,7 +931,7 @@ const EventsTab = ({
               </Button>
               <MEHButton 
                 appearance="primary" 
-                onClick={handleAvisarInscritos}
+                onClick={() => { void handleAvisarInscritos(); }}
                 disabled={avisando || !avisoTitulo.trim() || !avisoMensaje.trim()}
               >
                 {avisando ? "Enviando..." : "Enviar Aviso"}

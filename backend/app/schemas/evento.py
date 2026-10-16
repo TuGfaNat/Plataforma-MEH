@@ -69,6 +69,7 @@ class EventoUpdate(BaseModel):
     id_auspiciadores: Optional[List[int]] = None
     id_comunidades: Optional[List[int]] = None
     id_estado: Optional[int] = None
+    auto_aprobar_espera: Optional[bool] = False
 
 class EventoResponse(EventoBase):
     id_evento: int
@@ -133,6 +134,16 @@ class EventoAvisarRequest(BaseModel):
     titulo: str
     mensaje: str
     enviar_email: Optional[bool] = False
+
+class LoteAprobacionRequest(BaseModel):
+    cantidad: Optional[int] = None
+
+class LoteAprobacionResponse(BaseModel):
+    status: str
+    id_evento: int
+    aprobados: int
+    restantes_en_espera: int
+    cupos_disponibles: int
 
 
 
