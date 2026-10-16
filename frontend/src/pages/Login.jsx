@@ -5,7 +5,7 @@ import {
   MessageBar,
   tokens
 } from '@fluentui/react-components';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   LockClosed24Filled, 
@@ -102,6 +102,8 @@ const useStyles = makeStyles({
 const Login = () => {
   const styles = useStyles();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
   const { checkAuth } = useAuth();
   const { t } = useTranslation();
   
@@ -136,7 +138,9 @@ const Login = () => {
       
       if (response.es_nuevo) {
         // Redirigir a flujo autenticado para actualizar la contraseña inicial
-        navigate('/cambiar-contrasena');
+        navigate('/cambiar-contrasena' + (returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''));
+      } else if (returnTo) {
+        navigate(returnTo);
       } else {
         navigate('/dashboard');
       }
@@ -165,7 +169,18 @@ const Login = () => {
           </MEHTypography>
         </div>
 
-        {errorApi && <MessageBar intent="error">{errorApi}</MessageBar>}
+        {errorApi && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <MessageBar intent="error">{errorApi}</MessageBar>
+            {errorApi.toLowerCase().includes('verifi') && (
+              <div style={{ textAlign: 'center' }}>
+                <Link to={`/verificar-email?email=${encodeURIComponent(formData.correo)}`} className={styles.link} style={{ fontSize: '13px' }}>
+                  👉 Haz clic aquí para verificar tu correo electrónico
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <MEHInput 
@@ -220,7 +235,7 @@ const Login = () => {
 
         <div className={styles.footer}>
           <MEHTypography variant="body" style={{ opacity: 0.7, marginBottom: '16px', display: 'block' }}>
-            {t("new_member_prompt")} <Link to="/register" className={styles.link}>{t("join_here")}</Link>
+            {t("new_member_prompt")} <Link to={returnTo ? `/register?returnTo=${encodeURIComponent(returnTo)}` : "/register"} className={styles.link}>{t("join_here")}</Link>
           </MEHTypography>
           
           <MEHButton 

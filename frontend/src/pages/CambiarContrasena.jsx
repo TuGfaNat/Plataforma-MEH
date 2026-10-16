@@ -5,7 +5,7 @@ import {
   MessageBar,
   tokens
 } from '@fluentui/react-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   LockClosed24Filled,
@@ -78,6 +78,8 @@ const useStyles = makeStyles({
 const CambiarContrasena = () => {
   const styles = useStyles();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
   const { t } = useTranslation();
   const { user, checkAuth } = useAuth();
   const { notify } = useNotify();
@@ -126,7 +128,7 @@ const CambiarContrasena = () => {
       }
       notify(t("success"), t("change_password_success"), "success");
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate(returnTo || '/dashboard');
       }, 1500);
     } catch (err) {
       const msg = err.response?.data?.detail || t("change_password_error");

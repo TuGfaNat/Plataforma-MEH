@@ -1,6 +1,6 @@
 import uuid
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -12,12 +12,17 @@ from ..core.exceptions import (
     EventoNoEncontradoError,
     PermisoDenegadoError,
     CupoExcedidoError,
-    ValidacionNegocioError
+    ValidacionNegocioError,
+    RegistroDuplicadoError
 )
 from ..core.permissions import (
     PERMISSION_ATTENDANCE_SCAN,
     PERMISSION_EVENTS_MANAGE,
-    has_permission
+    ADMIN_OR_ORGANIZER_ROLES,
+    ROLE_ADMIN,
+    ROLE_ORGANIZADOR,
+    has_permission,
+    ensure_permission
 )
 
 def parse_incluidos_list(incluidos_raw) -> List[str]:
@@ -217,8 +222,13 @@ def update_evento(
     valor_anterior = {
         "titulo": db_evento.titulo,
         "estado": db_evento.estado,
-        "capacidad_max": db_evento.capacidad_max
+        "capacidad_max": db_evento.capacidad_max,
+        "fecha_inicio": db_evento.fecha_inicio.isoformat() if db_evento.fecha_inicio else None,
+        "hora_inicio": db_evento.hora_inicio
     }
+
+    fecha_inicio_ant = db_evento.fecha_inicio
+    hora_inicio_ant = db_evento.hora_inicio
 
     update_data = evento_update.model_dump(exclude_unset=True)
     
@@ -247,6 +257,55 @@ def update_evento(
     db.commit()
     db.refresh(db_evento)
 
+    # Detectar cambio en fecha u horario para aviso automático
+    fecha_reprogramada = False
+    if "fecha_inicio" in update_data and update_data["fecha_inicio"] is not None:
+        if fecha_inicio_ant is None or update_data["fecha_inicio"] != fecha_inicio_ant:
+            fecha_reprogramada = True
+    elif "hora_inicio" in update_data and update_data["hora_inicio"] is not None:
+        if hora_inicio_ant != update_data["hora_inicio"]:
+            fecha_reprogramada = True
+
+    if fecha_reprogramada:
+        nueva_fecha_str = db_evento.fecha_inicio.strftime("%d/%m/%Y") if db_evento.fecha_inicio else ""
+        nuevo_horario = db_evento.hora_inicio or ""
+
+        # In-app anuncio para inscritos
+        anuncio_reprog = models.Anuncio(
+            titulo=f"Reprogramación de Evento: {db_evento.titulo}",
+            contenido=f"El evento '{db_evento.titulo}' ha sido reprogramado. Nueva fecha: {nueva_fecha_str} {nuevo_horario}".strip(),
+            tipo="ALERTA",
+            categoria="EVENTO",
+            id_evento=id_evento,
+            solo_inscritos_evento=True,
+            id_autor=admin_user.id_usuario,
+            activo=True
+        )
+        db.add(anuncio_reprog)
+        db.commit()
+
+        # Notificación por email a inscritos
+        try:
+            from . import email_service
+            inscripciones = db.query(models.InscripcionEvento).filter(
+                models.InscripcionEvento.id_evento == id_evento,
+                models.InscripcionEvento.id_estado != 0
+            ).all()
+            for ins in inscripciones:
+                if ins.usuario and ins.usuario.correo:
+                    try:
+                        email_service.notify_evento_reprogramado(
+                            email=ins.usuario.correo,
+                            nombre=f"{ins.usuario.nombres} {ins.usuario.apellidos}".strip(),
+                            titulo_evento=db_evento.titulo,
+                            nueva_fecha=nueva_fecha_str,
+                            nuevo_horario=nuevo_horario
+                        )
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
     # Sincronizar checkpoints según los incluidos
     sync_evento_checkpoints(db, db_evento)
     populate_evento_cupos(db, db_evento)
@@ -262,6 +321,166 @@ def update_evento(
         ip_direccion=ip_address
     )
     return db_evento
+
+
+def cancelar_evento(
+    db: Session,
+    admin_user: models.Usuario,
+    id_evento: int,
+    motivo: str,
+    ip_address: Optional[str] = None
+) -> models.Evento:
+    """Cancela un evento con motivo especificado sin borrar historial y notifica a todos los inscritos."""
+    ensure_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE, "No tienes permisos para cancelar eventos")
+
+    motivo_limpio = motivo.strip() if motivo else ""
+    if not motivo_limpio:
+        raise ValidacionNegocioError("Debes especificar un motivo para la cancelación del evento")
+
+    db_evento = get_evento_by_id(db, id_evento)
+
+    valor_anterior = {
+        "estado": db_evento.estado,
+        "motivo_cancelacion": db_evento.motivo_cancelacion
+    }
+
+    db_evento.estado = "CANCELADO"
+    db_evento.motivo_cancelacion = motivo_limpio
+    db_evento.modificado_por = admin_user.id_usuario
+    db_evento.fecha_modificacion = datetime.utcnow()
+
+    db.commit()
+    db.refresh(db_evento)
+    populate_evento_cupos(db, db_evento)
+
+    # 1. In-app Anuncio urgente segmentado para inscritos
+    anuncio_canc = models.Anuncio(
+        titulo=f"Evento Cancelado: {db_evento.titulo}",
+        contenido=f"El evento '{db_evento.titulo}' ha sido cancelado.\n\nMotivo: {motivo_limpio}",
+        tipo="ALERTA",
+        categoria="URGENTE",
+        id_evento=id_evento,
+        solo_inscritos_evento=True,
+        id_autor=admin_user.id_usuario,
+        activo=True
+    )
+    db.add(anuncio_canc)
+    db.commit()
+
+    # 2. Email a todos los inscritos activos (notifica a todos)
+    try:
+        from . import email_service
+        inscripciones = db.query(models.InscripcionEvento).filter(
+            models.InscripcionEvento.id_evento == id_evento,
+            models.InscripcionEvento.id_estado != 0
+        ).all()
+        for ins in inscripciones:
+            if ins.usuario and ins.usuario.correo:
+                try:
+                    email_service.notify_evento_cancelado(
+                        email=ins.usuario.correo,
+                        nombre=f"{ins.usuario.nombres} {ins.usuario.apellidos}".strip(),
+                        titulo_evento=db_evento.titulo,
+                        motivo=motivo_limpio
+                    )
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="CANCELAR_EVENTO",
+        tabla_afectada="eventos",
+        id_registro_afectado=id_evento,
+        valor_anterior=valor_anterior,
+        valor_nuevo={"estado": "CANCELADO", "motivo": motivo_limpio},
+        ip_direccion=ip_address
+    )
+
+    return db_evento
+
+
+def avisar_inscritos_evento(
+    db: Session,
+    admin_user: models.Usuario,
+    id_evento: int,
+    payload: evento_schema.EventoAvisarRequest,
+    ip_address: Optional[str] = None
+) -> dict:
+    """Emite un aviso oficial in-app (y opcionalmente email) exclusivamente a los inscritos con estado CONFIRMADA."""
+    ensure_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE, "No tienes permisos para emitir avisos a inscritos")
+
+    titulo_limpio = payload.titulo.strip() if payload.titulo else ""
+    mensaje_limpio = payload.mensaje.strip() if payload.mensaje else ""
+
+    if not titulo_limpio or not mensaje_limpio:
+        raise ValidacionNegocioError("El título y el mensaje del aviso son obligatorios")
+
+    db_evento = get_evento_by_id(db, id_evento)
+
+    # 1. In-app Anuncio segmentado a inscritos del evento
+    anuncio = models.Anuncio(
+        titulo=f"Aviso - {db_evento.titulo}: {titulo_limpio}",
+        contenido=mensaje_limpio,
+        tipo="INFO",
+        categoria="EVENTO",
+        id_evento=id_evento,
+        solo_inscritos_evento=True,
+        id_autor=admin_user.id_usuario,
+        activo=True
+    )
+    db.add(anuncio)
+    db.commit()
+
+    # 2. Filtrar SOLO inscritos en estado CONFIRMADA
+    inscripciones_confirmadas = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_evento == id_evento,
+        models.InscripcionEvento.estado_inscripcion == "CONFIRMADA",
+        models.InscripcionEvento.id_estado != 0
+    ).all()
+
+    emails_enviados = 0
+    if payload.enviar_email:
+        from . import email_service
+        for ins in inscripciones_confirmadas:
+            if ins.usuario and ins.usuario.correo:
+                try:
+                    email_service.notify_aviso_evento(
+                        email=ins.usuario.correo,
+                        nombre=f"{ins.usuario.nombres} {ins.usuario.apellidos}".strip(),
+                        titulo_evento=db_evento.titulo,
+                        titulo_aviso=titulo_limpio,
+                        mensaje=mensaje_limpio
+                    )
+                    emails_enviados += 1
+                except Exception:
+                    pass
+
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="AVISAR_INSCRITOS_EVENTO",
+        tabla_afectada="eventos",
+        id_registro_afectado=id_evento,
+        valor_nuevo={
+            "titulo": titulo_limpio,
+            "mensaje": mensaje_limpio,
+            "enviar_email": payload.enviar_email,
+            "destinatarios_confirmados": len(inscripciones_confirmadas),
+            "emails_enviados": emails_enviados
+        },
+        ip_direccion=ip_address
+    )
+
+    return {
+        "status": "success",
+        "message": f"Aviso emitido exitosamente a {len(inscripciones_confirmadas)} participantes confirmados",
+        "destinatarios_notificados": len(inscripciones_confirmadas),
+        "emails_enviados": emails_enviados
+    }
+
 
 def registrar_asistencia_qr(
     db: Session,
@@ -588,12 +807,55 @@ def get_evento_qr_image(db: Session, id_evento: int) -> Tuple[bytes, str]:
     filename = f"QR_EVENTO_{evento.id_evento}_{safe_title}.png"
     return qr_bytes, filename
 
+def _calcular_asistencia_y_fecha(ins: models.InscripcionEvento) -> Tuple[bool, Optional[str]]:
+    """Calcula el estado presente y la fecha de acreditación de una inscripción."""
+    asistencias = ins.asistencias
+    presente = bool(ins.asistio or (asistencias and len(asistencias) > 0))
+    fecha_acred = None
+    if asistencias:
+        fechas = [ad.fecha_escaneo for ad in asistencias if ad.fecha_escaneo]
+        if fechas:
+            fecha_acred = max(fechas).isoformat()
+    if not fecha_acred and ins.fecha_validacion:
+        fecha_acred = ins.fecha_validacion.isoformat()
+    return presente, fecha_acred
+
+
+def _obtener_o_crear_checkpoint_acreditacion(db: Session, id_evento: int) -> models.Checkpoint:
+    """Busca o crea el checkpoint por defecto para acreditación manual."""
+    cp_default = db.query(models.Checkpoint).filter(
+        models.Checkpoint.id_evento == id_evento,
+        models.Checkpoint.activo.is_(True),
+        models.Checkpoint.tipo_checkpoint == "ACREDITACION"
+    ).first()
+
+    if not cp_default:
+        cp_default = db.query(models.Checkpoint).filter(
+            models.Checkpoint.id_evento == id_evento,
+            models.Checkpoint.activo.is_(True)
+        ).order_by(models.Checkpoint.orden.asc()).first()
+
+    if not cp_default:
+        cp_default = models.Checkpoint(
+            id_evento=id_evento,
+            nombre_checkpoint="Acreditación y Entrada",
+            tipo_checkpoint="ACREDITACION",
+            orden=1,
+            activo=True
+        )
+        db.add(cp_default)
+        db.commit()
+        db.refresh(cp_default)
+
+    return cp_default
+
+
 def get_evento_participantes(db: Session, id_evento: int, staff_user: models.Usuario) -> List[dict]:
-    """Obtiene todos los participantes inscritos en el evento con sus respectivos estados de inscripción."""
+    """Obtiene todos los participantes inscritos en el evento con sus respectivos estados de inscripción y asistencia."""
     if not has_permission(staff_user.rol, PERMISSION_EVENTS_MANAGE):
         raise PermisoDenegadoError("No tienes permisos para ver los participantes de este evento")
 
-    evento = get_evento_by_id(db, id_evento)
+    get_evento_by_id(db, id_evento)
     inscripciones = db.query(models.InscripcionEvento).filter(
         models.InscripcionEvento.id_evento == id_evento,
         models.InscripcionEvento.id_estado != 0
@@ -602,6 +864,8 @@ def get_evento_participantes(db: Session, id_evento: int, staff_user: models.Usu
     resultado = []
     for ins in inscripciones:
         usuario = ins.usuario
+        presente, fecha_acred = _calcular_asistencia_y_fecha(ins)
+
         resultado.append({
             "id_inscripcion": ins.id_inscripcion,
             "id_usuario": ins.id_usuario,
@@ -610,10 +874,109 @@ def get_evento_participantes(db: Session, id_evento: int, staff_user: models.Usu
             "estado_inscripcion": ins.estado_inscripcion,
             "codigo_qr": ins.codigo_qr,
             "asistio": ins.asistio,
+            "presente": presente,
+            "fecha_acreditacion": fecha_acred,
             "fecha_inscripcion": ins.fecha_inscripcion.isoformat() if ins.fecha_inscripcion else None,
-            "id_pago": ins.id_pago
+            "id_pago": ins.id_pago,
+            "usuario": {
+                "id_usuario": usuario.id_usuario,
+                "nombres": usuario.nombres,
+                "apellidos": usuario.apellidos,
+                "email": usuario.correo,
+                "correo": usuario.correo
+            } if usuario else None
         })
     return resultado
+
+
+def acreditar_participante(
+    db: Session,
+    staff_user: models.Usuario,
+    id_evento: int,
+    id_inscripcion: Optional[int] = None,
+    codigo_qr: Optional[str] = None,
+    ip_address: Optional[str] = None
+) -> dict:
+    """Acredita manualmente a un participante en el evento (Solo ADMIN y ORGANIZADOR)."""
+    if staff_user.rol not in ADMIN_OR_ORGANIZER_ROLES:
+        raise PermisoDenegadoError("Solo administradores y organizadores pueden realizar esta acción")
+
+    get_evento_by_id(db, id_evento)
+
+    if not id_inscripcion and not codigo_qr:
+        raise ValidacionNegocioError("Debe proporcionar id_inscripcion o codigo_qr para la acreditación")
+
+    query = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_evento == id_evento,
+        models.InscripcionEvento.id_estado != 0
+    )
+    if id_inscripcion:
+        inscripcion = query.filter(models.InscripcionEvento.id_inscripcion == id_inscripcion).first()
+    else:
+        inscripcion = query.filter(models.InscripcionEvento.codigo_qr == codigo_qr).first()
+
+    if not inscripcion:
+        raise ValidacionNegocioError("Inscripción no encontrada para este evento")
+
+    if inscripcion.id_estado == 0 or inscripcion.estado_inscripcion == "CANCELADA":
+        raise ValidacionNegocioError("No se puede acreditar una inscripción cancelada")
+
+    cp_default = _obtener_o_crear_checkpoint_acreditacion(db, id_evento)
+
+    # Validar anti-duplicado: ya marcado asistio o con detalle en este checkpoint
+    asistencia_existente = db.query(models.AsistenciaDetalle).filter(
+        models.AsistenciaDetalle.id_inscripcion == inscripcion.id_inscripcion,
+        models.AsistenciaDetalle.id_checkpoint == cp_default.id_checkpoint
+    ).first()
+
+    if inscripcion.asistio or asistencia_existente:
+        raise RegistroDuplicadoError("El participante ya se encuentra acreditado / marcado como presente")
+
+    # Registrar AsistenciaDetalle físico
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    nueva_asistencia = models.AsistenciaDetalle(
+        id_inscripcion=inscripcion.id_inscripcion,
+        id_checkpoint=cp_default.id_checkpoint,
+        fecha_escaneo=now_utc,
+        escaneado_por=staff_user.id_usuario,
+        id_estado=2
+    )
+    db.add(nueva_asistencia)
+    db.flush()
+
+    inscripcion.asistio = True
+    inscripcion.fecha_validacion = now_utc
+    if inscripcion.estado_inscripcion != "CONFIRMADA":
+        inscripcion.estado_inscripcion = "CONFIRMADA"
+
+    usuario = inscripcion.usuario
+    registrar_log(
+        db=db,
+        id_admin=staff_user.id_usuario,
+        accion="ACREDITACION_MANUAL",
+        tabla_afectada="asistencia_detalles",
+        id_registro_afectado=nueva_asistencia.id_asistencia,
+        valor_nuevo={
+            "id_inscripcion": inscripcion.id_inscripcion,
+            "id_evento": id_evento,
+            "nombre_usuario": f"{usuario.nombres} {usuario.apellidos}" if usuario else f"Usuario #{inscripcion.id_usuario}",
+            "checkpoint": cp_default.nombre_checkpoint
+        },
+        ip_direccion=ip_address
+    )
+
+    db.commit()
+    db.refresh(inscripcion)
+
+    return {
+        "status": "success",
+        "message": "Participante acreditado exitosamente",
+        "id_inscripcion": inscripcion.id_inscripcion,
+        "presente": True,
+        "asistio": True,
+        "fecha_acreditacion": nueva_asistencia.fecha_escaneo.isoformat() if nueva_asistencia.fecha_escaneo else None,
+        "checkpoint": cp_default.nombre_checkpoint
+    }
 
 
 

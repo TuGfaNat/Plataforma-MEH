@@ -81,6 +81,10 @@ class Usuario(Base, AuditMixin, EstadoLifecycleMixin):
     es_nuevo = Column(Boolean, default=True)
     reset_token = Column(String, nullable=True)
     reset_token_exp = Column(DateTime, nullable=True)
+    email_verificado = Column(Boolean, default=False)
+    codigo_verificacion = Column(String, nullable=True)
+    codigo_verificacion_exp = Column(DateTime, nullable=True)
+    motivo_suspension = Column(String, nullable=True)
 
     inscripciones_eventos = relationship("InscripcionEvento", back_populates="usuario", foreign_keys="[InscripcionEvento.id_usuario]")
     inscripciones_cursos = relationship("InscripcionCurso", back_populates="usuario", foreign_keys="[InscripcionCurso.id_usuario]")
@@ -232,6 +236,7 @@ class Evento(Base, AuditMixin, EstadoLifecycleMixin):
     agenda = Column(TEXT, nullable=True) # Almacena estructura JSON de la agenda
     capacidad_max = Column(Integer)
     estado = Column(String, default="PROGRAMADO")
+    motivo_cancelacion = Column(TEXT, nullable=True)
     imagen_url = Column(String, nullable=True)
     refrigerio_incluido = Column(Boolean, default=False)
     incluidos = Column(TEXT, nullable=True) # Almacena lista JSON de entregables incluidos

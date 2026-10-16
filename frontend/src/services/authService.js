@@ -71,6 +71,36 @@ const authService = {
     return response.data;
   },
 
+  verificarEmail: async (correo, codigo) => {
+    const response = await api.post('/auth/verificar-email', { correo, codigo });
+    return response.data;
+  },
+
+  reenviarCodigo: async (correo) => {
+    const response = await api.post('/auth/reenviar-codigo', { correo });
+    return response.data;
+  },
+
+  adminUpdateUser: async (idUsuario, userData) => {
+    const response = await api.put(`/auth/usuarios/${idUsuario}`, userData);
+    return response.data;
+  },
+
+  adminResetPassword: async (idUsuario, nuevaPassword) => {
+    const response = await api.post(`/auth/usuarios/${idUsuario}/reset-password`, { nueva_password: nuevaPassword });
+    return response.data;
+  },
+
+  suspenderUsuario: async (idUsuario, motivo) => {
+    const response = await api.post(`/auth/usuarios/${idUsuario}/suspender`, { motivo });
+    return response.data;
+  },
+
+  restaurarUsuario: async (idUsuario) => {
+    const response = await api.post(`/auth/usuarios/${idUsuario}/restaurar`);
+    return response.data;
+  },
+
   logout: () => {
     localStorage.removeItem('token');
   }

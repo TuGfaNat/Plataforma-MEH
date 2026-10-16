@@ -22,7 +22,7 @@ def db():
     finally:
         session.close()
 
-def create_test_user(db, rol="MIEMBRO", password="Password123", es_nuevo=True, activo=True):
+def create_test_user(db, rol="MIEMBRO", password="Password123", es_nuevo=True, activo=True, email_verificado=True):
     unique = uuid.uuid4().hex[:8]
     user = models.Usuario(
         nombres=f"User_{unique}",
@@ -32,6 +32,7 @@ def create_test_user(db, rol="MIEMBRO", password="Password123", es_nuevo=True, a
         rol=rol,
         es_nuevo=es_nuevo,
         activo=activo,
+        email_verificado=email_verificado,
         id_estado=2
     )
     db.add(user)

@@ -54,6 +54,31 @@ def update_evento(
     ip_address = request.client.host if request.client else None
     return eventos_service.update_evento(db, current_user, id_evento, evento, ip_address)
 
+@router.post("/{id_evento}/cancelar", response_model=evento_schema.EventoResponse)
+def cancelar_evento(
+    request: Request,
+    id_evento: int,
+    payload: evento_schema.EventoCancelarRequest,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Cancela un evento con un motivo específico y notifica a todos los inscritos (Solo Staff autorizado)."""
+    ip_address = request.client.host if request.client else None
+    return eventos_service.cancelar_evento(db, current_user, id_evento, payload.motivo, ip_address)
+
+@router.post("/{id_evento}/avisar")
+def avisar_inscritos_evento(
+    request: Request,
+    id_evento: int,
+    payload: evento_schema.EventoAvisarRequest,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Emite un aviso oficial in-app (y opcionalmente email) exclusivamente a los inscritos confirmados (Solo Staff autorizado)."""
+    ip_address = request.client.host if request.client else None
+    return eventos_service.avisar_inscritos_evento(db, current_user, id_evento, payload, ip_address)
+
+
 @router.post("/asistencia-qr")
 def registrar_asistencia_qr(
     request: Request,
@@ -180,5 +205,26 @@ def delete_pago_qr(
     """Elimina lógicamente un paquete de pago QR (Admin, Organizador, Moderador)."""
     ip_address = request.client.host if request.client else None
     eventos_service.delete_pago_qr(db, current_user, id_qr, ip_address)
+
+
+@router.post("/{id_evento}/acreditar", response_model=evento_schema.AcreditacionResponse)
+def acreditar_participante(
+    id_evento: int,
+    payload: evento_schema.AcreditarParticipanteRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Acredita manualmente a un participante en el evento (Solo ADMIN y ORGANIZADOR)."""
+    ip_address = request.client.host if request.client else None
+    return eventos_service.acreditar_participante(
+        db=db,
+        staff_user=current_user,
+        id_evento=id_evento,
+        id_inscripcion=payload.id_inscripcion,
+        codigo_qr=payload.codigo_qr,
+        ip_address=ip_address
+    )
+
 
 
