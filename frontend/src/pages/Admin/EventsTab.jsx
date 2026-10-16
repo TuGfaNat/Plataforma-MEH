@@ -76,6 +76,19 @@ const useStyles = makeStyles({
   }
 });
 
+const EventoItemBadge = ({ ev }) => {
+  if (ev.estado === 'CANCELADO') {
+    return <Badge color="danger" appearance="tint">Cancelado</Badge>;
+  }
+  if (ev.estado === 'FINALIZADO') {
+    return <Badge color="neutral" appearance="tint">Finalizado</Badge>;
+  }
+  if (ev.id_estado === 1) {
+    return <Badge color="warning" appearance="tint">Inactivo</Badge>;
+  }
+  return <Badge color="success" appearance="tint">Activo</Badge>;
+};
+
 const EventsTab = ({ 
   eventosList, speakersList, selectedEventoId, setSelectedEventoId, isAddingEvento, setIsAddingEvento,
   isEditingEvento, setIsEditingEvento, newEvento, setNewEvento, handleSaveEvento, 
@@ -147,7 +160,7 @@ const EventsTab = ({
       await eventoService.aprobarInscripcion(idInscripcion);
       alert("Inscripción aprobada exitosamente. Se ha habilitado el cupo y notificado al participante.");
       await fetchParticipantesYEspera();
-      if (fetchData) fetchData();
+      if (fetchData) void fetchData();
     } catch (err) {
       console.error("Error al aprobar inscripción:", err);
       const detail = err.response?.data?.detail;
@@ -215,7 +228,7 @@ const EventsTab = ({
       alert("Evento cancelado correctamente. Se notificó a todos los inscritos.");
       setIsCancelarModalOpen(false);
       setMotivoCancelacion('');
-      if (fetchData) fetchData();
+      if (fetchData) void fetchData();
     } catch (err) {
       console.error("Error al cancelar evento:", err);
       const detail = err.response?.data?.detail;
@@ -343,9 +356,7 @@ const EventsTab = ({
                     <MEHTypography variant="caption">{new Date(ev.fecha_inicio).toLocaleDateString()}</MEHTypography>
                   </div>
                 </div>
-                <Badge color={ev.estado === 'CANCELADO' ? 'danger' : ev.estado === 'FINALIZADO' ? 'neutral' : ev.id_estado === 1 ? 'warning' : 'success'} appearance="tint">
-                  {ev.estado === 'CANCELADO' ? 'Cancelado' : ev.estado === 'FINALIZADO' ? 'Finalizado' : ev.id_estado === 1 ? 'Inactivo' : 'Activo'}
-                </Badge>
+                <EventoItemBadge ev={ev} />
               </div>
             </div>
           ))}
@@ -512,7 +523,7 @@ const EventsTab = ({
                       try {
                         const newStatus = d.checked ? 2 : 1;
                         await api.put(`/eventos/${selectedEventoId}`, { id_estado: newStatus });
-                        fetchData();
+                        void fetchData();
                       } catch (err) {
                         console.error("Error al cambiar estado del evento", err);
                       }

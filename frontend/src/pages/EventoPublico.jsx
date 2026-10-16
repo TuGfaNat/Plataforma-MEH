@@ -25,18 +25,13 @@ import {
   CheckmarkCircle24Filled, 
   ArrowLeft24Regular,
   Gift24Regular,
-  Food24Regular,
   Mic24Regular,
   Link24Regular,
   Translate24Regular,
   WeatherMoon24Regular,
   WeatherSunny24Regular,
-  Globe24Regular,
-  Library24Regular,
-  ShieldCheckmark24Filled,
   Warning24Regular,
-  ReceiptMoney24Filled,
-  ArrowDownload24Regular
+  ReceiptMoney24Filled
 } from '@fluentui/react-icons';
 import { MEHButton, MEHCard, MEHTypography } from '../components/ui';
 import { useAuth, useNotify, useTheme } from '../App';
@@ -231,6 +226,12 @@ const useStyles = makeStyles({
   }
 });
 
+const getInscripcionBadgeColor = (estado) => {
+  if (estado === 'CONFIRMADA') return 'success';
+  if (estado === 'PENDIENTE_APROBACION') return 'informative';
+  return 'warning';
+};
+
 const EventoPublico = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -263,7 +264,7 @@ const EventoPublico = () => {
   });
 
   useEffect(() => {
-    fetchEventoData();
+    void fetchEventoData();
   }, [id]);
 
   useEffect(() => {
@@ -280,7 +281,7 @@ const EventoPublico = () => {
         institucion: user.institucion || user.estudia_en || ''
       });
 
-      checkUserInscription();
+      void checkUserInscription();
     }
   }, [user, id]);
 
@@ -298,7 +299,8 @@ const EventoPublico = () => {
         if (pkgs && pkgs.length > 0) {
           setSelectedPackage(pkgs[0]);
         }
-      } catch (err) {
+      } catch (_err) {
+        // Paquetes no configurados o evento gratuito
         setPackages([]);
       }
     } catch (err) {
@@ -313,7 +315,7 @@ const EventoPublico = () => {
     try {
       const misInscripciones = await eventoService.getMisInscripciones();
       const existing = (misInscripciones || []).find(
-        (i) => i.id_evento === parseInt(id, 10) && i.id_estado !== 0 && i.estado_inscripcion !== "CANCELADA"
+        (i) => i.id_evento === Number.parseInt(id, 10) && i.id_estado !== 0 && i.estado_inscripcion !== "CANCELADA"
       );
       if (existing) {
         setIsInscribed(true);
@@ -326,7 +328,7 @@ const EventoPublico = () => {
 
   const handleCopyLink = () => {
     const url = window.location.href;
-    navigator.clipboard.writeText(url);
+    void navigator.clipboard.writeText(url);
     setCopied(true);
     if (notify) {
       notify(t("link_copied"), url, "success");
@@ -405,7 +407,7 @@ const EventoPublico = () => {
         }
       }
 
-      fetchEventoData();
+      await fetchEventoData();
     } catch (err) {
       console.error("Error al procesar inscripción:", err);
       const detail = err.response?.data?.detail || "No se pudo procesar la inscripción";
@@ -529,11 +531,12 @@ const EventoPublico = () => {
 
       {/* Contenido Principal */}
       <main className={styles.mainWrapper}>
-        {loading ? (
+        {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '16px' }}>
             <Spinner size="large" label="Cargando detalles del evento..." />
           </div>
-        ) : error || !evento ? (
+        )}
+        {!loading && (error || !evento) && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '20px', textAlign: 'center' }}>
             <Warning24Regular style={{ fontSize: '48px', color: tokens.colorPaletteYellowForeground1 }} />
             <MEHTypography variant="h2">{error || "Evento no encontrado"}</MEHTypography>
@@ -541,7 +544,8 @@ const EventoPublico = () => {
               Volver a la Página Principal
             </MEHButton>
           </div>
-        ) : (
+        )}
+        {!loading && !error && Boolean(evento) && (
           <>
             {/* Banner Hero */}
             <img 
@@ -645,7 +649,7 @@ const EventoPublico = () => {
                     </MEHTypography>
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '6px' }}>
                       {incluidosList.map((item, idx) => (
-                        <Badge key={idx} color="brand" appearance="tint" size="large" style={{ padding: '8px 14px' }}>
+                        <Badge key={`perk-${item}-${idx}`} color="brand" appearance="tint" size="large" style={{ padding: '8px 14px' }}>
                           🎁 {item}
                         </Badge>
                       ))}
@@ -683,7 +687,7 @@ const EventoPublico = () => {
                     <MEHTypography variant="h3">{t("event_schedule")}</MEHTypography>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {agendaItems.map((item, idx) => (
-                        <div key={idx} className={styles.agendaItem}>
+                        <div key={`agenda-${item.hora || idx}-${item.titulo || item.title || idx}`} className={styles.agendaItem}>
                           <div style={{ fontWeight: tokens.fontWeightBold, color: tokens.colorBrandForeground1, minWidth: '80px' }}>
                             {item.hora || item.time || `Bloque ${idx + 1}`}
                           </div>
@@ -768,7 +772,7 @@ const EventoPublico = () => {
                       </div>
                       <Badge 
                         appearance="filled" 
-                        color={inscripcionInfo?.estado_inscripcion === 'CONFIRMADA' ? 'success' : inscripcionInfo?.estado_inscripcion === 'PENDIENTE_APROBACION' ? 'informative' : 'warning'}
+                        color={getInscripcionBadgeColor(inscripcionInfo?.estado_inscripcion)}
                         style={{ alignSelf: 'center', padding: '6px 14px' }}
                       >
                         Estado: {inscripcionInfo?.estado_inscripcion || 'CONFIRMADA'}

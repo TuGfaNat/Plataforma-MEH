@@ -119,14 +119,14 @@ const EventsMaster = () => {
   const handleCopyLink = (idEvento, e) => {
     if (e) e.stopPropagation();
     const url = `${window.location.origin}/evento/${idEvento}`;
-    navigator.clipboard.writeText(url);
+    void navigator.clipboard.writeText(url);
     if (notify) {
       notify("Link copiado", "Enlace público copiado al portapapeles", "success");
     }
   };
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, []);
 
   const fetchData = async () => {
@@ -398,7 +398,7 @@ const EventsMaster = () => {
                     <InscripcionEventoModal 
                       evento={selectedEventForDetails} 
                       onInscribed={() => {
-                        fetchData();
+                        void fetchData();
                         setSelectedEventForDetails(null);
                       }} 
                     />
