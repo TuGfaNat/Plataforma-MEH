@@ -61,6 +61,24 @@ const authService = {
     return response.data;
   },
 
+  getDirectorio: async ({ search = '', rol = '', sort_by = 'nombres', sort_order = 'asc', skip = 0, limit = 100 } = {}) => {
+    let url = '/usuarios/directorio';
+    const params = new URLSearchParams();
+    if (search) params.append('q', search);
+    if (rol && rol !== 'Todos') params.append('rol', rol);
+    if (sort_by) params.append('sort_by', sort_by);
+    if (sort_order) params.append('sort_order', sort_order);
+    if (skip) params.append('skip', skip);
+    if (limit) params.append('limit', limit);
+
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const response = await api.get(url);
+    return response.data;
+  },
+
   updateUserRole: async (idUsuario, nuevoRol) => {
     const response = await api.put(`/auth/usuarios/${idUsuario}/rol?nuevo_rol=${nuevoRol}`);
     return response.data;

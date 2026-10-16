@@ -669,3 +669,180 @@ def restaurar_usuario(
     }
 
 
+NIVEL_HIERARCHY = {
+    "novato": 1,
+    "principiante": 1,
+    "beginner": 1,
+    "explorer": 2,
+    "explorador": 2,
+    "intermedio": 2,
+    "legend": 3,
+    "leyenda": 3,
+    "avanzado": 3,
+    "master": 4,
+    "maestro": 4,
+    "experto": 4,
+    "champion": 5,
+    "campeon": 5,
+    "campeón": 5,
+}
+
+def _derive_user_level(badges: list) -> str:
+    """Deriva el nivel más alto de un miembro según los requisitos de sus badges."""
+    if not badges:
+        return "Beginner"
+    best_level = "Beginner"
+    best_rank = 0
+    for b in badges:
+        req = getattr(b, "requisito_nivel", None)
+        if req:
+            req_str = str(req).strip()
+            rank = NIVEL_HIERARCHY.get(req_str.lower(), 1)
+            if rank > best_rank:
+                best_rank = rank
+                best_level = req_str
+    return best_level
+
+def get_directorio_miembros(
+    db: Session,
+    current_user: models.Usuario,
+    search: Optional[str] = None,
+    q: Optional[str] = None,
+    rol: Optional[str] = None,
+    sort_by: Optional[str] = "nombres",
+    sort_order: Optional[str] = "asc",
+    skip: int = 0,
+    limit: int = 100
+) -> List[dict]:
+    """Retorna el directorio de miembros con nivel derivado, asistencias, compras, cursos y badges (Solo ADMIN/ORGANIZADOR)."""
+    from ..core.permissions import ADMIN_OR_ORGANIZER_ROLES, ensure_roles
+    from sqlalchemy import func
+    ensure_roles(current_user.rol, ADMIN_OR_ORGANIZER_ROLES, "No tienes privilegios para consultar el directorio de miembros")
+
+    query = db.query(models.Usuario)
+    
+    search_term = q or search
+    if search_term:
+        term = f"%{search_term.strip()}%"
+        query = query.filter(
+            or_(
+                models.Usuario.nombres.ilike(term),
+                models.Usuario.apellidos.ilike(term),
+                models.Usuario.correo.ilike(term),
+                models.Usuario.alias.ilike(term)
+            )
+        )
+    
+    if rol and rol.upper() != "TODOS":
+        query = query.filter(models.Usuario.rol == rol.upper())
+
+    usuarios = query.all()
+    user_ids = [u.id_usuario for u in usuarios]
+    if not user_ids:
+        return []
+
+    # 1. Asistencias confirmadas (InscripcionEvento.asistio == True)
+    asistencias_map = {}
+    asistencias_rows = db.query(
+        models.InscripcionEvento.id_usuario,
+        func.count(models.InscripcionEvento.id_inscripcion)
+    ).filter(
+        models.InscripcionEvento.id_usuario.in_(user_ids),
+        models.InscripcionEvento.asistio == True
+    ).group_by(models.InscripcionEvento.id_usuario).all()
+    for uid, count in asistencias_rows:
+        asistencias_map[uid] = count
+
+    # 2. Compras registradas (Pedido)
+    compras_map = {}
+    compras_rows = db.query(
+        models.Pedido.id_usuario,
+        func.count(models.Pedido.id_pedido)
+    ).filter(
+        models.Pedido.id_usuario.in_(user_ids)
+    ).group_by(models.Pedido.id_usuario).all()
+    for uid, count in compras_rows:
+        compras_map[uid] = count
+
+    # 3. Cursos inscritos (InscripcionCurso)
+    cursos_map = {}
+    cursos_rows = db.query(
+        models.InscripcionCurso.id_usuario,
+        func.count(models.InscripcionCurso.id_inscripcion_curso)
+    ).filter(
+        models.InscripcionCurso.id_usuario.in_(user_ids)
+    ).group_by(models.InscripcionCurso.id_usuario).all()
+    for uid, count in cursos_rows:
+        cursos_map[uid] = count
+
+    # 4. Badges obtenidos
+    badges_map = {}
+    ub_rows = db.query(
+        models.UsuarioBadge.id_usuario,
+        models.Badge
+    ).join(
+        models.Badge, models.Badge.id_badge == models.UsuarioBadge.id_badge
+    ).filter(
+        models.UsuarioBadge.id_usuario.in_(user_ids)
+    ).all()
+    for uid, badge in ub_rows:
+        if uid not in badges_map:
+            badges_map[uid] = []
+        badges_map[uid].append(badge)
+
+    items = []
+    for u in usuarios:
+        user_badges = badges_map.get(u.id_usuario, [])
+        derived_level = _derive_user_level(user_badges)
+        badge_items = [
+            {
+                "id_badge": b.id_badge,
+                "nombre_badge": b.nombre_badge,
+                "descripcion": b.descripcion,
+                "imagen_url": b.imagen_url,
+                "puntos": b.puntos or 10,
+                "requisito_nivel": b.requisito_nivel or "Beginner"
+            }
+            for b in user_badges
+        ]
+        items.append({
+            "id_usuario": u.id_usuario,
+            "nombres": u.nombres,
+            "apellidos": u.apellidos,
+            "correo": u.correo,
+            "rol": u.rol,
+            "foto_url": u.foto_url,
+            "alias": u.alias,
+            "nivel": derived_level,
+            "asistencias": asistencias_map.get(u.id_usuario, 0),
+            "compras": compras_map.get(u.id_usuario, 0),
+            "cursos": cursos_map.get(u.id_usuario, 0),
+            "badges": badge_items,
+            "fecha_registro": u.fecha_registro
+        })
+
+    reverse = (sort_order or "asc").lower() == "desc"
+    sort_key = (sort_by or "nombres").lower()
+
+    if sort_key in ["nombres", "nombre"]:
+        items.sort(key=lambda x: f"{x['nombres']} {x['apellidos']}".lower(), reverse=reverse)
+    elif sort_key == "asistencias":
+        items.sort(key=lambda x: x["asistencias"], reverse=reverse)
+    elif sort_key == "compras":
+        items.sort(key=lambda x: x["compras"], reverse=reverse)
+    elif sort_key == "cursos":
+        items.sort(key=lambda x: x["cursos"], reverse=reverse)
+    elif sort_key == "nivel":
+        items.sort(key=lambda x: NIVEL_HIERARCHY.get(x["nivel"].lower(), 1), reverse=reverse)
+    elif sort_key == "correo":
+        items.sort(key=lambda x: x["correo"].lower(), reverse=reverse)
+    elif sort_key == "rol":
+        items.sort(key=lambda x: x["rol"].lower(), reverse=reverse)
+    elif sort_key == "fecha_registro":
+        items.sort(key=lambda x: x["fecha_registro"] or datetime.min, reverse=reverse)
+    else:
+        items.sort(key=lambda x: f"{x['nombres']} {x['apellidos']}".lower(), reverse=reverse)
+
+    return items[skip:skip + limit]
+
+

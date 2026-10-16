@@ -182,12 +182,62 @@ def delete_usuario(
     ip_address = request.client.host if request.client else None
     auth_service.delete_usuario(db, current_user, id_usuario, ip_address)
 
+@router.get("/directorio", response_model=List[user_schema.DirectorioMiembroResponse])
+def get_directorio(
+    search: Optional[str] = None,
+    q: Optional[str] = None,
+    rol: Optional[str] = None,
+    sort_by: Optional[str] = "nombres",
+    sort_order: Optional[str] = "asc",
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Directorio de miembros con métricas y nivel (Solo ADMIN/ORGANIZADOR)."""
+    return auth_service.get_directorio_miembros(
+        db=db,
+        current_user=current_user,
+        search=search,
+        q=q,
+        rol=rol,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        skip=skip,
+        limit=limit
+    )
+
 
 # --- ROUTER ALIAS DIRECTO /usuarios ---
 router_usuarios = APIRouter(
     prefix="/usuarios",
     tags=["usuarios"]
 )
+
+@router_usuarios.get("/directorio", response_model=List[user_schema.DirectorioMiembroResponse])
+def get_directorio_usuarios(
+    search: Optional[str] = None,
+    q: Optional[str] = None,
+    rol: Optional[str] = None,
+    sort_by: Optional[str] = "nombres",
+    sort_order: Optional[str] = "asc",
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Directorio de miembros con métricas y nivel (Solo ADMIN/ORGANIZADOR)."""
+    return auth_service.get_directorio_miembros(
+        db=db,
+        current_user=current_user,
+        search=search,
+        q=q,
+        rol=rol,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        skip=skip,
+        limit=limit
+    )
 
 @router_usuarios.put("/{id_usuario}", response_model=user_schema.UserResponse)
 def update_user_direct(

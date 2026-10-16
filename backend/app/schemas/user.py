@@ -165,3 +165,27 @@ class AdminUserUpdate(BaseModel):
     bio: Optional[str] = None
     email_verificado: Optional[bool] = None
 
+class DirectorioBadgeItem(BaseModel):
+    id_badge: int
+    nombre_badge: str
+    descripcion: Optional[str] = None
+    imagen_url: Optional[str] = None
+    puntos: int = 10
+    requisito_nivel: Optional[str] = "Beginner"
+    model_config = ConfigDict(from_attributes=True)
+
+class DirectorioMiembroResponse(BaseModel):
+    id_usuario: int
+    nombres: str
+    apellidos: str
+    correo: str
+    rol: str
+    foto_url: Optional[str] = None
+    alias: Optional[str] = None
+    nivel: str = "Beginner"
+    asistencias: int = 0
+    compras: int = 0
+    cursos: int = 0
+    badges: List[DirectorioBadgeItem] = []
+    fecha_registro: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
