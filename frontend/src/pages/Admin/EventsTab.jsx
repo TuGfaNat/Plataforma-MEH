@@ -9,11 +9,12 @@ import {
   CalendarLtr24Regular, Add24Regular, Map24Regular, Edit24Regular, Delete24Regular,
   Food24Regular, QrCode24Regular, PeopleTeam24Regular, Mic24Regular, Link24Regular,
   Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled, ArrowDownload24Regular,
-  Megaphone24Regular, DismissCircle24Regular
+  Megaphone24Regular, DismissCircle24Regular, Share24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
 import eventoService from '../../services/eventoService';
+import { useNotify } from '../../App';
 import AcreditacionPanel from './AcreditacionPanel';
 
 const useStyles = makeStyles({
@@ -75,12 +76,26 @@ const useStyles = makeStyles({
   }
 });
 
+const EventoItemBadge = ({ ev }) => {
+  if (ev.estado === 'CANCELADO') {
+    return <Badge color="danger" appearance="tint">Cancelado</Badge>;
+  }
+  if (ev.estado === 'FINALIZADO') {
+    return <Badge color="neutral" appearance="tint">Finalizado</Badge>;
+  }
+  if (ev.id_estado === 1) {
+    return <Badge color="warning" appearance="tint">Inactivo</Badge>;
+  }
+  return <Badge color="success" appearance="tint">Activo</Badge>;
+};
+
 const EventsTab = ({ 
   eventosList, speakersList, selectedEventoId, setSelectedEventoId, isAddingEvento, setIsAddingEvento,
   isEditingEvento, setIsEditingEvento, newEvento, setNewEvento, handleSaveEvento, 
   handleEditEvento, confirmDelete, fetchData
 }) => {
   const { t } = useTranslation();
+  const { notify } = useNotify();
   const styles = useStyles();
   const [agenda, setAgenda] = useState([]);
   const [selectedSpeakers, setSelectedSpeakers] = useState([]);
@@ -145,7 +160,7 @@ const EventsTab = ({
       await eventoService.aprobarInscripcion(idInscripcion);
       alert("Inscripción aprobada exitosamente. Se ha habilitado el cupo y notificado al participante.");
       await fetchParticipantesYEspera();
-      if (fetchData) fetchData();
+      if (fetchData) void fetchData();
     } catch (err) {
       console.error("Error al aprobar inscripción:", err);
       const detail = err.response?.data?.detail;
@@ -213,7 +228,7 @@ const EventsTab = ({
       alert("Evento cancelado correctamente. Se notificó a todos los inscritos.");
       setIsCancelarModalOpen(false);
       setMotivoCancelacion('');
-      if (fetchData) fetchData();
+      if (fetchData) void fetchData();
     } catch (err) {
       console.error("Error al cancelar evento:", err);
       const detail = err.response?.data?.detail;
@@ -341,9 +356,7 @@ const EventsTab = ({
                     <MEHTypography variant="caption">{new Date(ev.fecha_inicio).toLocaleDateString()}</MEHTypography>
                   </div>
                 </div>
-                <Badge color={ev.estado === 'CANCELADO' ? 'danger' : ev.estado === 'FINALIZADO' ? 'neutral' : ev.id_estado === 1 ? 'warning' : 'success'} appearance="tint">
-                  {ev.estado === 'CANCELADO' ? 'Cancelado' : ev.estado === 'FINALIZADO' ? 'Finalizado' : ev.id_estado === 1 ? 'Inactivo' : 'Activo'}
-                </Badge>
+                <EventoItemBadge ev={ev} />
               </div>
             </div>
           ))}
@@ -510,7 +523,7 @@ const EventsTab = ({
                       try {
                         const newStatus = d.checked ? 2 : 1;
                         await api.put(`/eventos/${selectedEventoId}`, { id_estado: newStatus });
-                        fetchData();
+                        void fetchData();
                       } catch (err) {
                         console.error("Error al cambiar estado del evento", err);
                       }
@@ -554,6 +567,19 @@ const EventsTab = ({
                 )}
               </div>
               <div style={{display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
+                <MEHButton 
+                  size="small" 
+                  icon={<Share24Regular />} 
+                  appearance="outline"
+                  onClick={() => {
+                    const url = `${window.location.origin}/evento/${currentEvent.id_evento}`;
+                    void navigator.clipboard.writeText(url);
+                    if (notify) notify("Enlace copiado", "Se ha copiado el enlace público del evento al portapapeles", "success");
+                    else alert("¡Enlace público copiado al portapapeles!");
+                  }}
+                >
+                  {t("copy_link") || "Copiar link"}
+                </MEHButton>
                 <MEHButton size="small" icon={<Megaphone24Regular />} appearance="outline" onClick={() => setIsAvisarModalOpen(true)}>
                   Avisar inscritos
                 </MEHButton>
