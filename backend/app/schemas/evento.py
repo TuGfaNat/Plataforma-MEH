@@ -37,6 +37,7 @@ class EventoBase(BaseModel):
     capacidad_max: int = 50
     capacidad_maxima: Optional[int] = None
     imagen_url: Optional[str] = None
+    plantilla_badge_url: Optional[str] = None
     refrigerio_incluido: bool = False
     incluidos: Optional[str] = None
     motivo_cancelacion: Optional[str] = None
@@ -63,6 +64,7 @@ class EventoUpdate(BaseModel):
     capacidad_max: Optional[int] = None
     capacidad_maxima: Optional[int] = None
     imagen_url: Optional[str] = None
+    plantilla_badge_url: Optional[str] = None
     refrigerio_incluido: Optional[bool] = None
     incluidos: Optional[str] = None
     id_speakers: Optional[List[int]] = None
@@ -112,6 +114,7 @@ class InscriptoConfirmadoResponse(BaseModel):
     codigo_qr: str
     asistio: bool
     nombre_completo: str
+    correo: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 class AcreditarParticipanteRequest(BaseModel):
@@ -144,6 +147,48 @@ class LoteAprobacionResponse(BaseModel):
     aprobados: int
     restantes_en_espera: int
     cupos_disponibles: int
+
+# --- LLEGADAS POR HORA Y CHECKPOINTS (MEH-019) ---
+class LlegadaHoraItem(BaseModel):
+    hora: str
+    cantidad: int
+    acumulado: int
+    model_config = ConfigDict(from_attributes=True)
+
+class CheckpointLlegadaItem(BaseModel):
+    id_checkpoint: Optional[int] = None
+    nombre_checkpoint: str
+    total: int
+    porcentaje: float
+    model_config = ConfigDict(from_attributes=True)
+
+class EventoLlegadasResponse(BaseModel):
+    id_evento: int
+    titulo: str
+    total_inscritos: int
+    total_asistieron: int
+    porcentaje_asistencia: float
+    histograma_horas: List[LlegadaHoraItem]
+    checkpoints: List[CheckpointLlegadaItem]
+    model_config = ConfigDict(from_attributes=True)
+
+# --- BADGE SOCIAL DE INSCRIPCIÓN (MEH-019) ---
+class BadgeSocialResponse(BaseModel):
+    id_evento: int
+    titulo_evento: str
+    fecha_evento: Optional[str] = None
+    modalidad: Optional[str] = None
+    ubicacion: Optional[str] = None
+    plantilla_badge_url: Optional[str] = None
+    id_usuario: int
+    nombre_completo: str
+    foto_perfil_url: Optional[str] = None
+    rol_evento: str = "ASISTENTE"
+    codigo_qr: Optional[str] = None
+    redes_sociales: Optional[dict] = None
+    copy_sugerido: str
+    esta_inscrito: bool = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 

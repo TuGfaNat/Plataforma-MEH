@@ -109,6 +109,30 @@ const eventoService = {
   duplicarEvento: async (idEvento) => {
     const response = await api.post(`/eventos/${idEvento}/duplicar`);
     return response.data;
+  },
+
+  getLlegadas: async (idEvento) => {
+    const response = await api.get(`/eventos/${idEvento}/llegadas`);
+    return response.data;
+  },
+
+  getBadgeInfo: async (idEvento) => {
+    const response = await api.get(`/eventos/${idEvento}/badge-info`);
+    return response.data;
+  },
+
+  uploadPlantillaBadge: async (idEvento, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post(`/eventos/${idEvento}/plantilla-badge`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
+  getInscritosConfirmados: async (idEvento) => {
+    const response = await api.get(`/eventos/${idEvento}/inscritos-confirmados`);
+    return response.data;
   }
 };
 

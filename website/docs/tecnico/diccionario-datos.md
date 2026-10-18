@@ -278,6 +278,7 @@ erDiagram
 | `estado` | `STRING` | **-** | SÍ | default=PROGRAMADO |
 | `motivo_cancelacion` | `TEXT` | **-** | SÍ | - |
 | `imagen_url` | `STRING` | **-** | SÍ | - |
+| `plantilla_badge_url` | `STRING` | **-** | SÍ | - |
 | `refrigerio_incluido` | `BOOLEAN` | **-** | SÍ | default=False |
 | `incluidos` | `TEXT` | **-** | SÍ | - |
 | `token_qr` | `STRING` | **-** | SÍ | - |

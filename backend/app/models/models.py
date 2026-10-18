@@ -238,6 +238,7 @@ class Evento(Base, AuditMixin, EstadoLifecycleMixin):
     estado = Column(String, default="PROGRAMADO")
     motivo_cancelacion = Column(TEXT, nullable=True)
     imagen_url = Column(String, nullable=True)
+    plantilla_badge_url = Column(String, nullable=True)
     refrigerio_incluido = Column(Boolean, default=False)
     incluidos = Column(TEXT, nullable=True) # Almacena lista JSON de entregables incluidos
     token_qr = Column(String, nullable=True)

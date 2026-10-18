@@ -24,12 +24,16 @@ import {
   PeopleTeam24Regular,
   ArrowClockwise24Regular,
   Dismiss24Regular,
-  ShieldCheckmark24Regular
+  ShieldCheckmark24Regular,
+  Print24Regular,
+  DataTrending24Regular
 } from '@fluentui/react-icons';
 import { QRCodeSVG } from 'qrcode.react';
 import { MEHButton, MEHTypography } from './ui';
 import { useAuth, useNotify } from '../App';
 import eventoService from '../services/eventoService';
+import ImprimirLista from './ImprimirLista';
+import LlegadasEventoChart from './LlegadasEventoChart';
 
 const useStyles = makeStyles({
   container: {
@@ -164,6 +168,9 @@ const AcreditacionPanel = ({
     participante: null,
     processing: false
   });
+
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showLlegadasChart, setShowLlegadasChart] = useState(false);
 
   const fetchParticipantes = async () => {
     if (!eventoId) return;
@@ -463,15 +470,32 @@ const AcreditacionPanel = ({
             </MEHTypography>
           )}
         </div>
-        <MEHButton 
-          size="small" 
-          icon={<ArrowClockwise24Regular />} 
-          onClick={fetchParticipantes}
-          disabled={loading}
-          title="Actualizar lista de inscritos"
-        >
-          Refrescar
-        </MEHButton>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <MEHButton 
+            size="small" 
+            appearance={showLlegadasChart ? "primary" : "secondary"}
+            icon={<DataTrending24Regular />} 
+            onClick={() => setShowLlegadasChart(!showLlegadasChart)}
+          >
+            {showLlegadasChart ? "Ocultar Métricas" : "Llegadas por Hora"}
+          </MEHButton>
+          <MEHButton 
+            size="small" 
+            icon={<Print24Regular />} 
+            onClick={() => setShowPrintModal(true)}
+          >
+            Imprimir Lista / QRs
+          </MEHButton>
+          <MEHButton 
+            size="small" 
+            icon={<ArrowClockwise24Regular />} 
+            onClick={fetchParticipantes}
+            disabled={loading}
+            title="Actualizar lista de inscritos"
+          >
+            Refrescar
+          </MEHButton>
+        </div>
       </div>
 
       {/* METRIC CARDS */}
@@ -499,6 +523,11 @@ const AcreditacionPanel = ({
           </MEHTypography>
         </div>
       </div>
+
+      {/* HISTOGRAMA DE LLEGADAS POR HORA Y CHECKPOINTS */}
+      {showLlegadasChart && (
+        <LlegadasEventoChart eventoId={eventoId} eventoTitulo={eventoTitulo} />
+      )}
 
       {/* BUSCADOR */}
       <div className={styles.searchBar}>
@@ -631,6 +660,14 @@ const AcreditacionPanel = ({
           </DialogBody>
         </DialogSurface>
       </Dialog>
+
+      <ImprimirLista
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        eventoId={eventoId}
+        eventoTitulo={eventoTitulo}
+        participantesIniciales={participantes}
+      />
     </div>
   );
 };

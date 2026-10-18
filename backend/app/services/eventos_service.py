@@ -3,6 +3,7 @@ import json
 import csv
 import io
 import codecs
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
@@ -690,7 +691,8 @@ def get_inscritos_confirmados(db: Session, id_evento: int, staff_user: models.Us
             "id_usuario": ins.id_usuario,
             "codigo_qr": ins.codigo_qr or "",
             "asistio": ins.asistio,
-            "nombre_completo": f"{ins.usuario.nombres} {ins.usuario.apellidos}"
+            "nombre_completo": f"{ins.usuario.nombres} {ins.usuario.apellidos}",
+            "correo": getattr(ins.usuario, "correo", "") or ""
         })
     return resultado
 
@@ -1217,5 +1219,231 @@ def duplicar_evento(
     return nuevo_evento
 
 
+# ==============================================================================
+# MEH-019: LLEGADAS POR HORA, CHECKPOINTS Y BADGE SOCIAL
+# ==============================================================================
+
+def _calcular_histograma_llegadas(db: Session, id_evento: int) -> list:
+    """Calcula el histograma acumulativo de llegadas agrupado por hora."""
+    detalles = db.query(models.AsistenciaDetalle).join(
+        models.InscripcionEvento, models.AsistenciaDetalle.id_inscripcion == models.InscripcionEvento.id_inscripcion
+    ).filter(
+        models.InscripcionEvento.id_evento == id_evento
+    ).order_by(models.AsistenciaDetalle.fecha_escaneo.asc()).all()
+
+    horas_dict = {}
+    if detalles:
+        for det in detalles:
+            if det.fecha_escaneo:
+                h_str = det.fecha_escaneo.strftime("%H:00")
+                horas_dict[h_str] = horas_dict.get(h_str, 0) + 1
+    else:
+        # Fallback para asistencias marcadas directamente
+        inscritos_asistieron = db.query(models.InscripcionEvento).filter(
+            models.InscripcionEvento.id_evento == id_evento,
+            models.InscripcionEvento.asistio == True
+        ).all()
+        for ins in inscritos_asistieron:
+            fec = ins.fecha_validacion or ins.fecha_inscripcion
+            if fec:
+                h_str = fec.strftime("%H:00")
+                horas_dict[h_str] = horas_dict.get(h_str, 0) + 1
+
+    histograma = []
+    acumulado = 0
+    for h in sorted(horas_dict.keys()):
+        cant = horas_dict[h]
+        acumulado += cant
+        histograma.append({
+            "hora": h,
+            "cantidad": cant,
+            "acumulado": acumulado
+        })
+    return histograma
 
 
+def _calcular_checkpoints_llegadas(db: Session, id_evento: int, total_asistieron: int) -> list:
+    """Calcula los totales y porcentajes por checkpoint del evento."""
+    cps = db.query(models.Checkpoint).filter(
+        models.Checkpoint.id_evento == id_evento
+    ).order_by(models.Checkpoint.orden.asc()).all()
+
+    checkpoints_resumen = []
+    total_en_checkpoints = 0
+    for cp in cps:
+        cnt = db.query(models.AsistenciaDetalle).filter(
+            models.AsistenciaDetalle.id_checkpoint == cp.id_checkpoint
+        ).count()
+        total_en_checkpoints += cnt
+        pct = round((cnt / total_asistieron * 100), 1) if total_asistieron > 0 else 0.0
+        checkpoints_resumen.append({
+            "id_checkpoint": cp.id_checkpoint,
+            "nombre_checkpoint": cp.nombre_checkpoint,
+            "total": cnt,
+            "porcentaje": pct
+        })
+
+    # Si no hay checkpoints o si hay escaneos generales fuera de checkpoints
+    if not cps or (total_en_checkpoints == 0 and total_asistieron > 0):
+        checkpoints_resumen.insert(0, {
+            "id_checkpoint": None,
+            "nombre_checkpoint": "Acreditación General",
+            "total": total_asistieron,
+            "porcentaje": 100.0 if total_asistieron > 0 else 0.0
+        })
+
+    return checkpoints_resumen
+
+
+def get_llegadas_evento(db: Session, id_evento: int, user: models.Usuario) -> dict:
+    """Calcula histograma de llegadas por hora y resumen por checkpoints para el evento (Solo Staff o Creador)."""
+    evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
+    if not evento:
+        raise EventoNoEncontradoError()
+
+    es_staff = (
+        has_permission(user.rol, PERMISSION_ATTENDANCE_SCAN) or
+        has_permission(user.rol, PERMISSION_EVENTS_MANAGE) or
+        evento.id_organizador == user.id_usuario
+    )
+    if not es_staff:
+        raise PermisoDenegadoError("No tienes permisos para ver las métricas de llegadas de este evento")
+
+    # Conteos generales
+    total_inscritos = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_evento == id_evento,
+        models.InscripcionEvento.estado_inscripcion == "CONFIRMADA"
+    ).count()
+
+    total_asistieron = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_evento == id_evento,
+        models.InscripcionEvento.asistio == True
+    ).count()
+
+    pct_asistencia = round((total_asistieron / total_inscritos * 100), 1) if total_inscritos > 0 else 0.0
+
+    histograma = _calcular_histograma_llegadas(db, id_evento)
+    checkpoints_resumen = _calcular_checkpoints_llegadas(db, id_evento, total_asistieron)
+
+    return {
+        "id_evento": evento.id_evento,
+        "titulo": evento.titulo,
+        "total_inscritos": total_inscritos,
+        "total_asistieron": total_asistieron,
+        "porcentaje_asistencia": pct_asistencia,
+        "histograma_horas": histograma,
+        "checkpoints": checkpoints_resumen
+    }
+
+def get_badge_social_info(db: Session, id_evento: int, user: models.Usuario) -> dict:
+    """Genera la información de badge social para un usuario inscrito (o previsualización staff)."""
+    evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
+    if not evento:
+        raise EventoNoEncontradoError()
+
+    inscripcion = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_evento == id_evento,
+        models.InscripcionEvento.id_usuario == user.id_usuario
+    ).first()
+
+    es_staff = (
+        has_permission(user.rol, PERMISSION_EVENTS_MANAGE) or
+        evento.id_organizador == user.id_usuario
+    )
+
+    if not inscripcion and not es_staff:
+        raise PermisoDenegadoError("Solo los participantes inscritos pueden generar su badge social")
+
+    rol_evento = "ASISTENTE"
+    if evento.id_organizador == user.id_usuario or user.rol in ["ADMIN", "ORGANIZADOR"]:
+        rol_evento = "ORGANIZADOR"
+    elif user.rol == "EMBAJADOR":
+        rol_evento = "EMBAJADOR"
+    elif user.rol == "MODERADOR":
+        rol_evento = "MODERADOR"
+
+    redes = {
+        "linkedin": getattr(user, "linkedin_url", None),
+        "github": getattr(user, "github_url", None),
+        "instagram": getattr(user, "instagram_url", None),
+        "tiktok": getattr(user, "tiktok_url", None)
+    }
+
+    nombre_completo = f"{user.nombres or ''} {user.apellidos or ''}".strip()
+    if not nombre_completo:
+        nombre_completo = user.alias or user.correo.split("@")[0]
+
+    copy_sugerido = f"¡Ya tengo mi pase para {evento.titulo}! 🎉 Nos vemos en este gran evento de la comunidad MEH. #ComunidadMEH #TechBolivia"
+
+    return {
+        "id_evento": evento.id_evento,
+        "titulo_evento": evento.titulo,
+        "fecha_evento": evento.fecha_inicio.isoformat() if evento.fecha_inicio else None,
+        "modalidad": evento.modalidad,
+        "ubicacion": evento.ubicacion,
+        "plantilla_badge_url": evento.plantilla_badge_url,
+        "id_usuario": user.id_usuario,
+        "nombre_completo": nombre_completo,
+        "foto_perfil_url": user.foto_url,
+        "rol_evento": rol_evento,
+        "codigo_qr": (inscripcion.codigo_qr if inscripcion else evento.token_qr) or f"MEH-EVT-{evento.id_evento}-{user.id_usuario}",
+        "redes_sociales": redes,
+        "copy_sugerido": copy_sugerido,
+        "esta_inscrito": inscripcion is not None
+    }
+
+def upload_plantilla_badge(
+    db: Session,
+    id_evento: int,
+    admin_user: models.Usuario,
+    file_content: bytes,
+    ip_address: Optional[str] = None
+) -> str:
+    """Guarda la plantilla de badge de un evento y actualiza la URL en la base de datos (Solo Staff)."""
+    evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
+    if not evento:
+        raise EventoNoEncontradoError()
+
+    es_staff = (
+        has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE) or
+        evento.id_organizador == admin_user.id_usuario
+    )
+    if not es_staff:
+        raise PermisoDenegadoError("No tienes permisos para configurar la plantilla de badge de este evento")
+
+    if file_content.startswith(b"\xff\xd8\xff"):
+        safe_ext = ".jpg"
+    elif file_content[:4] == b"RIFF" and file_content[8:12] == b"WEBP":
+        safe_ext = ".webp"
+    else:
+        safe_ext = ".png"
+
+    unique_token = uuid.uuid4().hex
+    safe_filename = f"badge_plantilla_evento_{int(id_evento)}_{unique_token}{safe_ext}"
+
+    base_dir = os.path.abspath("static/badges")
+    os.makedirs(base_dir, exist_ok=True)
+
+    target_path = os.path.abspath(os.path.join(base_dir, safe_filename))
+    if not target_path.startswith(base_dir):
+        raise ValueError("Ruta de archivo no permitida")
+
+    with open(target_path, "wb") as f:
+        f.write(file_content)
+
+    url_relativa = f"/static/badges/{safe_filename}"
+    evento.plantilla_badge_url = url_relativa
+
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="ACTUALIZAR_PLANTILLA_BADGE",
+        tabla_afectada="eventos",
+        id_registro_afectado=id_evento,
+        valor_nuevo={"plantilla_badge_url": url_relativa},
+        ip_direccion=ip_address
+    )
+
+    db.commit()
+    db.refresh(evento)
+    return url_relativa

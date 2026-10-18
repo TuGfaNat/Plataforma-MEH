@@ -39,6 +39,7 @@ import eventoService from '../services/eventoService';
 import pagoService from '../services/pagoService';
 import { resolveApiFileUrl } from '../services/api';
 import { designTokens } from '../theme/theme';
+import BadgeSocialModal from '../components/BadgeSocialModal';
 
 const DEFAULT_EVENT_IMG = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop";
 
@@ -248,6 +249,7 @@ const EventoPublico = () => {
 
   // Estado de inscripción
   const [isInscribed, setIsInscribed] = useState(false);
+  const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [inscripcionInfo, setInscripcionInfo] = useState(null);
   const [packages, setPackages] = useState([]);
   const [selectedPackage, setSelectedPackage] = useState(null);
@@ -780,7 +782,14 @@ const EventoPublico = () => {
                       <MEHTypography variant="caption" style={{ opacity: 0.8 }}>
                         Puedes consultar tu ticket de acceso e insignias desde el portal principal.
                       </MEHTypography>
-                      <MEHButton appearance="primary" onClick={() => navigate('/dashboard')}>
+                      <MEHButton 
+                        appearance="primary" 
+                        icon={<Share24Regular />}
+                        onClick={() => setIsBadgeModalOpen(true)}
+                      >
+                        Compartir mi badge social
+                      </MEHButton>
+                      <MEHButton appearance="outline" onClick={() => navigate('/dashboard')}>
                         Ver en mi Portal
                       </MEHButton>
                     </div>
@@ -944,6 +953,14 @@ const EventoPublico = () => {
           </>
         )}
       </main>
+
+      {/* Modal Badge Social (MEH-019) */}
+      <BadgeSocialModal 
+        isOpen={isBadgeModalOpen} 
+        onClose={() => setIsBadgeModalOpen(false)} 
+        eventoId={evento?.id_evento} 
+        eventoTitulo={evento?.titulo} 
+      />
     </div>
   );
 };
