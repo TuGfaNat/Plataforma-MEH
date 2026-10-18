@@ -1397,7 +1397,6 @@ def upload_plantilla_badge(
     id_evento: int,
     admin_user: models.Usuario,
     file_content: bytes,
-    file_extension: Optional[str] = None,
     ip_address: Optional[str] = None
 ) -> str:
     """Guarda la plantilla de badge de un evento y actualiza la URL en la base de datos (Solo Staff)."""
