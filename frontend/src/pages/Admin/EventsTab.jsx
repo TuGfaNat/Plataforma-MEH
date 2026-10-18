@@ -10,13 +10,15 @@ import {
   CalendarLtr24Regular, Add24Regular, Map24Regular, Edit24Regular, Delete24Regular,
   Food24Regular, QrCode24Regular, PeopleTeam24Regular, Mic24Regular, Link24Regular,
   Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled, ArrowDownload24Regular,
-  Megaphone24Regular, DismissCircle24Regular, Share24Regular, Copy24Regular, DocumentTable24Regular
+  Megaphone24Regular, DismissCircle24Regular, Share24Regular, Copy24Regular, DocumentTable24Regular,
+  Image24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
 import eventoService from '../../services/eventoService';
 import { useNotify } from '../../App';
 import AcreditacionPanel from './AcreditacionPanel';
+import BadgeSocialModal from '../../components/BadgeSocialModal';
 
 const useStyles = makeStyles({
   grid: { 
@@ -109,6 +111,12 @@ const EventsTab = ({
   const [nuevoMonto, setNuevoMonto] = useState('');
   const [qrFile, setQrFile] = useState(null);
   const [fileInputKey, setFileInputKey] = useState(0);
+
+  // Estados para Badge Social (MEH-019)
+  const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
+  const [badgePlantillaFile, setBadgePlantillaFile] = useState(null);
+  const [uploadingPlantilla, setUploadingPlantilla] = useState(false);
+  const [badgeFileInputKey, setBadgeFileInputKey] = useState(0);
 
   // Estados para cancelación y aviso a inscritos
   const [isCancelarModalOpen, setIsCancelarModalOpen] = useState(false);
@@ -313,6 +321,26 @@ const EventsTab = ({
       alert(typeof detail === 'string' ? detail : "No se pudo realizar la aprobación en lote.");
     } finally {
       setApprovingLote(false);
+    }
+  };
+
+  const handleUploadPlantillaBadge = async () => {
+    if (!selectedEventoId || !badgePlantillaFile) return;
+    setUploadingPlantilla(true);
+    try {
+      await eventoService.uploadPlantillaBadge(selectedEventoId, badgePlantillaFile);
+      if (notify) notify("Plantilla actualizada", "La plantilla de badge social del evento se ha subido correctamente.", "success");
+      else alert("Plantilla de badge actualizada con éxito.");
+      setBadgePlantillaFile(null);
+      setBadgeFileInputKey(prev => prev + 1);
+      if (fetchData) void fetchData();
+    } catch (err) {
+      console.error("Error al subir plantilla de badge:", err);
+      const detail = err.response?.data?.detail;
+      if (notify) notify("Error", typeof detail === 'string' ? detail : "No se pudo subir la plantilla de badge.", "error");
+      else alert(typeof detail === 'string' ? detail : "Error al subir la plantilla.");
+    } finally {
+      setUploadingPlantilla(false);
     }
   };
 
@@ -656,6 +684,14 @@ const EventsTab = ({
                     Cancelar evento
                   </MEHButton>
                 )}
+                <MEHButton 
+                  size="small" 
+                  icon={<Share24Regular />} 
+                  appearance="outline" 
+                  onClick={() => setIsBadgeModalOpen(true)}
+                >
+                  Badge Social
+                </MEHButton>
                 <MEHButton size="small" icon={<ArrowDownload24Regular />} onClick={() => { void handleDownloadEventoQr(); }}>
                   Descargar QR del Evento
                 </MEHButton>
@@ -749,6 +785,70 @@ const EventsTab = ({
                         Guardar Paquete y QR
                     </MEHButton>
                 </div>
+            </div>
+
+            {/* Plantilla de Badge Social para Redes (MEH-019) */}
+            <div className={styles.infoCard} style={{ backgroundColor: tokens.colorNeutralBackground2, marginBottom: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <MEHTypography variant="h3">
+                    <Image24Regular style={{ verticalAlign: 'middle', marginRight: '8px' }} />
+                    Plantilla de Badge Social para Redes
+                  </MEHTypography>
+                  <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
+                    Fondo personalizado de la credencial digital (1080x1350 px recomendado) que los participantes inscritos pueden descargar y compartir.
+                  </MEHTypography>
+                </div>
+                <MEHButton size="small" appearance="outline" icon={<Share24Regular />} onClick={() => setIsBadgeModalOpen(true)}>
+                  Previsualizar Badge
+                </MEHButton>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '12px', flexWrap: 'wrap' }}>
+                {currentEvent.plantilla_badge_url ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <img 
+                      src={resolveApiFileUrl(currentEvent.plantilla_badge_url)} 
+                      alt="Plantilla badge actual" 
+                      style={{ width: '80px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: `1px solid ${tokens.colorNeutralBackground3}` }} 
+                    />
+                    <div>
+                      <Badge color="success" appearance="tint">Plantilla personalizada activa</Badge>
+                      <MEHTypography variant="caption" style={{ display: 'block', marginTop: '4px', opacity: 0.8 }}>
+                        Los miembros verán este diseño personalizado en su credencial descargable.
+                      </MEHTypography>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ padding: '12px 16px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '8px', border: `1px dashed ${tokens.colorNeutralBackground3}` }}>
+                    <Badge color="informative" appearance="tint">Plantilla por defecto activa</Badge>
+                    <MEHTypography variant="caption" style={{ display: 'block', marginTop: '4px', opacity: 0.7 }}>
+                      Gradiente institucional MEH Cyberpunk (violeta oscuro y cyan). Sube una imagen personalizada para reemplazarlo.
+                    </MEHTypography>
+                  </div>
+                )}
+              </div>
+
+              <Divider style={{ margin: '16px 0' }} />
+
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <Field label="Subir nueva plantilla de fondo (PNG, JPG, WebP)" style={{ flexGrow: 1 }}>
+                  <Input 
+                    type="file" 
+                    key={badgeFileInputKey} 
+                    id="badge-plantilla-file-input" 
+                    onChange={(e) => setBadgePlantillaFile(e.target.files[0])} 
+                    accept="image/png,image/jpeg,image/webp" 
+                  />
+                </Field>
+                <MEHButton 
+                  appearance="primary" 
+                  onClick={handleUploadPlantillaBadge} 
+                  disabled={uploadingPlantilla || !badgePlantillaFile}
+                >
+                  {uploadingPlantilla ? "Subiendo..." : "Actualizar Plantilla"}
+                </MEHButton>
+              </div>
             </div>
 
             {/* Gestión de Lista de Espera y Participantes */}
@@ -940,6 +1040,14 @@ const EventsTab = ({
           </DialogBody>
         </DialogSurface>
       </Dialog>
+
+      {/* Modal Badge Social (MEH-019) */}
+      <BadgeSocialModal 
+        isOpen={isBadgeModalOpen} 
+        onClose={() => setIsBadgeModalOpen(false)} 
+        eventoId={selectedEventoId} 
+        eventoTitulo={currentEvent?.titulo} 
+      />
     </div>
   );
 };

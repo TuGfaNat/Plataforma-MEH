@@ -29,7 +29,8 @@ import {
   Target24Regular,
   QrCode24Regular,
   MegaphoneLoud24Filled,
-  ArrowDownload24Regular
+  ArrowDownload24Regular,
+  Share24Regular
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -45,6 +46,7 @@ import comunidadService from '../services/comunidadService';
 import { QRCodeSVG } from 'qrcode.react';
 import BadgeDetailModal from '../components/BadgeDetailModal';
 import InscripcionEventoModal from '../components/InscripcionEventoModal';
+import BadgeSocialModal from '../components/BadgeSocialModal';
 
 const useStyles = makeStyles({
   dashboardContainer: {
@@ -212,6 +214,8 @@ const Dashboard = () => {
   const [submittingInscripcion, setSubmittingInscripcion] = useState(null);
   const [showAmbassadorModal, setShowAmbassadorModal] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
+  const [selectedBadgeEvento, setSelectedBadgeEvento] = useState(null);
+  const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
 
   const fetchData = async () => {
     if (!user) return;
@@ -470,6 +474,19 @@ const Dashboard = () => {
                         <MEHTypography variant="caption" style={{ opacity: 0.6, display: 'block', fontSize: '12px' }}>{evento.modalidad}</MEHTypography>
                       </div>
                       {hasValidEventQr ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <MEHButton 
+                            appearance="subtle" 
+                            size="small" 
+                            icon={<Share24Regular />}
+                            onClick={() => {
+                              setSelectedBadgeEvento(evento);
+                              setIsBadgeModalOpen(true);
+                            }}
+                            title="Compartir mi badge social"
+                          >
+                            Badge
+                          </MEHButton>
                           <Dialog>
                             <DialogTrigger disableButtonEnhancement>
                               <MEHButton appearance="primary" size="small" icon={<QrCode24Regular />}>Mi QR</MEHButton>
@@ -506,6 +523,7 @@ const Dashboard = () => {
                               </DialogBody>
                             </DialogSurface>
                           </Dialog>
+                        </div>
                       ) : isInscribed?.estado_inscripcion === 'PENDIENTE_APROBACION' ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <Badge appearance="tint" color="informative">En lista de espera</Badge>
@@ -760,6 +778,17 @@ const Dashboard = () => {
             </DialogBody>
           </DialogSurface>
         </Dialog>
+
+        {/* Modal Badge Social (MEH-019) */}
+        <BadgeSocialModal 
+          isOpen={isBadgeModalOpen} 
+          onClose={() => {
+            setIsBadgeModalOpen(false);
+            setSelectedBadgeEvento(null);
+          }} 
+          eventoId={selectedBadgeEvento?.id_evento} 
+          eventoTitulo={selectedBadgeEvento?.titulo} 
+        />
       </div>
     );
   };

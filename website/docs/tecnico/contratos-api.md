@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 19  
-**Total de endpoints expuestos:** 129
+**Total de endpoints expuestos:** 132
 
 ---
 
@@ -159,6 +159,9 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`GET`** | `/api/eventos/{id_evento}/inscritos.csv` | Exporta la lista completa de inscritos y su asistencia en formato CSV con UTF-8 BOM (Solo Staff). | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/eventos/{id_evento}/aprobar-lista-espera` | Aprueba en lote a los inscritos en lista de espera respetando los cupos disponibles (Solo Staff). | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/eventos/{id_evento}/duplicar` | Duplica un evento existente copiando su configuración, agenda, speakers y paquetes de pago (Solo Staff). | `id_evento: int` | `201 Created` | Requiere Auth (JWT) |
+| **`GET`** | `/api/eventos/{id_evento}/llegadas` | Obtiene métricas de llegadas por hora y resumen por checkpoint (Solo Staff o Creador). | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
+| **`GET`** | `/api/eventos/{id_evento}/badge-info` | Obtiene los datos del badge social para el participante inscrito o vista previa staff. | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/{id_evento}/plantilla-badge` | Carga y actualiza la plantilla de badge social de un evento (Solo Staff). | `id_evento: int`, `file: UploadFile` | `200 OK` | Requiere Auth (JWT) |
 
 ## Módulo `files` (Prefix: `/files`)
 

@@ -47,6 +47,7 @@ backend/static/comprobantes/*
 !backend/static/comprobantes/.gitkeep
 backend/static/uploads/*
 !backend/static/uploads/.gitkeep
+backend/static/badges/badge_plantilla_*
 
 # Playwright
 /test-results/

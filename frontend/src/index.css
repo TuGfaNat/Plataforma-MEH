@@ -88,3 +88,31 @@ body, html {
 .fui-Option:hover {
   background-color: rgba(127, 19, 236, 0.2) !important;
 }
+
+/* REGLAS PARA IMPRESIÓN PROFESIONAL DE PLANILLAS Y CREDENCIALES (MEH-019) */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  
+  aside, nav, header, footer, .fui-DialogSurface__actions, button, .fui-TabList, .fui-Input {
+    display: none !important;
+  }
+
+  #meh-print-area {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  @page {
+    size: auto;
+    margin: 10mm;
+  }
+}
+

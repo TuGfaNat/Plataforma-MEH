@@ -19,11 +19,18 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema: agregar email_verificado, codigo_verificacion, codigo_verificacion_exp y motivo_suspension."""
-    op.add_column('usuarios', sa.Column('email_verificado', sa.Boolean(), server_default='true', nullable=False))
-    op.alter_column('usuarios', 'email_verificado', server_default=None)
-    op.add_column('usuarios', sa.Column('codigo_verificacion', sa.String(), nullable=True))
-    op.add_column('usuarios', sa.Column('codigo_verificacion_exp', sa.DateTime(), nullable=True))
-    op.add_column('usuarios', sa.Column('motivo_suspension', sa.String(), nullable=True))
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [c['name'] for c in inspector.get_columns('usuarios')]
+    if 'email_verificado' not in columns:
+        op.add_column('usuarios', sa.Column('email_verificado', sa.Boolean(), server_default='true', nullable=False))
+        op.alter_column('usuarios', 'email_verificado', server_default=None)
+    if 'codigo_verificacion' not in columns:
+        op.add_column('usuarios', sa.Column('codigo_verificacion', sa.String(), nullable=True))
+    if 'codigo_verificacion_exp' not in columns:
+        op.add_column('usuarios', sa.Column('codigo_verificacion_exp', sa.DateTime(), nullable=True))
+    if 'motivo_suspension' not in columns:
+        op.add_column('usuarios', sa.Column('motivo_suspension', sa.String(), nullable=True))
 
 
 def downgrade() -> None:

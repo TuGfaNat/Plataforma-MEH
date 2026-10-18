@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, Request, status, File, UploadFile, Form
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -282,4 +283,44 @@ def duplicar_evento(
     )
 
 
+@router.get("/{id_evento}/llegadas", response_model=evento_schema.EventoLlegadasResponse)
+def get_llegadas_evento(
+    id_evento: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Obtiene métricas de llegadas por hora y resumen por checkpoint (Solo Staff o Creador)."""
+    return eventos_service.get_llegadas_evento(db, id_evento, current_user)
 
+
+@router.get("/{id_evento}/badge-info", response_model=evento_schema.BadgeSocialResponse)
+def get_badge_social_info(
+    id_evento: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Obtiene los datos del badge social para el participante inscrito o vista previa staff."""
+    return eventos_service.get_badge_social_info(db, id_evento, current_user)
+
+
+@router.post("/{id_evento}/plantilla-badge")
+async def upload_plantilla_badge(
+    id_evento: int,
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Carga y actualiza la plantilla de badge social de un evento (Solo Staff)."""
+    ip_address = request.client.host if request.client else None
+    content = await file.read()
+    ext = os.path.splitext(file.filename or "")[1] or ".png"
+    url = eventos_service.upload_plantilla_badge(
+        db=db,
+        id_evento=id_evento,
+        admin_user=current_user,
+        file_content=content,
+        file_extension=ext,
+        ip_address=ip_address
+    )
+    return {"status": "success", "plantilla_badge_url": url}
