@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   makeStyles,
   shorthands,
@@ -7,6 +7,7 @@ import {
   Button,
   mergeClasses,
   Avatar,
+  Badge,
 } from "@fluentui/react-components";
 import {
   Trophy24Regular,
@@ -51,6 +52,8 @@ import {
   Drop24Regular,
   Eye24Regular,
   ShieldCheckmark24Filled,
+  ArrowSync24Regular,
+  ArrowSync24Filled,
 } from "@fluentui/react-icons";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -58,6 +61,8 @@ import { designTokens } from "../theme/theme";
 import { useAuth, useTheme } from "../App";
 import { resolveApiFileUrl } from "../services/api";
 import authService from "../services/authService";
+import SyncQueuePanel from "./SyncQueuePanel";
+import * as offlineDb from "../utils/offlineDb";
 import {
   hasPermission,
   PERMISSION_ATTENDANCE_SCAN,
@@ -131,6 +136,14 @@ const useStyles = makeStyles({
     color: tokens.colorBrandForeground1,
     fontWeight: "bold",
   },
+  navButtonReset: {
+    backgroundColor: "transparent",
+    ...shorthands.border("none"),
+    width: "100%",
+    textAlign: "left",
+    font: "inherit",
+    boxSizing: "border-box",
+  },
   footer: {
     marginTop: "auto",
     paddingTop: "24px",
@@ -164,6 +177,36 @@ const Sidebar = ({ onClose }) => {
   const { t, i18n } = useTranslation();
   const { currentTheme, toggleTheme } = useTheme();
   const { user, setUser } = useAuth();
+  const [offlinePendingCount, setOfflinePendingCount] = useState(0);
+  const [hasOfflineErrors, setHasOfflineErrors] = useState(false);
+  const [showSyncPanel, setShowSyncPanel] = useState(false);
+
+  const actualizarConteoOffline = async () => {
+    try {
+      const stats = await offlineDb.obtenerTotalPendientesOffline();
+      setOfflinePendingCount(stats.total);
+      setHasOfflineErrors(stats.tieneErrores);
+    } catch (err) {
+      console.error("Error al consultar pendientes offline:", err);
+    }
+  };
+
+  useEffect(() => {
+    void actualizarConteoOffline();
+
+    const handler = () => {
+      void actualizarConteoOffline();
+    };
+    window.addEventListener("meh_offline_sync_updated", handler);
+    window.addEventListener("online", handler);
+    window.addEventListener("offline", handler);
+
+    return () => {
+      window.removeEventListener("meh_offline_sync_updated", handler);
+      window.removeEventListener("online", handler);
+      window.removeEventListener("offline", handler);
+    };
+  }, []);
 
   const handleLogout = () => {
     authService.logout();
@@ -183,8 +226,43 @@ const Sidebar = ({ onClose }) => {
     icon: IconRegular,
     activeIcon: IconFilled,
     label,
+    badge,
+    badgeColor,
+    onClick,
   }) => {
-    const active = location.pathname === to;
+    const active = to ? location.pathname === to : false;
+    const content = (
+      <>
+        {active && IconFilled ? <IconFilled /> : <IconRegular />}
+        <span className={styles.navText} style={{ flexGrow: 1 }}>{label}</span>
+        {badge !== undefined && badge !== null && (
+          <Badge
+            color={badgeColor || "warning"}
+            appearance="filled"
+            shape="circular"
+            size="small"
+          >
+            {badge}
+          </Badge>
+        )}
+      </>
+    );
+
+    if (onClick) {
+      return (
+        <button
+          type="button"
+          className={mergeClasses(styles.navItem, styles.navButtonReset, active && styles.navActive)}
+          onClick={() => {
+            onClick();
+            if (onClose) onClose();
+          }}
+        >
+          {content}
+        </button>
+      );
+    }
+
     return (
       <Link
         to={to}
@@ -193,8 +271,7 @@ const Sidebar = ({ onClose }) => {
           if (onClose) onClose();
         }}
       >
-        {active ? <IconFilled /> : <IconRegular />}
-        <span className={styles.navText}>{label}</span>
+        {content}
       </Link>
     );
   };
@@ -281,6 +358,14 @@ const Sidebar = ({ onClose }) => {
           icon={People24Regular}
           activeIcon={People24Filled}
           label={t("community")}
+        />
+        <NavItem
+          icon={ArrowSync24Regular}
+          activeIcon={ArrowSync24Filled}
+          label={t("menu_sync_queue") || "Cola de Sincronización"}
+          badge={offlinePendingCount > 0 ? offlinePendingCount : null}
+          badgeColor={hasOfflineErrors ? "danger" : "warning"}
+          onClick={() => setShowSyncPanel(true)}
         />
 
         {/* SECTION 2: OPERATIONS CENTER (STAFF) */}
@@ -512,6 +597,11 @@ const Sidebar = ({ onClose }) => {
           </span>
         </div>
       </div>
+
+      <SyncQueuePanel
+        isOpen={showSyncPanel}
+        onClose={() => setShowSyncPanel(false)}
+      />
     </aside>
   );
 };

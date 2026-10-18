@@ -11,8 +11,12 @@ const eventoService = {
     return response.data;
   },
 
-  inscribirse: async (idEvento) => {
-    const response = await api.post(`/inscripciones/eventos/${idEvento}`);
+  inscribirse: async (idEvento, { idempotency_key } = {}) => {
+    const config = {};
+    if (idempotency_key) {
+      config.headers = { 'X-Idempotency-Key': idempotency_key };
+    }
+    const response = await api.post(`/inscripciones/eventos/${idEvento}`, {}, config);
     return response.data;
   },
 

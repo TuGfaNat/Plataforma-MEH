@@ -24,6 +24,7 @@ import { MEHButton, MEHTypography } from './ui';
 import { useNotify } from '../App';
 import pagoService from '../services/pagoService';
 import eventoService from '../services/eventoService';
+import * as offlineDb from '../utils/offlineDb';
 import { resolveApiFileUrl } from '../services/api';
 
 const useStyles = makeStyles({
@@ -217,10 +218,80 @@ const InscripcionEventoModal = ({
     setFile(e.target.files[0]);
   };
 
+  const guardarInscripcionOffline = async (esFallback = false) => {
+    try {
+      const offRes = await offlineDb.agregarInscripcionOffline({
+        id_evento: evento.id_evento,
+        titulo_evento: evento.titulo,
+      });
+      if (offRes.alreadyEnqueued) {
+        notify("Cola Offline", "Esta inscripción ya se encuentra en tu cola de sincronización.", "info");
+      } else {
+        notify(
+          "Inscripción Offline Guardada",
+          esFallback
+            ? "Fallo de conexión. Tu inscripción ha sido guardada en la cola local para sincronizarse."
+            : "Te encuentras sin conexión a red. Tu solicitud se ha guardado en la cola local y se sincronizará automáticamente.",
+          "info"
+        );
+      }
+      setIsOpen(false);
+      if (onInscribed) onInscribed();
+      return true;
+    } catch (offErr) {
+      console.error("Error al guardar en cola offline:", offErr);
+      if (!esFallback) {
+        notify("Error Offline", "No se pudo guardar la inscripción en la base local", "error");
+      }
+      return false;
+    }
+  };
+
+  const procesarEventoPago = async () => {
+    if (!selectedPackage) {
+      notify("Validación", "Debes seleccionar un paquete de inscripción", "warning");
+      return false;
+    }
+    if (!file) {
+      notify("Validación", "Debes adjuntar el comprobante de pago", "warning");
+      return false;
+    }
+
+    const inscripcionResponse = await eventoService.inscribirse(evento.id_evento);
+    const idInscripcion = inscripcionResponse.id_inscripcion;
+
+    const formData = new FormData();
+    formData.append('id_referencia', idInscripcion);
+    formData.append('tipo_referencia', 'EVENTO');
+    formData.append('monto', selectedPackage.monto);
+    formData.append('metodo_pago', 'TRANSFERENCIA');
+    formData.append('file', file);
+
+    await pagoService.uploadComprobanteOcr(formData);
+    notify(
+      "Comprobante enviado", 
+      "Inscripción registrada. Tu ticket QR se activará automáticamente una vez verificado el pago.", 
+      "success"
+    );
+    return true;
+  };
+
   const handleConfirmar = async () => {
     setLoading(true);
+    const isPaid = packages.length > 0;
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
+    // Manejo Offline para eventos gratuitos / lista de espera
+    if (!isPaid && isOffline) {
+      try {
+        await guardarInscripcionOffline(false);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
-      // Caso 1: Cupos agotados -> Ingreso a lista de espera
       if (isSoldOut) {
         await eventoService.inscribirse(evento.id_evento);
         notify(
@@ -228,44 +299,13 @@ const InscripcionEventoModal = ({
           "Te has registrado en la Lista de Espera (PENDIENTE_APROBACION). Si el organizador amplía los cupos y aprueba tu registro, recibirás la confirmación.", 
           "info"
         );
-        setIsOpen(false);
-        if (onInscribed) onInscribed();
-        return;
-      }
-
-      const isPaid = packages.length > 0;
-
-      // Caso 2: Evento de pago
-      if (isPaid) {
-        if (!selectedPackage) {
-          notify("Validación", "Debes seleccionar un paquete de inscripción", "warning");
+      } else if (isPaid) {
+        const ok = await procesarEventoPago();
+        if (!ok) {
           setLoading(false);
           return;
         }
-        if (!file) {
-          notify("Validación", "Debes adjuntar el comprobante de pago", "warning");
-          setLoading(false);
-          return;
-        }
-
-        const inscripcionResponse = await eventoService.inscribirse(evento.id_evento);
-        const idInscripcion = inscripcionResponse.id_inscripcion;
-
-        const formData = new FormData();
-        formData.append('id_referencia', idInscripcion);
-        formData.append('tipo_referencia', 'EVENTO');
-        formData.append('monto', selectedPackage.monto);
-        formData.append('metodo_pago', 'TRANSFERENCIA');
-        formData.append('file', file);
-
-        await pagoService.uploadComprobanteOcr(formData);
-        notify(
-          "Comprobante enviado", 
-          "Inscripción registrada. Tu ticket QR se activará automáticamente una vez verificado el pago.", 
-          "success"
-        );
       } else {
-        // Caso 3: Evento gratuito con cupo disponible
         await eventoService.inscribirse(evento.id_evento);
         notify(
           "Inscripción confirmada", 
@@ -278,8 +318,17 @@ const InscripcionEventoModal = ({
       if (onInscribed) onInscribed();
     } catch (err) {
       console.error("Error procesando inscripción:", err);
+
+      const isNetworkFail = !err.response || err.code === 'ERR_NETWORK' || !navigator.onLine;
+      if (!isPaid && isNetworkFail) {
+        const enqueued = await guardarInscripcionOffline(true);
+        if (enqueued) return;
+      }
+
       const detail = err.response?.data?.detail;
-      notify("Error", typeof detail === "string" ? detail : "No se pudo procesar la inscripción", "error");
+      const statusCode = err.response?.status;
+      const errorTitle = statusCode === 409 ? "Conflicto en Inscripción (409)" : "Error";
+      notify(errorTitle, typeof detail === "string" ? detail : "No se pudo procesar la inscripción", "error");
     } finally {
       setLoading(false);
     }
