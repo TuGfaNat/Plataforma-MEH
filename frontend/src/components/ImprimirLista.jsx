@@ -21,7 +21,6 @@ import {
   Table24Regular,
   ContactCard24Regular,
   Search24Regular,
-  CheckmarkCircle24Filled,
 } from '@fluentui/react-icons';
 import { QRCodeSVG } from 'qrcode.react';
 import { MEHTypography } from './ui';

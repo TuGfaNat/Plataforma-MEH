@@ -88,7 +88,7 @@ const useStyles = makeStyles({
 });
 
 const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
+  if (active && payload?.length) {
     return (
       <div
         style={{
@@ -104,8 +104,8 @@ const CustomTooltip = ({ active, payload, label }) => {
         <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#c084fc' }}>
           Hora: {label}
         </div>
-        {payload.map((entry, index) => (
-          <div key={`item-${index}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '14px', margin: '2px 0' }}>
+        {payload.map((entry) => (
+          <div key={entry.dataKey || entry.name} style={{ display: 'flex', justifyContent: 'space-between', gap: '14px', margin: '2px 0' }}>
             <span style={{ color: entry.color }}>{entry.name}:</span>
             <strong>{entry.value}</strong>
           </div>

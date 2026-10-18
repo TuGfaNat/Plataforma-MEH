@@ -3,6 +3,7 @@ import json
 import csv
 import io
 import codecs
+from pathlib import Path
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
@@ -1222,34 +1223,8 @@ def duplicar_evento(
 # MEH-019: LLEGADAS POR HORA, CHECKPOINTS Y BADGE SOCIAL
 # ==============================================================================
 
-def get_llegadas_evento(db: Session, id_evento: int, user: models.Usuario) -> dict:
-    """Calcula histograma de llegadas por hora y resumen por checkpoints para el evento (Solo Staff o Creador)."""
-    evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
-    if not evento:
-        raise EventoNoEncontradoError()
-
-    es_staff = (
-        has_permission(user.rol, PERMISSION_ATTENDANCE_SCAN) or
-        has_permission(user.rol, PERMISSION_EVENTS_MANAGE) or
-        evento.id_organizador == user.id_usuario
-    )
-    if not es_staff:
-        raise PermisoDenegadoError("No tienes permisos para ver las métricas de llegadas de este evento")
-
-    # Conteos generales
-    total_inscritos = db.query(models.InscripcionEvento).filter(
-        models.InscripcionEvento.id_evento == id_evento,
-        models.InscripcionEvento.estado_inscripcion == "CONFIRMADA"
-    ).count()
-
-    total_asistieron = db.query(models.InscripcionEvento).filter(
-        models.InscripcionEvento.id_evento == id_evento,
-        models.InscripcionEvento.asistio == True
-    ).count()
-
-    pct_asistencia = round((total_asistieron / total_inscritos * 100), 1) if total_inscritos > 0 else 0.0
-
-    # Consultar asistencias por fecha_escaneo
+def _calcular_histograma_llegadas(db: Session, id_evento: int) -> list:
+    """Calcula el histograma acumulativo de llegadas agrupado por hora."""
     detalles = db.query(models.AsistenciaDetalle).join(
         models.InscripcionEvento, models.AsistenciaDetalle.id_inscripcion == models.InscripcionEvento.id_inscripcion
     ).filter(
@@ -1274,7 +1249,6 @@ def get_llegadas_evento(db: Session, id_evento: int, user: models.Usuario) -> di
                 h_str = fec.strftime("%H:00")
                 horas_dict[h_str] = horas_dict.get(h_str, 0) + 1
 
-    # Construir histograma acumulativo ordenado
     histograma = []
     acumulado = 0
     for h in sorted(horas_dict.keys()):
@@ -1285,8 +1259,11 @@ def get_llegadas_evento(db: Session, id_evento: int, user: models.Usuario) -> di
             "cantidad": cant,
             "acumulado": acumulado
         })
+    return histograma
 
-    # Resumen por checkpoint
+
+def _calcular_checkpoints_llegadas(db: Session, id_evento: int, total_asistieron: int) -> list:
+    """Calcula los totales y porcentajes por checkpoint del evento."""
     cps = db.query(models.Checkpoint).filter(
         models.Checkpoint.id_evento == id_evento
     ).order_by(models.Checkpoint.orden.asc()).all()
@@ -1314,6 +1291,39 @@ def get_llegadas_evento(db: Session, id_evento: int, user: models.Usuario) -> di
             "total": total_asistieron,
             "porcentaje": 100.0 if total_asistieron > 0 else 0.0
         })
+
+    return checkpoints_resumen
+
+
+def get_llegadas_evento(db: Session, id_evento: int, user: models.Usuario) -> dict:
+    """Calcula histograma de llegadas por hora y resumen por checkpoints para el evento (Solo Staff o Creador)."""
+    evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
+    if not evento:
+        raise EventoNoEncontradoError()
+
+    es_staff = (
+        has_permission(user.rol, PERMISSION_ATTENDANCE_SCAN) or
+        has_permission(user.rol, PERMISSION_EVENTS_MANAGE) or
+        evento.id_organizador == user.id_usuario
+    )
+    if not es_staff:
+        raise PermisoDenegadoError("No tienes permisos para ver las métricas de llegadas de este evento")
+
+    # Conteos generales
+    total_inscritos = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_evento == id_evento,
+        models.InscripcionEvento.estado_inscripcion == "CONFIRMADA"
+    ).count()
+
+    total_asistieron = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_evento == id_evento,
+        models.InscripcionEvento.asistio == True
+    ).count()
+
+    pct_asistencia = round((total_asistieron / total_inscritos * 100), 1) if total_inscritos > 0 else 0.0
+
+    histograma = _calcular_histograma_llegadas(db, id_evento)
+    checkpoints_resumen = _calcular_checkpoints_llegadas(db, id_evento, total_asistieron)
 
     return {
         "id_evento": evento.id_evento,
@@ -1402,24 +1412,30 @@ def upload_plantilla_badge(
     if not es_staff:
         raise PermisoDenegadoError("No tienes permisos para configurar la plantilla de badge de este evento")
 
-    import time
-    UPLOAD_BADGES_DIR = "static/badges"
-    if not os.path.exists(UPLOAD_BADGES_DIR):
-        os.makedirs(UPLOAD_BADGES_DIR, exist_ok=True)
+    safe_ext_map = {
+        ".png": ".png",
+        ".jpg": ".jpg",
+        ".jpeg": ".jpg",
+        ".webp": ".webp"
+    }
+    normalized_ext = (file_extension or "").lower().strip()
+    if not normalized_ext.startswith("."):
+        normalized_ext = f".{normalized_ext}"
+    safe_ext = safe_ext_map.get(normalized_ext, ".png")
 
-    clean_ext = file_extension.lower().strip()
-    if not clean_ext.startswith("."):
-        clean_ext = f".{clean_ext}"
-    if clean_ext not in [".png", ".jpg", ".jpeg", ".webp"]:
-        clean_ext = ".png"
+    unique_token = uuid.uuid4().hex
+    safe_filename = f"badge_plantilla_evento_{int(id_evento)}_{unique_token}{safe_ext}"
 
-    filename = f"badge_plantilla_evento_{id_evento}_{int(time.time())}{clean_ext}"
-    file_path = os.path.join(UPLOAD_BADGES_DIR, filename)
+    base_dir = Path("static/badges").resolve()
+    base_dir.mkdir(parents=True, exist_ok=True)
 
-    with open(file_path, "wb") as f:
-        f.write(file_content)
+    target_file = (base_dir / safe_filename).resolve()
+    if not target_file.is_relative_to(base_dir):
+        raise ValueError("Invalid target path")
 
-    url_relativa = f"/static/badges/{filename}"
+    target_file.write_bytes(file_content)
+
+    url_relativa = f"/static/badges/{safe_filename}"
     evento.plantilla_badge_url = url_relativa
 
     registrar_log(

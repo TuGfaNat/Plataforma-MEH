@@ -88,6 +88,108 @@ const useStyles = makeStyles({
   },
 });
 
+const drawBackground = async (ctx, width, height, plantillaUrl) => {
+  if (plantillaUrl) {
+    try {
+      const imgTemplate = new Image();
+      imgTemplate.crossOrigin = 'anonymous';
+      imgTemplate.src = resolveApiFileUrl(plantillaUrl);
+      await new Promise((res, rej) => {
+        imgTemplate.onload = res;
+        imgTemplate.onerror = rej;
+      });
+      ctx.drawImage(imgTemplate, 0, 0, width, height);
+      return;
+    } catch {
+      // Usar diseño degradado tech generado si falla la carga
+    }
+  }
+
+  const grad = ctx.createLinearGradient(0, 0, width, height);
+  grad.addColorStop(0, '#090714');
+  grad.addColorStop(0.5, '#120b24');
+  grad.addColorStop(1, '#080512');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, height);
+
+  const glow1 = ctx.createRadialGradient(200, 200, 10, 200, 200, 400);
+  glow1.addColorStop(0, 'rgba(127, 19, 236, 0.45)');
+  glow1.addColorStop(1, 'rgba(127, 19, 236, 0)');
+  ctx.fillStyle = glow1;
+  ctx.fillRect(0, 0, width, height);
+
+  const glow2 = ctx.createRadialGradient(880, 1100, 10, 880, 1100, 450);
+  glow2.addColorStop(0, 'rgba(0, 120, 212, 0.35)');
+  glow2.addColorStop(1, 'rgba(0, 120, 212, 0)');
+  ctx.fillStyle = glow2;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(40, 40, width - 80, height - 80);
+
+  ctx.fillStyle = '#a855f7';
+  ctx.font = 'bold 28px -apple-system, Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('COMUNIDAD MICROSOFT ENGINEERING HUB', width / 2, 110);
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+  ctx.font = '20px -apple-system, Segoe UI, sans-serif';
+  ctx.fillText('PASE OFICIAL DE ASISTENCIA • BOLIVIA', width / 2, 145);
+};
+
+const drawAvatar = async (ctx, avatarX, avatarY, avatarRadius, fotoUrl, nombreCompleto) => {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(avatarX, avatarY, avatarRadius + 8, 0, Math.PI * 2);
+  ctx.fillStyle = '#7f13ec';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(avatarX, avatarY, avatarRadius, 0, Math.PI * 2);
+  ctx.clip();
+
+  let photoDrawn = false;
+  if (fotoUrl) {
+    try {
+      const userPhoto = new Image();
+      userPhoto.crossOrigin = 'anonymous';
+      userPhoto.src = resolveApiFileUrl(fotoUrl);
+      await new Promise((res, rej) => {
+        userPhoto.onload = res;
+        userPhoto.onerror = rej;
+      });
+      ctx.drawImage(
+        userPhoto,
+        avatarX - avatarRadius,
+        avatarY - avatarRadius,
+        avatarRadius * 2,
+        avatarRadius * 2
+      );
+      photoDrawn = true;
+    } catch {
+      photoDrawn = false;
+    }
+  }
+
+  if (!photoDrawn) {
+    ctx.fillStyle = '#2e1065';
+    ctx.fillRect(avatarX - avatarRadius, avatarY - avatarRadius, avatarRadius * 2, avatarRadius * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 80px -apple-system, Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const iniciales = (nombreCompleto || 'M')
+      .split(' ')
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+    ctx.fillText(iniciales, avatarX, avatarY);
+  }
+  ctx.restore();
+};
+
 const BadgeSocialModal = ({ isOpen, onClose, eventoId, eventoTitulo = '' }) => {
   const styles = useStyles();
   const notifyContext = useNotify();
@@ -146,115 +248,13 @@ const BadgeSocialModal = ({ isOpen, onClose, eventoId, eventoTitulo = '' }) => {
 
     const renderCanvas = async () => {
       // 1. FONDO
-      let templateDrawn = false;
-      if (badgeData.plantilla_badge_url) {
-        try {
-          const imgTemplate = new Image();
-          imgTemplate.crossOrigin = 'anonymous';
-          imgTemplate.src = resolveApiFileUrl(badgeData.plantilla_badge_url);
-          await new Promise((res, rej) => {
-            imgTemplate.onload = res;
-            imgTemplate.onerror = rej;
-          });
-          ctx.drawImage(imgTemplate, 0, 0, width, height);
-          templateDrawn = true;
-        } catch {
-          templateDrawn = false;
-        }
-      }
-
-      if (!templateDrawn) {
-        // Fondo degradado tech oscuro
-        const grad = ctx.createLinearGradient(0, 0, width, height);
-        grad.addColorStop(0, '#090714');
-        grad.addColorStop(0.5, '#120b24');
-        grad.addColorStop(1, '#080512');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
-
-        // Acentos luminosos MEH
-        const glow1 = ctx.createRadialGradient(200, 200, 10, 200, 200, 400);
-        glow1.addColorStop(0, 'rgba(127, 19, 236, 0.45)');
-        glow1.addColorStop(1, 'rgba(127, 19, 236, 0)');
-        ctx.fillStyle = glow1;
-        ctx.fillRect(0, 0, width, height);
-
-        const glow2 = ctx.createRadialGradient(880, 1100, 10, 880, 1100, 450);
-        glow2.addColorStop(0, 'rgba(0, 120, 212, 0.35)');
-        glow2.addColorStop(1, 'rgba(0, 120, 212, 0)');
-        ctx.fillStyle = glow2;
-        ctx.fillRect(0, 0, width, height);
-
-        // Marco interior decorativo
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(40, 40, width - 80, height - 80);
-
-        // Encabezado
-        ctx.fillStyle = '#a855f7';
-        ctx.font = 'bold 28px -apple-system, Segoe UI, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('COMUNIDAD MICROSOFT ENGINEERING HUB', width / 2, 110);
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-        ctx.font = '20px -apple-system, Segoe UI, sans-serif';
-        ctx.fillText('PASE OFICIAL DE ASISTENCIA • BOLIVIA', width / 2, 145);
-      }
+      await drawBackground(ctx, width, height, badgeData.plantilla_badge_url);
 
       // 2. FOTO DE PERFIL / AVATAR
       const avatarX = width / 2;
       const avatarY = 410;
       const avatarRadius = 140;
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(avatarX, avatarY, avatarRadius + 8, 0, Math.PI * 2);
-      ctx.fillStyle = '#7f13ec';
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(avatarX, avatarY, avatarRadius, 0, Math.PI * 2);
-      ctx.clip();
-
-      let photoDrawn = false;
-      if (badgeData.foto_perfil_url) {
-        try {
-          const userPhoto = new Image();
-          userPhoto.crossOrigin = 'anonymous';
-          userPhoto.src = resolveApiFileUrl(badgeData.foto_perfil_url);
-          await new Promise((res, rej) => {
-            userPhoto.onload = res;
-            userPhoto.onerror = rej;
-          });
-          ctx.drawImage(
-            userPhoto,
-            avatarX - avatarRadius,
-            avatarY - avatarRadius,
-            avatarRadius * 2,
-            avatarRadius * 2
-          );
-          photoDrawn = true;
-        } catch {
-          photoDrawn = false;
-        }
-      }
-
-      if (!photoDrawn) {
-        ctx.fillStyle = '#2e1065';
-        ctx.fillRect(avatarX - avatarRadius, avatarY - avatarRadius, avatarRadius * 2, avatarRadius * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 80px -apple-system, Segoe UI, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        const iniciales = (badgeData.nombre_completo || 'M')
-          .split(' ')
-          .map((n) => n[0])
-          .slice(0, 2)
-          .join('')
-          .toUpperCase();
-        ctx.fillText(iniciales, avatarX, avatarY);
-      }
-      ctx.restore();
+      await drawAvatar(ctx, avatarX, avatarY, avatarRadius, badgeData.foto_perfil_url, badgeData.nombre_completo);
 
       // 3. ROL PILL
       const rolText = badgeData.rol_evento || 'PARTICIPANTE';
@@ -361,7 +361,7 @@ const BadgeSocialModal = ({ isOpen, onClose, eventoId, eventoTitulo = '' }) => {
       link.href = canvasRef.current.toDataURL('image/png');
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      link.remove();
       notify('Badge Descargado', 'Tu credencial social se guardó como imagen PNG.', 'success');
     } catch (err) {
       console.error('Error al descargar badge PNG:', err);
@@ -378,6 +378,59 @@ const BadgeSocialModal = ({ isOpen, onClose, eventoId, eventoTitulo = '' }) => {
     } catch (err) {
       console.error('Error al copiar texto:', err);
     }
+  };
+
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div style={{ padding: '60px', textAlign: 'center' }}>
+          <Spinner label="Generando tu credencial social..." />
+        </div>
+      );
+    }
+
+    if (errorNotEnrolled) {
+      return (
+        <div className={styles.unauthorizedBox}>
+          <Warning24Filled style={{ fontSize: '48px', color: tokens.colorPaletteYellowForeground1 }} />
+          <MEHTypography variant="h3">Inscripción Requerida</MEHTypography>
+          <MEHTypography variant="body" style={{ maxWidth: '420px', opacity: 0.8 }}>
+            El badge social oficial es exclusivo para miembros con inscripción confirmada en este evento.
+            Inscríbete para desbloquear y personalizar tu pase digital compartible.
+          </MEHTypography>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        {/* CANVAS DE BADGE */}
+        <canvas ref={canvasRef} className={styles.canvasPreview} />
+
+        {/* COPY SUGERIDO PARA REDES */}
+        <div className={styles.copyBox}>
+          <MEHTypography variant="caption" style={{ fontWeight: 'bold' }}>
+            Texto sugerido para redes sociales (LinkedIn, X, Instagram):
+          </MEHTypography>
+          <Textarea
+            value={copyText}
+            onChange={(e, d) => setCopyText(d.value)}
+            rows={3}
+            resize="vertical"
+          />
+          <div className={styles.copyActions}>
+            <Button
+              size="small"
+              appearance="subtle"
+              icon={<Copy24Regular />}
+              onClick={handleCopy}
+            >
+              {copied ? '¡Copiado!' : 'Copiar Texto'}
+            </Button>
+          </div>
+        </div>
+      </>
+    );
   };
 
   return (
@@ -403,48 +456,7 @@ const BadgeSocialModal = ({ isOpen, onClose, eventoId, eventoTitulo = '' }) => {
         </DialogTitle>
 
         <DialogContent className={styles.content}>
-          {loading ? (
-            <div style={{ padding: '60px', textAlign: 'center' }}>
-              <Spinner label="Generando tu credencial social..." />
-            </div>
-          ) : errorNotEnrolled ? (
-            <div className={styles.unauthorizedBox}>
-              <Warning24Filled style={{ fontSize: '48px', color: tokens.colorPaletteYellowForeground1 }} />
-              <MEHTypography variant="h3">Inscripción Requerida</MEHTypography>
-              <MEHTypography variant="body" style={{ maxWidth: '420px', opacity: 0.8 }}>
-                El badge social oficial es exclusivo para miembros con inscripción confirmada en este evento.
-                Inscríbete para desbloquear y personalizar tu pase digital compartible.
-              </MEHTypography>
-            </div>
-          ) : (
-            <>
-              {/* CANVAS DE BADGE */}
-              <canvas ref={canvasRef} className={styles.canvasPreview} />
-
-              {/* COPY SUGERIDO PARA REDES */}
-              <div className={styles.copyBox}>
-                <MEHTypography variant="caption" style={{ fontWeight: 'bold' }}>
-                  Texto sugerido para redes sociales (LinkedIn, X, Instagram):
-                </MEHTypography>
-                <Textarea
-                  value={copyText}
-                  onChange={(e, d) => setCopyText(d.value)}
-                  rows={3}
-                  resize="vertical"
-                />
-                <div className={styles.copyActions}>
-                  <Button
-                    size="small"
-                    appearance="subtle"
-                    icon={<Copy24Regular />}
-                    onClick={handleCopy}
-                  >
-                    {copied ? '¡Copiado!' : 'Copiar Texto'}
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
+          {renderContent()}
         </DialogContent>
 
         <DialogActions>

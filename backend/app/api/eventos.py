@@ -314,7 +314,11 @@ async def upload_plantilla_badge(
     """Carga y actualiza la plantilla de badge social de un evento (Solo Staff)."""
     ip_address = request.client.host if request.client else None
     content = await file.read()
-    ext = os.path.splitext(file.filename or "")[1] or ".png"
+    c_type = (file.content_type or "").lower().strip()
+    raw_ext = os.path.splitext(os.path.basename(file.filename or ""))[1].lower().strip()
+    type_map = {"image/png": ".png", "image/jpeg": ".jpg", "image/jpg": ".jpg", "image/webp": ".webp"}
+    ext_whitelist = {".png": ".png", ".jpg": ".jpg", ".jpeg": ".jpg", ".webp": ".webp"}
+    ext = type_map.get(c_type) or ext_whitelist.get(raw_ext, ".png")
     url = eventos_service.upload_plantilla_badge(
         db=db,
         id_evento=id_evento,
