@@ -1397,7 +1397,7 @@ def upload_plantilla_badge(
     id_evento: int,
     admin_user: models.Usuario,
     file_content: bytes,
-    file_extension: str,
+    file_extension: Optional[str] = None,
     ip_address: Optional[str] = None
 ) -> str:
     """Guarda la plantilla de badge de un evento y actualiza la URL en la base de datos (Solo Staff)."""
@@ -1412,28 +1412,25 @@ def upload_plantilla_badge(
     if not es_staff:
         raise PermisoDenegadoError("No tienes permisos para configurar la plantilla de badge de este evento")
 
-    safe_ext_map = {
-        ".png": ".png",
-        ".jpg": ".jpg",
-        ".jpeg": ".jpg",
-        ".webp": ".webp"
-    }
-    normalized_ext = (file_extension or "").lower().strip()
-    if not normalized_ext.startswith("."):
-        normalized_ext = f".{normalized_ext}"
-    safe_ext = safe_ext_map.get(normalized_ext, ".png")
+    if file_content.startswith(b"\xff\xd8\xff"):
+        safe_ext = ".jpg"
+    elif file_content[:4] == b"RIFF" and file_content[8:12] == b"WEBP":
+        safe_ext = ".webp"
+    else:
+        safe_ext = ".png"
 
     unique_token = uuid.uuid4().hex
     safe_filename = f"badge_plantilla_evento_{int(id_evento)}_{unique_token}{safe_ext}"
 
-    base_dir = Path("static/badges").resolve()
-    base_dir.mkdir(parents=True, exist_ok=True)
+    base_dir = os.path.abspath("static/badges")
+    os.makedirs(base_dir, exist_ok=True)
 
-    target_file = (base_dir / safe_filename).resolve()
-    if not target_file.is_relative_to(base_dir):
-        raise ValueError("Invalid target path")
+    target_path = os.path.abspath(os.path.join(base_dir, safe_filename))
+    if not target_path.startswith(base_dir):
+        raise ValueError("Ruta de archivo no permitida")
 
-    target_file.write_bytes(file_content)
+    with open(target_path, "wb") as f:
+        f.write(file_content)
 
     url_relativa = f"/static/badges/{safe_filename}"
     evento.plantilla_badge_url = url_relativa
