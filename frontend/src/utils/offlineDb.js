@@ -267,6 +267,20 @@ export const eliminarDeCola = async (id) => {
 // NUEVO: GESTIÓN DE COLA DE INSCRIPCIONES OFFLINE
 // ==========================================
 
+const generarIdempotencyKey = () => {
+  if (typeof crypto !== 'undefined') {
+    if (typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    if (typeof crypto.getRandomValues === 'function') {
+      const buffer = new Uint8Array(16);
+      crypto.getRandomValues(buffer);
+      return Array.from(buffer, (b) => b.toString(16).padStart(2, '0')).join('');
+    }
+  }
+  return `offline_${Date.now()}_key`;
+};
+
 export const agregarInscripcionOffline = async ({
   id_evento,
   titulo_evento = '',
@@ -278,9 +292,10 @@ export const agregarInscripcionOffline = async ({
   const colaExistente = await obtenerColaInscripciones();
 
   // Verificar si ya está en cola pendiente para evitar duplicar localmente
+  const idEventoNum = Number.parseInt(id_evento, 10);
   const yaEncolada = colaExistente.some(
     (item) =>
-      item.id_evento === parseInt(id_evento) &&
+      item.id_evento === idEventoNum &&
       (!id_usuario || item.id_usuario === id_usuario) &&
       item.estado === 'PENDIENTE'
   );
@@ -293,13 +308,10 @@ export const agregarInscripcionOffline = async ({
     };
   }
 
-  const idempotency_key =
-    typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `offline_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  const idempotency_key = generarIdempotencyKey();
 
   const nuevoRegistro = {
-    id_evento: parseInt(id_evento),
+    id_evento: idEventoNum,
     titulo_evento: titulo_evento || `Evento #${id_evento}`,
     id_usuario: id_usuario || null,
     correo_usuario: correo_usuario || '',
@@ -463,7 +475,12 @@ export const sincronizarInscripcionItem = async (item, api) => {
 
     // Conflictos conocidos (409 o 400 por cupo/duplicado)
     const isConflict = status === 409 || status === 400;
-    const errorPrefix = status === 409 ? 'Conflicto (409): ' : status ? `[${status}]: ` : 'Error de red: ';
+    let errorPrefix = 'Error de red: ';
+    if (status === 409) {
+      errorPrefix = 'Conflicto (409): ';
+    } else if (status) {
+      errorPrefix = `[${status}]: `;
+    }
     const mensajeError = `${errorPrefix}${detail}`;
 
     await actualizarInscripcionOffline(item.id, {
@@ -487,19 +504,12 @@ export const sincronizarColaInscripciones = async (api) => {
   const cola = await obtenerColaInscripciones();
   const pendientes = cola.filter((i) => i.estado === 'PENDIENTE' || i.estado === 'ERROR');
 
-  let exitosos = 0;
-  let fallidos = 0;
-  const resultados = [];
+  const resultados = await Promise.all(
+    pendientes.map((item) => sincronizarInscripcionItem(item, api))
+  );
 
-  for (const item of pendientes) {
-    const res = await sincronizarInscripcionItem(item, api);
-    resultados.push(res);
-    if (res.success) {
-      exitosos++;
-    } else {
-      fallidos++;
-    }
-  }
+  const exitosos = resultados.filter((r) => r.success).length;
+  const fallidos = resultados.filter((r) => !r.success).length;
 
   return {
     total: pendientes.length,

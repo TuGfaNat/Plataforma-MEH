@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 19  
-**Total de endpoints expuestos:** 127
+**Total de endpoints expuestos:** 129
 
 ---
 
@@ -79,6 +79,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`POST`** | `/api/auth/usuarios/{id_usuario}/restaurar` | Restaura una cuenta de usuario suspendida (Solo ADMIN). | `id_usuario: int` | `200 OK` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/auth/usuarios/{id_usuario}/rol` | Cambia el rango de un usuario (Solo para Administradores). | `id_usuario: int`, `nuevo_rol: str` | `200 OK` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/auth/usuarios/{id_usuario}` | Suspende lógicamente un usuario sin borrado físico (Solo Administradores). | `id_usuario: int` | `204 No Content` | Requiere Auth (JWT) |
+| **`GET`** | `/api/auth/directorio` | Directorio de miembros con métricas y nivel (Solo ADMIN/ORGANIZADOR). | `skip: int`, `limit: int` | `200 OK` | Requiere Auth (JWT) |
 
 ## Módulo `badges` (Prefix: `/insignias`)
 
@@ -129,7 +130,8 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 
 | Método | Endpoint URI | Descripción | Request Payload | Código HTTP | Autorización |
 |---|---|---|---|---|---|
-| **`GET`** | `/api/dashboard/stats` | Obtiene estadísticas de rendimiento y KPIs globales (Solo Administradores). | - | `200 OK` | Requiere Auth (JWT), Permiso audit_read |
+| **`GET`** | `/api/dashboard/stats` | Obtiene estadísticas de rendimiento y KPIs con filtros de eventos (Solo ADMIN/ORGANIZADOR). | - | `200 OK` | Requiere Auth (JWT) |
+| **`GET`** | `/api/dashboard/directorio` | Directorio de miembros con métricas y nivel (Solo ADMIN/ORGANIZADOR). | `skip: int`, `limit: int` | `200 OK` | Requiere Auth (JWT) |
 | **`GET`** | `/api/dashboard/personal-stats` | Obtiene estadísticas personales del miembro logueado (Cualquier usuario). | - | `200 OK` | Requiere Auth (JWT) |
 
 ## Módulo `eventos` (Prefix: `/eventos`)
@@ -168,8 +170,8 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 
 | Método | Endpoint URI | Descripción | Request Payload | Código HTTP | Autorización |
 |---|---|---|---|---|---|
-| **`POST`** | `/api/inscripciones/eventos/{id_evento}` | Inscribe al usuario actual en un evento. | `id_evento: int` | `201 Created` | Requiere Auth (JWT) |
-| **`POST`** | `/api/inscripciones/inscribir/{id_evento}` | Compatibilidad legacy para el flujo de inscripción anterior. | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/inscripciones/eventos/{id_evento}` | Inscribe al usuario actual en un evento con soporte de idempotencia. | `id_evento: int` | `201 Created` | Requiere Auth (JWT) |
+| **`POST`** | `/api/inscripciones/inscribir/{id_evento}` | Compatibilidad legacy para el flujo de inscripción anterior con idempotencia. | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
 | **`GET`** | `/api/inscripciones/eventos/mis-inscripciones` | Obtiene el historial de inscripciones del usuario actual. | - | `200 OK` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/inscripciones/eventos/{id_inscripcion}` | Cancela una inscripción pendiente. | `id_inscripcion: int` | `204 No Content` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/inscripciones/eventos/{id_inscripcion}/aprobar` | Aprueba a un participante en lista de espera (Solo Staff). | `id_inscripcion: int` | `200 OK` | Requiere Auth (JWT) |

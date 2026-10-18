@@ -4,7 +4,6 @@ import {
   DialogSurface,
   DialogTitle,
   DialogContent,
-  DialogBody,
   DialogActions,
   Button,
   Badge,
@@ -26,7 +25,6 @@ import {
   Delete24Regular,
   CalendarStar24Regular,
   QrCode24Regular,
-  Info24Regular,
 } from '@fluentui/react-icons';
 import { MEHTypography } from './ui';
 import * as offlineDb from '../utils/offlineDb';
@@ -181,14 +179,16 @@ const SyncQueuePanel = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
-      cargarColas();
+      void cargarColas();
     }
   }, [isOpen]);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    const handleQueueUpdated = () => cargarColas();
+    const handleQueueUpdated = () => {
+      void cargarColas();
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -290,23 +290,27 @@ const SyncQueuePanel = ({ isOpen, onClose }) => {
       const resIns = await offlineDb.sincronizarColaInscripciones(api);
 
       // 2. Sincronizar asistencias QR
-      let exitososAsis = 0;
-      let fallidosAsis = 0;
-      for (const asisItem of asistencias) {
-        try {
-          await asistenciaService.registrarPorQR(asisItem.codigo_qr, asisItem.id_checkpoint);
-          await offlineDb.eliminarDeCola(asisItem.id);
-          exitososAsis++;
-        } catch (err) {
-          const detail = err.response?.data?.detail || '';
-          if (detail.includes('ya fue escaneada') || detail.includes('Ya se registró asistencia')) {
+      const resultadosAsis = await Promise.allSettled(
+        asistencias.map(async (asisItem) => {
+          try {
+            await asistenciaService.registrarPorQR(asisItem.codigo_qr, asisItem.id_checkpoint);
             await offlineDb.eliminarDeCola(asisItem.id);
-            exitososAsis++;
-          } else {
-            fallidosAsis++;
+            return { success: true };
+          } catch (err) {
+            const detail = err.response?.data?.detail || '';
+            if (detail.includes('ya fue escaneada') || detail.includes('Ya se registró asistencia')) {
+              await offlineDb.eliminarDeCola(asisItem.id);
+              return { success: true };
+            }
+            return { success: false };
           }
-        }
-      }
+        })
+      );
+
+      const exitososAsis = resultadosAsis.filter(
+        (r) => r.status === 'fulfilled' && r.value.success
+      ).length;
+      const fallidosAsis = asistencias.length - exitososAsis;
 
       await cargarColas();
 

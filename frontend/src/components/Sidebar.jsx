@@ -136,6 +136,14 @@ const useStyles = makeStyles({
     color: tokens.colorBrandForeground1,
     fontWeight: "bold",
   },
+  navButtonReset: {
+    backgroundColor: "transparent",
+    ...shorthands.border("none"),
+    width: "100%",
+    textAlign: "left",
+    font: "inherit",
+    boxSizing: "border-box",
+  },
   footer: {
     marginTop: "auto",
     paddingTop: "24px",
@@ -184,9 +192,11 @@ const Sidebar = ({ onClose }) => {
   };
 
   useEffect(() => {
-    actualizarConteoOffline();
+    void actualizarConteoOffline();
 
-    const handler = () => actualizarConteoOffline();
+    const handler = () => {
+      void actualizarConteoOffline();
+    };
     window.addEventListener("meh_offline_sync_updated", handler);
     window.addEventListener("online", handler);
     window.addEventListener("offline", handler);
@@ -240,23 +250,16 @@ const Sidebar = ({ onClose }) => {
 
     if (onClick) {
       return (
-        <div
-          role="button"
-          tabIndex={0}
-          className={mergeClasses(styles.navItem, active && styles.navActive)}
+        <button
+          type="button"
+          className={mergeClasses(styles.navItem, styles.navButtonReset, active && styles.navActive)}
           onClick={() => {
             onClick();
             if (onClose) onClose();
           }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              onClick();
-              if (onClose) onClose();
-            }
-          }}
         >
           {content}
-        </div>
+        </button>
       );
     }
 
