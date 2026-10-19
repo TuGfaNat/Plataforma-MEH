@@ -75,6 +75,7 @@ describe('MEH-009: Manejo de 403 y Pantalla de Acceso Denegado', () => {
     const originalLocation = window.location;
     delete window.location;
     window.location = {
+      ...originalLocation,
       pathname: '/auditoria',
       href: 'http://localhost:5173/auditoria'
     };
@@ -86,6 +87,7 @@ describe('MEH-009: Manejo de 403 y Pantalla de Acceso Denegado', () => {
       await expect(responseInterceptor(error403)).rejects.toEqual(error403);
       expect(window.location.href).toBe('/acceso-denegado');
     } finally {
+      delete window.location;
       window.location = originalLocation;
     }
   });
