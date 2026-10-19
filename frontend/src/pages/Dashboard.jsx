@@ -216,6 +216,26 @@ const Dashboard = () => {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [selectedBadgeEvento, setSelectedBadgeEvento] = useState(null);
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
+  const [cancelingInscripcion, setCancelingInscripcion] = useState(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  const handleConfirmCancelInscripcion = async () => {
+    if (!cancelingInscripcion) return;
+    setCancelLoading(true);
+    try {
+      await eventoService.cancelarInscripcion(cancelingInscripcion.id_inscripcion);
+      if (notify) {
+        notify("Inscripción Cancelada", `Se canceló tu inscripción a "${cancelingInscripcion.titulo_evento}". El cupo ha sido liberado.`, "success");
+      }
+      setCancelingInscripcion(null);
+      await fetchData();
+    } catch (err) {
+      const msg = err.response?.data?.detail || "No se pudo cancelar la inscripción";
+      if (notify) notify("Error", msg, "error");
+    } finally {
+      setCancelLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     if (!user) return;
@@ -251,9 +271,9 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (user) {
-      fetchData();
+      void fetchData();
     }
-  }, [user]);
+  }, [user?.id_usuario]);
 
   const handleInscribirse = async (idEvento) => {
     setSubmittingInscripcion(idEvento);
@@ -527,8 +547,16 @@ const Dashboard = () => {
                       ) : isInscribed?.estado_inscripcion === 'PENDIENTE_APROBACION' ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <Badge appearance="tint" color="informative">En lista de espera</Badge>
+                            <MEHButton 
+                              appearance="subtle" 
+                              size="small" 
+                              style={{ color: tokens.colorPaletteRedForeground1 }}
+                              onClick={() => setCancelingInscripcion({ id_inscripcion: isInscribed.id_inscripcion, titulo_evento: evento.titulo })}
+                            >
+                              Cancelar
+                            </MEHButton>
                           </div>
-                      ) : isInscribed ? (
+                      ) : isInscribed && isInscribed.estado_inscripcion !== 'CONFIRMADA' ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Badge appearance="outline" color="warning">Pendiente pago</Badge>
                             <MEHButton 
@@ -537,6 +565,14 @@ const Dashboard = () => {
                               onClick={() => navigate('/finanzas')}
                             >
                               Pagar
+                            </MEHButton>
+                            <MEHButton 
+                              appearance="subtle" 
+                              size="small" 
+                              style={{ color: tokens.colorPaletteRedForeground1 }}
+                              onClick={() => setCancelingInscripcion({ id_inscripcion: isInscribed.id_inscripcion, titulo_evento: evento.titulo })}
+                            >
+                              Cancelar
                             </MEHButton>
                           </div>
                       ) : (
@@ -789,6 +825,45 @@ const Dashboard = () => {
           eventoId={selectedBadgeEvento?.id_evento} 
           eventoTitulo={selectedBadgeEvento?.titulo} 
         />
+
+        {/* Modal Confirmación Cancelar Inscripción (MEH-007) */}
+        <Dialog 
+          open={Boolean(cancelingInscripcion)} 
+          onOpenChange={(e, data) => { 
+            if (!data.open && !cancelLoading) setCancelingInscripcion(null); 
+          }}
+        >
+          <DialogSurface>
+            <DialogBody>
+              <DialogTitle>Cancelar Inscripción</DialogTitle>
+              <DialogContent style={{ padding: '16px 0' }}>
+                <MEHTypography variant="body" style={{ display: 'block', marginBottom: '8px' }}>
+                  ¿Estás seguro de que deseas cancelar tu inscripción a <b>{cancelingInscripcion?.titulo_evento}</b>?
+                </MEHTypography>
+                <MEHTypography variant="caption" style={{ opacity: 0.7, display: 'block' }}>
+                  Esta acción liberará tu cupo inmediatamente para otros participantes.
+                </MEHTypography>
+              </DialogContent>
+              <DialogActions>
+                <MEHButton 
+                  appearance="secondary" 
+                  onClick={() => setCancelingInscripcion(null)} 
+                  disabled={cancelLoading}
+                >
+                  Volver
+                </MEHButton>
+                <MEHButton 
+                  appearance="primary" 
+                  onClick={() => { void handleConfirmCancelInscripcion(); }} 
+                  disabled={cancelLoading}
+                  style={{ backgroundColor: tokens.colorPaletteRedBackground3, color: tokens.colorPaletteRedForegroundInverted }}
+                >
+                  {cancelLoading ? "Cancelando..." : "Sí, cancelar inscripción"}
+                </MEHButton>
+              </DialogActions>
+            </DialogBody>
+          </DialogSurface>
+        </Dialog>
       </div>
     );
   };

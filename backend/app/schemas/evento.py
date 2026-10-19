@@ -34,7 +34,7 @@ class EventoBase(BaseModel):
     ubicacion: Optional[str] = None
     link_mapas: Optional[str] = None
     agenda: Optional[str] = None # JSON string
-    capacidad_max: int = 50
+    capacidad_max: Optional[int] = 50
     capacidad_maxima: Optional[int] = None
     imagen_url: Optional[str] = None
     plantilla_badge_url: Optional[str] = None
