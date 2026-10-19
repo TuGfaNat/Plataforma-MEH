@@ -9,6 +9,7 @@ from typing import Optional, List, Dict, Tuple
 import logging
 import qrcode
 from pydantic import EmailStr, ValidationError, TypeAdapter
+from sqlalchemy.orm import Session
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -61,12 +62,64 @@ def validate_email(email: str) -> bool:
         return False
 
 
+def registrar_log_fallo_email(
+    to_email: str,
+    subject: str,
+    error_msg: str,
+    db: Optional[Session] = None,
+    id_admin: Optional[int] = None
+):
+    """Registra de manera robusta fallos de envío de correo en la tabla de auditoría (logs_sistema)."""
+    close_db = False
+    active_db = db
+    if active_db is None:
+        try:
+            from ..database import SessionLocal
+            active_db = SessionLocal()
+            close_db = True
+        except Exception as e:
+            logger.error(f"No se pudo inicializar sesión de BD para auditoría de email: {e}")
+            return
+
+    try:
+        from ..core.logging import registrar_log
+        from ..models import models
+
+        admin_id = id_admin
+        if admin_id is None:
+            admin_user = active_db.query(models.Usuario).filter(models.Usuario.rol == "ADMIN").first()
+            if admin_user:
+                admin_id = admin_user.id_usuario
+
+        registrar_log(
+            db=active_db,
+            id_admin=admin_id,
+            accion="FALLO_ENVIO_EMAIL",
+            tabla_afectada="notificaciones_email",
+            id_registro_afectado=None,
+            valor_anterior=None,
+            valor_nuevo={
+                "destinatario": to_email,
+                "asunto": subject,
+                "error": str(error_msg),
+                "tipo_fallo": "SMTP_ERROR"
+            }
+        )
+    except Exception as ex:
+        logger.error(f"Error al registrar fallo de email en auditoría: {ex}")
+    finally:
+        if close_db and active_db:
+            active_db.close()
+
+
 def send_email(
     to_email: str, 
     subject: str, 
     html_content: str, 
     retry_count: int = 3,
-    images: Optional[Dict[str, Tuple[bytes, str]]] = None
+    images: Optional[Dict[str, Tuple[bytes, str]]] = None,
+    db: Optional[Session] = None,
+    id_admin: Optional[int] = None
 ) -> bool:
     """
     Función base para envío de correos vía SMTP
@@ -77,6 +130,8 @@ def send_email(
         html_content: Contenido HTML
         retry_count: Número de reintentos en caso de fallo
         images: Diccionario opcional de imágenes inline {cid: (bytes, subtype)}
+        db: Sesión de base de datos opcional para trazabilidad
+        id_admin: Identificador del administrador o ejecutor opcional
     
     Returns:
         bool: True si se envió, False si falló
@@ -84,12 +139,16 @@ def send_email(
     
     # Validar que SMTP esté configurado
     if not is_smtp_configured():
-        logger.warning(f"⚠️ Correo NO enviado a {to_email}: SMTP no configurado")
+        msg = f"SMTP no configurado (servidor={SMTP_HOST})"
+        logger.warning(f"⚠️ Correo NO enviado a {to_email}: {msg}")
+        registrar_log_fallo_email(to_email, subject, msg, db=db, id_admin=id_admin)
         return False
     
     # Validar email destinatario
     if not validate_email(to_email):
-        logger.error(f"❌ No se puede enviar a {to_email}: Email inválido")
+        msg = f"Email destinatario inválido: {to_email}"
+        logger.error(f"❌ {msg}")
+        registrar_log_fallo_email(to_email, subject, msg, db=db, id_admin=id_admin)
         return False
     
     try:
@@ -126,25 +185,33 @@ def send_email(
                 return True
                 
             except smtplib.SMTPAuthenticationError as e:
-                logger.error(f"❌ Error de autenticación SMTP: {e}")
+                msg = f"Error de autenticación SMTP: {e}"
+                logger.error(f"❌ {msg}")
+                registrar_log_fallo_email(to_email, subject, msg, db=db, id_admin=id_admin)
                 return False
             except smtplib.SMTPException as e:
                 attempt += 1
                 if attempt < retry_count:
                     logger.warning(f"⚠️ Intento {attempt}/{retry_count} fallido enviando a {to_email}: {e}")
                 else:
-                    logger.error(f"❌ Error SMTP después de {retry_count} intentos: {e}")
+                    msg = f"Error SMTP después de {retry_count} intentos: {e}"
+                    logger.error(f"❌ {msg}")
+                    registrar_log_fallo_email(to_email, subject, msg, db=db, id_admin=id_admin)
                     return False
-            except TimeoutError:
+            except TimeoutError as e:
                 attempt += 1
                 if attempt < retry_count:
                     logger.warning(f"⚠️ Timeout en intento {attempt}/{retry_count}")
                 else:
-                    logger.error(f"❌ Timeout SMTP después de {retry_count} intentos")
+                    msg = f"Timeout SMTP después de {retry_count} intentos: {e}"
+                    logger.error(f"❌ {msg}")
+                    registrar_log_fallo_email(to_email, subject, msg, db=db, id_admin=id_admin)
                     return False
                     
     except Exception as e:
-        logger.error(f"❌ Error inesperado enviando email a {to_email}: {e}", exc_info=True)
+        msg = f"Error inesperado enviando email a {to_email}: {e}"
+        logger.error(f"❌ {msg}", exc_info=True)
+        registrar_log_fallo_email(to_email, subject, msg, db=db, id_admin=id_admin)
         return False
 
 

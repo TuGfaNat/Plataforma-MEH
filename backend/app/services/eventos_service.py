@@ -527,6 +527,9 @@ def registrar_asistencia_qr(
     if not inscripcion:
         raise ValidacionNegocioError("El código QR no pertenece a ninguna inscripción válida")
 
+    if inscripcion.id_usuario == staff_user.id_usuario:
+        raise ValidacionNegocioError("No está permitido auto-escanear tu propio código QR de asistencia")
+
     if inscripcion.estado_inscripcion != "CONFIRMADA":
         if inscripcion.estado_inscripcion == "PENDIENTE_APROBACION":
             raise ValidacionNegocioError("La inscripción está en lista de espera (PENDIENTE_APROBACION). Requiere confirmación/ampliación del cupo.")

@@ -80,14 +80,14 @@ const AccesoDenegado = () => {
     <div className={styles.container}>
       <MEHCard className={styles.card}>
         <div className={styles.badgeRestrict}>
-          Error 403
+          Error 403 — Acceso Denegado
         </div>
         
         <ShieldLock48Filled className={styles.iconGlow} />
         
         <div>
-          <MEHTypography variant="h1" style={{ fontSize: '2.2rem', fontWeight: 900, letterSpacing: '-0.5px', color: '#FFF' }}>
-            Acceso Restringido
+          <MEHTypography role="heading" aria-level={1} variant="h1" style={{ fontSize: '2.2rem', fontWeight: 900, letterSpacing: '-0.5px', color: '#FFF' }}>
+            Acceso Denegado
           </MEHTypography>
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '12px', marginBottom: '8px' }}>
             <div className={styles.divider} />

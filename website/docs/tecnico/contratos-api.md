@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 19  
-**Total de endpoints expuestos:** 142
+**Total de endpoints expuestos:** 143
 
 ---
 
@@ -131,7 +131,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 
 | Método | Endpoint URI | Descripción | Request Payload | Código HTTP | Autorización |
 |---|---|---|---|---|---|
-| **`GET`** | `/api/dashboard/stats` | Obtiene estadísticas de rendimiento y KPIs con filtros de eventos (Solo ADMIN/ORGANIZADOR). | - | `200 OK` | Requiere Auth (JWT) |
+| **`GET`** | `/api/dashboard/stats` | Obtiene estadísticas de rendimiento y KPIs con filtros de eventos (Solo ADMIN/ORGANIZADOR). | - | `200 OK` | Requiere Auth (JWT), Permiso audit_read |
 | **`GET`** | `/api/dashboard/directorio` | Directorio de miembros con métricas y nivel (Solo ADMIN/ORGANIZADOR). | `skip: int`, `limit: int` | `200 OK` | Requiere Auth (JWT) |
 | **`GET`** | `/api/dashboard/personal-stats` | Obtiene estadísticas personales del miembro logueado (Cualquier usuario). | - | `200 OK` | Requiere Auth (JWT) |
 
@@ -203,6 +203,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 
 | Método | Endpoint URI | Descripción | Request Payload | Código HTTP | Autorización |
 |---|---|---|---|---|---|
+| **`GET`** | `/api/logs` | Consulta la trazabilidad total de acciones en el sistema (Solo Administradores). | `skip: int`, `limit: int` | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
 | **`GET`** | `/api/logs` | Consulta la trazabilidad total de acciones en el sistema (Solo Administradores). | `skip: int`, `limit: int` | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
 
 ## Módulo `pagos` (Prefix: `/pagos`)

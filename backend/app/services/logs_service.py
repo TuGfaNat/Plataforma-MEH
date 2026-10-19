@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
 from ..models import models
-from ..core.permissions import PERMISSION_AUDIT_READ, has_permission
+from ..core.permissions import ensure_admin
 from ..core.exceptions import PermisoDenegadoError
 
 def get_logs_auditoria(
@@ -16,10 +16,9 @@ def get_logs_auditoria(
     limit: int = 100
 ) -> List[dict]:
     """Obtiene la trazabilidad total de acciones en el sistema con parseo de JSON inteligente."""
-    if not has_permission(admin_role, PERMISSION_AUDIT_READ):
-        raise PermisoDenegadoError("No tienes privilegios para consultar la auditoría")
+    ensure_admin(admin_role, "Solo administradores pueden consultar la auditoría del sistema")
     
-    query = db.query(models.LogSistema, models.Usuario).join(
+    query = db.query(models.LogSistema, models.Usuario).outerjoin(
         models.Usuario, models.LogSistema.id_admin == models.Usuario.id_usuario
     )
     
@@ -42,9 +41,10 @@ def get_logs_auditoria(
             except (json.JSONDecodeError, TypeError):
                 return val # Devolver como texto si no es JSON válido
 
+        admin_name = f"{log.Usuario.nombres} {log.Usuario.apellidos}" if log.Usuario else "Sistema"
         resultado.append({
             "id_log": log.LogSistema.id_log,
-            "admin_name": f"{log.Usuario.nombres} {log.Usuario.apellidos}",
+            "admin_name": admin_name,
             "accion": log.LogSistema.accion,
             "tabla_afectada": log.LogSistema.tabla_afectada,
             "id_registro_afectado": log.LogSistema.id_registro_afectado,

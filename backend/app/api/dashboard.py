@@ -5,7 +5,7 @@ from ..services import dashboard_service
 from ..api.auth import get_current_user
 from ..models import models
 from typing import Optional, List
-from ..core.permissions import ADMIN_OR_ORGANIZER_ROLES, ensure_roles
+from ..core.permissions import ADMIN_OR_ORGANIZER_ROLES, ensure_roles, ensure_permission, PERMISSION_AUDIT_READ
 from ..services import auth_service
 from ..schemas import user as user_schema
 
@@ -24,6 +24,7 @@ def get_stats(
     current_user: models.Usuario = Depends(get_current_user)
 ):
     """Obtiene estadísticas de rendimiento y KPIs con filtros de eventos (Solo ADMIN/ORGANIZADOR)."""
+    ensure_permission(current_user.rol, PERMISSION_AUDIT_READ, "No tienes privilegios para consultar estadísticas del dashboard")
     return dashboard_service.get_filtered_dashboard_stats(
         db=db,
         current_user=current_user,

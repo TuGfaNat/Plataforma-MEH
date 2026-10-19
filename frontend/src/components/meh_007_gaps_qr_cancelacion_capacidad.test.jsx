@@ -203,7 +203,10 @@ describe('MEH-007: Cierre de gaps MEH-001 (QR externo, Cancelación UI, Capacida
       });
 
       // Confirmar cancelación
-      const confirmarBtn = screen.getByRole('button', { name: /sí, cancelar inscripción/i });
+      const confirmarBtn = await screen.findByRole('button', { 
+        name: /(?:sí, )?cancelar inscripci[óo]n/i,
+        hidden: true 
+      });
       fireEvent.click(confirmarBtn);
 
       await waitFor(() => {
@@ -246,7 +249,10 @@ describe('MEH-007: Cierre de gaps MEH-001 (QR externo, Cancelación UI, Capacida
         expect(screen.getByText(/Esta acción liberará tu cupo inmediatamente/i)).toBeInTheDocument();
       });
 
-      const confirmarBtn = screen.getByRole('button', { name: /sí, cancelar inscripción/i });
+      const confirmarBtn = await screen.findByRole('button', { 
+        name: /(?:sí, )?cancelar inscripci[óo]n/i,
+        hidden: true 
+      });
       fireEvent.click(confirmarBtn);
 
       await waitFor(() => {

@@ -1,7 +1,7 @@
 import os
 import logging
 import time
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -78,6 +78,16 @@ app.include_router(learning_path.router)
 app.include_router(souvenirs.router)
 app.include_router(certificados_admin.router)
 app.include_router(papelera.router)
+
+@app.get("/stats", include_in_schema=False)
+def get_stats_direct(
+    db = Depends(dashboard.get_db),
+    current_user = Depends(auth.get_current_user)
+):
+    from app.core.permissions import ensure_permission, PERMISSION_AUDIT_READ
+    ensure_permission(current_user.rol, PERMISSION_AUDIT_READ, "No tienes privilegios para consultar estadísticas del dashboard")
+    from app.services import dashboard_service
+    return dashboard_service.get_filtered_dashboard_stats(db=db, current_user=current_user)
 
 @app.get("/health")
 def health_check():
