@@ -194,13 +194,25 @@ const BadgeForm = ({ onSuccess, editingBadge, onCancel }) => {
                     onChange={(e, d) => setFormData({...formData, imagen_url: d.value})} 
                     placeholder="URL de la imagen (o sube un archivo)"
                 />
-                <div className={styles.uploadBox}>
+                <div 
+                    className={styles.uploadBox}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Subir archivo de imagen para la insignia"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        e.currentTarget.querySelector('input[type=file]')?.click();
+                      }
+                    }}
+                >
                     {uploading ? <Spinner size="tiny" /> : (
                         <>
-                            <ArrowUpload24Regular style={{ fontSize: '24px', opacity: 0.5, marginBottom: '8px' }} />
+                            <ArrowUpload24Regular style={{ fontSize: '24px', opacity: 0.5, marginBottom: '8px' }} aria-hidden="true" />
                             <MEHTypography variant="caption" style={{ display: 'block' }}>Arrastra un archivo (.png, .jpg) para subir</MEHTypography>
                             <input 
                                 type="file" 
+                                aria-label="Subir archivo de imagen para la insignia"
                                 onChange={handleFileUpload} 
                                 accept="image/*"
                                 style={{ opacity: 0, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', cursor: 'pointer' }}
@@ -212,7 +224,7 @@ const BadgeForm = ({ onSuccess, editingBadge, onCancel }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
                 <Label>Vista Previa</Label>
                 <div style={{ width: '120px', height: '120px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '12px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {formData.imagen_url ? <img src={formData.imagen_url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <Trophy24Filled style={{ fontSize: '48px', opacity: 0.1 }} />}
+                    {formData.imagen_url ? <img src={formData.imagen_url} alt="Vista previa de la insignia" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <Trophy24Filled style={{ fontSize: '48px', opacity: 0.1 }} />}
                 </div>
             </div>
         </div>

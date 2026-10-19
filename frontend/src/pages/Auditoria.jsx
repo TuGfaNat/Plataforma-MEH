@@ -124,6 +124,7 @@ const ValuePresenter = ({ value, isOld = false }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
                 <Avatar 
                     size={48} 
+                    name={value.split('/').pop() || 'Archivo multimedia'}
                     image={{ src: resolveApiFileUrl(value) }} 
                     style={{ border: `2px solid ${isOld ? tokens.colorPaletteRedBorder1 : tokens.colorPaletteGreenBorder1}` }}
                 />

@@ -301,7 +301,7 @@ const Sidebar = ({ onClose }) => {
   return (
     <aside className={styles.sidebar}>
       <Link to="/" className={styles.logoContainer}>
-        <img src={designTokens.logo} alt="logo" className={styles.logoImg} />
+        <img src={designTokens.logo} alt="Logotipo de Plataforma MEH" className={styles.logoImg} />
         <Body1
           style={{
             fontWeight: tokens.fontWeightBlack,

@@ -194,16 +194,26 @@ const GestionPagos = () => {
           </MEHTypography>
           <div 
             className={styles.dropzone}
+            role="button"
+            tabIndex={0}
+            aria-label="Subir extracto bancario (.csv, .xlsx). Presiona Enter o Espacio para seleccionar archivo"
             onClick={() => fileInputRef.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
           >
             <input 
               type="file" 
               ref={fileInputRef} 
               accept=".csv,.xlsx" 
+              aria-label="Subir extracto bancario (.csv, .xlsx)"
               style={{ display: 'none' }} 
               onChange={handleFileUpload}
             />
-            <DocumentArrowUpRegular style={{ fontSize: '48px', color: tokens.colorBrandForeground1, marginBottom: '16px' }} />
+            <DocumentArrowUpRegular style={{ fontSize: '48px', color: tokens.colorBrandForeground1, marginBottom: '16px' }} aria-hidden="true" />
             <MEHTypography variant="h4">Haz clic para subir extracto bancario (.csv, .xlsx)</MEHTypography>
             <MEHTypography variant="body" style={{ opacity: 0.7 }}>
               El sistema cruzará los datos del banco con los pagos pendientes en el sistema.

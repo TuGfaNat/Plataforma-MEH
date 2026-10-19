@@ -11,7 +11,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { designTokens } from "../theme/theme";
 import { MEHButton, MEHCard, MEHTypography } from "../components/ui";
-import { useTheme } from "../App";
 import eventoService from "../services/eventoService";
 import cursoService from "../services/cursoService";
 
@@ -32,6 +31,7 @@ import {
 } from "@fluentui/react-icons";
 
 import { MEHFooter } from "../components/layout/MEHFooter";
+import { LandingHeader } from "../components/layout/LandingHeader";
 import LearningPathModal from "../components/LearningPathModal";
 
 const useStyles = makeStyles({
@@ -290,9 +290,8 @@ const useStyles = makeStyles({
 
 const Landing = () => {
   const styles = useStyles();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const { currentTheme, toggleTheme } = useTheme();
 
   const [eventos, setEventos] = useState([]);
   const [cursos, setCursos] = useState([]);
@@ -310,11 +309,6 @@ const Landing = () => {
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
-
-  const changeLanguage = () => {
-    const nextLang = i18n.language === "es" ? "en" : "es";
-    i18n.changeLanguage(nextLang);
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -370,73 +364,7 @@ const Landing = () => {
       <div className={`${styles.blob} ${styles.blob2}`} />
       <div className={`${styles.blob} ${styles.blob3}`} />
 
-      <header className={styles.header}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <img src={designTokens.logo} alt="logo" style={{ width: "40px" }} />
-          <MEHTypography
-            variant="h3"
-            style={{ fontWeight: tokens.fontWeightBold }}
-          >
-            MEH
-          </MEHTypography>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <MEHButton
-            appearance="subtle"
-            onClick={() => navigate("/validador-publico")}
-            style={{ marginRight: "8px" }}
-          >
-            {t("verificar_talento")}
-          </MEHButton>
-          <MEHButton
-            appearance="subtle"
-            icon={<Translate24Regular />}
-            onClick={changeLanguage}
-            title="Cambiar Idioma / Change Language"
-          />
-          <MEHButton
-            appearance="subtle"
-            icon={
-              currentTheme === "light" ? (
-                <WeatherMoon24Regular />
-              ) : currentTheme === "dark" ? (
-                <WeatherSunny24Regular />
-              ) : currentTheme === "blue" ? (
-                <Globe24Regular />
-              ) : currentTheme === "ash" ? (
-                <Library24Regular />
-              ) : (
-                <ShieldCheckmark24Filled />
-              )
-            }
-            onClick={toggleTheme}
-            title={
-              currentTheme === "dark"
-                ? "Cambiar a Modo Claro"
-                : currentTheme === "light"
-                  ? "Cambiar a Modo Blue"
-                  : currentTheme === "blue"
-                    ? "Cambiar a Modo Ceniza"
-                    : currentTheme === "ash"
-                      ? "Cambiar a Modo Alto Contraste"
-                      : "Cambiar a Modo Oscuro"
-            }
-          />
-          <Link
-            to="/login"
-            style={{ textDecoration: "none", marginLeft: "12px" }}
-          >
-            <MEHButton
-              shape="circular"
-              appearance="outline"
-              className={styles.headerButton}
-            >
-              {t("enter_portal")}
-            </MEHButton>
-          </Link>
-        </div>
-      </header>
+      <LandingHeader />
 
       <section className={styles.hero}>
         <div className={styles.heroContent}>
@@ -501,7 +429,7 @@ const Landing = () => {
                 <MEHCard key={evento.id_evento} className={styles.card}>
                   <img
                     src={evento.imagen_url || DEFAULT_EVENT_IMG}
-                    alt="banner"
+                    alt={`Portada del evento ${evento.titulo}`}
                     className={styles.cardImage}
                   />
                   <div className={styles.cardContent}>
@@ -616,7 +544,7 @@ const Landing = () => {
               <MEHCard key={curso.id_curso} className={styles.card}>
                 <img
                   src={curso.imagen_url || DEFAULT_COURSE_IMG}
-                  alt="banner"
+                  alt={`Portada del curso ${curso.titulo}`}
                   className={styles.cardImage}
                 />
                 <div className={styles.cardContent}>

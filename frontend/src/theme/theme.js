@@ -97,10 +97,14 @@ export const colorblindTheme = {
   colorNeutralBackground1: "#070B14",
   colorNeutralBackground2: "#0E1626",
   colorNeutralBackground3: "#16233B",
+  colorNeutralBackground4: "#1E2E4B",
   colorBrandBackground: "#2274CC",
   colorBrandForeground1: "#5CA4F5",
   colorNeutralForeground1: "#FFFFFF",
   colorNeutralForeground2: "#D9E5F5",
+  colorNeutralForeground3: "#8BAECC",
+  colorNeutralStroke1: "#1E3557",
+  colorNeutralStroke2: "#14253E",
   // Paleta CUD sin confusión rojo/verde
   colorPaletteRedForeground1: "#E69F00", // Naranja / Bermellón CUD para errores
   colorPaletteRedBackground1: "#3D2400",

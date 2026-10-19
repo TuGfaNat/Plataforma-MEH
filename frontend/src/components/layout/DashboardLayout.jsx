@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { makeStyles, tokens, Button, mergeClasses } from '@fluentui/react-components';
 import { Navigation24Filled, Dismiss24Filled } from '@fluentui/react-icons';
 import { Outlet, useLocation } from 'react-router-dom';
@@ -107,11 +107,56 @@ const DashboardLayout = ({ children }) => {
   const styles = useStyles();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
+  const mobileSidebarRef = useRef(null);
 
   // Cerrar sidebar al cambiar de ruta en móvil
   useEffect(() => {
     setIsSidebarOpen(false);
-  }, [location]);
+  }, [location?.pathname]);
+
+  // Cerrar drawer móvil con la tecla Escape
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsSidebarOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSidebarOpen]);
+
+  // Focus trap en drawer móvil cuando está abierto
+  useEffect(() => {
+    if (isSidebarOpen && mobileSidebarRef.current) {
+      const focusable = mobileSidebarRef.current.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length > 0) {
+        focusable[0].focus();
+      }
+
+      const handleTrap = (e) => {
+        if (e.key !== 'Tab') return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      };
+
+      window.addEventListener('keydown', handleTrap);
+      return () => window.removeEventListener('keydown', handleTrap);
+    }
+  }, [isSidebarOpen]);
 
   return (
     <div className={styles.layout}>
@@ -121,27 +166,44 @@ const DashboardLayout = ({ children }) => {
       </div>
 
       {/* Mobile Sidebar */}
-      <div className={mergeClasses(
-        styles.sidebarContainer,
-        isSidebarOpen ? styles.sidebarVisible : styles.sidebarHidden
-      )}>
+      <div 
+        ref={mobileSidebarRef}
+        role="dialog"
+        aria-modal={isSidebarOpen ? "true" : undefined}
+        aria-label="Menú de navegación móvil"
+        aria-hidden={!isSidebarOpen}
+        className={mergeClasses(
+          styles.sidebarContainer,
+          isSidebarOpen ? styles.sidebarVisible : styles.sidebarHidden
+        )}
+      >
         <Sidebar onClose={() => setIsSidebarOpen(false)} />
         <Button 
           icon={<Dismiss24Filled />} 
           appearance="subtle" 
+          aria-label="Cerrar menú"
           onClick={() => setIsSidebarOpen(false)}
           style={{ position: 'absolute', top: '10px', right: '10px', display: isSidebarOpen ? 'block' : 'none' }}
         />
       </div>
 
       {/* Overlay para cerrar sidebar al hacer clic fuera */}
-      {isSidebarOpen && <div className={styles.overlay} onClick={() => setIsSidebarOpen(false)} />}
+      {isSidebarOpen && (
+        <div 
+          className={styles.overlay} 
+          role="presentation"
+          aria-hidden="true"
+          onClick={() => setIsSidebarOpen(false)} 
+        />
+      )}
 
       {/* Mobile Header con Hamburguesa */}
       <header className={styles.mobileHeader}>
         <Button 
           icon={<Navigation24Filled />} 
           appearance="subtle" 
+          aria-label="Abrir menú de navegación"
+          aria-expanded={isSidebarOpen}
           onClick={() => setIsSidebarOpen(true)}
           style={{ color: tokens.colorNeutralForeground1 }}
         />

@@ -126,7 +126,7 @@ const VerificarEmail = () => {
     <div className={styles.container}>
       <MEHCard className={styles.card}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src={designTokens.logo} alt="Logo" style={{ width: '48px', marginBottom: '12px' }} />
+          <img src={designTokens.logo} alt="Logotipo de Plataforma MEH" style={{ width: '48px', marginBottom: '12px' }} />
           <MEHTypography variant="h2" style={{ marginBottom: '6px' }}>Verifica tu Correo</MEHTypography>
           <MEHTypography variant="body" style={{ opacity: 0.7, fontSize: '13px' }}>
             Ingresa el código numérico de 6 dígitos que enviamos a tu bandeja de entrada para activar tu cuenta.
