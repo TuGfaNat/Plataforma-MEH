@@ -7,7 +7,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 
 from ..models import models
 from ..schemas import evento as evento_schema
@@ -709,6 +709,30 @@ def get_pagos_qr_by_event(db: Session, id_evento: int) -> List[models.EventoPago
         models.EventoPagoQR.id_estado == 2
     ).all()
 
+def _safe_save_qr_file(id_evento: int, file_content: bytes) -> str:
+    """Guarda un archivo de imagen/PDF de QR de forma segura."""
+    if file_content.startswith(b"%PDF"):
+        safe_ext = ".pdf"
+    elif file_content.startswith(b"\xff\xd8\xff"):
+        safe_ext = ".jpg"
+    elif file_content[:4] == b"RIFF" and file_content[8:12] == b"WEBP":
+        safe_ext = ".webp"
+    else:
+        safe_ext = ".png"
+
+    base_dir = os.path.abspath(UPLOAD_QR_DIR)
+    os.makedirs(base_dir, exist_ok=True)
+    file_name = f"qr_{int(id_evento)}_{uuid.uuid4().hex}{safe_ext}"
+    file_path = os.path.abspath(os.path.join(base_dir, file_name))
+    if not file_path.startswith(base_dir):
+        raise ValueError("Ruta de archivo no permitida")
+
+    with open(file_path, "wb") as output_file:
+        output_file.write(file_content)
+
+    return f"static/eventos_qr/{file_name}"
+
+
 def create_pago_qr(
     db: Session,
     admin_user: models.Usuario,
@@ -716,29 +740,35 @@ def create_pago_qr(
     nombre_paquete: str,
     monto: float,
     file_content: bytes,
-    file_extension: str,
+    file_extension: Optional[str] = None,
     ip_address: Optional[str] = None
 ) -> models.EventoPagoQR:
-    """Crea un paquete de pago y QR asociado a un evento (ADMIN, ORGANIZADOR, MODERADOR)."""
+    """Crea un paquete de pago y QR asociado a un evento con validación y anti-duplicado."""
     if admin_user.rol not in ["ADMIN", "ORGANIZADOR", "MODERADOR"]:
         raise PermisoDenegadoError("No tienes permisos para gestionar QRs de pago de eventos")
 
-    # Asegurar existencia física del directorio
-    os.makedirs(UPLOAD_QR_DIR, exist_ok=True)
+    nombre_limpio = (nombre_paquete or "").strip()
+    if not nombre_limpio:
+        raise ValidacionNegocioError("El nombre del paquete no puede estar vacío")
+    if monto is None or monto <= 0:
+        raise ValidacionNegocioError("El monto del paquete debe ser mayor a 0")
 
-    # Nombre de archivo único
-    import uuid
-    file_name = f"qr_{id_evento}_{uuid.uuid4().hex}{file_extension}"
-    file_path = os.path.join(UPLOAD_QR_DIR, file_name)
+    # Anti-duplicado: verificar si ya existe un paquete con ese nombre en el evento
+    duplicado = db.query(models.EventoPagoQR).filter(
+        models.EventoPagoQR.id_evento == id_evento,
+        models.EventoPagoQR.id_estado != 0,
+        func.lower(models.EventoPagoQR.nombre_paquete) == nombre_limpio.lower()
+    ).first()
+    if duplicado:
+        raise ValidacionNegocioError(f"Ya existe un paquete de pago con el nombre '{nombre_limpio}' para este evento")
 
-    with open(file_path, "wb") as output_file:
-        output_file.write(file_content)
+    rel_url = _safe_save_qr_file(id_evento, file_content)
 
     nuevo_qr = models.EventoPagoQR(
         id_evento=id_evento,
-        nombre_paquete=nombre_paquete,
+        nombre_paquete=nombre_limpio,
         monto=monto,
-        url_qr=file_path.replace("\\", "/"),
+        url_qr=rel_url,
         id_estado=2
     )
     db.add(nuevo_qr)
@@ -751,10 +781,69 @@ def create_pago_qr(
         accion="CREAR_PAQUETE_PAGO_QR",
         tabla_afectada="eventos_pagos_qr",
         id_registro_afectado=nuevo_qr.id_qr,
-        valor_nuevo={"id_evento": id_evento, "nombre_paquete": nombre_paquete, "monto": str(monto)},
+        valor_nuevo={"id_evento": id_evento, "nombre_paquete": nombre_limpio, "monto": str(monto)},
         ip_direccion=ip_address
     )
     return nuevo_qr
+
+
+def update_pago_qr(
+    db: Session,
+    admin_user: models.Usuario,
+    id_qr: int,
+    nombre_paquete: Optional[str] = None,
+    monto: Optional[float] = None,
+    file_content: Optional[bytes] = None,
+    ip_address: Optional[str] = None
+) -> models.EventoPagoQR:
+    """Actualiza datos y/o imagen de un paquete de pago y QR con anti-duplicado (ADMIN, ORGANIZADOR, MODERADOR)."""
+    if admin_user.rol not in ["ADMIN", "ORGANIZADOR", "MODERADOR"]:
+        raise PermisoDenegadoError("No tienes permisos para gestionar QRs de pago de eventos")
+
+    db_qr = db.query(models.EventoPagoQR).filter(
+        models.EventoPagoQR.id_qr == id_qr,
+        models.EventoPagoQR.id_estado != 0
+    ).first()
+    if not db_qr:
+        raise ValidacionNegocioError("Paquete de pago QR no encontrado")
+
+    if nombre_paquete is not None:
+        nombre_limpio = nombre_paquete.strip()
+        if not nombre_limpio:
+            raise ValidacionNegocioError("El nombre del paquete no puede estar vacío")
+        # Anti-duplicado excluyendo el actual
+        duplicado = db.query(models.EventoPagoQR).filter(
+            models.EventoPagoQR.id_evento == db_qr.id_evento,
+            models.EventoPagoQR.id_qr != id_qr,
+            models.EventoPagoQR.id_estado != 0,
+            func.lower(models.EventoPagoQR.nombre_paquete) == nombre_limpio.lower()
+        ).first()
+        if duplicado:
+            raise ValidacionNegocioError(f"Ya existe otro paquete de pago con el nombre '{nombre_limpio}' para este evento")
+        db_qr.nombre_paquete = nombre_limpio
+
+    if monto is not None:
+        if monto <= 0:
+            raise ValidacionNegocioError("El monto del paquete debe ser mayor a 0")
+        db_qr.monto = monto
+
+    if file_content is not None and len(file_content) > 0:
+        rel_url = _safe_save_qr_file(db_qr.id_evento, file_content)
+        db_qr.url_qr = rel_url
+
+    db.commit()
+    db.refresh(db_qr)
+
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="ACTUALIZAR_PAQUETE_PAGO_QR",
+        tabla_afectada="eventos_pagos_qr",
+        id_registro_afectado=id_qr,
+        valor_nuevo={"nombre_paquete": db_qr.nombre_paquete, "monto": str(db_qr.monto)},
+        ip_direccion=ip_address
+    )
+    return db_qr
 
 def delete_pago_qr(
     db: Session,

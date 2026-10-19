@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 19  
-**Total de endpoints expuestos:** 132
+**Total de endpoints expuestos:** 136
 
 ---
 
@@ -153,7 +153,8 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`GET`** | `/api/eventos/{id_evento}/token-qr` | Obtiene el token_qr del evento para difusión y acreditación. | `id_evento: int` | `200 OK` | Público / Abierto |
 | **`GET`** | `/api/eventos/{id_evento}/qr-image` | Descarga la imagen PNG del QR del evento generada localmente en el backend. | `id_evento: int` | `200 OK` | Público / Abierto |
 | **`GET`** | `/api/eventos/{id_evento}/pagos-qr` | Obtiene los paquetes y QRs de pago configurados para un evento. | `id_evento: int` | `200 OK` | Público / Abierto |
-| **`POST`** | `/api/eventos/{id_evento}/pagos-qr` | Crea un paquete de pago y QR asociado a un evento (Admin, Organizador, Moderador). | `id_evento: int`, `nombre_paquete: str`, `monto: float`, `file: UploadFile` | `201 Created` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/{id_evento}/pagos-qr` | Crea un paquete de pago y QR asociado a un evento con validación y anti-duplicado. | `id_evento: int`, `nombre_paquete: str`, `monto: float`, `file: UploadFile` | `201 Created` | Requiere Auth (JWT) |
+| **`PUT`** | `/api/eventos/pagos-qr/{id_qr}` | Actualiza datos y/o código QR de un paquete de pago con anti-duplicado (Admin, Organizador, Moderador). | `id_qr: int` | `200 OK` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/eventos/pagos-qr/{id_qr}` | Elimina lógicamente un paquete de pago QR (Admin, Organizador, Moderador). | `id_qr: int` | `204 No Content` | Requiere Auth (JWT) |
 | **`POST`** | `/api/eventos/{id_evento}/acreditar` | Acredita manualmente a un participante en el evento (Solo ADMIN y ORGANIZADOR). | `id_evento: int`, `payload: AcreditarParticipanteRequest` | `200 OK` | Requiere Auth (JWT) |
 | **`GET`** | `/api/eventos/{id_evento}/inscritos.csv` | Exporta la lista completa de inscritos y su asistencia en formato CSV con UTF-8 BOM (Solo Staff). | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
@@ -208,6 +209,9 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`GET`** | `/api/pagos/admin/todos` | Lista todos los pagos del sistema (Admin/Soporte). | - | `200 OK` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/pagos/admin/{id_pago}/validar` | Aprueba o rechaza un pago pendiente (Admin/Soporte). | `id_pago: int`, `pago_update: PagoUpdate` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/pagos/admin/ocrm-match` | Procesa un extracto bancario para conciliación automática. | `file: UploadFile` | `200 OK` | Requiere Auth (JWT) |
+| **`GET`** | `/api/pagos/historial` | Obtiene el timeline histórico de eventos de pago (miembro o staff). | - | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/pagos/{id_pago}/reintentar` | Permite volver a subir un comprobante para un pago que fue RECHAZADO. | `id_pago: int`, `file: UploadFile` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/pagos/{id_pago}/reembolsar` | Reembolsa manualmente un pago en estado APROBADO (Solo Staff con permiso). | `id_pago: int`, `reembolso_req: PagoReembolsoRequest` | `200 OK` | Requiere Auth (JWT) |
 
 ## Módulo `papelera` (Prefix: `/admin/papelera`)
 

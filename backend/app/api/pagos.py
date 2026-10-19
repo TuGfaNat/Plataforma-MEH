@@ -1,7 +1,7 @@
 import os
 from fastapi import APIRouter, Depends, Request, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from decimal import Decimal
 
 from ..database import get_db
@@ -112,3 +112,56 @@ async def ocrm_match(
 ):
     """Procesa un extracto bancario para conciliación automática."""
     return await ocrm_service.procesar_extracto_bancario(db, current_user, file)
+
+
+@router.get("/historial", response_model=List[pago_schema.PagoHistorialItem])
+def get_historial_pagos(
+    id_pago: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Obtiene el timeline histórico de eventos de pago (miembro o staff)."""
+    return pagos_service.get_historial_pagos(db, current_user, id_pago)
+
+
+@router.post("/{id_pago}/reintentar", response_model=pago_schema.PagoResponse)
+async def reintentar_comprobante(
+    id_pago: int,
+    request: Request,
+    file: UploadFile = File(...),
+    monto: Optional[Decimal] = Form(None),
+    metodo_pago: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Permite volver a subir un comprobante para un pago que fue RECHAZADO."""
+    ip_address = request.client.host if request.client else None
+    content = await file.read()
+    return pagos_service.reintentar_comprobante_upload(
+        db=db,
+        user=current_user,
+        id_pago=id_pago,
+        file_content=content,
+        monto=monto,
+        metodo_pago=metodo_pago,
+        ip_address=ip_address
+    )
+
+
+@router.post("/{id_pago}/reembolsar", response_model=pago_schema.PagoResponse)
+def reembolsar_pago(
+    id_pago: int,
+    reembolso_req: pago_schema.PagoReembolsoRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Reembolsa manualmente un pago en estado APROBADO (Solo Staff con permiso)."""
+    ip_address = request.client.host if request.client else None
+    return pagos_service.reembolsar_pago(
+        db=db,
+        admin_user=current_user,
+        id_pago=id_pago,
+        motivo=reembolso_req.motivo,
+        ip_address=ip_address
+    )

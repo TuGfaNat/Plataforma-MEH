@@ -13,15 +13,29 @@ import {
   Label,
   Spinner,
   Dropdown,
-  Option
+  Option,
+  Badge,
+  Dialog,
+  DialogSurface,
+  DialogBody,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Field
 } from '@fluentui/react-components';
 import { 
   Money24Regular, 
   Receipt24Regular, 
   ArrowUpload24Regular,
   CheckmarkCircle24Regular,
-  Alert24Regular
+  Alert24Regular,
+  ArrowRepeatAll24Regular,
+  History24Regular,
+  DismissCircle24Regular,
+  ArrowUndo24Regular
 } from '@fluentui/react-icons';
+import PagoHistorialModal from '../components/PagoHistorialModal';
 import { useTranslation } from 'react-i18next';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import { designTokens } from '../theme/theme';
@@ -89,6 +103,9 @@ const Finanzas = () => {
 
   const [paymentPackages, setPaymentPackages] = useState([]);
   const [selectedPackage, setSelectedPackage] = useState(null);
+
+  const [reintentoDialog, setReintentoDialog] = useState({ open: false, pago: null, file: null, uploading: false });
+  const [historialDialog, setHistorialDialog] = useState({ open: false, idPago: null });
 
   useEffect(() => {
     if (selectedInscripcion) {
@@ -170,6 +187,29 @@ const Finanzas = () => {
     }
   };
 
+  const handleReintentarSubmit = async () => {
+    if (!reintentoDialog.pago || !reintentoDialog.file) {
+      alert("Por favor selecciona un nuevo comprobante.");
+      return;
+    }
+
+    setReintentoDialog(prev => ({ ...prev, uploading: true }));
+    const formData = new FormData();
+    formData.append('file', reintentoDialog.file);
+
+    try {
+      await pagoService.reintentarPago(reintentoDialog.pago.id_pago, formData);
+      alert("Nuevo comprobante subido correctamente para revisión.");
+      setReintentoDialog({ open: false, pago: null, file: null, uploading: false });
+      fetchData();
+    } catch (err) {
+      console.error("Error al reintentar comprobante:", err);
+      const detail = err.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : "Error al subir el nuevo comprobante.");
+      setReintentoDialog(prev => ({ ...prev, uploading: false }));
+    }
+  };
+
   return (
     <div className={styles.container}>
       <div>
@@ -198,6 +238,7 @@ const Finanzas = () => {
                       <TableHeaderCell>Referencia</TableHeaderCell>
                       <TableHeaderCell>Monto</TableHeaderCell>
                       <TableHeaderCell>Estado</TableHeaderCell>
+                      <TableHeaderCell>Acciones</TableHeaderCell>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -215,14 +256,55 @@ const Finanzas = () => {
                         </TableCell>
                         <TableCell><b>Bs. {item.monto}</b></TableCell>
                         <TableCell>
-                          <div style={{ 
-                            display: 'inline-flex', alignItems: 'center', gap: '4px',
-                            color: item.estado_pago === 'APROBADO' ? tokens.colorPaletteGreenForeground1 : 
-                                   item.estado_pago === 'PENDIENTE' ? tokens.colorPaletteYellowForeground1 : 
-                                   tokens.colorPaletteRedForeground1
-                          }}>
-                            {item.estado_pago === 'APROBADO' ? <CheckmarkCircle24Regular style={{ fontSize: '16px' }} /> : <Alert24Regular style={{ fontSize: '16px' }} />}
-                            {item.estado_pago}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div style={{ 
+                              display: 'inline-flex', alignItems: 'center', gap: '4px',
+                              color: (item.estado_pago === 'APROBADO' || item.estado_pago === 'VERIFICADO_AUTOMATICO') ? tokens.colorPaletteGreenForeground1 : 
+                                     item.estado_pago === 'PENDIENTE' ? tokens.colorPaletteYellowForeground1 : 
+                                     item.estado_pago === 'REEMBOLSADO' ? tokens.colorBrandForeground1 :
+                                     tokens.colorPaletteRedForeground1
+                            }}>
+                              {(item.estado_pago === 'APROBADO' || item.estado_pago === 'VERIFICADO_AUTOMATICO') ? (
+                                <CheckmarkCircle24Regular style={{ fontSize: '16px' }} />
+                              ) : item.estado_pago === 'REEMBOLSADO' ? (
+                                <ArrowUndo24Regular style={{ fontSize: '16px' }} />
+                              ) : (
+                                <Alert24Regular style={{ fontSize: '16px' }} />
+                              )}
+                              <span>{item.estado_pago === 'REEMBOLSADO' ? 'Reembolsado' : item.estado_pago}</span>
+                            </div>
+                            {item.estado_pago === 'RECHAZADO' && item.notas_admin && (
+                              <span style={{ fontSize: '11px', color: tokens.colorPaletteRedForeground1, maxWidth: '180px' }}>
+                                Motivo: {item.notas_admin}
+                              </span>
+                            )}
+                            {item.estado_pago === 'REEMBOLSADO' && item.motivo_reembolso && (
+                              <span style={{ fontSize: '11px', opacity: 0.7, maxWidth: '180px' }}>
+                                Motivo: {item.motivo_reembolso}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {item.estado_pago === 'RECHAZADO' && (
+                              <MEHButton
+                                size="small"
+                                appearance="primary"
+                                icon={<ArrowRepeatAll24Regular />}
+                                onClick={() => setReintentoDialog({ open: true, pago: item, file: null, uploading: false })}
+                              >
+                                Reintentar
+                              </MEHButton>
+                            )}
+                            <MEHButton
+                              size="small"
+                              appearance="subtle"
+                              icon={<History24Regular />}
+                              onClick={() => setHistorialDialog({ open: true, idPago: item.id_pago })}
+                            >
+                              Historial
+                            </MEHButton>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -389,8 +471,72 @@ const Finanzas = () => {
           >
             {uploading ? <Spinner size="tiny" /> : 'Enviar para validación'}
           </MEHButton>
-          </MEHCard>          </div>
+          </MEHCard>
+        </div>
       </div>
+
+      {/* Modal Reintentar Comprobante Rechazado */}
+      <Dialog open={reintentoDialog.open} onOpenChange={(e, d) => setReintentoDialog(prev => ({ ...prev, open: d.open }))}>
+        <DialogSurface style={{ borderRadius: '16px', maxWidth: '520px' }}>
+          <DialogBody>
+            <DialogTitle>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ArrowRepeatAll24Regular style={{ color: tokens.colorBrandForeground1 }} />
+                <span>Reintentar Comprobante (Pago #{reintentoDialog.pago?.id_pago})</span>
+              </div>
+            </DialogTitle>
+            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' }}>
+              <MEHTypography variant="body">
+                Tu comprobante anterior fue rechazado. Sube una nueva imagen legible o documento PDF de la transferencia para validar tu inscripción.
+              </MEHTypography>
+
+              {reintentoDialog.pago?.notas_admin && (
+                <div style={{ padding: '12px', backgroundColor: 'rgba(219, 44, 44, 0.1)', borderRadius: '8px', borderLeft: `4px solid ${tokens.colorPaletteRedBackground3}` }}>
+                  <MEHTypography variant="caption" style={{ color: tokens.colorPaletteRedForeground1, fontWeight: 'bold', display: 'block' }}>
+                    Motivo del rechazo:
+                  </MEHTypography>
+                  <MEHTypography variant="caption">
+                    {reintentoDialog.pago.notas_admin}
+                  </MEHTypography>
+                </div>
+              )}
+
+              <Field label="Nuevo Comprobante de Pago" required>
+                <Input
+                  id="reintento-file-input"
+                  aria-label="Nuevo Comprobante de Pago"
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => setReintentoDialog(prev => ({ ...prev, file: e.target.files[0] || null }))}
+                />
+              </Field>
+            </DialogContent>
+            <DialogActions style={{ marginTop: '16px' }}>
+              <Button
+                appearance="secondary"
+                onClick={() => setReintentoDialog(prev => ({ ...prev, open: false }))}
+                disabled={reintentoDialog.uploading}
+              >
+                Cancelar
+              </Button>
+              <MEHButton
+                appearance="primary"
+                onClick={handleReintentarSubmit}
+                disabled={reintentoDialog.uploading || !reintentoDialog.file}
+              >
+                {reintentoDialog.uploading ? <Spinner size="tiny" /> : 'Enviar Nuevo Comprobante'}
+              </MEHButton>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      {/* Modal Historial Timeline */}
+      <PagoHistorialModal
+        open={historialDialog.open}
+        onOpenChange={(e, d) => setHistorialDialog({ open: d.open, idPago: null })}
+        idPago={historialDialog.idPago}
+      />
     </div>
   );
 };
