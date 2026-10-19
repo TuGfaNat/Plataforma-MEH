@@ -6,6 +6,7 @@ from ..services import asistencia_service, eventos_service
 from .auth import get_current_user
 from ..models import models
 from ..schemas.checkpoint import AsistenciaDeshacerRequest, AsistenciaDeshacerResponse
+from ..core.exceptions import ValidacionNegocioError
 
 router = APIRouter(prefix="/asistencia", tags=["asistencia"])
 
@@ -24,6 +25,8 @@ def registrar(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
+    if id_usuario == current_user.id_usuario:
+        raise ValidacionNegocioError("No está permitido auto-escanear o registrar tu propia asistencia")
     return asistencia_service.registrar_asistencia_universal(db, current_user, tipo, id_actividad, id_usuario)
 
 @router.post("/deshacer", response_model=AsistenciaDeshacerResponse)

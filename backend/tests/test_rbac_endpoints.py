@@ -50,27 +50,48 @@ def test_rbac_endpoint_shielding():
         headers_miembro = {"Authorization": f"Bearer {miembro_token}"}
         headers_admin = {"Authorization": f"Bearer {admin_token}"}
         
-        # --- TEST 1: MIEMBRO a /reports/dashboard-stats (Bloqueo 403) ---
+        # --- TEST 1: MIEMBRO a /reports/dashboard-stats, /dashboard/stats y /stats (Bloqueo 403) ---
         res_rep_miembro = client.get("/reports/dashboard-stats", headers=headers_miembro)
         assert res_rep_miembro.status_code == 403
         assert "No tienes privilegios para consultar reportes estratégicos" in res_rep_miembro.json()["detail"]
+
+        res_dash_miembro = client.get("/dashboard/stats", headers=headers_miembro)
+        assert res_dash_miembro.status_code == 403
+
+        res_stats_miembro = client.get("/stats", headers=headers_miembro)
+        assert res_stats_miembro.status_code == 403
         
-        # --- TEST 2: MIEMBRO a /logs/ (Bloqueo 403) ---
+        # --- TEST 2: MIEMBRO a /logs/ y /logs (Bloqueo 403) ---
         res_logs_miembro = client.get("/logs/", headers=headers_miembro)
         assert res_logs_miembro.status_code == 403
         assert "No tienes privilegios para consultar la auditoría del sistema" in res_logs_miembro.json()["detail"]
+
+        res_logs_no_slash = client.get("/logs", headers=headers_miembro)
+        assert res_logs_no_slash.status_code == 403
         
-        # --- TEST 3: ADMIN a /reports/dashboard-stats (Permitido 200) ---
+        # --- TEST 3: ADMIN a /reports/dashboard-stats, /dashboard/stats y /stats (Permitido 200) ---
         res_rep_admin = client.get("/reports/dashboard-stats", headers=headers_admin)
         assert res_rep_admin.status_code == 200
         data_rep = res_rep_admin.json()
         assert "kpis" in data_rep
         assert "total_miembros" in data_rep["kpis"]
+
+        res_dash_admin = client.get("/dashboard/stats", headers=headers_admin)
+        assert res_dash_admin.status_code == 200
+        assert "kpis" in res_dash_admin.json()
+
+        res_stats_admin = client.get("/stats", headers=headers_admin)
+        assert res_stats_admin.status_code == 200
+        assert "kpis" in res_stats_admin.json()
         
-        # --- TEST 4: ADMIN a /logs/ (Permitido 200) ---
+        # --- TEST 4: ADMIN a /logs/ y /logs (Permitido 200) ---
         res_logs_admin = client.get("/logs/", headers=headers_admin)
         assert res_logs_admin.status_code == 200
         assert isinstance(res_logs_admin.json(), list)
+
+        res_logs_admin_no_slash = client.get("/logs", headers=headers_admin)
+        assert res_logs_admin_no_slash.status_code == 200
+        assert isinstance(res_logs_admin_no_slash.json(), list)
         
         # Limpieza de base de datos
         db.delete(miembro_user)

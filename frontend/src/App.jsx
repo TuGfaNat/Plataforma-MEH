@@ -155,8 +155,14 @@ export default function App() {
       }
     } catch (err) {
       console.error("Auth error:", err);
-      setUser(null);
-      localStorage.removeItem('token');
+      if (err.response?.status === 403) {
+        if (window.location.pathname !== '/acceso-denegado') {
+          window.location.href = '/acceso-denegado';
+        }
+      } else {
+        setUser(null);
+        localStorage.removeItem('token');
+      }
     } finally {
       setLoading(false);
     }

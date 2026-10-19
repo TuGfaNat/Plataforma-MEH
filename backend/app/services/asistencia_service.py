@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from datetime import datetime
 from ..models import models
 from ..core.permissions import PERMISSION_ATTENDANCE_SCAN, ensure_permission
+from ..core.exceptions import ValidacionNegocioError
 
 def get_actividades_activas(db: Session):
     # Obtener eventos programados o en curso
@@ -36,6 +37,9 @@ def registrar_asistencia_universal(
       flujo estándar de auditoría mediante AuditMixin / fecha_modificacion.
     """
     ensure_permission(current_user.rol, PERMISSION_ATTENDANCE_SCAN, "No tienes permiso para registrar asistencia")
+
+    if id_usuario == current_user.id_usuario:
+        raise ValidacionNegocioError("No está permitido auto-escanear o registrar tu propia asistencia")
 
     if tipo == 'EVENTO':
         inscripcion = db.query(models.InscripcionEvento).filter(

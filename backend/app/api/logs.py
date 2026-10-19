@@ -13,6 +13,7 @@ router = APIRouter(
     tags=["logs"]
 )
 
+@router.get("", response_model=List[dict], include_in_schema=False)
 @router.get("/", response_model=List[dict])
 def get_logs(
     fecha_inicio: Optional[datetime] = None,
