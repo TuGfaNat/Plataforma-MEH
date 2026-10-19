@@ -57,6 +57,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 |---|---|---|---|---|---|
 | **`GET`** | `/api/asistencia/actividades` | Operación get_actividades | - | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/asistencia/registrar` | Operación registrar | `tipo: str`, `id_actividad: int`, `id_usuario: int` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/asistencia/deshacer` | Deshace un escaneo accidental dentro de la ventana de 30 segundos (Admin sin límite) con registro de auditoría. | `payload: AsistenciaDeshacerRequest` | `200 OK` | Requiere Auth (JWT) |
 
 ## Módulo `auth` (Prefix: `/auth`)
 
@@ -163,6 +164,11 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`GET`** | `/api/eventos/{id_evento}/llegadas` | Obtiene métricas de llegadas por hora y resumen por checkpoint (Solo Staff o Creador). | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
 | **`GET`** | `/api/eventos/{id_evento}/badge-info` | Obtiene los datos del badge social para el participante inscrito o vista previa staff. | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/eventos/{id_evento}/plantilla-badge` | Carga y actualiza la plantilla de badge social de un evento (Solo Staff). | `id_evento: int`, `file: UploadFile` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/asistencia/deshacer` | Deshace un escaneo accidental dentro de la ventana de 30 segundos (Admin sin límite) con auditoría. | `payload: AsistenciaDeshacerRequest` | `200 OK` | Requiere Auth (JWT) |
+| **`GET`** | `/api/eventos/{id_evento}/historial-asistencia` | Obtiene el historial de escaneos paginado y filtrable por checkpoint o búsqueda (usuario, checkpoint, hora, operador). | `id_evento: int`, `id_checkpoint: int`, `search: str`, `page: int`, `limit: int` | `200 OK` | Requiere Auth (JWT) |
+| **`GET`** | `/api/eventos/{id_evento}/checkpoints/{id_checkpoint}/permisos` | Lista los permisos y operadores asignados a un checkpoint específico. | `id_evento: int`, `id_checkpoint: int` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/{id_evento}/checkpoints/{id_checkpoint}/permisos` | Asigna permisos de escaneo en un checkpoint a un operador (Solo ADMIN y ORGANIZADOR). | `id_evento: int`, `id_checkpoint: int`, `payload: CheckpointPermisoCreate` | `200 OK` | Requiere Auth (JWT) |
+| **`DELETE`** | `/api/eventos/{id_evento}/checkpoints/{id_checkpoint}/permisos/{id_usuario}` | Revoca el permiso de escaneo de un operador en un checkpoint (Solo ADMIN y ORGANIZADOR). | `id_evento: int`, `id_checkpoint: int`, `id_usuario: int` | `200 OK` | Requiere Auth (JWT) |
 
 ## Módulo `files` (Prefix: `/files`)
 

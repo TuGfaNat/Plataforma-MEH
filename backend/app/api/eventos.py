@@ -1,14 +1,24 @@
 import os
-from fastapi import APIRouter, Depends, Request, status, File, UploadFile, Form
+from fastapi import APIRouter, Depends, Request, status, File, UploadFile, Form, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..database import get_db
 from ..models import models
 from ..schemas import evento as evento_schema
-from ..schemas.evento import QRScanRequest, CheckpointCreate, CheckpointResponse, InscriptoConfirmadoResponse
+from ..schemas.evento import (
+    QRScanRequest,
+    CheckpointCreate,
+    CheckpointResponse,
+    InscriptoConfirmadoResponse,
+    CheckpointPermisoCreate,
+    CheckpointPermisoResponse,
+    AsistenciaDeshacerRequest,
+    AsistenciaDeshacerResponse,
+    AsistenciaHistorialPaginadoResponse
+)
 from ..schemas.pago_qr import EventoPagoQRResponse
 from ..services import eventos_service
-from .auth import get_current_user
+from .auth import get_current_user, get_current_user_optional
 
 
 router = APIRouter(
@@ -111,8 +121,12 @@ def registrar_asistencia_qr_legacy(
     return eventos_service.registrar_asistencia_qr(db, current_user, token_qr, ip_address)
 
 @router.get("/{id_evento}/checkpoints", response_model=List[CheckpointResponse])
-def get_checkpoints(id_evento: int, db: Session = Depends(get_db)):
-    return eventos_service.get_checkpoints(db, id_evento)
+def get_checkpoints(
+    id_evento: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.Usuario] = Depends(get_current_user_optional)
+):
+    return eventos_service.get_checkpoints(db, id_evento, current_user)
 
 @router.post("/{id_evento}/checkpoints", response_model=CheckpointResponse)
 def create_checkpoint(
@@ -122,6 +136,74 @@ def create_checkpoint(
     current_user: models.Usuario = Depends(get_current_user)
 ):
     return eventos_service.create_checkpoint(db, current_user, id_evento, data)
+
+@router.get("/{id_evento}/checkpoints/{id_checkpoint}/permisos", response_model=List[CheckpointPermisoResponse])
+def get_checkpoint_permisos(
+    id_evento: int,
+    id_checkpoint: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Lista operadores y permisos asignados a un checkpoint (MEH-018)."""
+    return eventos_service.get_checkpoint_permisos(db, current_user, id_evento, id_checkpoint)
+
+@router.post("/{id_evento}/checkpoints/{id_checkpoint}/permisos", response_model=CheckpointPermisoResponse)
+def asignar_checkpoint_permiso(
+    id_evento: int,
+    id_checkpoint: int,
+    payload: CheckpointPermisoCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Asigna o actualiza el permiso de un operador en un checkpoint (MEH-018)."""
+    ip_address = request.client.host if request.client else None
+    return eventos_service.asignar_checkpoint_permiso(db, current_user, id_evento, id_checkpoint, payload, ip_address)
+
+@router.delete("/{id_evento}/checkpoints/{id_checkpoint}/permisos/{id_usuario}", status_code=status.HTTP_204_NO_CONTENT)
+def revocar_checkpoint_permiso(
+    id_evento: int,
+    id_checkpoint: int,
+    id_usuario: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Revoca el permiso de un operador en un checkpoint (MEH-018)."""
+    ip_address = request.client.host if request.client else None
+    eventos_service.revocar_checkpoint_permiso(db, current_user, id_evento, id_checkpoint, id_usuario, ip_address)
+
+@router.post("/asistencia/deshacer", response_model=AsistenciaDeshacerResponse)
+def deshacer_asistencia_evento(
+    request: Request,
+    payload: AsistenciaDeshacerRequest,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Deshace un escaneo accidental dentro de una ventana de 30 segundos (Admin sin límite) con auditoría (MEH-018)."""
+    ip_address = request.client.host if request.client else None
+    return eventos_service.deshacer_asistencia_qr(db, current_user, payload, ip_address)
+
+@router.get("/{id_evento}/historial-asistencia", response_model=AsistenciaHistorialPaginadoResponse)
+def get_historial_asistencia(
+    id_evento: int,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    id_checkpoint: Optional[int] = None,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Obtiene el historial paginado de escaneos de asistencia por evento (MEH-018)."""
+    return eventos_service.get_historial_asistencia_paginado(
+        db=db,
+        current_user=current_user,
+        id_evento=id_evento,
+        page=page,
+        limit=limit,
+        id_checkpoint=id_checkpoint,
+        search=search
+    )
 
 @router.delete("/{id_evento}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_evento(

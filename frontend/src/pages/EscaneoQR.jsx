@@ -10,6 +10,8 @@ import {
   Tab,
   Select,
   Switch,
+  Badge,
+  Tooltip
 } from '@fluentui/react-components';
 import {
   CheckmarkCircle24Filled,
@@ -22,10 +24,16 @@ import {
   ArrowDownload24Regular,
   Wifi124Regular,
   WifiOff24Regular,
+  ArrowUndo24Regular,
+  Clock24Regular,
+  Search24Regular,
+  ArrowLeft24Regular,
+  ArrowRight24Regular,
 } from '@fluentui/react-icons';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { QRCodeSVG } from 'qrcode.react';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
+import { useAuth, useNotify } from '../App';
 
 import asistenciaService from '../services/asistenciaService';
 import * as offlineDb from '../utils/offlineDb';
@@ -52,7 +60,7 @@ const useStyles = makeStyles({
   },
   panel: {
     width: '100%',
-    maxWidth: '720px',
+    maxWidth: '760px',
     display: 'flex',
     flexDirection: 'column',
     gap: '16px',
@@ -74,6 +82,36 @@ const useStyles = makeStyles({
     justifyContent: 'center',
     gap: '8px',
     textAlign: 'center',
+  },
+  undoCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '16px',
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.borderRadius('12px'),
+    ...shorthands.border('1px', 'solid', tokens.colorPaletteGreenBorder2),
+    marginTop: '12px',
+    textAlign: 'center'
+  },
+  historialContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    width: '100%',
+    marginTop: '8px'
+  },
+  historialRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '12px 16px',
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.borderRadius('10px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    flexWrap: 'wrap',
+    gap: '10px'
   },
   localGrid: {
     display: 'grid',
@@ -135,6 +173,10 @@ const useStyles = makeStyles({
 
 const EscaneoQR = () => {
   const styles = useStyles();
+  const { user } = useAuth();
+  const notify = useNotify();
+  const isAdmin = user?.rol === 'ADMIN';
+
   const [mode, setMode] = useState('camera');
   const [scanResult, setScanResult] = useState(null);
   const [error, setError] = useState(null);
@@ -146,6 +188,21 @@ const EscaneoQR = () => {
   const [checkpoints, setCheckpoints] = useState([]);
   const [selectedCheckpoint, setSelectedCheckpoint] = useState('');
   const scannerRef = useRef(null);
+
+  // Estados Undo (MEH-018)
+  const [lastScan, setLastScan] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [undoLoading, setUndoLoading] = useState(false);
+  const [undoSuccessMessage, setUndoSuccessMessage] = useState('');
+
+  // Estados Historial Paginado (MEH-018)
+  const [historialItems, setHistorialItems] = useState([]);
+  const [historialTotal, setHistorialTotal] = useState(0);
+  const [historialPage, setHistorialPage] = useState(1);
+  const [historialTotalPages, setHistorialTotalPages] = useState(1);
+  const [historialLoading, setHistorialLoading] = useState(false);
+  const [historialSearch, setHistorialSearch] = useState('');
+  const [historialCheckpointFilter, setHistorialCheckpointFilter] = useState('');
 
   // Estados Offline-First
   const [forceOffline, setForceOffline] = useState(false);
@@ -197,6 +254,26 @@ const EscaneoQR = () => {
     };
   }, [forceOffline]);
 
+  // Temporizador para Undo de 30 segundos (Admin sin límite)
+  useEffect(() => {
+    if (!lastScan) return;
+    if (isAdmin) {
+      setTimeLeft(999);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - lastScan.timestamp) / 1000);
+      const remaining = Math.max(0, 30 - elapsed);
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [lastScan, isAdmin]);
+
   const handleEventoChange = async (e, data) => {
     setSelectedEvento(data.value);
     setSelectedCheckpoint('');
@@ -216,7 +293,7 @@ const EscaneoQR = () => {
           };
         } else {
           const cpData = await asistenciaService.getCheckpoints(data.value);
-          setCheckpoints(cpData);
+          setCheckpoints(cpData || []);
         }
       } catch (err) {
         console.error("Error cargando checkpoints", err);
@@ -291,6 +368,7 @@ const EscaneoQR = () => {
     setLoading(true);
     setError(null);
     setScanResult(null);
+    setUndoSuccessMessage('');
 
     // MODO OFFLINE
     if (isOfflineMode) {
@@ -322,8 +400,23 @@ const EscaneoQR = () => {
     // MODO ONLINE
     try {
       const result = await asistenciaService.registrarPorQR(normalizedCode, selectedCheckpoint ? parseInt(selectedCheckpoint) : null);
-      setScanResult(`Asistencia de ${result.usuario.nombre} confirmada para ${result.evento.titulo}`);
-      setTimeout(() => setScanResult(null), 4000);
+      const usuarioNombre = result.usuario?.nombre || 'Participante';
+      const eventoTitulo = result.evento?.titulo || 'Evento';
+
+      setLastScan({
+        id_asistencia: result.id_asistencia,
+        id_inscripcion: result.id_inscripcion,
+        id_checkpoint: result.id_checkpoint,
+        usuarioNombre,
+        eventoTitulo,
+        timestamp: Date.now()
+      });
+      setTimeLeft(30);
+      setScanResult(`Asistencia de ${usuarioNombre} confirmada para ${eventoTitulo}`);
+      
+      if (mode === 'historial') {
+        fetchHistorial(historialPage);
+      }
     } catch (err) {
       setError(err.response?.data?.detail || 'Error en el registro');
       setTimeout(() => setError(null), 4500);
@@ -331,6 +424,68 @@ const EscaneoQR = () => {
       setLoading(false);
     }
   };
+
+  const handleUndoScan = async (scanItem = null) => {
+    const target = scanItem || lastScan;
+    if (!target) return;
+
+    setUndoLoading(true);
+    try {
+      const res = await asistenciaService.deshacerAsistencia({
+        id_asistencia: target.id_asistencia,
+        id_inscripcion: target.id_inscripcion,
+        id_checkpoint: target.id_checkpoint,
+        motivo: 'Deshecho desde EscaneoQR'
+      });
+      if (notify) notify("Escaneo Deshecho", res.message || "Se revirtió la asistencia con éxito", "success");
+      setScanResult(null);
+      setLastScan(null);
+      setUndoSuccessMessage("✓ Escaneo deshecho con éxito. El participante puede ser escaneado nuevamente.");
+      setTimeout(() => setUndoSuccessMessage(''), 6000);
+      if (selectedEvento) {
+        fetchHistorial(historialPage);
+      }
+    } catch (err) {
+      const detail = err.response?.data?.detail || "No se pudo deshacer el escaneo";
+      if (notify) notify("Error al Deshacer", detail, "error");
+      setError(detail);
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setUndoLoading(false);
+    }
+  };
+
+  const fetchHistorial = async (page = 1) => {
+    if (!selectedEvento) return;
+    setHistorialLoading(true);
+    try {
+      const params = {
+        page,
+        limit: 10
+      };
+      if (historialCheckpointFilter) {
+        params.id_checkpoint = parseInt(historialCheckpointFilter);
+      }
+      if (historialSearch.trim()) {
+        params.search = historialSearch.trim();
+      }
+      const data = await asistenciaService.getHistorialAsistencia(selectedEvento, params);
+      setHistorialItems(data.items || []);
+      setHistorialTotal(data.total || 0);
+      setHistorialPage(data.page || 1);
+      setHistorialTotalPages(data.total_pages || 1);
+    } catch (err) {
+      console.error("Error cargando historial de asistencia", err);
+    } finally {
+      setHistorialLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (mode === 'historial' && selectedEvento) {
+      fetchHistorial(1);
+    }
+  }, [mode, selectedEvento, historialCheckpointFilter]);
 
   const handleManualSubmit = async () => {
     await handleAsistencia(manualCode);
@@ -421,7 +576,7 @@ const EscaneoQR = () => {
           <MEHTypography variant="h1">Escaneo QR de Asistencia</MEHTypography>
         </div>
         <MEHTypography variant="body" style={{ opacity: 0.7 }}>
-          Flujo local para eventos: escaneo por cámara, ingreso manual y sincronización offline en campus.
+          Escaneo seguro con checkpoints asignados, botón Deshacer accidental (30s) e historial de escaneos.
         </MEHTypography>
         
         {/* Connection Status Badge & Forced Switch */}
@@ -450,7 +605,8 @@ const EscaneoQR = () => {
       <MEHCard className={styles.panel}>
         <TabList selectedValue={mode} onTabSelect={(e, d) => setMode(d.value)}>
           <Tab value="camera" icon={<ScanCamera24Regular />}>Escanear Cámara</Tab>
-          <Tab value="manual" icon={<Keyboard24Regular />}>Ingreso Manual (Evento)</Tab>
+          <Tab value="manual" icon={<Keyboard24Regular />}>Ingreso Manual</Tab>
+          <Tab value="historial" icon={<Clock24Regular />}>Historial de Escaneos</Tab>
           <Tab value="generator" icon={<QrCode24Regular />}>Generador QR Evento</Tab>
         </TabList>
 
@@ -495,12 +651,18 @@ const EscaneoQR = () => {
               ))}
             </Select>
           </Field>
-          {selectedEvento && (
+          {selectedEvento && mode !== 'historial' && (
             <Field label="Checkpoint (Opcional - Ej. Refrigerio)">
               <Select value={selectedCheckpoint} onChange={(e, data) => setSelectedCheckpoint(data.value)}>
                 <option value="">-- Entrada Principal (Asistencia) --</option>
                 {checkpoints.map(cp => (
-                  <option key={cp.id_checkpoint} value={cp.id_checkpoint}>{cp.nombre_checkpoint}</option>
+                  <option 
+                    key={cp.id_checkpoint} 
+                    value={cp.id_checkpoint}
+                    disabled={cp.puede_escanear === false}
+                  >
+                    {cp.nombre_checkpoint} {cp.puede_escanear === false ? '(Sin permiso)' : ''}
+                  </option>
                 ))}
               </Select>
             </Field>
@@ -538,6 +700,125 @@ const EscaneoQR = () => {
                 1. Genera un QR en la pestaña "Generador Local". 2. Escanéalo desde otro dispositivo o pega su valor aquí.
               </MEHTypography>
             </div>
+          </div>
+        )}
+
+        {mode === 'historial' && (
+          <div className={styles.historialContainer}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <MEHTypography variant="h3">
+                <Clock24Regular style={{ verticalAlign: 'middle', marginRight: '8px', color: tokens.colorBrandForeground1 }} />
+                Historial de Asistencia
+              </MEHTypography>
+              <MEHButton size="small" appearance="subtle" onClick={() => fetchHistorial(historialPage)}>
+                Actualizar Lista
+              </MEHButton>
+            </div>
+
+            {/* Filtros */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+              <Field label="Filtrar por Checkpoint">
+                <Select 
+                  value={historialCheckpointFilter} 
+                  onChange={(e, d) => setHistorialCheckpointFilter(d.value)}
+                >
+                  <option value="">-- Todos los Checkpoints --</option>
+                  {checkpoints.map(cp => (
+                    <option key={cp.id_checkpoint} value={cp.id_checkpoint}>
+                      {cp.nombre_checkpoint}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+
+              <Field label="Buscar Asistente (Nombre o Correo)">
+                <Input
+                  contentBefore={<Search24Regular />}
+                  placeholder="Buscar y presionar Enter..."
+                  value={historialSearch}
+                  onChange={(e, d) => setHistorialSearch(d.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      fetchHistorial(1);
+                    }
+                  }}
+                />
+              </Field>
+            </div>
+
+            {historialLoading ? (
+              <Spinner size="medium" label="Cargando historial..." style={{ padding: '24px' }} />
+            ) : !selectedEvento ? (
+              <div style={{ padding: '24px', textAlign: 'center', opacity: 0.6 }}>
+                Selecciona un evento arriba para consultar su historial de escaneos.
+              </div>
+            ) : historialItems.length === 0 ? (
+              <div style={{ padding: '24px', textAlign: 'center', opacity: 0.6, backgroundColor: tokens.colorNeutralBackground1, borderRadius: '8px' }}>
+                No se encontraron escaneos registrados con los filtros seleccionados.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {historialItems.map(item => (
+                  <div key={item.id_asistencia} className={styles.historialRow}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>
+                        {item.usuario?.nombre_completo || 'Participante'}
+                      </MEHTypography>
+                      <MEHTypography variant="caption" style={{ opacity: 0.75 }}>
+                        {item.usuario?.correo} • Checkpoint: <b>{item.checkpoint?.nombre_checkpoint || 'Entrada General'}</b>
+                      </MEHTypography>
+                      <MEHTypography variant="caption" style={{ opacity: 0.6 }}>
+                        Escaneado por: {item.operador?.nombre_completo || 'Sistema'} • {new Date(item.fecha_escaneo).toLocaleTimeString()} ({new Date(item.fecha_escaneo).toLocaleDateString()})
+                      </MEHTypography>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {item.puede_deshacer ? (
+                        <MEHButton
+                          size="small"
+                          appearance="outline"
+                          icon={<ArrowUndo24Regular />}
+                          disabled={undoLoading}
+                          onClick={() => handleUndoScan(item)}
+                          style={{ borderColor: tokens.colorPaletteRedBorder2, color: tokens.colorPaletteRedForeground1 }}
+                        >
+                          Deshacer
+                        </MEHButton>
+                      ) : (
+                        <Badge size="small" appearance="tint" color="neutral">
+                          Ventana cerrada (&gt;30s)
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Controles de Paginación */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <MEHTypography variant="caption" style={{ opacity: 0.8 }}>
+                    Página {historialPage} de {historialTotalPages} (Total: {historialTotal} escaneos)
+                  </MEHTypography>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <MEHButton
+                      size="small"
+                      icon={<ArrowLeft24Regular />}
+                      disabled={historialPage <= 1 || historialLoading}
+                      onClick={() => fetchHistorial(historialPage - 1)}
+                    >
+                      Anterior
+                    </MEHButton>
+                    <MEHButton
+                      size="small"
+                      icon={<ArrowRight24Regular />}
+                      disabled={historialPage >= historialTotalPages || historialLoading}
+                      onClick={() => fetchHistorial(historialPage + 1)}
+                    >
+                      Siguiente
+                    </MEHButton>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -584,10 +865,37 @@ const EscaneoQR = () => {
 
         {loading && !scanResult && !syncingStatus && <Spinner label="Procesando..." style={{ marginTop: '8px' }} />}
 
-        {scanResult && (
-          <div className={styles.resultOk}>
-            <CheckmarkCircle24Filled fontSize={28} />
-            <MEHTypography variant="h2">{scanResult}</MEHTypography>
+        {/* Tarjeta de Éxito con Botón Deshacer Accidental */}
+        {scanResult && lastScan && (
+          <div className={styles.undoCard}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: tokens.colorPaletteGreenForeground1 }}>
+              <CheckmarkCircle24Filled fontSize={24} />
+              <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>{scanResult}</MEHTypography>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <MEHTypography variant="caption" style={{ opacity: 0.8 }}>
+                {isAdmin 
+                  ? "Rol Administrador: puedes deshacer este escaneo sin límite de tiempo." 
+                  : `¿Fue accidental? Tienes ${timeLeft}s para revertir este escaneo.`}
+              </MEHTypography>
+              <MEHButton
+                size="small"
+                appearance="outline"
+                icon={<ArrowUndo24Regular />}
+                disabled={undoLoading || (!isAdmin && timeLeft <= 0)}
+                onClick={() => handleUndoScan()}
+                style={{ borderColor: tokens.colorPaletteRedBorder2, color: tokens.colorPaletteRedForeground1 }}
+              >
+                {undoLoading ? "Revirtiendo..." : `Deshacer Escaneo (${isAdmin ? "Admin" : `${timeLeft}s`})`}
+              </MEHButton>
+            </div>
+          </div>
+        )}
+
+        {undoSuccessMessage && (
+          <div style={{ padding: '12px', textAlign: 'center', backgroundColor: 'rgba(16, 124, 65, 0.1)', color: tokens.colorPaletteGreenForeground1, borderRadius: '8px', border: `1px solid rgba(16, 124, 65, 0.3)` }}>
+            <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>{undoSuccessMessage}</MEHTypography>
           </div>
         )}
 

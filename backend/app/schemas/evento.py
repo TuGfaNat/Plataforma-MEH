@@ -26,7 +26,7 @@ class EventoBase(BaseModel):
     titulo: str
     descripcion: Optional[str] = None
     tipo_evento: str = "CONFERENCIA"
-    fecha_inicio: datetime
+    fecha_inicio: Optional[datetime] = None
     fecha_fin: Optional[datetime] = None
     hora_inicio: Optional[str] = None
     hora_fin: Optional[str] = None
@@ -102,7 +102,17 @@ class CheckpointResponse(CheckpointBase):
     id_checkpoint: int
     id_evento: int
     activo: bool
+    puede_escanear: Optional[bool] = True
     model_config = ConfigDict(from_attributes=True)
+
+from .checkpoint import (
+    CheckpointPermisoCreate,
+    CheckpointPermisoResponse,
+    AsistenciaDeshacerRequest,
+    AsistenciaDeshacerResponse,
+    AsistenciaHistorialItem,
+    AsistenciaHistorialPaginadoResponse,
+)
 
 class QRScanRequest(BaseModel):
     codigo_qr: str

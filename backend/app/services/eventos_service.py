@@ -18,7 +18,9 @@ from ..core.exceptions import (
     PermisoDenegadoError,
     CupoExcedidoError,
     ValidacionNegocioError,
-    RegistroDuplicadoError
+    RegistroDuplicadoError,
+    RecursoNoEncontradoError,
+    UsuarioNoEncontradoError
 )
 from ..core.permissions import (
     PERMISSION_ATTENDANCE_SCAN,
@@ -503,7 +505,8 @@ def registrar_asistencia_qr(
     id_checkpoint: Optional[int] = None
 ) -> dict:
     """Registra la asistencia física de un miembro mediante escaneo (Solo Staff autorizado)."""
-    if not has_permission(staff_user.rol, PERMISSION_ATTENDANCE_SCAN):
+    tiene_permiso_global = has_permission(staff_user.rol, PERMISSION_ATTENDANCE_SCAN) or (staff_user.rol in ADMIN_OR_ORGANIZER_ROLES)
+    if not tiene_permiso_global and id_checkpoint is None:
         raise PermisoDenegadoError("No tienes permisos para registrar asistencia")
 
     inscripcion = db.query(models.InscripcionEvento).filter(
@@ -520,6 +523,7 @@ def registrar_asistencia_qr(
         raise ValidacionNegocioError(f"La inscripción está en estado {inscripcion.estado_inscripcion}. Requiere confirmación de pago.")
 
     checkpoint = None
+    nueva_asistencia = None
     if id_checkpoint is not None:
         checkpoint = db.query(models.Checkpoint).filter(
             models.Checkpoint.id_checkpoint == id_checkpoint,
@@ -530,6 +534,16 @@ def registrar_asistencia_qr(
         
         if checkpoint.id_evento != inscripcion.id_evento:
             raise ValidacionNegocioError("El checkpoint seleccionado no pertenece a este evento")
+
+        # MEH-018: Validación de permiso por checkpoint (Admin y Organizador son globales)
+        if staff_user.rol not in ADMIN_OR_ORGANIZER_ROLES:
+            permiso = db.query(models.CheckpointPermiso).filter(
+                models.CheckpointPermiso.id_checkpoint == id_checkpoint,
+                models.CheckpointPermiso.id_usuario == staff_user.id_usuario,
+                models.CheckpointPermiso.puede_escanear == True
+            ).first()
+            if not permiso:
+                raise PermisoDenegadoError(f"No tienes permiso asignado para operar el checkpoint '{checkpoint.nombre_checkpoint}'")
             
         # Evitar doble escaneo para el mismo checkpoint
         asistencia_existente = db.query(models.AsistenciaDetalle).filter(
@@ -599,7 +613,7 @@ def registrar_asistencia_qr(
     if checkpoint:
         log_accion = "REGISTRO_ASISTENCIA_CHECKPOINT"
         log_tabla = "asistencia_detalles"
-        log_id_afectado = nueva_asistencia.id_asistencia if 'nueva_asistencia' in locals() else None
+        log_id_afectado = nueva_asistencia.id_asistencia if nueva_asistencia else None
         log_valor_nuevo["id_checkpoint"] = id_checkpoint
         log_valor_nuevo["nombre_checkpoint"] = checkpoint.nombre_checkpoint
 
@@ -614,6 +628,11 @@ def registrar_asistencia_qr(
     )
     
     db.commit()
+    if nueva_asistencia:
+        try:
+            db.refresh(nueva_asistencia)
+        except Exception:
+            pass
     
     # Combinar título del evento con checkpoint para una visualización premium en el frontend
     ret_evento_titulo = evento.titulo
@@ -622,16 +641,44 @@ def registrar_asistencia_qr(
 
     return {
         "message": "Asistencia registrada con éxito", 
-        "usuario": {"nombre": f"{usuario.nombres} {usuario.apellidos}"},
-        "evento": {"titulo": ret_evento_titulo}
+        "usuario": {
+            "nombre": f"{usuario.nombres} {usuario.apellidos}",
+            "id_usuario": usuario.id_usuario
+        },
+        "evento": {
+            "titulo": ret_evento_titulo,
+            "id_evento": evento.id_evento
+        },
+        "id_asistencia": nueva_asistencia.id_asistencia if nueva_asistencia else None,
+        "id_inscripcion": inscripcion.id_inscripcion,
+        "id_checkpoint": id_checkpoint,
+        "fecha_escaneo": datetime.utcnow().isoformat()
     }
 
 
-def get_checkpoints(db: Session, id_evento: int):
-    return db.query(models.Checkpoint).filter(
+def get_checkpoints(db: Session, id_evento: int, current_user: Optional[models.Usuario] = None):
+    checkpoints = db.query(models.Checkpoint).filter(
         models.Checkpoint.id_evento == id_evento,
         models.Checkpoint.activo == True
     ).order_by(models.Checkpoint.orden.asc()).all()
+
+    if current_user:
+        if current_user.rol in ADMIN_OR_ORGANIZER_ROLES:
+            for cp in checkpoints:
+                setattr(cp, "puede_escanear", True)
+        else:
+            permisos = db.query(models.CheckpointPermiso).filter(
+                models.CheckpointPermiso.id_usuario == current_user.id_usuario,
+                models.CheckpointPermiso.puede_escanear == True
+            ).all()
+            allowed_cp_ids = {p.id_checkpoint for p in permisos}
+            for cp in checkpoints:
+                setattr(cp, "puede_escanear", cp.id_checkpoint in allowed_cp_ids)
+    else:
+        for cp in checkpoints:
+            setattr(cp, "puede_escanear", True)
+
+    return checkpoints
 
 def create_checkpoint(db: Session, admin_user: models.Usuario, id_evento: int, checkpoint_data):
     if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
@@ -651,6 +698,404 @@ def create_checkpoint(db: Session, admin_user: models.Usuario, id_evento: int, c
     db.commit()
     db.refresh(nuevo)
     return nuevo
+
+
+def get_checkpoint_permisos(db: Session, admin_user: models.Usuario, id_evento: int, id_checkpoint: int):
+    """Lista los operadores y permisos asignados a un checkpoint."""
+    if admin_user.rol not in ADMIN_OR_ORGANIZER_ROLES and not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError("No tienes permisos para ver los permisos de checkpoints")
+
+    checkpoint = db.query(models.Checkpoint).filter(
+        models.Checkpoint.id_checkpoint == id_checkpoint,
+        models.Checkpoint.id_evento == id_evento
+    ).first()
+    if not checkpoint:
+        raise RecursoNoEncontradoError("Checkpoint no encontrado en este evento")
+
+    permisos = db.query(models.CheckpointPermiso).filter(
+        models.CheckpointPermiso.id_checkpoint == id_checkpoint
+    ).all()
+    
+    return permisos
+
+
+def asignar_checkpoint_permiso(
+    db: Session,
+    admin_user: models.Usuario,
+    id_evento: int,
+    id_checkpoint: int,
+    payload,
+    ip_address: Optional[str] = None
+):
+    """Asigna o actualiza el permiso de escaneo de un operador a un checkpoint."""
+    if admin_user.rol not in ADMIN_OR_ORGANIZER_ROLES and not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError("No tienes permisos para asignar permisos de checkpoints")
+
+    checkpoint = db.query(models.Checkpoint).filter(
+        models.Checkpoint.id_checkpoint == id_checkpoint,
+        models.Checkpoint.id_evento == id_evento
+    ).first()
+    if not checkpoint:
+        raise RecursoNoEncontradoError("Checkpoint no encontrado en este evento")
+
+    usuario_target = db.query(models.Usuario).filter(models.Usuario.id_usuario == payload.id_usuario).first()
+    if not usuario_target:
+        raise UsuarioNoEncontradoError("El usuario especificado no existe")
+
+    permiso = db.query(models.CheckpointPermiso).filter(
+        models.CheckpointPermiso.id_checkpoint == id_checkpoint,
+        models.CheckpointPermiso.id_usuario == payload.id_usuario
+    ).first()
+
+    es_nuevo = False
+    if permiso:
+        permiso.puede_escanear = payload.puede_escanear if payload.puede_escanear is not None else True
+        permiso.modificado_por = admin_user.id_usuario
+        permiso.fecha_modificacion = datetime.utcnow()
+    else:
+        es_nuevo = True
+        permiso = models.CheckpointPermiso(
+            id_checkpoint=id_checkpoint,
+            id_usuario=payload.id_usuario,
+            puede_escanear=payload.puede_escanear if payload.puede_escanear is not None else True,
+            asignado_por=admin_user.id_usuario,
+            fecha_asignacion=datetime.utcnow()
+        )
+        db.add(permiso)
+
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="ASIGNAR_CHECKPOINT_PERMISO" if es_nuevo else "ACTUALIZAR_CHECKPOINT_PERMISO",
+        tabla_afectada="checkpoint_permisos",
+        id_registro_afectado=permiso.id_permiso if not es_nuevo else None,
+        valor_nuevo={
+            "id_checkpoint": id_checkpoint,
+            "id_usuario": payload.id_usuario,
+            "puede_escanear": permiso.puede_escanear,
+            "nombre_checkpoint": checkpoint.nombre_checkpoint,
+            "nombre_operador": f"{usuario_target.nombres} {usuario_target.apellidos}"
+        },
+        ip_direccion=ip_address
+    )
+
+    db.commit()
+    db.refresh(permiso)
+    return permiso
+
+
+def revocar_checkpoint_permiso(
+    db: Session,
+    admin_user: models.Usuario,
+    id_evento: int,
+    id_checkpoint: int,
+    id_usuario: int,
+    ip_address: Optional[str] = None
+):
+    """Revoca el permiso de un operador en un checkpoint."""
+    if admin_user.rol not in ADMIN_OR_ORGANIZER_ROLES and not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError("No tienes permisos para revocar permisos de checkpoints")
+
+    checkpoint = db.query(models.Checkpoint).filter(
+        models.Checkpoint.id_checkpoint == id_checkpoint,
+        models.Checkpoint.id_evento == id_evento
+    ).first()
+    if not checkpoint:
+        raise RecursoNoEncontradoError("Checkpoint no encontrado en este evento")
+
+    permiso = db.query(models.CheckpointPermiso).filter(
+        models.CheckpointPermiso.id_checkpoint == id_checkpoint,
+        models.CheckpointPermiso.id_usuario == id_usuario
+    ).first()
+    if not permiso:
+        raise RecursoNoEncontradoError("Permiso de checkpoint no encontrado")
+
+    usuario_target = permiso.usuario
+    log_valor_anterior = {
+        "id_permiso": permiso.id_permiso,
+        "id_checkpoint": id_checkpoint,
+        "id_usuario": id_usuario,
+        "nombre_checkpoint": checkpoint.nombre_checkpoint,
+        "nombre_operador": f"{usuario_target.nombres} {usuario_target.apellidos}" if usuario_target else None
+    }
+
+    db.delete(permiso)
+
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="REVOCAR_CHECKPOINT_PERMISO",
+        tabla_afectada="checkpoint_permisos",
+        id_registro_afectado=permiso.id_permiso,
+        valor_anterior=log_valor_anterior,
+        valor_nuevo={"revocado_por": admin_user.id_usuario},
+        ip_direccion=ip_address
+    )
+
+    db.commit()
+    return {"status": "success", "message": "Permiso revocado exitosamente"}
+
+
+def deshacer_asistencia_qr(
+    db: Session,
+    current_user: models.Usuario,
+    payload,
+    ip_address: Optional[str] = None
+) -> dict:
+    """Deshace un escaneo accidental con ventana de 30 segundos (Admin sin límite) y auditoría."""
+    tiene_permiso_base = has_permission(current_user.rol, PERMISSION_ATTENDANCE_SCAN) or current_user.rol in ADMIN_OR_ORGANIZER_ROLES
+    if not tiene_permiso_base:
+        tiene_cp_permiso = db.query(models.CheckpointPermiso).filter(
+            models.CheckpointPermiso.id_usuario == current_user.id_usuario,
+            models.CheckpointPermiso.puede_escanear == True
+        ).first()
+        if not tiene_cp_permiso:
+            raise PermisoDenegadoError("No tienes permisos para deshacer escaneos de asistencia")
+
+    asistencia: Optional[models.AsistenciaDetalle] = None
+    inscripcion: Optional[models.InscripcionEvento] = None
+
+    # 1. Buscar por id_asistencia directo
+    if getattr(payload, "id_asistencia", None):
+        asistencia = db.query(models.AsistenciaDetalle).filter(
+            models.AsistenciaDetalle.id_asistencia == payload.id_asistencia
+        ).first()
+        if not asistencia:
+            raise RecursoNoEncontradoError("Registro de detalle de asistencia no encontrado")
+        inscripcion = asistencia.inscripcion
+
+    # 2. Buscar por id_inscripcion e id_checkpoint
+    elif getattr(payload, "id_inscripcion", None) and getattr(payload, "id_checkpoint", None):
+        asistencia = db.query(models.AsistenciaDetalle).filter(
+            models.AsistenciaDetalle.id_inscripcion == payload.id_inscripcion,
+            models.AsistenciaDetalle.id_checkpoint == payload.id_checkpoint
+        ).first()
+        inscripcion = db.query(models.InscripcionEvento).filter(
+            models.InscripcionEvento.id_inscripcion == payload.id_inscripcion
+        ).first()
+
+    # 3. Buscar por codigo_qr
+    elif getattr(payload, "codigo_qr", None):
+        inscripcion = db.query(models.InscripcionEvento).filter(
+            models.InscripcionEvento.codigo_qr == payload.codigo_qr,
+            models.InscripcionEvento.id_estado != 0
+        ).first()
+        if not inscripcion:
+            raise RecursoNoEncontradoError("Inscripción no encontrada para el código QR proporcionado")
+        
+        if getattr(payload, "id_checkpoint", None):
+            asistencia = db.query(models.AsistenciaDetalle).filter(
+                models.AsistenciaDetalle.id_inscripcion == inscripcion.id_inscripcion,
+                models.AsistenciaDetalle.id_checkpoint == payload.id_checkpoint
+            ).first()
+        else:
+            asistencia = db.query(models.AsistenciaDetalle).filter(
+                models.AsistenciaDetalle.id_inscripcion == inscripcion.id_inscripcion
+            ).order_by(models.AsistenciaDetalle.fecha_escaneo.desc()).first()
+
+    # 4. Buscar por id_inscripcion solo (último escaneo o general)
+    elif getattr(payload, "id_inscripcion", None):
+        inscripcion = db.query(models.InscripcionEvento).filter(
+            models.InscripcionEvento.id_inscripcion == payload.id_inscripcion
+        ).first()
+        if not inscripcion:
+            raise RecursoNoEncontradoError("Inscripción no encontrada")
+        asistencia = db.query(models.AsistenciaDetalle).filter(
+            models.AsistenciaDetalle.id_inscripcion == inscripcion.id_inscripcion
+        ).order_by(models.AsistenciaDetalle.fecha_escaneo.desc()).first()
+
+    else:
+        raise ValidacionNegocioError("Se requiere id_asistencia, id_inscripcion o codigo_qr para deshacer el escaneo")
+
+    if not inscripcion and asistencia:
+        inscripcion = asistencia.inscripcion
+
+    if not inscripcion:
+        raise RecursoNoEncontradoError("Inscripción asociada no encontrada")
+
+    # Validar ventana de 30 segundos (Admin sin límite)
+    ahora = datetime.utcnow()
+    fecha_ref = asistencia.fecha_escaneo if asistencia else inscripcion.fecha_validacion
+    
+    if current_user.rol != ROLE_ADMIN:
+        if not fecha_ref:
+            raise ValidacionNegocioError("No se puede determinar la hora del escaneo original")
+        
+        segundos = (ahora - fecha_ref).total_seconds()
+        if segundos > 30:
+            raise ValidacionNegocioError(f"La ventana de 30 segundos para deshacer ha expirado ({int(segundos)}s transcurridos)")
+        
+        # Si no es admin u organizador, solo el operador que realizó el escaneo puede deshacerlo
+        if current_user.rol not in ADMIN_OR_ORGANIZER_ROLES:
+            operador_original = asistencia.escaneado_por if asistencia else None
+            if operador_original and operador_original != current_user.id_usuario:
+                raise PermisoDenegadoError("Solo el operador que realizó el escaneo o un administrador pueden deshacerlo")
+
+    # Proceder a deshacer
+    usuario = inscripcion.usuario
+    log_tabla = "asistencia_detalles" if asistencia else "inscripciones_eventos"
+    log_id_afectado = asistencia.id_asistencia if asistencia else inscripcion.id_inscripcion
+    cp_id = asistencia.id_checkpoint if asistencia else None
+    cp_nombre = asistencia.checkpoint.nombre_checkpoint if asistencia and asistencia.checkpoint else "Entrada General"
+
+    log_valor_anterior = {
+        "id_inscripcion": inscripcion.id_inscripcion,
+        "id_usuario": inscripcion.id_usuario,
+        "nombre_usuario": f"{usuario.nombres} {usuario.apellidos}" if usuario else None,
+        "id_checkpoint": cp_id,
+        "nombre_checkpoint": cp_nombre,
+        "fecha_escaneo": fecha_ref.isoformat() if fecha_ref else None,
+        "escaneado_por": asistencia.escaneado_por if asistencia else None
+    }
+
+    if asistencia:
+        db.delete(asistencia)
+        db.flush()
+
+    # Re-evaluar si le quedan asistencias en otros checkpoints
+    restantes = db.query(models.AsistenciaDetalle).filter(
+        models.AsistenciaDetalle.id_inscripcion == inscripcion.id_inscripcion
+    ).count()
+
+    if restantes == 0:
+        inscripcion.asistio = False
+        inscripcion.fecha_validacion = None
+
+    registrar_log(
+        db=db,
+        id_admin=current_user.id_usuario,
+        accion="DESHACER_ASISTENCIA",
+        tabla_afectada=log_tabla,
+        id_registro_afectado=log_id_afectado,
+        valor_anterior=log_valor_anterior,
+        valor_nuevo={
+            "motivo": getattr(payload, "motivo", "Escaneo accidental deshecho") or "Escaneo accidental deshecho",
+            "deshecho_por": current_user.id_usuario,
+            "asistio_general_restante": inscripcion.asistio,
+            "checkpoints_restantes": restantes
+        },
+        ip_direccion=ip_address
+    )
+
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": f"Escaneo en '{cp_nombre}' deshecho con éxito",
+        "id_asistencia": log_id_afectado if asistencia else None,
+        "id_inscripcion": inscripcion.id_inscripcion,
+        "id_checkpoint": cp_id,
+        "asistio_general": inscripcion.asistio
+    }
+
+
+def get_historial_asistencia_paginado(
+    db: Session,
+    current_user: models.Usuario,
+    id_evento: int,
+    page: int = 1,
+    limit: int = 20,
+    id_checkpoint: Optional[int] = None,
+    search: Optional[str] = None
+) -> dict:
+    """Retorna el historial paginado de escaneos de asistencia por evento (filtrable por checkpoint y búsqueda)."""
+    tiene_permiso_base = has_permission(current_user.rol, PERMISSION_ATTENDANCE_SCAN) or current_user.rol in ADMIN_OR_ORGANIZER_ROLES
+    if not tiene_permiso_base:
+        tiene_cp_permiso = db.query(models.CheckpointPermiso).filter(
+            models.CheckpointPermiso.id_usuario == current_user.id_usuario,
+            models.CheckpointPermiso.puede_escanear == True
+        ).first()
+        if not tiene_cp_permiso:
+            raise PermisoDenegadoError("No tienes permisos para consultar el historial de asistencia")
+
+    evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
+    if not evento:
+        raise RecursoNoEncontradoError("Evento no encontrado")
+
+    query = db.query(models.AsistenciaDetalle).join(
+        models.InscripcionEvento,
+        models.AsistenciaDetalle.id_inscripcion == models.InscripcionEvento.id_inscripcion
+    ).filter(
+        models.InscripcionEvento.id_evento == id_evento
+    )
+
+    if id_checkpoint is not None:
+        query = query.filter(models.AsistenciaDetalle.id_checkpoint == id_checkpoint)
+
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        query = query.join(
+            models.Usuario,
+            models.InscripcionEvento.id_usuario == models.Usuario.id_usuario
+        ).filter(
+            or_(
+                models.Usuario.nombres.ilike(term),
+                models.Usuario.apellidos.ilike(term),
+                models.Usuario.correo.ilike(term)
+            )
+        )
+
+    total = query.count()
+    limit = max(1, min(limit, 100))
+    page = max(1, page)
+    total_pages = max(1, (total + limit - 1) // limit)
+    offset = (page - 1) * limit
+
+    detalles = query.order_by(
+        models.AsistenciaDetalle.fecha_escaneo.desc()
+    ).offset(offset).limit(limit).all()
+
+    ahora = datetime.utcnow()
+    items = []
+    for d in detalles:
+        inscripcion = d.inscripcion
+        usr = inscripcion.usuario if inscripcion else None
+        cp = d.checkpoint
+        op = d.escaneador
+
+        segundos = int((ahora - d.fecha_escaneo).total_seconds()) if d.fecha_escaneo else 0
+        if segundos < 0:
+            segundos = 0
+
+        # Reglas de Undo: admin sin límite; operador u organizador dentro de 30s
+        if current_user.rol == ROLE_ADMIN:
+            puede_deshacer = True
+        elif current_user.rol in ADMIN_OR_ORGANIZER_ROLES:
+            puede_deshacer = segundos <= 30
+        else:
+            puede_deshacer = (d.escaneado_por == current_user.id_usuario) and (segundos <= 30)
+
+        items.append({
+            "id_asistencia": d.id_asistencia,
+            "id_inscripcion": d.id_inscripcion,
+            "id_evento": id_evento,
+            "fecha_escaneo": d.fecha_escaneo,
+            "segundos_transcurridos": segundos,
+            "puede_deshacer": puede_deshacer,
+            "usuario": {
+                "id_usuario": usr.id_usuario if usr else 0,
+                "nombre_completo": f"{usr.nombres} {usr.apellidos}" if usr else "Desconocido",
+                "correo": usr.correo if usr else None
+            },
+            "checkpoint": {
+                "id_checkpoint": cp.id_checkpoint if cp else None,
+                "nombre_checkpoint": cp.nombre_checkpoint if cp else "Entrada General",
+                "tipo_checkpoint": cp.tipo_checkpoint if cp else None
+            } if cp else None,
+            "operador": {
+                "id_usuario": op.id_usuario if op else None,
+                "nombre_completo": f"{op.nombres} {op.apellidos}" if op else "Sistema",
+                "correo": op.correo if op else None
+            } if op else None
+        })
+
+    return {
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages,
+        "items": items
+    }
 
 def delete_evento(db: Session, id_evento: int, admin_user: models.Usuario, ip_address: Optional[str] = None):
     if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
@@ -739,7 +1184,8 @@ def create_pago_qr(
     nombre_paquete: str,
     monto: float,
     file_content: bytes,
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
+    file_extension: Optional[str] = None
 ) -> models.EventoPagoQR:
     """Crea un paquete de pago y QR asociado a un evento con validación y anti-duplicado."""
     if admin_user.rol not in ["ADMIN", "ORGANIZADOR", "MODERADOR"]:
