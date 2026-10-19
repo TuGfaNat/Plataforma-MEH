@@ -1,7 +1,11 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from sqlalchemy.orm import Session
+
+def _get_utc_now() -> datetime:
+    """Retorna datetime actual en UTC sin zona horaria para compatibilidad de base de datos."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 from ..models import models
 from ..core.logging import registrar_log
@@ -66,7 +70,10 @@ def inscribir_evento(
         models.EventoPagoQR.id_estado == 2
     ).first() is not None
 
-    if conteo_ocupados >= (evento.capacidad_max or 0):
+    # Regla explícita de capacidad: None significa capacidad ilimitada (sin límite)
+    cupo_disponible = (evento.capacidad_max is None) or (conteo_ocupados < evento.capacidad_max)
+
+    if not cupo_disponible:
         # Cupo lleno -> PENDIENTE_APROBACION (Lista de espera, sin QR)
         estado_final = "PENDIENTE_APROBACION"
         token_qr = None
@@ -84,21 +91,21 @@ def inscribir_evento(
     if inscripcion_existente:
         # Reactivar registro previamente cancelado
         inscripcion_existente.id_estado = 2
-        inscripcion_existente.fecha_inscripcion = datetime.utcnow()
+        inscripcion_existente.fecha_inscripcion = _get_utc_now()
         inscripcion_existente.estado_inscripcion = estado_final
         inscripcion_existente.codigo_qr = token_qr
         inscripcion_existente.asistio = False
-        inscripcion_existente.fecha_validacion = datetime.utcnow() if estado_final == "CONFIRMADA" else None
+        inscripcion_existente.fecha_validacion = _get_utc_now() if estado_final == "CONFIRMADA" else None
         db_inscripcion = inscripcion_existente
     else:
         db_inscripcion = models.InscripcionEvento(
             id_usuario=user_id,
             id_evento=id_evento,
-            fecha_inscripcion=datetime.utcnow(),
+            fecha_inscripcion=_get_utc_now(),
             estado_inscripcion=estado_final,
             codigo_qr=token_qr,
             asistio=False,
-            fecha_validacion=datetime.utcnow() if estado_final == "CONFIRMADA" else None,
+            fecha_validacion=_get_utc_now() if estado_final == "CONFIRMADA" else None,
             id_estado=2
         )
         db.add(db_inscripcion)
@@ -215,7 +222,7 @@ def aprobar_inscripcion_espera(
         models.InscripcionEvento.id_estado != 0
     ).count()
 
-    if conteo_ocupados >= (evento.capacidad_max or 0):
+    if evento.capacidad_max is not None and conteo_ocupados >= evento.capacidad_max:
         raise ValidacionNegocioError(
             f"Capacidad máxima ({evento.capacidad_max}) alcanzada. Amplíe la capacidad del evento antes de aprobar participantes de la lista de espera."
         )

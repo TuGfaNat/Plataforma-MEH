@@ -131,7 +131,10 @@ def populate_evento_cupos(db: Session, evento: models.Evento):
     espera = sum(1 for i in inscripciones if i.estado_inscripcion == "PENDIENTE_APROBACION")
     
     evento.cupos_ocupados = ocupados
-    evento.cupos_disponibles = max(0, (evento.capacidad_max or 0) - ocupados)
+    if evento.capacidad_max is None:
+        evento.cupos_disponibles = None
+    else:
+        evento.cupos_disponibles = max(0, evento.capacidad_max - ocupados)
     evento.total_en_espera = espera
     evento.capacidad_maxima = evento.capacidad_max
 
@@ -1599,14 +1602,16 @@ def aprobar_lista_espera_lote(
 
     evento = get_evento_by_id(db, id_evento)
 
-    capacidad = evento.capacidad_max or evento.capacidad_maxima or 0
-    ocupados = db.query(models.InscripcionEvento).filter(
-        models.InscripcionEvento.id_evento == id_evento,
-        models.InscripcionEvento.estado_inscripcion.in_(["CONFIRMADA", "PENDIENTE"]),
-        models.InscripcionEvento.id_estado != 0
-    ).count()
-
-    cupos_disponibles = max(0, capacidad - ocupados)
+    if evento.capacidad_max is None:
+        cupos_disponibles = 999999
+    else:
+        capacidad = evento.capacidad_max
+        ocupados = db.query(models.InscripcionEvento).filter(
+            models.InscripcionEvento.id_evento == id_evento,
+            models.InscripcionEvento.estado_inscripcion.in_(["CONFIRMADA", "PENDIENTE"]),
+            models.InscripcionEvento.id_estado != 0
+        ).count()
+        cupos_disponibles = max(0, capacidad - ocupados)
 
     query_espera = db.query(models.InscripcionEvento).filter(
         models.InscripcionEvento.id_evento == id_evento,

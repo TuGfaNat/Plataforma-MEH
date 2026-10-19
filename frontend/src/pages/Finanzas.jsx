@@ -42,6 +42,7 @@ import { designTokens } from '../theme/theme';
 import pagoService from '../services/pagoService';
 import eventoService from '../services/eventoService';
 import { resolveApiFileUrl } from '../services/api';
+import { QRCodeSVG } from 'qrcode.react';
 
 const useStyles = makeStyles({
   container: {
@@ -444,7 +445,7 @@ const Finanzas = () => {
                           {selectedPackage ? (
                               <img src={resolveApiFileUrl(selectedPackage.url_qr)} alt="QR Bancario" style={{ width: '150px', height: '150px', objectFit: 'contain' }} />
                           ) : (
-                              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=bank_transfer_meh_${monto}`} alt="QR Bancario" />
+                              <QRCodeSVG value={`bank_transfer_meh_${monto}`} size={150} level="M" role="img" aria-label="QR Bancario" />
                           )}
                       </div>
                       <MEHTypography variant="caption" style={{ display: 'block', marginTop: '8px', opacity: 0.7 }}>
