@@ -32,6 +32,13 @@ from ..core.permissions import (
     ensure_permission
 )
 
+ERROR_EVENTO_NO_ENCONTRADO = "Evento no encontrado"
+ERROR_CHECKPOINT_NO_ENCONTRADO = "Checkpoint no encontrado en este evento"
+
+def _get_utc_now() -> datetime:
+    """Retorna datetime actual en UTC sin zona horaria para compatibilidad de base de datos."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
 def parse_incluidos_list(incluidos_raw) -> List[str]:
     """Parsea el campo incluidos a una lista de strings."""
     if not incluidos_raw:
@@ -652,7 +659,7 @@ def registrar_asistencia_qr(
         "id_asistencia": nueva_asistencia.id_asistencia if nueva_asistencia else None,
         "id_inscripcion": inscripcion.id_inscripcion,
         "id_checkpoint": id_checkpoint,
-        "fecha_escaneo": datetime.utcnow().isoformat()
+        "fecha_escaneo": _get_utc_now().isoformat()
     }
 
 
@@ -686,7 +693,7 @@ def create_checkpoint(db: Session, admin_user: models.Usuario, id_evento: int, c
 
     evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
     if not evento:
-        raise ValidacionNegocioError("Evento no encontrado")
+        raise ValidacionNegocioError(ERROR_EVENTO_NO_ENCONTRADO)
 
     nuevo = models.Checkpoint(
         id_evento=id_evento,
@@ -710,7 +717,7 @@ def get_checkpoint_permisos(db: Session, admin_user: models.Usuario, id_evento: 
         models.Checkpoint.id_evento == id_evento
     ).first()
     if not checkpoint:
-        raise RecursoNoEncontradoError("Checkpoint no encontrado en este evento")
+        raise RecursoNoEncontradoError(ERROR_CHECKPOINT_NO_ENCONTRADO)
 
     permisos = db.query(models.CheckpointPermiso).filter(
         models.CheckpointPermiso.id_checkpoint == id_checkpoint
@@ -736,7 +743,7 @@ def asignar_checkpoint_permiso(
         models.Checkpoint.id_evento == id_evento
     ).first()
     if not checkpoint:
-        raise RecursoNoEncontradoError("Checkpoint no encontrado en este evento")
+        raise RecursoNoEncontradoError(ERROR_CHECKPOINT_NO_ENCONTRADO)
 
     usuario_target = db.query(models.Usuario).filter(models.Usuario.id_usuario == payload.id_usuario).first()
     if not usuario_target:
@@ -751,7 +758,7 @@ def asignar_checkpoint_permiso(
     if permiso:
         permiso.puede_escanear = payload.puede_escanear if payload.puede_escanear is not None else True
         permiso.modificado_por = admin_user.id_usuario
-        permiso.fecha_modificacion = datetime.utcnow()
+        permiso.fecha_modificacion = _get_utc_now()
     else:
         es_nuevo = True
         permiso = models.CheckpointPermiso(
@@ -759,7 +766,7 @@ def asignar_checkpoint_permiso(
             id_usuario=payload.id_usuario,
             puede_escanear=payload.puede_escanear if payload.puede_escanear is not None else True,
             asignado_por=admin_user.id_usuario,
-            fecha_asignacion=datetime.utcnow()
+            fecha_asignacion=_get_utc_now()
         )
         db.add(permiso)
 
@@ -801,7 +808,7 @@ def revocar_checkpoint_permiso(
         models.Checkpoint.id_evento == id_evento
     ).first()
     if not checkpoint:
-        raise RecursoNoEncontradoError("Checkpoint no encontrado en este evento")
+        raise RecursoNoEncontradoError(ERROR_CHECKPOINT_NO_ENCONTRADO)
 
     permiso = db.query(models.CheckpointPermiso).filter(
         models.CheckpointPermiso.id_checkpoint == id_checkpoint,
@@ -914,7 +921,7 @@ def deshacer_asistencia_qr(
         raise RecursoNoEncontradoError("Inscripción asociada no encontrada")
 
     # Validar ventana de 30 segundos (Admin sin límite)
-    ahora = datetime.utcnow()
+    ahora = _get_utc_now()
     fecha_ref = asistencia.fecha_escaneo if asistencia else inscripcion.fecha_validacion
     
     if current_user.rol != ROLE_ADMIN:
@@ -1010,7 +1017,7 @@ def get_historial_asistencia_paginado(
 
     evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
     if not evento:
-        raise RecursoNoEncontradoError("Evento no encontrado")
+        raise RecursoNoEncontradoError(ERROR_EVENTO_NO_ENCONTRADO)
 
     query = db.query(models.AsistenciaDetalle).join(
         models.InscripcionEvento,
@@ -1045,7 +1052,7 @@ def get_historial_asistencia_paginado(
         models.AsistenciaDetalle.fecha_escaneo.desc()
     ).offset(offset).limit(limit).all()
 
-    ahora = datetime.utcnow()
+    ahora = _get_utc_now()
     items = []
     for d in detalles:
         inscripcion = d.inscripcion
@@ -1065,6 +1072,28 @@ def get_historial_asistencia_paginado(
         else:
             puede_deshacer = (d.escaneado_por == current_user.id_usuario) and (segundos <= 30)
 
+        checkpoint_info = None
+        if cp:
+            checkpoint_info = {
+                "id_checkpoint": cp.id_checkpoint,
+                "nombre_checkpoint": cp.nombre_checkpoint or "Entrada General",
+                "tipo_checkpoint": cp.tipo_checkpoint
+            }
+
+        operador_info = None
+        if op:
+            operador_info = {
+                "id_usuario": op.id_usuario,
+                "nombre_completo": f"{op.nombres} {op.apellidos}".strip(),
+                "correo": op.correo
+            }
+
+        usuario_info = {
+            "id_usuario": usr.id_usuario if usr else 0,
+            "nombre_completo": f"{usr.nombres} {usr.apellidos}".strip() if usr else "Desconocido",
+            "correo": usr.correo if usr else None
+        }
+
         items.append({
             "id_asistencia": d.id_asistencia,
             "id_inscripcion": d.id_inscripcion,
@@ -1072,21 +1101,9 @@ def get_historial_asistencia_paginado(
             "fecha_escaneo": d.fecha_escaneo,
             "segundos_transcurridos": segundos,
             "puede_deshacer": puede_deshacer,
-            "usuario": {
-                "id_usuario": usr.id_usuario if usr else 0,
-                "nombre_completo": f"{usr.nombres} {usr.apellidos}" if usr else "Desconocido",
-                "correo": usr.correo if usr else None
-            },
-            "checkpoint": {
-                "id_checkpoint": cp.id_checkpoint if cp else None,
-                "nombre_checkpoint": cp.nombre_checkpoint if cp else "Entrada General",
-                "tipo_checkpoint": cp.tipo_checkpoint if cp else None
-            } if cp else None,
-            "operador": {
-                "id_usuario": op.id_usuario if op else None,
-                "nombre_completo": f"{op.nombres} {op.apellidos}" if op else "Sistema",
-                "correo": op.correo if op else None
-            } if op else None
+            "usuario": usuario_info,
+            "checkpoint": checkpoint_info,
+            "operador": operador_info
         })
 
     return {
@@ -1121,7 +1138,7 @@ def get_inscritos_confirmados(db: Session, id_evento: int, staff_user: models.Us
         
     evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
     if not evento:
-        raise ValidacionNegocioError("Evento no encontrado")
+        raise ValidacionNegocioError(ERROR_EVENTO_NO_ENCONTRADO)
         
     inscripciones = db.query(models.InscripcionEvento).join(
         models.Usuario, models.InscripcionEvento.id_usuario == models.Usuario.id_usuario
@@ -1153,9 +1170,12 @@ def get_pagos_qr_by_event(db: Session, id_evento: int) -> List[models.EventoPago
         models.EventoPagoQR.id_estado == 2
     ).all()
 
-def _safe_save_qr_file(id_evento: int, file_content: bytes) -> str:
+def _safe_save_qr_file(id_evento: int, file_content: bytes, file_extension: Optional[str] = None) -> str:
     """Guarda un archivo de imagen/PDF de QR de forma segura."""
-    if file_content.startswith(b"%PDF"):
+    if file_extension:
+        ext = file_extension.lower().strip().lstrip(".")
+        safe_ext = f".{ext}"
+    elif file_content.startswith(b"%PDF"):
         safe_ext = ".pdf"
     elif file_content.startswith(b"\xff\xd8\xff"):
         safe_ext = ".jpg"
@@ -1206,7 +1226,7 @@ def create_pago_qr(
     if duplicado:
         raise ValidacionNegocioError(f"Ya existe un paquete de pago con el nombre '{nombre_limpio}' para este evento")
 
-    rel_url = _safe_save_qr_file(id_evento, file_content)
+    rel_url = _safe_save_qr_file(id_evento, file_content, file_extension)
 
     nuevo_qr = models.EventoPagoQR(
         id_evento=id_evento,

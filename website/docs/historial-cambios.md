@@ -14,11 +14,7 @@ y este proyecto se rige por [Semantic Versioning (SemVer)](https://semver.org/la
 ---
 
 ## [Unreleased]
-- **MEH-018: Escaneo Seguro, Undo, Historial y Permisos por Checkpoint**:
-  - Implementación de `POST /asistencia/deshacer` con ventana de 30 segundos para operadores (sin límite para administradores), reversión de asistencia y auditoría en `logs_auditoria`.
-  - Historial de escaneos paginado y filtrable (`GET /eventos/{id}/historial-asistencia`).
-  - Control de permisos checkpoint x operador con tabla `checkpoint_permisos`, validación en escaneo con 403 Forbidden para accesos no autorizados y panel de gestión en `EventsTab.jsx`.
-  - Botón Deshacer con cuenta regresiva en `EscaneoQR.jsx` y pestaña de historial de escaneos.
+### Added
 - Pipeline Docs-as-Code con generador unificado en `tools/docs_gen.py`.
 - Soporte de subcomandos `tech`, `user`, `changelog`, `all` y `check`.
 - Doble superficie de despliegue híbrido consistente (GitHub Pages en `/` y Docker en `/docs/`).

@@ -11,7 +11,7 @@ Este diccionario se genera automáticamente analizando los modelos SQLAlchemy en
 Se respeta estrictamente el estándar arquitectónico **INTEGER SERIAL** (ADR-002), sin uso de UUIDs como claves foráneas.
 :::
 
-**Total de tablas relacionales catalogadas:** 27
+**Total de tablas relacionales catalogadas:** 28
 
 ## Resumen Entidad-Relación (Mermaid ERD)
 
@@ -19,6 +19,7 @@ Se respeta estrictamente el estándar arquitectónico **INTEGER SERIAL** (ADR-00
 erDiagram
     BADGES ||--o{ USUARIOS_BADGES : "id_badge"
     CHECKPOINTS ||--o{ ASISTENCIA_DETALLES : "id_checkpoint"
+    CHECKPOINTS ||--o{ CHECKPOINT_PERMISOS : "id_checkpoint"
     CURSOS ||--o{ BADGES : "id_curso_origen"
     CURSOS ||--o{ CERTIFICADOS : "id_curso"
     CURSOS ||--o{ INSCRIPCIONES_CURSOS : "id_curso"
@@ -31,6 +32,7 @@ erDiagram
     ESTADOS_REGISTRO ||--o{ BADGES : "id_estado"
     ESTADOS_REGISTRO ||--o{ CERTIFICADOS : "id_estado"
     ESTADOS_REGISTRO ||--o{ CHECKPOINTS : "id_estado"
+    ESTADOS_REGISTRO ||--o{ CHECKPOINT_PERMISOS : "id_estado"
     ESTADOS_REGISTRO ||--o{ COMUNIDADES_ALIADAS : "id_estado"
     ESTADOS_REGISTRO ||--o{ CONFIGURACION_GLOBAL : "id_estado"
     ESTADOS_REGISTRO ||--o{ CURSOS : "id_estado"
@@ -45,8 +47,6 @@ erDiagram
     ESTADOS_REGISTRO ||--o{ PEDIDOS : "id_estado"
     ESTADOS_REGISTRO ||--o{ PEDIDO_DETALLES : "id_estado"
     ESTADOS_REGISTRO ||--o{ POSTS_FORO : "id_estado"
-    ESTADOS_REGISTRO ||--o{ PRODUCTOS : "id_estado"
-    ESTADOS_REGISTRO ||--o{ RECURSOS : "id_estado"
 ```
 
 ---
@@ -338,6 +338,23 @@ erDiagram
 | `id_checkpoint` | `INTEGER` | **FK** | SÍ | index, FK -> checkpoints.id_checkpoint |
 | `fecha_escaneo` | `DATETIME` | **-** | SÍ | default=utcnow |
 | `escaneado_por` | `INTEGER` | **FK** | SÍ | index, FK -> usuarios.id_usuario |
+| `creado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |
+| `fecha_creacion` | `DATETIME` | **-** | SÍ | AuditMixin default=utcnow |
+| `modificado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |
+| `fecha_modificacion` | `DATETIME` | **-** | SÍ | AuditMixin |
+| `id_estado` | `INTEGER` | **FK** | **NO** | Lifecycle default=2 |
+| `fecha_modificacion_estado` | `DATETIME` | **-** | SÍ | Lifecycle |
+
+### Tabla `checkpoint_permisos` (Modelo: `CheckpointPermiso`) `AuditMixin` `EstadoLifecycle`
+
+| Nombre de Columna | Tipo de Dato | Clave | Nullable | Restricciones / Notas |
+|---|---|---|---|---|
+| `id_permiso` | `INTEGER` | **PK** | SÍ | index, PK (autoincrement) |
+| `id_checkpoint` | `INTEGER` | **FK** | SÍ | index, FK -> checkpoints.id_checkpoint |
+| `id_usuario` | `INTEGER` | **FK** | SÍ | index, FK -> usuarios.id_usuario |
+| `puede_escanear` | `BOOLEAN` | **-** | SÍ | default=True |
+| `fecha_asignacion` | `DATETIME` | **-** | SÍ | default=utcnow |
+| `asignado_por` | `INTEGER` | **FK** | SÍ | FK -> usuarios.id_usuario |
 | `creado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |
 | `fecha_creacion` | `DATETIME` | **-** | SÍ | AuditMixin default=utcnow |
 | `modificado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |

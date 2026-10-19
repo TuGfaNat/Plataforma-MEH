@@ -10,8 +10,7 @@ import {
   Tab,
   Select,
   Switch,
-  Badge,
-  Tooltip
+  Badge
 } from '@fluentui/react-components';
 import {
   CheckmarkCircle24Filled,
@@ -415,7 +414,7 @@ const EscaneoQR = () => {
       setScanResult(`Asistencia de ${usuarioNombre} confirmada para ${eventoTitulo}`);
       
       if (mode === 'historial') {
-        fetchHistorial(historialPage);
+        void fetchHistorial(historialPage);
       }
     } catch (err) {
       setError(err.response?.data?.detail || 'Error en el registro');
@@ -443,7 +442,7 @@ const EscaneoQR = () => {
       setUndoSuccessMessage("✓ Escaneo deshecho con éxito. El participante puede ser escaneado nuevamente.");
       setTimeout(() => setUndoSuccessMessage(''), 6000);
       if (selectedEvento) {
-        fetchHistorial(historialPage);
+        void fetchHistorial(historialPage);
       }
     } catch (err) {
       const detail = err.response?.data?.detail || "No se pudo deshacer el escaneo";
@@ -464,7 +463,7 @@ const EscaneoQR = () => {
         limit: 10
       };
       if (historialCheckpointFilter) {
-        params.id_checkpoint = parseInt(historialCheckpointFilter);
+        params.id_checkpoint = Number.parseInt(historialCheckpointFilter, 10);
       }
       if (historialSearch.trim()) {
         params.search = historialSearch.trim();
@@ -483,7 +482,7 @@ const EscaneoQR = () => {
 
   useEffect(() => {
     if (mode === 'historial' && selectedEvento) {
-      fetchHistorial(1);
+      void fetchHistorial(1);
     }
   }, [mode, selectedEvento, historialCheckpointFilter]);
 
@@ -739,7 +738,7 @@ const EscaneoQR = () => {
                   onChange={(e, d) => setHistorialSearch(d.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      fetchHistorial(1);
+                      void fetchHistorial(1);
                     }
                   }}
                 />

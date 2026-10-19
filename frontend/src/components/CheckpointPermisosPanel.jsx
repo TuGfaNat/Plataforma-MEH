@@ -22,7 +22,6 @@ import {
   PersonAdd24Regular,
   Delete24Regular,
   Add24Regular,
-  Dismiss24Regular,
   PeopleTeam24Regular,
   Location24Regular,
   LockClosed24Regular
@@ -146,13 +145,13 @@ const CheckpointPermisosPanel = ({ eventoId, eventoTitulo }) => {
   };
 
   useEffect(() => {
-    loadCheckpoints();
-    loadUsers();
+    void loadCheckpoints();
+    void loadUsers();
   }, [eventoId]);
 
   useEffect(() => {
     if (selectedCp) {
-      loadPermisos(selectedCp.id_checkpoint);
+      void loadPermisos(selectedCp.id_checkpoint);
     } else {
       setPermisos([]);
     }
@@ -184,7 +183,7 @@ const CheckpointPermisosPanel = ({ eventoId, eventoTitulo }) => {
     setAssigning(true);
     try {
       await asistenciaService.asignarCheckpointPermiso(eventoId, selectedCp.id_checkpoint, {
-        id_usuario: parseInt(userIdInput),
+        id_usuario: Number.parseInt(userIdInput, 10),
         puede_escanear: true
       });
       if (notify) notify("Operador Asignado", "Permiso otorgado para escanear en este checkpoint", "success");
@@ -253,6 +252,14 @@ const CheckpointPermisosPanel = ({ eventoId, eventoTitulo }) => {
                 key={cp.id_checkpoint} 
                 className={`${styles.cpCard} ${isSelected ? styles.cpCardActive : ''}`}
                 onClick={() => setSelectedCp(cp)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedCp(cp);
+                  }
+                }}
                 style={{ cursor: 'pointer' }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
