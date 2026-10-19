@@ -484,7 +484,7 @@ const Dashboard = () => {
                   
                   return (
                     <div key={evento.id_evento} className={styles.eventItem}>
-                      <img src={resolveApiFileUrl(evento.imagen_url) || DEFAULT_EVENT_IMG} className={styles.eventMiniature} alt="event" />
+                      <img src={resolveApiFileUrl(evento.imagen_url) || DEFAULT_EVENT_IMG} className={styles.eventMiniature} alt={`Miniatura del evento ${evento.titulo}`} />
                       <div className={styles.dateBox}>
                         <MEHTypography variant="caption" style={{ display: 'block', fontWeight: 'bold', color: tokens.colorBrandForeground1, fontSize: '10px' }}>{month}</MEHTypography>
                         <MEHTypography variant="h3" style={{ fontSize: '16px' }}>{day}</MEHTypography>

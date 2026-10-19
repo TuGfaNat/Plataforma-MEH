@@ -138,16 +138,28 @@ const SouvenirsTab = ({
         </div>
 
         <Field label={t("admin_product_image")}>
-          <div className={styles.uploadBox} onClick={() => document.getElementById('souv-file').click()}>
+          <div 
+            className={styles.uploadBox} 
+            role="button"
+            tabIndex={0}
+            aria-label={newSouvenir.imagen_url ? t("admin_change_image") : t("admin_upload_image")}
+            onClick={() => document.getElementById('souv-file')?.click()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                document.getElementById('souv-file')?.click();
+              }
+            }}
+          >
             {uploading ? (
               <Spinner size="medium" label={t("uploading")} />
             ) : (
               <>
                 {newSouvenir.imagen_url && (
-                  <img src={newSouvenir.imagen_url} alt="Preview" className={styles.previewImage} />
+                  <img src={newSouvenir.imagen_url} alt={`Vista previa de ${newSouvenir.nombre || 'souvenir'}`} className={styles.previewImage} />
                 )}
                 <div className={styles.uploadContent}>
-                  <ArrowUpload24Regular /> 
+                  <ArrowUpload24Regular aria-hidden="true" /> 
                   <MEHTypography variant="caption">
                     {newSouvenir.imagen_url ? t("admin_change_image") : t("admin_upload_image")}
                   </MEHTypography>
@@ -156,6 +168,7 @@ const SouvenirsTab = ({
                   id="souv-file" 
                   type="file" 
                   accept="image/*" 
+                  aria-label={newSouvenir.imagen_url ? t("admin_change_image") : t("admin_upload_image")}
                   onChange={(e) => handleFileUpload(e, setNewSouvenir, newSouvenir, 'imagen_url')} 
                   style={{ display: 'none' }} 
                 />

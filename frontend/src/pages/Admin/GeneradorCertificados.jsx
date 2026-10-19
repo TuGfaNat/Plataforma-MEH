@@ -173,17 +173,56 @@ const GeneradorCertificados = () => {
           </Field>
 
           <Field label={t("admin_background_image")}>
-            <input type="file" accept="image/*" onChange={(e) => handleFileChange('background', e.target.files[0])} className={styles.fileInput} />
+            <input 
+              id="cert-bg-file"
+              type="file" 
+              accept="image/*" 
+              aria-label={t("admin_background_image")}
+              onChange={(e) => handleFileChange('background', e.target.files[0])} 
+              className={styles.fileInput} 
+            />
           </Field>
 
           <Text weight="semibold">{t("admin_signatures_help")}</Text>
           <div className={styles.formRow}>
-            <input type="file" accept="image/png" onChange={(e) => handleFileChange('firma1', e.target.files[0])} className={styles.fileInput} title={`${t("admin_signature")} 1`} />
-            <input type="file" accept="image/png" onChange={(e) => handleFileChange('firma2', e.target.files[0])} className={styles.fileInput} title={`${t("admin_signature")} 2`} />
+            <input 
+              id="cert-sign1-file"
+              type="file" 
+              accept="image/png" 
+              aria-label={`${t("admin_signature")} 1`}
+              onChange={(e) => handleFileChange('firma1', e.target.files[0])} 
+              className={styles.fileInput} 
+              title={`${t("admin_signature")} 1`} 
+            />
+            <input 
+              id="cert-sign2-file"
+              type="file" 
+              accept="image/png" 
+              aria-label={`${t("admin_signature")} 2`}
+              onChange={(e) => handleFileChange('firma2', e.target.files[0])} 
+              className={styles.fileInput} 
+              title={`${t("admin_signature")} 2`} 
+            />
           </div>
           <div className={styles.formRow}>
-            <input type="file" accept="image/png" onChange={(e) => handleFileChange('firma3', e.target.files[0])} className={styles.fileInput} title={`${t("admin_signature")} 3`} />
-            <input type="file" accept="image/png" onChange={(e) => handleFileChange('firma4', e.target.files[0])} className={styles.fileInput} title={`${t("admin_signature")} 4`} />
+            <input 
+              id="cert-sign3-file"
+              type="file" 
+              accept="image/png" 
+              aria-label={`${t("admin_signature")} 3`}
+              onChange={(e) => handleFileChange('firma3', e.target.files[0])} 
+              className={styles.fileInput} 
+              title={`${t("admin_signature")} 3`} 
+            />
+            <input 
+              id="cert-sign4-file"
+              type="file" 
+              accept="image/png" 
+              aria-label={`${t("admin_signature")} 4`}
+              onChange={(e) => handleFileChange('firma4', e.target.files[0])} 
+              className={styles.fileInput} 
+              title={`${t("admin_signature")} 4`} 
+            />
           </div>
 
           <div style={{ display: 'flex', gap: '12px' }}>

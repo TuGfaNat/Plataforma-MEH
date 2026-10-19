@@ -455,12 +455,31 @@ const Finanzas = () => {
               )}
 
               <div style={{ flex: 1, minWidth: '250px' }}>
-                  <div className={styles.uploadArea} onClick={() => document.getElementById('file-upload').click()} style={{ height: '100%', minHeight: '150px' }}>
-                    <ArrowUpload24Regular style={{ fontSize: '40px', color: tokens.colorBrandForeground1 }} />
+                  <div 
+                    className={styles.uploadArea} 
+                    role="button"
+                    tabIndex={0}
+                    aria-label={file ? `Comprobante seleccionado: ${file.name}. Presiona Enter o Espacio para cambiar el archivo` : "Subir comprobante de pago"}
+                    onClick={() => document.getElementById('file-upload')?.click()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        document.getElementById('file-upload')?.click();
+                      }
+                    }}
+                    style={{ height: '100%', minHeight: '150px' }}
+                  >
+                    <ArrowUpload24Regular style={{ fontSize: '40px', color: tokens.colorBrandForeground1 }} aria-hidden="true" />
                     <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>
                       {file ? file.name : 'Subir Comprobante'}
                     </MEHTypography>
-                    <input type="file" style={{ display: 'none' }} id="file-upload" onChange={handleFileChange} />
+                    <input 
+                      type="file" 
+                      style={{ display: 'none' }} 
+                      id="file-upload" 
+                      aria-label="Subir comprobante de pago"
+                      onChange={handleFileChange} 
+                    />
                   </div>
               </div>
           </div>

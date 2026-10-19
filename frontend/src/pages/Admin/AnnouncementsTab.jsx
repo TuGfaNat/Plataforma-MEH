@@ -260,16 +260,35 @@ const AnnouncementsTab = () => {
             )}
           </div>
 
-          <div className={styles.uploadBox} onClick={() => document.getElementById('ann-file').click()}>
+          <div 
+            className={styles.uploadBox} 
+            role="button"
+            tabIndex={0}
+            aria-label={formData.url_imagen ? t("admin_change_image") : t("admin_upload_cover")}
+            onClick={() => document.getElementById('ann-file')?.click()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                document.getElementById('ann-file')?.click();
+              }
+            }}
+          >
              {uploading ? <Spinner size="tiny" /> : (
                <>
-                <Image24Regular />
+                <Image24Regular aria-hidden="true" />
                 <MEHTypography variant="caption">{formData.url_imagen ? t("admin_change_image") : t("admin_upload_cover")}</MEHTypography>
-                <input id="ann-file" type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
+                <input 
+                  id="ann-file" 
+                  type="file" 
+                  accept="image/*" 
+                  aria-label={formData.url_imagen ? t("admin_change_image") : t("admin_upload_cover")}
+                  style={{ display: 'none' }} 
+                  onChange={handleFileUpload} 
+                />
                </>
              )}
           </div>
-          {formData.url_imagen && <img src={formData.url_imagen} className={styles.previewImg} alt="Preview" />}
+          {formData.url_imagen && <img src={formData.url_imagen} className={styles.previewImg} alt="Vista previa de la imagen del anuncio" />}
 
           <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
             <MEHButton type="submit" appearance="primary" style={{ flexGrow: 1 }} icon={isEditing ? <Save24Regular /> : <Send24Regular />}>

@@ -454,7 +454,7 @@ const CursoAula = () => {
                                            {submissionData.archivo_url.match(/\.(jpeg|jpg|gif|png)$/i) ? (
                                              <img 
                                                src={resolveApiFileUrl(submissionData.archivo_url)} 
-                                               alt="Preview" 
+                                               alt="Vista previa del archivo adjunto" 
                                                style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '4px' }} 
                                              />
                                            ) : (

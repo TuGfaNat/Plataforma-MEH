@@ -127,7 +127,7 @@ const Register = () => {
     <div className={styles.container}>
       <MEHCard className={styles.registerCard}>
         <div style={{ textAlign: 'center' }}>
-          <img src={designTokens.logo} alt="Logo" style={{ width: '48px', marginBottom: '12px' }} />
+          <img src={designTokens.logo} alt="Logotipo de Plataforma MEH" style={{ width: '48px', marginBottom: '12px' }} />
           <MEHTypography variant="h2" style={{ display: 'block' }}>Crea tu Perfil Profesional</MEHTypography>
           <MEHTypography variant="body" style={{ opacity: 0.6 }}>Completa tus datos para unirte a la comunidad.</MEHTypography>
         </div>

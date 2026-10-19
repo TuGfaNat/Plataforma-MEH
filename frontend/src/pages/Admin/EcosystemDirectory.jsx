@@ -621,21 +621,41 @@ const EcosystemDirectory = () => {
                         <Input value={formData.instagram_url} onChange={(e, d) => handleInputChange("instagram_url", d.value)} placeholder={t("admin_url_placeholder")} />
                       </Field>
                     </div>
-                    <div className={styles.fieldGroup}>
+                      <div className={styles.fieldGroup}>
                       <Label>{t("admin_speaker_photo")}</Label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '8px' }}>
-                          <div className={styles.uploadAction} style={{ flexGrow: 1 }} onClick={() => document.getElementById("ecosys-file").click()}>
+                          <div 
+                            className={styles.uploadAction} 
+                            style={{ flexGrow: 1 }} 
+                            role="button"
+                            tabIndex={0}
+                            aria-label={formData.foto_url ? t("admin_change_photo") : t("admin_upload_photo")}
+                            onClick={() => document.getElementById("ecosys-file-speaker")?.click()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                document.getElementById("ecosys-file-speaker")?.click();
+                              }
+                            }}
+                          >
                             {uploading ? <Spinner size="tiny" /> : (
                               <>
-                                <Image24Regular />
+                                <Image24Regular aria-hidden="true" />
                                 <MEHTypography variant="caption">{formData.foto_url ? t("admin_change_photo") : t("admin_upload_photo")}</MEHTypography>
-                                <input id="ecosys-file" type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "foto_url")} style={{ display: "none" }} />
+                                <input 
+                                  id="ecosys-file-speaker" 
+                                  type="file" 
+                                  accept="image/*" 
+                                  aria-label={formData.foto_url ? t("admin_change_photo") : t("admin_upload_photo")}
+                                  onChange={(e) => handleFileUpload(e, "foto_url")} 
+                                  style={{ display: "none" }} 
+                                />
                               </>
                             )}
                           </div>
                           {previewUrl && (
                             <div className={styles.previewContainer}>
-                              <img src={previewUrl} className={styles.previewImage} alt="Preview" />
+                              <img src={previewUrl} className={styles.previewImage} alt={`Vista previa de foto de ${formData.nombre || 'expositor'}`} />
                             </div>
                           )}
                       </div>
@@ -661,18 +681,38 @@ const EcosystemDirectory = () => {
                     <div className={styles.fieldGroup}>
                       <Label>{t("admin_brand_logo")}</Label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '8px' }}>
-                          <div className={styles.uploadAction} style={{ flexGrow: 1 }} onClick={() => document.getElementById("ecosys-file").click()}>
+                          <div 
+                            className={styles.uploadAction} 
+                            style={{ flexGrow: 1 }} 
+                            role="button"
+                            tabIndex={0}
+                            aria-label={t("admin_upload_logo")}
+                            onClick={() => document.getElementById("ecosys-file-sponsor")?.click()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                document.getElementById("ecosys-file-sponsor")?.click();
+                              }
+                            }}
+                          >
                             {uploading ? <Spinner size="tiny" /> : (
                               <>
-                                <Image24Regular />
+                                <Image24Regular aria-hidden="true" />
                                 <MEHTypography variant="caption">{t("admin_upload_logo")}</MEHTypography>
-                                <input id="ecosys-file" type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "logo_url")} style={{ display: "none" }} />
+                                <input 
+                                  id="ecosys-file-sponsor" 
+                                  type="file" 
+                                  accept="image/*" 
+                                  aria-label={t("admin_upload_logo")}
+                                  onChange={(e) => handleFileUpload(e, "logo_url")} 
+                                  style={{ display: "none" }} 
+                                />
                               </>
                             )}
                           </div>
                           {previewUrl && (
                             <div className={styles.previewContainer}>
-                              <img src={previewUrl} className={styles.previewImage} style={{ objectFit: 'contain', padding: '10px' }} alt="Logo Preview" />
+                              <img src={previewUrl} className={styles.previewImage} style={{ objectFit: 'contain', padding: '10px' }} alt={`Vista previa del logotipo de ${formData.nombre || 'auspiciador'}`} />
                             </div>
                           )}
                       </div>
@@ -691,18 +731,38 @@ const EcosystemDirectory = () => {
                     <div className={styles.fieldGroup}>
                       <Label>{t("admin_community_logo")}</Label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '8px' }}>
-                          <div className={styles.uploadAction} style={{ flexGrow: 1 }} onClick={() => document.getElementById("ecosys-file").click()}>
+                          <div 
+                            className={styles.uploadAction} 
+                            style={{ flexGrow: 1 }} 
+                            role="button"
+                            tabIndex={0}
+                            aria-label={t("admin_upload_logo")}
+                            onClick={() => document.getElementById("ecosys-file-community")?.click()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                document.getElementById("ecosys-file-community")?.click();
+                              }
+                            }}
+                          >
                             {uploading ? <Spinner size="tiny" /> : (
                               <>
-                                <Image24Regular />
+                                <Image24Regular aria-hidden="true" />
                                 <MEHTypography variant="caption">{t("admin_upload_logo")}</MEHTypography>
-                                <input id="ecosys-file" type="file" accept="image/*" onChange={(e) => handleFileUpload(e, "logo_url")} style={{ display: "none" }} />
+                                <input 
+                                  id="ecosys-file-community" 
+                                  type="file" 
+                                  accept="image/*" 
+                                  aria-label={t("admin_upload_logo")}
+                                  onChange={(e) => handleFileUpload(e, "logo_url")} 
+                                  style={{ display: "none" }} 
+                                />
                               </>
                             )}
                           </div>
                           {previewUrl && (
                             <div className={styles.previewContainer}>
-                              <img src={previewUrl} className={styles.previewImage} alt="Community Preview" />
+                              <img src={previewUrl} className={styles.previewImage} alt={`Vista previa del logotipo de ${formData.nombre || 'comunidad'}`} />
                             </div>
                           )}
                       </div>
