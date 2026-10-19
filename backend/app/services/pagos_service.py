@@ -93,7 +93,6 @@ async def process_comprobante_upload(
     monto: Decimal,
     metodo_pago: str,
     file_content: bytes,
-    file_extension: str,
     ip_address: Optional[str] = None
 ) -> models.Pago:
     """Procesa la subida física del comprobante y registra el pago en la DB."""
@@ -425,7 +424,7 @@ def reintentar_comprobante_upload(
     # Archivar el intento rechazado previo en el historial
     try:
         intentos = json.loads(db_pago.historial_intentos or "[]")
-    except Exception:
+    except (json.JSONDecodeError, TypeError, ValueError):
         intentos = []
 
     intento_archivado = {
@@ -518,7 +517,7 @@ def _construir_timeline_pago(db: Session, p: models.Pago) -> List[dict]:
                     "url_comprobante": item.get("url_comprobante"),
                     "notas": None
                 })
-        except Exception:
+        except (json.JSONDecodeError, TypeError, ValueError, KeyError):
             pass
 
     # 3. Estado actual

@@ -30,7 +30,6 @@ async def upload_comprobante(
     ip_address = request.client.host if request.client else None
     
     file_content = await file.read()
-    file_extension = os.path.splitext(file.filename)[1]
     
     return await pagos_service.process_comprobante_upload(
         db=db,
@@ -40,7 +39,6 @@ async def upload_comprobante(
         monto=monto,
         metodo_pago=metodo_pago,
         file_content=file_content,
-        file_extension=file_extension,
         ip_address=ip_address
     )
 

@@ -73,6 +73,19 @@ const useStyles = makeStyles({
   }
 });
 
+const getPagoBadgeColor = (estado) => {
+  if (estado === 'VERIFICADO_AUTOMATICO' || estado === 'APROBADO') return 'success';
+  if (estado === 'REVISION_MANUAL') return 'warning';
+  if (estado === 'PENDIENTE' || estado === 'RECHAZADO') return 'danger';
+  if (estado === 'REEMBOLSADO') return 'informative';
+  return 'warning';
+};
+
+const getPagoBadgeLabel = (pago, t) => {
+  if (pago.estado_pago === 'REEMBOLSADO') return 'Reembolsado';
+  return t(`payment_${pago.estado_pago.toLowerCase()}`) || pago.estado_pago;
+};
+
 const GestionPagos = () => {
   const styles = useStyles();
   const { t } = useTranslation();
@@ -90,7 +103,7 @@ const GestionPagos = () => {
   const canValidatePayments = hasPermission(user?.rol, PERMISSION_PAYMENTS_VALIDATE);
 
   useEffect(() => {
-    fetchPagos();
+    void fetchPagos();
   }, []);
 
   const fetchPagos = async () => {
@@ -108,7 +121,7 @@ const GestionPagos = () => {
   const handleValidar = async (idPago, nuevoEstado, notasAdmin = null) => {
     try {
       await pagoService.validarPago(idPago, nuevoEstado, notasAdmin);
-      fetchPagos(); // Recargar lista
+      await fetchPagos(); // Recargar lista
       if (matches) {
         setMatches(matches.map(m => m.id_pago === idPago ? { ...m, procesado: true } : m));
       }
@@ -126,7 +139,7 @@ const GestionPagos = () => {
     try {
       await pagoService.reembolsarPago(reembolsoDialog.idPago, reembolsoDialog.motivo.trim());
       setReembolsoDialog({ open: false, idPago: null, motivo: '', loading: false });
-      fetchPagos();
+      await fetchPagos();
     } catch (err) {
       console.error("Error al reembolsar pago:", err);
       const detail = err.response?.data?.detail;
@@ -297,16 +310,9 @@ const GestionPagos = () => {
                     <TableCell>
                       <Badge 
                         appearance={pago.estado_pago === 'VERIFICADO_AUTOMATICO' ? 'filled' : 'tint'}
-                        color={
-                          pago.estado_pago === 'VERIFICADO_AUTOMATICO' ? 'success' :
-                          pago.estado_pago === 'APROBADO' ? 'success' :
-                          pago.estado_pago === 'REVISION_MANUAL' ? 'warning' :
-                          pago.estado_pago === 'PENDIENTE' ? 'danger' :
-                          pago.estado_pago === 'RECHAZADO' ? 'danger' :
-                          pago.estado_pago === 'REEMBOLSADO' ? 'informative' : 'warning'
-                        }
+                        color={getPagoBadgeColor(pago.estado_pago)}
                       >
-                        {pago.estado_pago === 'REEMBOLSADO' ? 'Reembolsado' : (t(`payment_${pago.estado_pago.toLowerCase()}`) || pago.estado_pago)}
+                        {getPagoBadgeLabel(pago, t)}
                       </Badge>
                     </TableCell>
                     <TableCell>

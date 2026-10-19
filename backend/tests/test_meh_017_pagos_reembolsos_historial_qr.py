@@ -1,16 +1,19 @@
+import os
+import glob
 import pytest
 import uuid
 from decimal import Decimal
 from datetime import datetime, timedelta
 from fastapi.testclient import TestClient
 from main import app
-from app.database import SessionLocal
+from app.database import SessionLocal, engine
 from app.models import models
 from app.core import auth as auth_core
 
 client = TestClient(app)
 
 def test_meh_017_completo_pagos_reembolsos_historial_qr():
+    models.Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
         uid = uuid.uuid4().hex[:8]
@@ -286,15 +289,13 @@ def test_meh_017_completo_pagos_reembolsos_historial_qr():
         assert len(res_historial_admin.json()) >= 1
 
     finally:
-        import glob
         db.close()
-        for f in glob.glob("static/qrs/qr_698_*"):
-            try:
-                os.remove(f)
-            except OSError:
-                pass
-        for f in glob.glob("static/comprobantes/test_*"):
-            try:
-                os.remove(f)
-            except OSError:
-                pass
+        ev_id = getattr(evento, "id_evento", None) if "evento" in locals() else None
+        patterns = [f"static/qrs/qr_{ev_id}_*"] if ev_id else ["static/qrs/qr_698_*", "static/qrs/qr_1_*"]
+        patterns.append("static/comprobantes/test_*")
+        for pat in patterns:
+            for f in glob.glob(pat):
+                try:
+                    os.remove(f)
+                except OSError:
+                    pass

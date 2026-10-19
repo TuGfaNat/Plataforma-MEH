@@ -47,7 +47,7 @@ export const PagoHistorialModal = ({ open, onOpenChange, idPago, titulo = 'Histo
 
   useEffect(() => {
     if (open) {
-      fetchHistorial();
+      void fetchHistorial();
     } else {
       setHistorial([]);
       setError(null);

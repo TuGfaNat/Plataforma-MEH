@@ -86,6 +86,23 @@ const useStyles = makeStyles({
   }
 });
 
+const getEstadoColor = (estado) => {
+  if (estado === 'APROBADO' || estado === 'VERIFICADO_AUTOMATICO') return tokens.colorPaletteGreenForeground1;
+  if (estado === 'PENDIENTE') return tokens.colorPaletteYellowForeground1;
+  if (estado === 'REEMBOLSADO') return tokens.colorBrandForeground1;
+  return tokens.colorPaletteRedForeground1;
+};
+
+const getEstadoIcon = (estado) => {
+  if (estado === 'APROBADO' || estado === 'VERIFICADO_AUTOMATICO') {
+    return <CheckmarkCircle24Regular style={{ fontSize: '16px' }} />;
+  }
+  if (estado === 'REEMBOLSADO') {
+    return <ArrowUndo24Regular style={{ fontSize: '16px' }} />;
+  }
+  return <Alert24Regular style={{ fontSize: '16px' }} />;
+};
+
 const Finanzas = () => {
   const styles = useStyles();
   const { t } = useTranslation();
@@ -130,7 +147,7 @@ const Finanzas = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, []);
 
   const fetchData = async () => {
@@ -177,7 +194,7 @@ const Finanzas = () => {
       setFile(null);
       setMonto('');
       setSelectedInscripcion(null);
-      fetchData(); 
+      await fetchData(); 
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       console.error("Error al subir comprobante:", err);
@@ -201,7 +218,7 @@ const Finanzas = () => {
       await pagoService.reintentarPago(reintentoDialog.pago.id_pago, formData);
       alert("Nuevo comprobante subido correctamente para revisión.");
       setReintentoDialog({ open: false, pago: null, file: null, uploading: false });
-      fetchData();
+      await fetchData();
     } catch (err) {
       console.error("Error al reintentar comprobante:", err);
       const detail = err.response?.data?.detail;
@@ -259,18 +276,9 @@ const Finanzas = () => {
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             <div style={{ 
                               display: 'inline-flex', alignItems: 'center', gap: '4px',
-                              color: (item.estado_pago === 'APROBADO' || item.estado_pago === 'VERIFICADO_AUTOMATICO') ? tokens.colorPaletteGreenForeground1 : 
-                                     item.estado_pago === 'PENDIENTE' ? tokens.colorPaletteYellowForeground1 : 
-                                     item.estado_pago === 'REEMBOLSADO' ? tokens.colorBrandForeground1 :
-                                     tokens.colorPaletteRedForeground1
+                              color: getEstadoColor(item.estado_pago)
                             }}>
-                              {(item.estado_pago === 'APROBADO' || item.estado_pago === 'VERIFICADO_AUTOMATICO') ? (
-                                <CheckmarkCircle24Regular style={{ fontSize: '16px' }} />
-                              ) : item.estado_pago === 'REEMBOLSADO' ? (
-                                <ArrowUndo24Regular style={{ fontSize: '16px' }} />
-                              ) : (
-                                <Alert24Regular style={{ fontSize: '16px' }} />
-                              )}
+                              {getEstadoIcon(item.estado_pago)}
                               <span>{item.estado_pago === 'REEMBOLSADO' ? 'Reembolsado' : item.estado_pago}</span>
                             </div>
                             {item.estado_pago === 'RECHAZADO' && item.notas_admin && (

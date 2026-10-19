@@ -1,3 +1,4 @@
+import os
 import uuid
 import json
 import csv
@@ -695,9 +696,7 @@ def get_inscritos_confirmados(db: Session, id_evento: int, staff_user: models.Us
             "correo": getattr(ins.usuario, "correo", "") or ""
         })
     return resultado
-
-import os
-
+ 
 UPLOAD_QR_DIR = "static/qrs"
 if not os.path.exists(UPLOAD_QR_DIR):
     os.makedirs(UPLOAD_QR_DIR, exist_ok=True)
@@ -730,7 +729,7 @@ def _safe_save_qr_file(id_evento: int, file_content: bytes) -> str:
     with open(file_path, "wb") as output_file:
         output_file.write(file_content)
 
-    return f"static/eventos_qr/{file_name}"
+    return f"static/qrs/{file_name}"
 
 
 def create_pago_qr(
@@ -740,7 +739,6 @@ def create_pago_qr(
     nombre_paquete: str,
     monto: float,
     file_content: bytes,
-    file_extension: Optional[str] = None,
     ip_address: Optional[str] = None
 ) -> models.EventoPagoQR:
     """Crea un paquete de pago y QR asociado a un evento con validación y anti-duplicado."""
