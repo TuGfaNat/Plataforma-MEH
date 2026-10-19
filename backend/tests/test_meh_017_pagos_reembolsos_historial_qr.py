@@ -289,8 +289,8 @@ def test_meh_017_completo_pagos_reembolsos_historial_qr():
         assert len(res_historial_admin.json()) >= 1
 
     finally:
+        ev_id = getattr(evento, "id_evento", None) if "evento" in locals() and evento else None
         db.close()
-        ev_id = getattr(evento, "id_evento", None) if "evento" in locals() else None
         patterns = [f"static/qrs/qr_{ev_id}_*"] if ev_id else ["static/qrs/qr_698_*", "static/qrs/qr_1_*"]
         patterns.append("static/comprobantes/test_*")
         for pat in patterns:

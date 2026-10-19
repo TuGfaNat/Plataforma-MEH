@@ -19,6 +19,7 @@ import eventoService from '../../services/eventoService';
 import { useNotify } from '../../App';
 import AcreditacionPanel from './AcreditacionPanel';
 import BadgeSocialModal from '../../components/BadgeSocialModal';
+import CheckpointPermisosPanel from '../../components/CheckpointPermisosPanel';
 
 const useStyles = makeStyles({
   grid: { 
@@ -969,6 +970,16 @@ const EventsTab = ({
                   eventoId={selectedEventoId} 
                   eventoTitulo={currentEvent?.titulo}
                   onParticipantesChange={fetchParticipantesYEspera}
+                />
+              </div>
+
+              <Divider style={{ margin: '20px 0' }} />
+
+              {/* GESTIÓN DE CHECKPOINTS Y PERMISOS DE OPERADORES (MEH-018) */}
+              <div>
+                <CheckpointPermisosPanel 
+                  eventoId={selectedEventoId} 
+                  eventoTitulo={currentEvent?.titulo}
                 />
               </div>
             </div>

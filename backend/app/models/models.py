@@ -292,6 +292,7 @@ class Checkpoint(Base, AuditMixin, EstadoLifecycleMixin):
 
     evento = relationship("Evento", back_populates="checkpoints")
     asistencias = relationship("AsistenciaDetalle", back_populates="checkpoint")
+    permisos = relationship("CheckpointPermiso", back_populates="checkpoint", cascade="all, delete-orphan")
 
 class AsistenciaDetalle(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "asistencia_detalles"
@@ -305,6 +306,20 @@ class AsistenciaDetalle(Base, AuditMixin, EstadoLifecycleMixin):
     inscripcion = relationship("InscripcionEvento", back_populates="asistencias")
     checkpoint = relationship("Checkpoint", back_populates="asistencias")
     escaneador = relationship("Usuario", foreign_keys="[AsistenciaDetalle.escaneado_por]")
+
+class CheckpointPermiso(Base, AuditMixin, EstadoLifecycleMixin):
+    __tablename__ = "checkpoint_permisos"
+
+    id_permiso = Column(Integer, primary_key=True, index=True)
+    id_checkpoint = Column(Integer, ForeignKey("checkpoints.id_checkpoint", ondelete="CASCADE"), index=True)
+    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"), index=True)
+    puede_escanear = Column(Boolean, default=True)
+    fecha_asignacion = Column(DateTime, default=datetime.utcnow)
+    asignado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
+
+    checkpoint = relationship("Checkpoint", back_populates="permisos")
+    usuario = relationship("Usuario", foreign_keys=[id_usuario])
+    asignador = relationship("Usuario", foreign_keys=[asignado_por])
 
 class Curso(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "cursos"

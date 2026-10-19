@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 19  
-**Total de endpoints expuestos:** 136
+**Total de endpoints expuestos:** 142
 
 ---
 
@@ -57,6 +57,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 |---|---|---|---|---|---|
 | **`GET`** | `/api/asistencia/actividades` | Operación get_actividades | - | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/asistencia/registrar` | Operación registrar | `tipo: str`, `id_actividad: int`, `id_usuario: int` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/asistencia/deshacer` | Deshace un escaneo accidental dentro de una ventana de 30 segundos (Admin sin límite) con auditoría (MEH-018). | `payload: AsistenciaDeshacerRequest` | `200 OK` | Requiere Auth (JWT) |
 
 ## Módulo `auth` (Prefix: `/auth`)
 
@@ -146,8 +147,13 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`POST`** | `/api/eventos/{id_evento}/avisar` | Emite un aviso oficial in-app (y opcionalmente email) exclusivamente a los inscritos confirmados (Solo Staff autorizado). | `id_evento: int`, `payload: EventoAvisarRequest` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/eventos/asistencia-qr` | Registra asistencia mediante el escaneo de un código QR, soportando checkpoints dinámicos. | `payload: QRScanRequest` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/eventos/{id_evento}/asistencia-qr` | Compatibilidad legacy para el frontend anterior. | `id_evento: int`, `token_qr: str` | `200 OK` | Requiere Auth (JWT) |
-| **`GET`** | `/api/eventos/{id_evento}/checkpoints` | Operación get_checkpoints | `id_evento: int` | `200 OK` | Público / Abierto |
+| **`GET`** | `/api/eventos/{id_evento}/checkpoints` | Operación get_checkpoints | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/eventos/{id_evento}/checkpoints` | Operación create_checkpoint | `id_evento: int`, `data: CheckpointCreate` | `200 OK` | Requiere Auth (JWT) |
+| **`GET`** | `/api/eventos/{id_evento}/checkpoints/{id_checkpoint}/permisos` | Lista operadores y permisos asignados a un checkpoint (MEH-018). | `id_evento: int`, `id_checkpoint: int` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/{id_evento}/checkpoints/{id_checkpoint}/permisos` | Asigna o actualiza el permiso de un operador en un checkpoint (MEH-018). | `id_evento: int`, `id_checkpoint: int`, `payload: CheckpointPermisoCreate` | `200 OK` | Requiere Auth (JWT) |
+| **`DELETE`** | `/api/eventos/{id_evento}/checkpoints/{id_checkpoint}/permisos/{id_usuario}` | Revoca el permiso de un operador en un checkpoint (MEH-018). | `id_evento: int`, `id_checkpoint: int`, `id_usuario: int` | `204 No Content` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/asistencia/deshacer` | Deshace un escaneo accidental dentro de una ventana de 30 segundos (Admin sin límite) con auditoría (MEH-018). | `payload: AsistenciaDeshacerRequest` | `200 OK` | Requiere Auth (JWT) |
+| **`GET`** | `/api/eventos/{id_evento}/historial-asistencia` | Obtiene el historial paginado de escaneos de asistencia por evento (MEH-018). | `id_evento: int`, `page: int`, `limit: int` | `200 OK` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/eventos/{id_evento}` | Elimina lógicamente un evento (Solo Staff). | `id_evento: int` | `204 No Content` | Requiere Auth (JWT) |
 | **`GET`** | `/api/eventos/{id_evento}/inscritos-confirmados` | Obtiene la lista de inscritos confirmados para descargarlos localmente para escaneo offline. | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
 | **`GET`** | `/api/eventos/{id_evento}/token-qr` | Obtiene el token_qr del evento para difusión y acreditación. | `id_evento: int` | `200 OK` | Público / Abierto |

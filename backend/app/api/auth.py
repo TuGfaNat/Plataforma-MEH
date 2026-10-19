@@ -19,6 +19,7 @@ router = APIRouter(
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> models.Usuario:
     """Dependencia para obtener el usuario autenticado a partir del JWT."""
@@ -36,6 +37,22 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     
     current_user_id.set(user.id_usuario)
     return user
+
+def get_current_user_optional(token: Optional[str] = Depends(oauth2_scheme_optional), db: Session = Depends(get_db)) -> Optional[models.Usuario]:
+    """Dependencia opcional para endpoints públicos que pueden beneficiarse de contexto autenticado."""
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, auth_core.SECRET_KEY, algorithms=[auth_core.ALGORITHM])
+        correo: str = payload.get("sub")
+        if not correo:
+            return None
+        user = db.query(models.Usuario).filter(models.Usuario.correo == correo).first()
+        if user:
+            current_user_id.set(user.id_usuario)
+        return user
+    except Exception:
+        return None
 
 @router.post("/register", response_model=user_schema.UserResponse, status_code=status.HTTP_201_CREATED)
 def register(user: user_schema.UserCreate, db: Session = Depends(get_db)):
