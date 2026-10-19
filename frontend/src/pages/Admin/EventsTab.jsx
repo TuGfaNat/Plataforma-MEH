@@ -111,6 +111,7 @@ const EventsTab = ({
   const [nuevoMonto, setNuevoMonto] = useState('');
   const [qrFile, setQrFile] = useState(null);
   const [fileInputKey, setFileInputKey] = useState(0);
+  const [editQrDialog, setEditQrDialog] = useState({ open: false, idQr: null, nombre_paquete: '', monto: '', file: null, loading: false });
 
   // Estados para Badge Social (MEH-019)
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
@@ -204,9 +205,48 @@ const EventsTab = ({
       await fetchPagosQr();
     } catch (err) {
       console.error("Error al añadir pago QR:", err);
-      alert("Error al guardar el paquete de pago QR.");
+      const detail = err.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : "Error al guardar el paquete de pago QR.");
     } finally {
       setLoadingQr(false);
+    }
+  };
+
+  const handleOpenEditPagoQr = (pkg) => {
+    setEditQrDialog({
+      open: true,
+      idQr: pkg.id_qr,
+      nombre_paquete: pkg.nombre_paquete,
+      monto: pkg.monto.toString(),
+      file: null,
+      loading: false
+    });
+  };
+
+  const handleSaveEditPagoQr = async () => {
+    if (!editQrDialog.nombre_paquete.trim() || !editQrDialog.monto) {
+      alert("Por favor indica el nombre del paquete y su precio.");
+      return;
+    }
+    const formData = new FormData();
+    formData.append('nombre_paquete', editQrDialog.nombre_paquete.trim());
+    formData.append('monto', editQrDialog.monto);
+    if (editQrDialog.file) {
+      formData.append('file', editQrDialog.file);
+    }
+
+    setEditQrDialog(prev => ({ ...prev, loading: true }));
+    try {
+      await api.put(`/eventos/pagos-qr/${editQrDialog.idQr}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setEditQrDialog({ open: false, idQr: null, nombre_paquete: '', monto: '', file: null, loading: false });
+      await fetchPagosQr();
+    } catch (err) {
+      console.error("Error al actualizar pago QR:", err);
+      const detail = err.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : "Error al actualizar el paquete de pago QR.");
+      setEditQrDialog(prev => ({ ...prev, loading: false }));
     }
   };
 
@@ -756,7 +796,10 @@ const EventsTab = ({
                                         <MEHTypography variant="caption" style={{ display: 'block', color: tokens.colorBrandForeground1, fontWeight: 'bold' }}>Bs. {pkg.monto}</MEHTypography>
                                     </div>
                                 </div>
-                                <Button icon={<Delete24Regular />} appearance="subtle" style={{ color: tokens.colorPaletteRedForeground1 }} onClick={() => handleDeletePagoQr(pkg.id_qr)} />
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <Button icon={<Edit24Regular />} appearance="subtle" aria-label="Editar paquete" onClick={() => handleOpenEditPagoQr(pkg)} />
+                                    <Button icon={<Delete24Regular />} appearance="subtle" aria-label="Eliminar paquete" style={{ color: tokens.colorPaletteRedForeground1 }} onClick={() => handleDeletePagoQr(pkg.id_qr)} />
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -1035,6 +1078,56 @@ const EventsTab = ({
                 disabled={avisando || !avisoTitulo.trim() || !avisoMensaje.trim()}
               >
                 {avisando ? "Enviando..." : "Enviar Aviso"}
+              </MEHButton>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      {/* Modal Editar Paquete de Pago y QR */}
+      <Dialog open={editQrDialog.open} onOpenChange={(e, d) => setEditQrDialog(prev => ({ ...prev, open: d.open }))}>
+        <DialogSurface style={{ borderRadius: '16px', maxWidth: '480px', width: '90%' }}>
+          <DialogBody>
+            <DialogTitle>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Edit24Regular style={{ color: tokens.colorBrandForeground1 }} />
+                <span>Editar Paquete de Pago #{editQrDialog.idQr}</span>
+              </div>
+            </DialogTitle>
+            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+              <Field label="Nombre del Paquete" required>
+                <Input
+                  value={editQrDialog.nombre_paquete}
+                  onChange={(e, d) => setEditQrDialog(prev => ({ ...prev, nombre_paquete: d.value }))}
+                  placeholder="Ej: Pase General, VIP"
+                />
+              </Field>
+              <Field label="Precio (Bs.)" required>
+                <Input
+                  type="number"
+                  value={editQrDialog.monto}
+                  onChange={(e, d) => setEditQrDialog(prev => ({ ...prev, monto: d.value }))}
+                  placeholder="0.00"
+                />
+              </Field>
+              <Field label="Nueva Imagen QR (opcional)">
+                <Input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => setEditQrDialog(prev => ({ ...prev, file: e.target.files[0] || null }))}
+                />
+              </Field>
+            </DialogContent>
+            <DialogActions style={{ marginTop: '16px' }}>
+              <Button appearance="secondary" onClick={() => setEditQrDialog(prev => ({ ...prev, open: false }))} disabled={editQrDialog.loading}>
+                Cancelar
+              </Button>
+              <MEHButton
+                appearance="primary"
+                onClick={handleSaveEditPagoQr}
+                disabled={editQrDialog.loading || !editQrDialog.nombre_paquete || !editQrDialog.monto}
+              >
+                {editQrDialog.loading ? <Spinner size="tiny" /> : 'Guardar Cambios'}
               </MEHButton>
             </DialogActions>
           </DialogBody>

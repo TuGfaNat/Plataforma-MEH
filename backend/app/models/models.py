@@ -413,8 +413,14 @@ class Pago(Base, AuditMixin, EstadoLifecycleMixin):
     porcentaje_ocr = Column(Numeric(5, 2), nullable=True)
     texto_ocr = Column(TEXT, nullable=True)
 
+    fecha_reembolso = Column(DateTime, nullable=True)
+    reembolsado_por = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True, index=True)
+    motivo_reembolso = Column(TEXT, nullable=True)
+    historial_intentos = Column(TEXT, nullable=True)
+
     usuario = relationship("Usuario", back_populates="pagos", foreign_keys="[Pago.id_usuario]")
     validador = relationship("Usuario", foreign_keys="[Pago.validado_por]")
+    reembolsador = relationship("Usuario", foreign_keys="[Pago.reembolsado_por]")
 
     __table_args__ = (
         CheckConstraint("monto >= 0", name="check_pago_monto_positivo"),

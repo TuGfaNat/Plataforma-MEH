@@ -174,15 +174,8 @@ async def create_pago_qr(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    """Crea un paquete de pago y QR asociado a un evento (Admin, Organizador, Moderador)."""
+    """Crea un paquete de pago y QR asociado a un evento con validación y anti-duplicado."""
     ip_address = request.client.host if request.client else None
-    
-    import os
-    _, file_extension = os.path.splitext(file.filename)
-    if file_extension.lower() not in [".png", ".jpg", ".jpeg", ".pdf"]:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=400, detail="Tipo de archivo no permitido. Solo imágenes o PDFs.")
-        
     file_content = await file.read()
     
     return eventos_service.create_pago_qr(
@@ -192,7 +185,30 @@ async def create_pago_qr(
         nombre_paquete=nombre_paquete,
         monto=monto,
         file_content=file_content,
-        file_extension=file_extension,
+        ip_address=ip_address
+    )
+
+@router.put("/pagos-qr/{id_qr}", response_model=EventoPagoQRResponse)
+async def update_pago_qr(
+    id_qr: int,
+    request: Request,
+    nombre_paquete: Optional[str] = Form(None),
+    monto: Optional[float] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Actualiza datos y/o código QR de un paquete de pago con anti-duplicado (Admin, Organizador, Moderador)."""
+    ip_address = request.client.host if request.client else None
+    file_content = await file.read() if file else None
+
+    return eventos_service.update_pago_qr(
+        db=db,
+        admin_user=current_user,
+        id_qr=id_qr,
+        nombre_paquete=nombre_paquete,
+        monto=monto,
+        file_content=file_content,
         ip_address=ip_address
     )
 

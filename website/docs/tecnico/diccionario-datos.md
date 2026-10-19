@@ -475,6 +475,10 @@ erDiagram
 | `notas_admin` | `TEXT` | **-** | SÍ | - |
 | `porcentaje_ocr` | `VARCHAR` | **-** | SÍ | - |
 | `texto_ocr` | `TEXT` | **-** | SÍ | - |
+| `fecha_reembolso` | `DATETIME` | **-** | SÍ | - |
+| `reembolsado_por` | `INTEGER` | **FK** | SÍ | index, FK -> usuarios.id_usuario |
+| `motivo_reembolso` | `TEXT` | **-** | SÍ | - |
+| `historial_intentos` | `TEXT` | **-** | SÍ | - |
 | `creado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |
 | `fecha_creacion` | `DATETIME` | **-** | SÍ | AuditMixin default=utcnow |
 | `modificado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |

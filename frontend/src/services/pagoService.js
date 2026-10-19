@@ -30,8 +30,10 @@ const pagoService = {
     return response.data;
   },
 
-  validarPago: async (idPago, estado) => {
-    const response = await api.put(`/pagos/admin/${idPago}/validar`, { estado_pago: estado });
+  validarPago: async (idPago, estado, notasAdmin = null) => {
+    const payload = { estado_pago: estado };
+    if (notasAdmin) payload.notas_admin = notasAdmin;
+    const response = await api.put(`/pagos/admin/${idPago}/validar`, payload);
     return response.data;
   },
 
@@ -49,6 +51,41 @@ const pagoService = {
 
   getEventPaymentPackages: async (idEvento) => {
     const response = await api.get(`/eventos/${idEvento}/pagos-qr`);
+    return response.data;
+  },
+
+  reembolsarPago: async (idPago, motivo) => {
+    const response = await api.post(`/pagos/${idPago}/reembolsar`, { motivo });
+    return response.data;
+  },
+
+  getHistorialPagos: async (idPago = null) => {
+    const response = await api.get('/pagos/historial', {
+      params: idPago ? { id_pago: idPago } : {}
+    });
+    return response.data;
+  },
+
+  reintentarPago: async (idPago, formData) => {
+    const response = await api.post(`/pagos/${idPago}/reintentar`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  updatePagoQr: async (idQr, formData) => {
+    const response = await api.put(`/eventos/pagos-qr/${idQr}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+
+  deletePagoQr: async (idQr) => {
+    const response = await api.delete(`/eventos/pagos-qr/${idQr}`);
     return response.data;
   }
 };

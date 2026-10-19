@@ -9,6 +9,10 @@ class EventoPagoQRBase(BaseModel):
 class EventoPagoQRCreate(EventoPagoQRBase):
     pass
 
+class EventoPagoQRUpdate(BaseModel):
+    nombre_paquete: Optional[str] = None
+    monto: Optional[Decimal] = None
+
 class EventoPagoQRResponse(EventoPagoQRBase):
     id_qr: int
     id_evento: int
