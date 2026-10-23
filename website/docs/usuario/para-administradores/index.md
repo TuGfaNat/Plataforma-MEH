@@ -85,3 +85,35 @@ Para garantizar la seguridad de la información ante manipulaciones internas:
    * Un reporte JSON comparativo (*diff*) contrastando los campos anteriores con los nuevos valores modificados.
 
 ![Bitácora de Auditoría Forense (Logs)](/img/img_rbac_security.png)
+
+---
+
+## 5. Panel de Limpieza Selectiva de Datos (Soft/Hard) con Trazabilidad (MEH-020)
+
+Cuando la base de datos contiene datos reales mezclados con registros de demostración o *seed*, el Administrador dispone de la pestaña **Limpieza de Datos** dentro de `/admin` (habilitada mediante el flag `ENABLE_DATA_CLEANUP=true`).
+
+### Cuentas Protegidas e Intocables
+El motor bloquea automáticamente cualquier intento de borrado lógico o físico sobre:
+- **Superadmin (`SUPERADMIN_EMAIL`):** Cuenta protegida por correo electrónico (por defecto `natalygemio@gmail.com`).
+- **Administrador en Sesión:** El operador autenticado que ejecuta la limpieza nunca puede auto-eliminarse.
+- **Lista Blanca Configurable:** Correos adicionales registrados dinámicamente en el panel (`CLEANUP_PROTECTED_EMAILS`).
+- **Configuración Interna:** Claves críticas del módulo en `configuracion_global`.
+
+### Flujo de Peligro Progresivo en 4 Pasos
+1. **Paso 1 — Catálogo, Presets y Protegidos:**
+   - Selecciona un preset integrado (como **"Dejar solo superadmin"**, **"Limpiar datos de Seed / Demo"** o **"Limpiar lotes de prueba OCR"**) o guarda tus propios presets personalizados.
+   - Gestiona la lista blanca de correos protegidos y marca las tablas del catálogo que deseas inspeccionar.
+2. **Paso 2 — Selección por Registro y Origen:**
+   - Inspecciona fila por fila cada tabla seleccionada.
+   - Visualiza la trazabilidad de origen de cada registro: **Clasificación (`SEED`, `REAL`, `OCR`)**, **Creador**, **Fecha de creación** y **Entidad Padre**.
+   - Los registros protegidos aparecen bloqueados con la insignia `PROTEGIDO`.
+3. **Paso 3 — Previsualización, Dependencias y Respaldo Obligatorio:**
+   - Elige el modo de operación:
+     - **Soft Delete (Por defecto):** Marca `id_estado = 4` y desactiva cuentas (`activo = False`). Los registros pueden restaurarse desde la **Papelera**.
+     - **Hard Delete (Irreversible):** Elimina físicamente los registros en orden topológico hoja → raíz.
+   - Revisa la matriz de dependencias FK calculada y el hash criptográfico de selección (`selection_hash`).
+   - Genera y descarga el **Respaldo JSON obligatorio** (almacenado fuera de `/static` en `backend/backups/cleanup/` con vigencia TTL de **30 minutos**).
+4. **Paso 4 — Confirmación Extra y Ejecución Atómica:**
+   - Ingresa el **motivo de auditoría**, la **frase exacta de confirmación** (`ELIMINAR DATOS` para Soft Delete o `BORRADO DEFINITIVO` para Hard Delete) y tu **contraseña actual de administrador**.
+   - En modo Hard Delete se exige marcar la casilla adicional de destrucción irreversible.
+   - La ejecución corre dentro de una **transacción atómica única**: ante cualquier error de integridad se aplica *rollback* total. Al finalizar, se registra un log forense en `logs_sistema` con snapshots de los registros afectados que sobrevive incluso cuando se limpia la propia tabla `logs_sistema`.
