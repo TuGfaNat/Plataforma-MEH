@@ -11,7 +11,7 @@ def list_recursos(db: Session, categoria: Optional[str] = None) -> List[models.R
     query = db.query(models.Recurso)
     if categoria:
         query = query.filter(models.Recurso.categoria == categoria)
-    return query.order_by(models.Recurso.fecha_creacion.desc()).all()
+    return query.order_by(models.Recurso.id_recurso.desc(), models.Recurso.fecha_creacion.desc()).all()
 
 def create_recurso(
     db: Session, 

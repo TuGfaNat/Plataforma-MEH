@@ -45,6 +45,9 @@ const useStyles = makeStyles({
   },
   content: {
     flexGrow: 1,
+    minWidth: 0,
+    width: '100%',
+    boxSizing: 'border-box',
     height: '100vh', // Scroll independiente
     overflowY: 'auto',
     overflowX: 'hidden',

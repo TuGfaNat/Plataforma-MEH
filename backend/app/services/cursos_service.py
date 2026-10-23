@@ -10,11 +10,11 @@ from ..core.permissions import PERMISSION_COURSES_MANAGE, ensure_permission
 
 
 def list_cursos(db: Session, skip: int = 0, limit: int = 100) -> List[models.Curso]:
-    return db.query(models.Curso).offset(skip).limit(limit).all()
+    return db.query(models.Curso).order_by(models.Curso.id_curso.desc()).offset(skip).limit(limit).all()
 
 
 def list_user_certificados(db: Session, current_user: models.Usuario):
-    certs = db.query(models.Certificado).filter(models.Certificado.id_usuario == current_user.id_usuario).all()
+    certs = db.query(models.Certificado).filter(models.Certificado.id_usuario == current_user.id_usuario).order_by(models.Certificado.id_certificado.desc()).all()
     results = []
     for cert in certs:
         nombre_entidad = "Evento/Curso"

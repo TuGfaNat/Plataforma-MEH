@@ -13,7 +13,7 @@ from ..core.exceptions import (
 
 # --- SERVICIOS DE SPEAKERS ---
 def list_speakers(db: Session) -> List[models.Speaker]:
-    return db.query(models.Speaker).all()
+    return db.query(models.Speaker).order_by(models.Speaker.id_speaker.desc()).all()
 
 def create_speaker(db: Session, admin_user: models.Usuario, data: schema.SpeakerCreate, ip: str = None) -> models.Speaker:
     if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
@@ -55,7 +55,7 @@ def delete_speaker(db: Session, id_obj: int, admin_user: models.Usuario) -> None
 
 # --- SERVICIOS DE AUSPICIADORES ---
 def list_auspiciadores(db: Session) -> List[models.Auspiciador]:
-    return db.query(models.Auspiciador).all()
+    return db.query(models.Auspiciador).order_by(models.Auspiciador.id_auspiciador.desc()).all()
 
 def create_auspiciador(db: Session, admin_user: models.Usuario, data: schema.AuspiciadorCreate, ip: str = None) -> models.Auspiciador:
     if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
@@ -90,7 +90,7 @@ def delete_auspiciador(db: Session, id_obj: int, admin_user: models.Usuario) -> 
 
 # --- SERVICIOS DE COMUNIDADES ---
 def list_comunidades(db: Session) -> List[models.ComunidadAliada]:
-    return db.query(models.ComunidadAliada).all()
+    return db.query(models.ComunidadAliada).order_by(models.ComunidadAliada.id_comunidad.desc()).all()
 
 def create_comunidad(db: Session, admin_user: models.Usuario, data: schema.ComunidadCreate, ip: str = None) -> models.ComunidadAliada:
     if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):

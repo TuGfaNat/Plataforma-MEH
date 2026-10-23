@@ -6,7 +6,7 @@ from datetime import datetime
 from ..core.logging import registrar_log
 
 def get_all_badges(db: Session) -> List[models.Badge]:
-    return db.query(models.Badge).filter(models.Badge.id_estado != 0).all()
+    return db.query(models.Badge).filter(models.Badge.id_estado != 0).order_by(models.Badge.id_badge.desc()).all()
 
 def create_badge(db: Session, badge: badge_schema.BadgeCreate, id_admin: int) -> models.Badge:
     db_badge = models.Badge(

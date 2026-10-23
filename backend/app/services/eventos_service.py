@@ -211,7 +211,7 @@ def list_eventos(db: Session, skip: int = 0, limit: int = 100) -> List[models.Ev
     if modificado:
         db.commit()
 
-    eventos = db.query(models.Evento).offset(skip).limit(limit).all()
+    eventos = db.query(models.Evento).order_by(models.Evento.id_evento.desc()).offset(skip).limit(limit).all()
     for ev in eventos:
         populate_evento_cupos(db, ev)
     return eventos

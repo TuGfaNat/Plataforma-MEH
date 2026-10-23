@@ -71,6 +71,8 @@ const useStyles = makeStyles({
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '10px',
     padding: '16px 32px',
     position: 'sticky',
     top: 0,
@@ -125,18 +127,25 @@ const useStyles = makeStyles({
   },
   contentGrid: {
     display: 'grid',
-    gridTemplateColumns: '1fr 380px',
+    gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 380px)',
     gap: '36px',
     alignItems: 'start',
+    width: '100%',
+    minWidth: 0,
+    boxSizing: 'border-box',
     '@media (max-width: 960px)': {
-      gridTemplateColumns: '1fr',
-      gap: '28px',
+      gridTemplateColumns: 'minmax(0, 1fr)',
+      gap: '24px',
     }
   },
   leftColumn: {
     display: 'flex',
     flexDirection: 'column',
     gap: '28px',
+    minWidth: 0,
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
   },
   rightColumn: {
     display: 'flex',
@@ -144,6 +153,10 @@ const useStyles = makeStyles({
     gap: '20px',
     position: 'sticky',
     top: '84px',
+    minWidth: 0,
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
     '@media (max-width: 960px)': {
       position: 'static',
     }
@@ -154,15 +167,28 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: '20px',
+    minWidth: 0,
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
     backgroundColor: 'rgba(25, 25, 35, 0.9)',
     backdropFilter: 'blur(16px)',
     border: '1px solid rgba(127, 19, 236, 0.25)',
     boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)',
+    '@media (max-width: 600px)': {
+      ...shorthands.padding('20px', '16px'),
+      ...shorthands.borderRadius('16px'),
+      gap: '16px',
+    }
   },
   infoSection: {
     display: 'flex',
     flexDirection: 'column',
     gap: '12px',
+    minWidth: 0,
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
   },
   organizerBadge: {
     display: 'flex',
@@ -173,16 +199,21 @@ const useStyles = makeStyles({
     ...shorthands.borderRadius('12px'),
     border: '1px solid rgba(255, 255, 255, 0.08)',
     width: 'fit-content',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
   },
   descriptionText: {
     whiteSpace: 'pre-line',
     lineHeight: '1.7',
     fontSize: '1.05rem',
     opacity: 0.9,
+    overflowWrap: 'anywhere',
+    wordBreak: 'break-word',
+    maxWidth: '100%',
   },
   speakersGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))',
     gap: '16px',
     marginTop: '8px',
   },
@@ -668,7 +699,7 @@ const EventoPublico = () => {
                     )}
                   </div>
 
-                  <MEHTypography variant="h1" style={{ fontSize: '2.5rem', lineHeight: '1.2', fontWeight: tokens.fontWeightBlack, marginBottom: '16px' }}>
+                  <MEHTypography variant="h1" style={{ fontSize: 'clamp(1.6rem, 4.5vw, 2.5rem)', lineHeight: '1.2', fontWeight: tokens.fontWeightBlack, marginBottom: '16px', overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                     {evento.titulo}
                   </MEHTypography>
 
@@ -830,7 +861,7 @@ const EventoPublico = () => {
                   </div>
 
                   {/* Estado de Cupos */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', padding: '12px 16px', backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <People24Regular style={{ color: tokens.colorBrandForeground1 }} />
                       <span style={{ fontSize: '0.95rem' }}>Disponibilidad</span>
@@ -942,7 +973,7 @@ const EventoPublico = () => {
                         />
                       </Field>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: '10px' }}>
                         <Field label={t("id_card")} required>
                           <Input 
                             value={formData.carne} 

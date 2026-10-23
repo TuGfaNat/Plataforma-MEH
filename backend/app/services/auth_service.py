@@ -299,7 +299,7 @@ def list_users(
     if rol_filter:
         query = query.filter(models.Usuario.rol == rol_filter)
         
-    users = query.order_by(models.Usuario.fecha_registro.desc()).all()
+    users = query.order_by(models.Usuario.id_usuario.desc(), models.Usuario.fecha_registro.desc()).all()
     
     # Inyectar métricas de fidelidad
     for u in users:

@@ -92,9 +92,11 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
   // Estados para modal de suspensión
   const [suspendModal, setSuspendModal] = useState({ open: false, user: null, motivo: '', loading: false });
 
-  const filteredUsers = (data || []).filter(u => 
-    `${u.nombres} ${u.apellidos} ${u.correo} ${u.alias || ''}`.toLowerCase().includes((searchTerm || '').toLowerCase())
-  );
+  const filteredUsers = [...(data || [])]
+    .sort((a, b) => (b.id_usuario || 0) - (a.id_usuario || 0))
+    .filter(u => 
+      `${u.nombres} ${u.apellidos} ${u.correo} ${u.alias || ''}`.toLowerCase().includes((searchTerm || '').toLowerCase())
+    );
 
   // Abrir modal de edición
   const handleOpenEdit = (user) => {
@@ -195,7 +197,7 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
           contentBefore={<Search24Regular />} 
           value={searchTerm} 
           onChange={(e, d) => setSearchBox(d.value)} 
-          style={{ width: '420px', height: '45px' }} 
+          style={{ width: '100%', maxWidth: '420px', height: '45px' }} 
         />
         <MEHButton size="small" icon={<ArrowDownload24Regular />} appearance="primary" onClick={handleExportCSV}>
           {t("admin_export_excel")}

@@ -7,12 +7,18 @@ const useStyles = makeStyles({
   layout: {
     display: 'flex',
     minHeight: '100vh',
+    maxWidth: '100%',
+    overflowX: 'hidden',
     backgroundColor: tokens.colorNeutralBackground2,
   },
   content: {
     flexGrow: 1,
+    minWidth: 0,
+    width: '100%',
+    boxSizing: 'border-box',
     padding: '32px',
     overflowY: 'auto',
+    overflowX: 'hidden',
     [designTokens.breakpoints.sm]: {
       padding: '16px',
     }

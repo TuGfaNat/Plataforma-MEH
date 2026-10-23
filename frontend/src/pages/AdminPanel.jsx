@@ -31,23 +31,134 @@ import CleanupTab from './Admin/CleanupTab';
 const useStyles = makeStyles({
   container: {
     display: 'flex',
-    flexDirection: 'column', gap: '32px',
+    flexDirection: 'column',
+    gap: '24px',
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
     animationName: { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
     animationDuration: '0.5s',
   },
-  header: { display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' },
-  tableWrapper: { width: '100%', overflowX: 'hidden', ...shorthands.borderRadius('24px'), ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), backgroundColor: tokens.colorNeutralBackground1, boxShadow: tokens.shadow8 },
-  userRow: { height: '85px', transition: 'all 0.2s ease', ':hover': { backgroundColor: tokens.colorNeutralBackground2 } },
-  avatarStack: { display: 'flex', alignItems: 'center', gap: '16px', paddingLeft: '12px' },
-  gridTwo: { display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px' },
-  formPanel: { display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px', backgroundColor: tokens.colorNeutralBackground2, ...shorthands.borderRadius('20px'), ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3) },
-  classroomGrid: { display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', marginTop: '24px' },
-  sidebar: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  activeItem: { ...shorthands.borderColor(tokens.colorBrandStroke1), backgroundColor: tokens.colorBrandBackground2 },
-  selectableCard: { padding: '16px', ...shorthands.borderRadius('12px'), backgroundColor: tokens.colorNeutralBackground1, ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), cursor: 'pointer', transition: 'all 0.2s ease', ':hover': { transform: 'translateX(4px)', ...shorthands.borderColor(tokens.colorBrandStroke1) } },
-  quillWrapper: { marginTop: '4px', '& .ql-toolbar': { ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1), ...shorthands.borderRadius('12px', '12px', '0', '0'), backgroundColor: tokens.colorNeutralBackground3 }, '& .ql-container': { ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1), ...shorthands.borderRadius('0', '0', '12px', '12px'), minHeight: '200px', backgroundColor: tokens.colorNeutralBackground1 } },
-  uploadBox: { ...shorthands.border('2px', 'dashed', tokens.colorBrandStroke1), ...shorthands.padding('20px'), ...shorthands.borderRadius('12px'), textAlign: 'center', cursor: 'pointer', backgroundColor: tokens.colorNeutralBackground1, transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', ':hover': { backgroundColor: tokens.colorBrandBackground2, ...shorthands.borderColor(tokens.colorBrandBackground) } },
-  infoCard: { padding: '20px', ...shorthands.borderRadius('20px'), backgroundColor: tokens.colorNeutralBackground1, ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), display: 'flex', flexDirection: 'column', gap: '16px' }
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    marginBottom: '4px',
+    flexWrap: 'wrap',
+  },
+  tableWrapper: {
+    width: '100%',
+    overflowX: 'auto',
+    ...shorthands.borderRadius('24px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    backgroundColor: tokens.colorNeutralBackground1,
+    boxShadow: tokens.shadow8
+  },
+  userRow: {
+    height: '85px',
+    transition: 'all 0.2s ease',
+    ':hover': { backgroundColor: tokens.colorNeutralBackground2 }
+  },
+  avatarStack: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+    paddingLeft: '12px'
+  },
+  gridTwo: {
+    display: 'grid',
+    gridTemplateColumns: '1.2fr 1fr',
+    gap: '24px',
+    '@media (max-width: 900px)': {
+      gridTemplateColumns: '1fr',
+    }
+  },
+  formPanel: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    padding: '24px',
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    backgroundColor: tokens.colorNeutralBackground2,
+    ...shorthands.borderRadius('20px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    '@media (max-width: 600px)': {
+      padding: '16px',
+    }
+  },
+  classroomGrid: {
+    display: 'grid',
+    gridTemplateColumns: '320px 1fr',
+    gap: '24px',
+    marginTop: '24px',
+    '@media (max-width: 900px)': {
+      gridTemplateColumns: '1fr',
+    }
+  },
+  sidebar: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    minWidth: 0,
+  },
+  activeItem: {
+    ...shorthands.borderColor(tokens.colorBrandStroke1),
+    backgroundColor: tokens.colorBrandBackground2
+  },
+  selectableCard: {
+    padding: '16px',
+    ...shorthands.borderRadius('12px'),
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    ':hover': { transform: 'translateX(4px)', ...shorthands.borderColor(tokens.colorBrandStroke1) }
+  },
+  quillWrapper: {
+    marginTop: '4px',
+    '& .ql-toolbar': {
+      ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
+      ...shorthands.borderRadius('12px', '12px', '0', '0'),
+      backgroundColor: tokens.colorNeutralBackground3
+    },
+    '& .ql-container': {
+      ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
+      ...shorthands.borderRadius('0', '0', '12px', '12px'),
+      minHeight: '200px',
+      backgroundColor: tokens.colorNeutralBackground1
+    }
+  },
+  uploadBox: {
+    ...shorthands.border('2px', 'dashed', tokens.colorBrandStroke1),
+    ...shorthands.padding('20px'),
+    ...shorthands.borderRadius('12px'),
+    textAlign: 'center',
+    cursor: 'pointer',
+    backgroundColor: tokens.colorNeutralBackground1,
+    transition: 'all 0.2s ease',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '8px',
+    ':hover': { backgroundColor: tokens.colorBrandBackground2, ...shorthands.borderColor(tokens.colorBrandBackground) }
+  },
+  infoCard: {
+    padding: '20px',
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    ...shorthands.borderRadius('20px'),
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    '@media (max-width: 600px)': {
+      padding: '14px',
+    }
+  }
 });
 
 const AdminPanel = () => {
@@ -130,30 +241,45 @@ const AdminPanel = () => {
     try {
         if (selectedTab === 'usuarios') {
             const res = await authService.getAllUsers();
-            setData(Array.isArray(res) ? res : []);
+            const sortedUsers = (Array.isArray(res) ? [...res] : []).sort(
+              (a, b) => (b.id_usuario || 0) - (a.id_usuario || 0)
+            );
+            setData(sortedUsers);
         }
         if (selectedTab === 'eventos') {
             const [eRes, sRes] = await Promise.all([
                 api.get('/eventos/'),
                 api.get('/admin-directories/speakers').catch(() => ({ data: [] }))
             ]);
-            const sortedEvents = (eRes.data || []).sort((a, b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio));
+            // Orden correlativo: primero el evento más nuevo (mayor id_evento / fecha más reciente)
+            const sortedEvents = [...(eRes.data || [])].sort(
+              (a, b) => (b.id_evento || 0) - (a.id_evento || 0)
+            );
             setEventosList(sortedEvents);
             setSpeakersList(sRes.data || []);
             setData(sortedEvents);
+            if (sortedEvents.length > 0 && !selectedEventoId) {
+              setSelectedEventoId(sortedEvents[0].id_evento);
+            }
         }
         if (selectedTab === 'souvenirs') {
-            const [sRes, vRes, uRes] = await Promise.all([
+            const [sRes, , uRes] = await Promise.all([
                 adminService.getSouvenirs(),
                 api.get('/souvenirs/ventas'),
                 authService.getAllUsers().catch(() => [])
             ]);
-            setData(Array.isArray(sRes) ? sRes : []);
+            const sortedSouvenirs = (Array.isArray(sRes) ? [...sRes] : []).sort(
+              (a, b) => (b.id_producto || 0) - (a.id_producto || 0)
+            );
+            setData(sortedSouvenirs);
             setUsuariosList(uRes || []);
         }
         if (selectedTab === 'biblioteca') {
             const [rRes] = await Promise.all([recursoService.getRecursos()]);
-            setData(Array.isArray(rRes) ? rRes : []);
+            const sortedRecursos = (Array.isArray(rRes) ? [...rRes] : []).sort(
+              (a, b) => (b.id_recurso || 0) - (a.id_recurso || 0)
+            );
+            setData(sortedRecursos);
         }
         if (selectedTab === 'academia') {
             const hasUsersPermission = ['ADMIN', 'ORGANIZADOR', 'SOPORTE'].includes(currentUser?.rol);
@@ -161,14 +287,17 @@ const AdminPanel = () => {
                 api.get('/cursos/'),
                 hasUsersPermission ? authService.getAllUsers().catch(() => []) : Promise.resolve([])
             ]);
-            setData(cRes.data || []);
+            const sortedCursos = [...(cRes.data || [])].sort(
+              (a, b) => (b.id_curso || 0) - (a.id_curso || 0)
+            );
+            setData(sortedCursos);
             setUsuariosList(uRes || []);
         }
     } catch (err) { console.error(err); notify("Error", "Fallo sincronización", "error"); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchData(); }, [selectedTab, currentUser]);
+  useEffect(() => { void fetchData(); }, [selectedTab, currentUser]);
 
   const fetchLecciones = async (id) => {
       try {
@@ -212,11 +341,14 @@ const AdminPanel = () => {
               await api.put(`/eventos/${selectedEventoId}`, dataToSave);
               notify("Éxito", "Evento actualizado", "success");
           } else {
-              await api.post('/eventos/', dataToSave);
+              const created = await api.post('/eventos/', dataToSave);
+              if (created?.data?.id_evento) {
+                setSelectedEventoId(created.data.id_evento);
+              }
               notify("Éxito", "Evento publicado", "success");
           }
           setNewEvento({ titulo: '', descripcion: '', tipo_evento: 'CONFERENCIA', fecha_inicio: '', hora_inicio: '', modalidad: 'PRESENCIAL', ubicacion: '', link_mapas: '', imagen_url: null, imagen_url_16x9: null, imagen_url_1x1: null, imagen_variantes: null, capacidad_max: 50, refrigerio_incluido: false, incluidos: '', id_estado: 2 });
-          setIsAddingEvento(false); setIsEditingEvento(false); fetchData();
+          setIsAddingEvento(false); setIsEditingEvento(false); void fetchData();
       } catch (e) { notify("Error", "Fallo al guardar evento", "error"); }
   };
 
@@ -253,7 +385,7 @@ const AdminPanel = () => {
               notify("Éxito", "Programa lanzado", "success");
           }
           setNewCurso({ nombre_curso: '', descripcion: '', horas_academicas: 10, imagen_url: '', id_estado: 2 });
-          setIsAddingCurso(false); setIsEditingCurso(false); fetchData();
+          setIsAddingCurso(false); setIsEditingCurso(false); void fetchData();
       } catch (e) { notify("Error", "Fallo al guardar curso", "error"); }
   };
 
@@ -275,7 +407,7 @@ const AdminPanel = () => {
           if (isEditingLeccion) await api.put(`/academia/lecciones/${currentLeccionId}`, newLeccion);
           else await api.post('/academia/lecciones', { ...newLeccion, id_curso: selectedCursoId });
           notify("Éxito", "Lección guardada", "success");
-          setIsAddingLeccion(false); setIsEditingLeccion(false); fetchLecciones(selectedCursoId);
+          setIsAddingLeccion(false); setIsEditingLeccion(false); void fetchLecciones(selectedCursoId);
       } catch (e) { notify("Error", "Fallo al guardar", "error"); }
   };
 
@@ -301,7 +433,7 @@ const AdminPanel = () => {
               notify("Éxito", "Recurso publicado", "success");
           }
           setNewRecurso({ titulo: '', descripcion: '', motivo: '', autor_nombre: '', url_descarga: '', portada_url: '', tipo_archivo: '', tipo_recurso: 'ARCHIVO', contenido_md: '', categoria: 'GENERAL', id_curso: null, id_evento: null, id_estado: 2 });
-          setIsEditingRecurso(false); fetchData();
+          setIsEditingRecurso(false); void fetchData();
       } catch (e) { notify("Error", "Fallo al guardar recurso", "error"); }
   };
 
@@ -336,7 +468,7 @@ const AdminPanel = () => {
               notify("Éxito", "Producto agregado", "success");
           }
           setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', categoria: 'SOUVENIR', id_estado: 2 });
-          setIsEditingSouvenir(false); fetchData();
+          setIsEditingSouvenir(false); void fetchData();
       } catch (e) { notify("Error", "Fallo al guardar producto", "error"); }
   };
 
@@ -361,14 +493,14 @@ const AdminPanel = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-          <Settings24Filled style={{ color: tokens.colorBrandForeground1, fontSize: '42px' }} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <MEHTypography variant="h1">Master Admin Panel</MEHTypography>
+          <Settings24Filled style={{ color: tokens.colorBrandForeground1, fontSize: '42px', flexShrink: 0 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+            <MEHTypography variant="h1" style={{ fontSize: 'clamp(1.5rem, 3.5vw, 2.2rem)' }}>Master Admin Panel</MEHTypography>
             <MEHTypography variant="body" style={{ opacity: 0.7 }}>Gestión operativa de alto nivel para la red MEH.</MEHTypography>
           </div>
       </div>
 
-      <TabList selectedValue={selectedTab} onTabSelect={(e, d) => { setData([]); setSelectedTab(d.value); setSearchParams({ tab: d.value }); }} style={{ overflowX: 'auto' }}>
+      <TabList selectedValue={selectedTab} onTabSelect={(e, d) => { setData([]); setSelectedTab(d.value); setSearchParams({ tab: d.value }); }} style={{ overflowX: 'auto', maxWidth: '100%' }}>
         {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'SOPORTE') && <Tab value="usuarios" icon={<People24Regular />}>Miembros</Tab>}
         {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="eventos" icon={<CalendarLtr24Regular />}>Eventos</Tab>}
         {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR') && <Tab value="anuncios" icon={<MegaphoneLoud24Regular />}>Anuncios</Tab>}
@@ -379,7 +511,7 @@ const AdminPanel = () => {
         {currentUser?.rol === 'ADMIN' && <Tab value="limpieza" icon={<Database24Regular />} data-testid="admin-tab-limpieza">Limpieza de Datos</Tab>}
       </TabList>
 
-      <MEHCard>
+      <MEHCard style={{ minWidth: 0, maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
         {selectedTab === 'usuarios' && (
           <UsersTab 
             loading={loading} data={data} searchTerm={searchTerm} setSearchBox={setSearchBox} 
@@ -468,7 +600,7 @@ const AdminPanel = () => {
 
       <Dialog open={deleteDialog.open} onOpenChange={(e, d) => setDeleteDialog({ ...deleteDialog, open: d.open })}>
           <DialogSurface style={{ ...shorthands.border('2px', 'solid', tokens.colorPaletteRedBorder1), borderRadius: '24px' }}>
-              <DialogBody><DialogTitle>Confirmar Eliminación</DialogTitle><DialogContent>¿Estás seguro de eliminar <b>{deleteDialog.name}</b>?</DialogContent><DialogActions><Button appearance="secondary" onClick={() => setDeleteDialog({ open: false })}>Cancelar</Button><MEHButton appearance="primary" style={{ backgroundColor: tokens.colorPaletteRedBackground3 }} onClick={() => { if (deleteDialog.type === 'leccion') api.delete(`/academia/lecciones/${deleteDialog.id}`).then(() => { setDeleteDialog({open:false}); fetchLecciones(selectedCursoId); }); if (deleteDialog.type === 'evento') api.delete(`/eventos/${deleteDialog.id}`).then(() => { setDeleteDialog({open:false}); fetchData(); }); if (deleteDialog.type === 'souvenir') adminService.deleteSouvenir(deleteDialog.id).then(() => { setDeleteDialog({open:false}); fetchData(); }); if (deleteDialog.type === 'curso') api.delete(`/cursos/${deleteDialog.id}`).then(() => { setDeleteDialog({open:false}); fetchData(); }); }}>Confirmar</MEHButton></DialogActions></DialogBody>
+              <DialogBody><DialogTitle>Confirmar Eliminación</DialogTitle><DialogContent>¿Estás seguro de eliminar <b>{deleteDialog.name}</b>?</DialogContent><DialogActions><Button appearance="secondary" onClick={() => setDeleteDialog({ open: false })}>Cancelar</Button><MEHButton appearance="primary" style={{ backgroundColor: tokens.colorPaletteRedBackground3 }} onClick={() => { if (deleteDialog.type === 'leccion') api.delete(`/academia/lecciones/${deleteDialog.id}`).then(() => { setDeleteDialog({open:false}); void fetchLecciones(selectedCursoId); }); if (deleteDialog.type === 'evento') api.delete(`/eventos/${deleteDialog.id}`).then(() => { setDeleteDialog({open:false}); void fetchData(); }); if (deleteDialog.type === 'souvenir') adminService.deleteSouvenir(deleteDialog.id).then(() => { setDeleteDialog({open:false}); void fetchData(); }); if (deleteDialog.type === 'curso') api.delete(`/cursos/${deleteDialog.id}`).then(() => { setDeleteDialog({open:false}); void fetchData(); }); }}>Confirmar</MEHButton></DialogActions></DialogBody>
           </DialogSurface>
       </Dialog>
     </div>

@@ -45,7 +45,7 @@ const useStyles = makeStyles({
   },
   eventsList: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
     ...shorthands.gap('16px'),
   },
   eventCard: {
@@ -155,13 +155,13 @@ const EventsMaster = () => {
     const eventDate = new Date(event.fecha_inicio);
     eventDate.setHours(0, 0, 0, 0);
     return eventDate >= today;
-  }).sort((a, b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio));
+  }).sort((a, b) => (b.id_evento || 0) - (a.id_evento || 0));
 
   const archivedEvents = events.filter(event => {
     const eventDate = new Date(event.fecha_inicio);
     eventDate.setHours(0, 0, 0, 0);
     return eventDate < today;
-  }).sort((a, b) => new Date(b.fecha_inicio) - new Date(a.fecha_inicio));
+  }).sort((a, b) => (b.id_evento || 0) - (a.id_evento || 0));
 
   const displayedEvents = activeTab === 'upcoming' ? upcomingEvents : archivedEvents;
 

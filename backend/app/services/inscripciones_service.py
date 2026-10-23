@@ -159,7 +159,7 @@ def list_mis_inscripciones_eventos(db: Session, user_id: int) -> List[models.Ins
     return db.query(models.InscripcionEvento).filter(
         models.InscripcionEvento.id_usuario == user_id,
         models.InscripcionEvento.id_estado != 0
-    ).all()
+    ).order_by(models.InscripcionEvento.id_inscripcion.desc()).all()
 
 def cancelar_inscripcion_evento(
     db: Session,

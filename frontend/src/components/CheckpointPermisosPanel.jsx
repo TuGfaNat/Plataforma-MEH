@@ -37,13 +37,16 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: '16px',
     padding: '20px',
+    minWidth: 0,
+    width: '100%',
+    boxSizing: 'border-box',
     backgroundColor: tokens.colorNeutralBackground2,
     ...shorthands.borderRadius('16px'),
     ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3)
   },
   cpGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
     gap: '14px',
     marginTop: '10px'
   },
@@ -74,6 +77,8 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: '8px',
     padding: '8px 12px',
     backgroundColor: tokens.colorNeutralBackground2,
     ...shorthands.borderRadius('8px'),
@@ -215,7 +220,7 @@ const CheckpointPermisosPanel = ({ eventoId, eventoTitulo }) => {
         <div>
           <MEHTypography variant="h3">
             <ShieldCheckmark24Regular style={{ verticalAlign: 'middle', marginRight: '8px', color: tokens.colorBrandForeground1 }} />
-            Checkpoints y Permisos de Operadores (MEH-018)
+            Checkpoints y Permisos de Operadores
           </MEHTypography>
           <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
             Restringe qué operadores pueden escanear en checkpoints específicos (refrigerios, acreditación, salas). Admins y Organizadores tienen acceso global.

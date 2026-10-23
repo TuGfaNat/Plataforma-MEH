@@ -9,7 +9,7 @@ def list_productos(db: Session, categoria: Optional[str] = None):
     query = db.query(models.Producto)
     if categoria:
         query = query.filter(models.Producto.categoria == categoria)
-    return query.all()
+    return query.order_by(models.Producto.id_producto.desc()).all()
 
 def create_producto(db: Session, data: dict, user_id: int):
     db_obj = models.Producto(**data)

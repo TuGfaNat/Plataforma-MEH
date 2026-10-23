@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Divider, Badge, Field, Input, Textarea, Select, Switch, Button, tokens, makeStyles, shorthands,
-  Avatar, Tooltip, Tag, TagGroup, InteractionTag, InteractionTagPrimary, Spinner,
+  Avatar, Tooltip, Spinner,
   Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions,
   Checkbox
 } from '@fluentui/react-components';
 import { 
   CalendarLtr24Regular, Add24Regular, Map24Regular, Edit24Regular, Delete24Regular,
-  Food24Regular, QrCode24Regular, PeopleTeam24Regular, Mic24Regular, Link24Regular,
+  QrCode24Regular, PeopleTeam24Regular, Mic24Regular, Link24Regular,
   Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled, ArrowDownload24Regular,
   Megaphone24Regular, DismissCircle24Regular, Share24Regular, Copy24Regular, DocumentTable24Regular,
   Image24Regular
@@ -26,17 +26,34 @@ import EmailDryRunModal from '../../components/EmailDryRunModal';
 const useStyles = makeStyles({
   grid: { 
     display: 'grid', 
-    gridTemplateColumns: '320px 1fr', 
+    gridTemplateColumns: '320px minmax(0, 1fr)', 
     gap: '24px', 
-    marginTop: '24px', 
+    marginTop: '16px', 
     alignItems: 'start',
-    '@media (max-width: 900px)': {
-      gridTemplateColumns: '1fr'
+    minWidth: 0,
+    maxWidth: '100%',
+    '@media (max-width: 960px)': {
+      gridTemplateColumns: '1fr',
+      gap: '20px',
     }
   },
-  sidebar: { display: 'flex', flexDirection: 'column', gap: '12px', position: 'sticky', top: '24px', maxHeight: 'calc(100vh - 200px)', paddingRight: '8px' },
+  sidebar: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    position: 'sticky',
+    top: '24px',
+    maxHeight: 'calc(100vh - 200px)',
+    paddingRight: '8px',
+    minWidth: 0,
+    '@media (max-width: 960px)': {
+      position: 'static',
+      maxHeight: '300px',
+      paddingRight: 0,
+    }
+  },
   selectableCard: { 
-    padding: '16px', 
+    padding: '14px 16px', 
     ...shorthands.borderRadius('12px'), 
     backgroundColor: tokens.colorNeutralBackground1, 
     ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), 
@@ -49,25 +66,96 @@ const useStyles = makeStyles({
     display: 'flex', 
     flexDirection: 'column', 
     gap: '20px', 
-    padding: '24px', 
+    padding: '24px',
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
     backgroundColor: tokens.colorNeutralBackground2, 
     ...shorthands.borderRadius('20px'), 
-    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3) 
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    '@media (max-width: 600px)': {
+      padding: '16px',
+    }
   },
   infoCard: { 
-    padding: '20px', 
-    ...shorthands.borderRadius('20px'), 
+    padding: '20px',
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    ...shorthands.borderRadius('18px'), 
     backgroundColor: tokens.colorNeutralBackground1, 
     ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), 
     display: 'flex', 
     flexDirection: 'column', 
-    gap: '16px' 
+    gap: '14px',
+    '@media (max-width: 600px)': {
+      padding: '14px',
+    }
   },
-  detailsContainer: { paddingLeft: '24px', borderLeft: `1px solid ${tokens.colorNeutralBackground3}` },
+  detailsContainer: {
+    paddingLeft: '24px',
+    borderLeft: `1px solid ${tokens.colorNeutralBackground3}`,
+    minWidth: 0,
+    width: '100%',
+    boxSizing: 'border-box',
+    '@media (max-width: 960px)': {
+      paddingLeft: 0,
+      borderLeft: 'none',
+    }
+  },
+  headerHeroCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    padding: '22px',
+    marginBottom: '24px',
+    ...shorthands.borderRadius('18px'),
+    backgroundColor: tokens.colorNeutralBackground2,
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    '@media (max-width: 600px)': {
+      padding: '16px',
+      gap: '14px',
+    }
+  },
+  actionToolbar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '10px',
+    paddingTop: '14px',
+    ...shorthands.borderTop('1px', 'solid', tokens.colorNeutralBackground3),
+  },
+  actionGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '8px',
+  },
+  twoColResponsive: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
+    gap: '20px',
+    marginBottom: '24px',
+  },
+  formTwoCol: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
+    gap: '12px',
+  },
+  formThreeCol: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',
+    gap: '12px',
+  },
   agendaItem: {
     display: 'flex',
-    gap: '12px',
+    gap: '10px',
     alignItems: 'center',
+    flexWrap: 'wrap',
     padding: '12px',
     backgroundColor: tokens.colorNeutralBackground1,
     ...shorthands.borderRadius('12px'),
@@ -116,7 +204,7 @@ const EventsTab = ({
   const [fileInputKey, setFileInputKey] = useState(0);
   const [editQrDialog, setEditQrDialog] = useState({ open: false, idQr: null, nombre_paquete: '', monto: '', file: null, loading: false });
 
-  // Estados para Badge Social (MEH-019)
+  // Estados para Badge Social
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [badgePlantillaFile, setBadgePlantillaFile] = useState(null);
   const [uploadingPlantilla, setUploadingPlantilla] = useState(false);
@@ -139,8 +227,8 @@ const EventsTab = ({
 
   useEffect(() => {
     if (selectedEventoId) {
-      fetchPagosQr();
-      fetchParticipantesYEspera();
+      void fetchPagosQr();
+      void fetchParticipantesYEspera();
     } else {
       setPagosQr([]);
       setListaEspera([]);
@@ -492,7 +580,11 @@ const EventsTab = ({
     }
   };
 
-  const currentEvent = eventosList.find(e => e.id_evento === selectedEventoId);
+  // Asegurar orden correlativo descendente (más nuevo primero) en el sidebar
+  const sortedEventosList = [...(eventosList || [])].sort(
+    (a, b) => (b.id_evento || 0) - (a.id_evento || 0)
+  );
+  const currentEvent = sortedEventosList.find(e => e.id_evento === selectedEventoId);
 
   const handleDownloadEventoQr = async () => {
     if (!currentEvent) return;
@@ -514,22 +606,24 @@ const EventsTab = ({
           </MEHButton>
         </div>
         <Divider />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', maxHeight: 'calc(100vh - 250px)', paddingRight: '4px' }}>
-          {eventosList.map(ev => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', maxHeight: 'calc(100vh - 250px)', paddingRight: '4px' }}>
+          {sortedEventosList.map(ev => (
             <div 
               key={`ev-${ev.id_evento}`} 
               className={`${styles.selectableCard} ${selectedEventoId === ev.id_evento ? styles.activeItem : ''}`} 
-              onClick={() => setSelectedEventoId(ev.id_evento)}
+              onClick={() => { setIsAddingEvento(false); setSelectedEventoId(ev.id_evento); }}
             >
-              <div style={{display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between', width: '100%'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                  <Badge color={ev.tipo_evento === 'HACKATHON' ? 'important' : 'brand'}>{ev.tipo_evento?.charAt(0)}</Badge>
-                  <div>
-                    <b>{ev.titulo}</b><br/>
+              <div style={{display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between', width: '100%', minWidth: 0}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1}}>
+                  <Badge color={ev.tipo_evento === 'HACKATHON' ? 'important' : 'brand'} style={{ flexShrink: 0 }}>{ev.tipo_evento?.charAt(0)}</Badge>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <b style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.titulo}</b>
                     <MEHTypography variant="caption">{new Date(ev.fecha_inicio).toLocaleDateString()}</MEHTypography>
                   </div>
                 </div>
-                <EventoItemBadge ev={ev} />
+                <div style={{ flexShrink: 0 }}>
+                  <EventoItemBadge ev={ev} />
+                </div>
               </div>
             </div>
           ))}
@@ -549,7 +643,7 @@ const EventsTab = ({
               <Textarea rows={3} value={newEvento.descripcion} onChange={(e, d) => setNewEvento({...newEvento, descripcion: d.value})} placeholder={t("admin_event_description_placeholder")} />
             </Field>
 
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+            <div className={styles.formTwoCol}>
               <Field label={t("type")}>
                 <Select value={newEvento.tipo_evento} onChange={(e) => setNewEvento({...newEvento, tipo_evento: e.target.value})}>
                   <option value="CONFERENCIA">{t("CONFERENCIA")}</option>
@@ -568,7 +662,7 @@ const EventsTab = ({
               </Field>
             </div>
 
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px'}}>
+            <div className={styles.formThreeCol}>
               <Field label={t("admin_start_date")} required validationState={errors.fecha_inicio ? "error" : "none"} validationMessage={errors.fecha_inicio}>
                 <Input type="date" value={newEvento.fecha_inicio} onChange={(e, d) => setNewEvento({...newEvento, fecha_inicio: d.value})} />
               </Field>
@@ -590,7 +684,7 @@ const EventsTab = ({
               </div>
             )}
 
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px'}}>
+            <div className={styles.formTwoCol}>
               <Field label={t("admin_location")} required validationState={errors.ubicacion ? "error" : "none"} validationMessage={errors.ubicacion}>
                 <Input contentBefore={<Map24Regular />} value={newEvento.ubicacion} onChange={(e, d) => setNewEvento({...newEvento, ubicacion: d.value})} placeholder={t("admin_location_placeholder")} />
               </Field>
@@ -634,9 +728,9 @@ const EventsTab = ({
             <div>
               {agenda.map((item, idx) => (
                 <div key={idx} className={styles.agendaItem}>
-                  <Input type="time" value={item.hora} onChange={(e, d) => updateAgendaItem(idx, 'hora', d.value)} style={{ width: '100px' }} />
-                  <Input value={item.actividad} onChange={(e, d) => updateAgendaItem(idx, 'actividad', d.value)} placeholder={t("admin_activity_placeholder")} style={{ flexGrow: 1 }} />
-                  <Select value={item.id_speaker || ''} onChange={(e) => updateAgendaItem(idx, 'id_speaker', e.target.value)} style={{ width: '150px' }}>
+                  <Input type="time" value={item.hora} onChange={(e, d) => updateAgendaItem(idx, 'hora', d.value)} style={{ width: '110px' }} />
+                  <Input value={item.actividad} onChange={(e, d) => updateAgendaItem(idx, 'actividad', d.value)} placeholder={t("admin_activity_placeholder")} style={{ flexGrow: 1, minWidth: '150px' }} />
+                  <Select value={item.id_speaker || ''} onChange={(e) => updateAgendaItem(idx, 'id_speaker', e.target.value)} style={{ minWidth: '150px' }}>
                     <option value="">{t("admin_no_speaker")}</option>
                     {speakersList.filter(s => selectedSpeakers.includes(s.id_speaker)).map(s => (
                       <option key={s.id_speaker} value={s.id_speaker}>{s.nombre}</option>
@@ -664,17 +758,19 @@ const EventsTab = ({
               />
             </div>
             
-            <div style={{display: 'flex', gap: '12px', marginTop: '20px'}}>
+            <div style={{display: 'flex', gap: '12px', marginTop: '20px', flexWrap: 'wrap'}}>
               <MEHButton onClick={onSave} appearance="primary" size="large">{t("admin_save_event")}</MEHButton>
               <Button onClick={() => setIsAddingEvento(false)} size="large">{t("cancel")}</Button>
             </div>
           </div>
         ) : selectedEventoId && currentEvent ? (
-          <div>
-            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px'}}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <MEHTypography variant="h1" style={{ margin: 0 }}>{currentEvent.titulo}</MEHTypography>
+          <div style={{ minWidth: 0, width: '100%' }}>
+            {/* Cabecera Estética y Responsive del Evento */}
+            <div className={styles.headerHeroCard}>
+              {/* Fila 1: Badges de estado, tipo y Switch de activación */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <Badge color="brand" appearance="filled">{t(currentEvent.tipo_evento)}</Badge>
                   {currentEvent.estado === 'CANCELADO' ? (
                     <Badge color="danger" appearance="filled" size="large">CANCELADO</Badge>
                   ) : (
@@ -682,61 +778,6 @@ const EventsTab = ({
                       {currentEvent.id_estado === 1 ? 'INACTIVO' : 'ACTIVO'}
                     </Badge>
                   )}
-                </div>
-                {currentEvent.estado === 'CANCELADO' && (
-                  <div style={{
-                    padding: '10px 14px',
-                    backgroundColor: tokens.colorPaletteRedBackground1,
-                    border: `1px solid ${tokens.colorPaletteRedBorder2}`,
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginTop: '4px'
-                  }}>
-                    <DismissCircle24Regular style={{ color: tokens.colorPaletteRedForeground1 }} />
-                    <MEHTypography variant="caption" style={{ color: tokens.colorPaletteRedForeground1 }}>
-                      <b>Evento cancelado:</b> {currentEvent.motivo_cancelacion || 'Sin motivo especificado.'}
-                    </MEHTypography>
-                  </div>
-                )}
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <Badge color="brand" appearance="filled">{t(currentEvent.tipo_evento)}</Badge>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.7 }}>
-                    <CalendarLtr24Regular fontSize="16px" />
-                    <span>{new Date(currentEvent.fecha_inicio).toLocaleDateString()}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.7 }}>
-                    <Clock24Regular fontSize="16px" />
-                    <span>{currentEvent.hora_inicio}</span>
-                  </div>
-                  <Divider vertical style={{ height: '16px' }} />
-                  <Switch 
-                    label={currentEvent.id_estado === 1 ? "Activar Evento" : "Desactivar Evento"} 
-                    checked={currentEvent.id_estado !== 1} 
-                    onChange={async (e, d) => {
-                      try {
-                        const newStatus = d.checked ? 2 : 1;
-                        await api.put(`/eventos/${selectedEventoId}`, { id_estado: newStatus });
-                        void fetchData();
-                      } catch (err) {
-                        console.error("Error al cambiar estado del evento", err);
-                      }
-                    }} 
-                  />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <MEHTypography variant="body" style={{ opacity: 0.8 }}>
-                        <Map24Regular fontSize="18px" style={{ verticalAlign: 'middle', marginRight: '4px' }} />
-                        {currentEvent.ubicacion}
-                    </MEHTypography>
-                    {currentEvent.link_mapas && (
-                        <MEHButton size="small" icon={<Link24Regular />} onClick={() => window.open(currentEvent.link_mapas, '_blank')}>{t("admin_view_in_maps")}</MEHButton>
-                    )}
-                </div>
-
-                {/* Indicador de Cupos y Espera */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginTop: '6px' }}>
                   <Badge appearance="outline" color="brand">
                     Cupos: {currentEvent.cupos_ocupados || 0} / {currentEvent.capacidad_max || currentEvent.capacidad_maxima || 50}
                   </Badge>
@@ -750,82 +791,166 @@ const EventsTab = ({
                   </Badge>
                 </div>
 
-                {/* Ítems Incluidos */}
-                {(currentEvent.incluidos || currentEvent.refrigerio_incluido) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
-                    <MEHTypography variant="caption" style={{ fontWeight: 'bold', opacity: 0.8 }}>🎁 Incluidos (Checkpoints automáticos):</MEHTypography>
-                    {currentEvent.refrigerio_incluido && <Badge appearance="outline" color="success">Refrigerio</Badge>}
-                    {currentEvent.incluidos && currentEvent.incluidos.split(',').map(s => s.trim()).filter(Boolean).map((item, idx) => (
-                      <Badge key={idx} appearance="outline" color="brand">{item}</Badge>
-                    ))}
+                <Switch 
+                  label={currentEvent.id_estado === 1 ? "Activar Evento" : "Desactivar Evento"} 
+                  checked={currentEvent.id_estado !== 1} 
+                  onChange={async (e, d) => {
+                    try {
+                      const newStatus = d.checked ? 2 : 1;
+                      await api.put(`/eventos/${selectedEventoId}`, { id_estado: newStatus });
+                      void fetchData();
+                    } catch (err) {
+                      console.error("Error al cambiar estado del evento", err);
+                    }
+                  }} 
+                />
+              </div>
+
+              {/* Fila 2: Título principal */}
+              <MEHTypography
+                variant="h1"
+                style={{
+                  margin: 0,
+                  fontSize: 'clamp(1.35rem, 2.8vw, 1.95rem)',
+                  lineHeight: 1.25,
+                  overflowWrap: 'anywhere',
+                  wordBreak: 'break-word',
+                }}
+              >
+                {currentEvent.titulo}
+              </MEHTypography>
+
+              {currentEvent.estado === 'CANCELADO' && (
+                <div style={{
+                  padding: '10px 14px',
+                  backgroundColor: tokens.colorPaletteRedBackground1,
+                  border: `1px solid ${tokens.colorPaletteRedBorder2}`,
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}>
+                  <DismissCircle24Regular style={{ color: tokens.colorPaletteRedForeground1, flexShrink: 0 }} />
+                  <MEHTypography variant="caption" style={{ color: tokens.colorPaletteRedForeground1 }}>
+                    <b>Evento cancelado:</b> {currentEvent.motivo_cancelacion || 'Sin motivo especificado.'}
+                  </MEHTypography>
+                </div>
+              )}
+
+              {/* Fila 3: Fecha, Hora y Ubicación */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: 0.85 }}>
+                  <CalendarLtr24Regular fontSize="18px" style={{ color: tokens.colorBrandForeground1 }} />
+                  <span>{new Date(currentEvent.fecha_inicio).toLocaleDateString()}</span>
+                </div>
+                {currentEvent.hora_inicio && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: 0.85 }}>
+                    <Clock24Regular fontSize="18px" style={{ color: tokens.colorBrandForeground1 }} />
+                    <span>{currentEvent.hora_inicio}</span>
                   </div>
                 )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', minWidth: 0 }}>
+                  <MEHTypography variant="body" style={{ opacity: 0.85, overflowWrap: 'anywhere' }}>
+                    <Map24Regular fontSize="18px" style={{ verticalAlign: 'middle', marginRight: '4px', color: tokens.colorBrandForeground1 }} />
+                    {currentEvent.ubicacion}
+                  </MEHTypography>
+                  {currentEvent.link_mapas && (
+                    <MEHButton size="small" appearance="outline" icon={<Link24Regular />} onClick={() => window.open(currentEvent.link_mapas, '_blank')}>
+                      {t("admin_view_in_maps")}
+                    </MEHButton>
+                  )}
+                </div>
               </div>
-              <div style={{display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap'}}>
-                <MEHButton 
-                  size="small" 
-                  icon={<Share24Regular />} 
-                  appearance="outline"
-                  onClick={() => {
-                    const url = `${window.location.origin}/evento/${currentEvent.id_evento}`;
-                    void navigator.clipboard.writeText(url);
-                    if (notify) notify("Enlace copiado", "Se ha copiado el enlace público del evento al portapapeles", "success");
-                    else alert("¡Enlace público copiado al portapapeles!");
-                  }}
-                >
-                  {t("copy_link") || "Copiar link"}
-                </MEHButton>
-                <MEHButton size="small" icon={<Megaphone24Regular />} appearance="outline" onClick={() => setIsAvisarModalOpen(true)}>
-                  Avisar inscritos
-                </MEHButton>
-                {currentEvent.estado !== 'CANCELADO' && (
+
+              {/* Ítems Incluidos */}
+              {(currentEvent.incluidos || currentEvent.refrigerio_incluido) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <MEHTypography variant="caption" style={{ fontWeight: 'bold', opacity: 0.8 }}>🎁 Incluidos (Checkpoints automáticos):</MEHTypography>
+                  {currentEvent.refrigerio_incluido && <Badge appearance="outline" color="success">Refrigerio</Badge>}
+                  {currentEvent.incluidos && currentEvent.incluidos.split(',').map(s => s.trim()).filter(Boolean).map((item, idx) => (
+                    <Badge key={idx} appearance="outline" color="brand">{item}</Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* Fila 4: Barra de Herramientas y Acciones bien distribuida */}
+              <div className={styles.actionToolbar}>
+                <div className={styles.actionGroup}>
                   <MEHButton 
                     size="small" 
-                    icon={<DismissCircle24Regular />} 
-                    appearance="subtle" 
-                    style={{ color: tokens.colorPaletteRedForeground1 }} 
-                    onClick={() => setIsCancelarModalOpen(true)}
+                    icon={<Share24Regular />} 
+                    appearance="outline"
+                    onClick={() => {
+                      const url = `${window.location.origin}/evento/${currentEvent.id_evento}`;
+                      void navigator.clipboard.writeText(url);
+                      if (notify) notify("Enlace copiado", "Se ha copiado el enlace público del evento al portapapeles", "success");
+                      else alert("¡Enlace público copiado al portapapeles!");
+                    }}
                   >
-                    Cancelar evento
+                    {t("copy_link") || "Copiar link"}
                   </MEHButton>
-                )}
-                <MEHButton 
-                  size="small" 
-                  icon={<Share24Regular />} 
-                  appearance="outline" 
-                  onClick={() => setIsBadgeModalOpen(true)}
-                >
-                  Badge Social
-                </MEHButton>
-                <MEHButton size="small" icon={<ArrowDownload24Regular />} onClick={() => { void handleDownloadEventoQr(); }}>
-                  Descargar QR del Evento
-                </MEHButton>
-                <MEHButton 
-                  size="small" 
-                  icon={<DocumentTable24Regular />} 
-                  appearance="outline" 
-                  onClick={() => { void handleExportCsv(); }}
-                >
-                  Exportar CSV
-                </MEHButton>
-                <MEHButton 
-                  size="small" 
-                  icon={<Copy24Regular />} 
-                  appearance="outline" 
-                  onClick={() => { void handleDuplicarEvento(); }}
-                >
-                  Duplicar
-                </MEHButton>
-                <MEHButton size="small" icon={<Edit24Regular />} onClick={() => handleEditEvento(currentEvent)}>{t("edit")}</MEHButton>
-                <Button icon={<Delete24Regular />} size="small" appearance="subtle" style={{color: tokens.colorPaletteRedForeground1}} onClick={() => confirmDelete('evento', selectedEventoId, t("event").toLowerCase())} />
+                  <MEHButton size="small" icon={<Megaphone24Regular />} appearance="outline" onClick={() => setIsAvisarModalOpen(true)}>
+                    Avisar inscritos
+                  </MEHButton>
+                  <MEHButton 
+                    size="small" 
+                    icon={<Share24Regular />} 
+                    appearance="outline" 
+                    onClick={() => setIsBadgeModalOpen(true)}
+                  >
+                    Badge Social
+                  </MEHButton>
+                  <MEHButton size="small" icon={<ArrowDownload24Regular />} onClick={() => { void handleDownloadEventoQr(); }}>
+                    Descargar QR del Evento
+                  </MEHButton>
+                  <MEHButton 
+                    size="small" 
+                    icon={<DocumentTable24Regular />} 
+                    appearance="outline" 
+                    onClick={() => { void handleExportCsv(); }}
+                  >
+                    Exportar CSV
+                  </MEHButton>
+                </div>
+
+                <div className={styles.actionGroup}>
+                  <MEHButton 
+                    size="small" 
+                    icon={<Copy24Regular />} 
+                    appearance="outline" 
+                    onClick={() => { void handleDuplicarEvento(); }}
+                  >
+                    Duplicar
+                  </MEHButton>
+                  <MEHButton size="small" appearance="primary" icon={<Edit24Regular />} onClick={() => handleEditEvento(currentEvent)}>
+                    {t("edit")}
+                  </MEHButton>
+                  {currentEvent.estado !== 'CANCELADO' && (
+                    <MEHButton 
+                      size="small" 
+                      icon={<DismissCircle24Regular />} 
+                      appearance="subtle" 
+                      style={{ color: tokens.colorPaletteRedForeground1 }} 
+                      onClick={() => setIsCancelarModalOpen(true)}
+                    >
+                      Cancelar evento
+                    </MEHButton>
+                  )}
+                  <Button
+                    icon={<Delete24Regular />}
+                    size="small"
+                    appearance="subtle"
+                    aria-label="Eliminar evento"
+                    style={{ color: tokens.colorPaletteRedForeground1 }}
+                    onClick={() => confirmDelete('evento', selectedEventoId, t("event").toLowerCase())}
+                  />
+                </div>
               </div>
             </div>
-            
-            <Divider style={{marginBottom: '24px'}} />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
+            <div className={styles.twoColResponsive}>
                 <div className={styles.infoCard}>
-                    <MEHTypography variant="h3"><Mic24Regular /> {t("speakers")}</MEHTypography>
+                    <MEHTypography variant="h3"><Mic24Regular style={{ verticalAlign: 'middle', marginRight: '6px' }} /> {t("speakers")}</MEHTypography>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         {currentEvent.speakers?.length > 0 ? currentEvent.speakers.map(s => (
                             <Tooltip content={s.nombre} relationship="label" key={s.id_speaker}>
@@ -835,8 +960,8 @@ const EventsTab = ({
                     </div>
                 </div>
                 <div className={styles.infoCard}>
-                    <MEHTypography variant="h3"><PeopleTeam24Regular /> {t("management")}</MEHTypography>
-                    <div style={{ display: 'flex', gap: '12px' }}>
+                    <MEHTypography variant="h3"><PeopleTeam24Regular style={{ verticalAlign: 'middle', marginRight: '6px' }} /> {t("management")}</MEHTypography>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         <MEHButton icon={<QrCode24Regular />} appearance="primary">{t("admin_scan_qr")}</MEHButton>
                         <MEHButton appearance="outline">{t("admin_attendance_list")}</MEHButton>
                     </div>
@@ -845,15 +970,17 @@ const EventsTab = ({
 
             {/* Gestión de Paquetes y QRs de Pago */}
             <div className={styles.infoCard} style={{ backgroundColor: tokens.colorNeutralBackground2, marginBottom: '24px' }}>
-                <MEHTypography variant="h3"><ReceiptMoney24Filled style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Paquetes de Inscripción y QRs de Pago</MEHTypography>
-                <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Define los paquetes (ej. VIP, General) y sube su correspondiente código QR de pago para que los usuarios puedan escanearlo y pagar.</MEHTypography>
+                <div>
+                  <MEHTypography variant="h3"><ReceiptMoney24Filled style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Paquetes de Inscripción y QRs de Pago</MEHTypography>
+                  <MEHTypography variant="caption" style={{ opacity: 0.7, marginTop: '4px' }}>Define los paquetes (ej. VIP, General) y sube su correspondiente código QR de pago para que los usuarios puedan escanearlo y pagar.</MEHTypography>
+                </div>
                 
                 {loadingQr ? (
                     <Spinner size="small" label="Cargando paquetes de pago..." />
                 ) : pagosQr.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
                         {pagosQr.map(pkg => (
-                            <div key={pkg.id_qr} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '12px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                            <div key={pkg.id_qr} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: '12px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '12px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                                     <img src={resolveApiFileUrl(pkg.url_qr)} alt={pkg.nombre_paquete} style={{ width: '50px', height: '50px', objectFit: 'contain', backgroundColor: 'white', borderRadius: '4px', padding: '2px' }} />
                                     <div>
@@ -874,11 +1001,11 @@ const EventsTab = ({
                     </MEHTypography>
                 )}
 
-                <Divider style={{ margin: '16px 0' }} />
+                <Divider style={{ margin: '12px 0' }} />
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <MEHTypography variant="h4">Agregar Nuevo Paquete de Pago</MEHTypography>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: '12px' }}>
+                    <div className={styles.formTwoCol}>
                         <Field label="Nombre del Paquete" required>
                             <Input value={nuevoNombrePaquete} onChange={(e, d) => setNuevoNombrePaquete(d.value)} placeholder="Ej: Pase VIP, Acceso General" />
                         </Field>
@@ -889,13 +1016,13 @@ const EventsTab = ({
                     <Field label="Imagen Código QR de Pago" required>
                         <Input type="file" key={fileInputKey} id="qr-file-input" onChange={(e) => setQrFile(e.target.files[0])} accept="image/*,application/pdf" />
                     </Field>
-                    <MEHButton appearance="primary" onClick={handleAddPagoQr} disabled={loadingQr || !nuevoNombrePaquete || !nuevoMonto || !qrFile} style={{ marginTop: '8px' }}>
+                    <MEHButton appearance="primary" onClick={handleAddPagoQr} disabled={loadingQr || !nuevoNombrePaquete || !nuevoMonto || !qrFile} style={{ marginTop: '4px' }}>
                         Guardar Paquete y QR
                     </MEHButton>
                 </div>
             </div>
 
-            {/* Gestión de Imagen de Portada del Evento (MEH-021) */}
+            {/* Gestión de Imagen de Portada del Evento */}
             <div style={{ marginBottom: '24px' }}>
               <EventoPortadaUploader
                 mode="detail"
@@ -907,7 +1034,7 @@ const EventsTab = ({
               />
             </div>
 
-            {/* Plantilla de Badge Social para Redes (MEH-019) */}
+            {/* Plantilla de Badge Social para Redes */}
             <div className={styles.infoCard} style={{ backgroundColor: tokens.colorNeutralBackground2, marginBottom: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
@@ -915,7 +1042,7 @@ const EventsTab = ({
                     <Image24Regular style={{ verticalAlign: 'middle', marginRight: '8px' }} />
                     Plantilla de Badge Social para Redes
                   </MEHTypography>
-                  <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
+                  <MEHTypography variant="caption" style={{ opacity: 0.7, marginTop: '4px' }}>
                     Fondo personalizado de la credencial digital (1080x1350 px recomendado) que los participantes inscritos pueden descargar y compartir.
                   </MEHTypography>
                 </div>
@@ -924,9 +1051,9 @@ const EventsTab = ({
                 </MEHButton>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '8px', flexWrap: 'wrap' }}>
                 {currentEvent.plantilla_badge_url ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
                     <img 
                       src={resolveApiFileUrl(currentEvent.plantilla_badge_url)} 
                       alt="Plantilla badge actual" 
@@ -949,10 +1076,10 @@ const EventsTab = ({
                 )}
               </div>
 
-              <Divider style={{ margin: '16px 0' }} />
+              <Divider style={{ margin: '12px 0' }} />
 
               <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                <Field label="Subir nueva plantilla de fondo (PNG, JPG, WebP)" style={{ flexGrow: 1 }}>
+                <Field label="Subir nueva plantilla de fondo (PNG, JPG, WebP)" style={{ flexGrow: 1, minWidth: '200px' }}>
                   <Input 
                     type="file" 
                     key={badgeFileInputKey} 
@@ -984,7 +1111,7 @@ const EventsTab = ({
               </div>
 
               {/* LISTA DE ESPERA */}
-              <div style={{ marginTop: '12px' }}>
+              <div style={{ marginTop: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
                   <MEHTypography variant="h4" style={{ margin: 0 }}>
                     ⏳ Lista de Espera ({listaEspera.length} en espera de cupo)
@@ -1038,10 +1165,10 @@ const EventsTab = ({
                 )}
               </div>
 
-              <Divider style={{ margin: '20px 0' }} />
+              <Divider style={{ margin: '16px 0' }} />
 
               {/* PANEL DE ACREDITACIÓN Y CONTROL DE ASISTENCIA */}
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <AcreditacionPanel 
                   eventoId={selectedEventoId} 
                   eventoTitulo={currentEvent?.titulo}
@@ -1049,10 +1176,10 @@ const EventsTab = ({
                 />
               </div>
 
-              <Divider style={{ margin: '20px 0' }} />
+              <Divider style={{ margin: '16px 0' }} />
 
-              {/* GESTIÓN DE CHECKPOINTS Y PERMISOS DE OPERADORES (MEH-018) */}
-              <div>
+              {/* GESTIÓN DE CHECKPOINTS Y PERMISOS DE OPERADORES */}
+              <div style={{ minWidth: 0 }}>
                 <CheckpointPermisosPanel 
                   eventoId={selectedEventoId} 
                   eventoTitulo={currentEvent?.titulo}
@@ -1064,9 +1191,9 @@ const EventsTab = ({
                 <div className={styles.infoCard} style={{ backgroundColor: tokens.colorNeutralBackground2 }}>
                     <MEHTypography variant="h3">{t("agenda")}</MEHTypography>
                     {JSON.parse(currentEvent.agenda).map((item, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: '16px', padding: '8px 0', borderBottom: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                        <div key={idx} style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', padding: '8px 0', borderBottom: `1px solid ${tokens.colorNeutralBackground3}` }}>
                             <b style={{ minWidth: '60px', color: tokens.colorBrandForeground1 }}>{item.hora}</b>
-                            <div style={{ flexGrow: 1 }}>
+                            <div style={{ flexGrow: 1, minWidth: 0 }}>
                                 <MEHTypography variant="body"><b>{item.actividad}</b></MEHTypography>
                                 {item.id_speaker && (
                                     <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
@@ -1080,7 +1207,7 @@ const EventsTab = ({
             )}
           </div>
         ) : (
-          <div style={{textAlign: 'center', padding: '100px', opacity: 0.5}}>
+          <div style={{textAlign: 'center', padding: '64px 24px', opacity: 0.5}}>
             <CalendarLtr24Regular style={{fontSize: '64px'}} />
             <MEHTypography variant="h3">{t("admin_select_event_details")}</MEHTypography>
           </div>
@@ -1268,7 +1395,7 @@ const EventsTab = ({
         </DialogSurface>
       </Dialog>
 
-      {/* Modal Badge Social (MEH-019) */}
+      {/* Modal Badge Social */}
       <BadgeSocialModal 
         isOpen={isBadgeModalOpen} 
         onClose={() => setIsBadgeModalOpen(false)} 

@@ -247,7 +247,7 @@ async def process_comprobante_upload_ocr(
 
 def list_mis_pagos(db: Session, user_id: int) -> List[models.Pago]:
     """Obtiene el historial de pagos de un usuario."""
-    pagos = db.query(models.Pago).filter(models.Pago.id_usuario == user_id).order_by(models.Pago.fecha_pago.desc()).all()
+    pagos = db.query(models.Pago).filter(models.Pago.id_usuario == user_id).order_by(models.Pago.id_pago.desc(), models.Pago.fecha_pago.desc()).all()
     for p in pagos:
         _hydrate_pago_details(db, p)
     return pagos
@@ -257,7 +257,7 @@ def list_todos_pagos(db: Session, admin_role: str) -> List[models.Pago]:
     if not has_permission(admin_role, PERMISSION_PAYMENTS_READ_ALL):
         raise PermisoDenegadoError("No tienes permisos para ver todos los pagos")
     
-    pagos = db.query(models.Pago).order_by(models.Pago.fecha_pago.desc()).all()
+    pagos = db.query(models.Pago).order_by(models.Pago.id_pago.desc(), models.Pago.fecha_pago.desc()).all()
     for p in pagos:
         _hydrate_pago_details(db, p)
     return pagos
