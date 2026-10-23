@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.10.1">
 <title data-rh="true">Historial de Cambios | Plataforma MEH</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://TuGfaNat.github.io/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://TuGfaNat.github.io/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://TuGfaNat.github.io/historial-cambios"><meta data-rh="true" property="og:locale" content="es"><meta data-rh="true" name="docusaurus_locale" content="es"><meta data-rh="true" name="docsearch:language" content="es"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Historial de Cambios | Plataforma MEH"><meta data-rh="true" name="description" content="Todas las modificaciones notables realizadas en Plataforma MEH se documentan en este archivo."><meta data-rh="true" property="og:description" content="Todas las modificaciones notables realizadas en Plataforma MEH se documentan en este archivo."><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://TuGfaNat.github.io/historial-cambios"><link data-rh="true" rel="alternate" href="https://TuGfaNat.github.io/historial-cambios" hreflang="es"><link data-rh="true" rel="alternate" href="https://TuGfaNat.github.io/historial-cambios" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Historial de Cambios","item":"https://TuGfaNat.github.io/historial-cambios"}]}</script><link rel="stylesheet" href="/assets/css/styles.c5ab6bd9.css">
-<script src="/assets/js/runtime~main.356ac28a.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.90fdb587.js" defer="defer"></script>
 <script src="/assets/js/main.4c47fe7e.js" defer="defer"></script>
 </head>
 <body>
@@ -19,6 +19,7 @@ y este proyecto se rige por <a href="https://semver.org/lang/es/" target="_blank
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="unreleased">[Unreleased]<a href="#unreleased" class="hash-link" aria-label="Enlace directo al [Unreleased]" title="Enlace directo al [Unreleased]" translate="no">​</a></h2>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="added">Added<a href="#added" class="hash-link" aria-label="Enlace directo al Added" title="Enlace directo al Added" translate="no">​</a></h3>
 <ul>
+<li class=""><strong>MEH-020:</strong> Panel de limpieza selectiva de datos (Soft/Hard Delete) con trazabilidad de origen (<code>SEED</code>, <code>REAL</code>, <code>OCR</code>), cuentas protegidas (<code>SUPERADMIN_EMAIL</code>, usuario actual y lista blanca configurable), presets configurables (incluido <em>&quot;Dejar solo superadmin&quot;</em>), respaldo JSON obligatorio fuera de <code>/static</code> con TTL de 30 minutos, verificación criptográfica <code>selection_hash</code>, confirmación progresiva (frase + contraseña + motivo) y auditoría forense persistente en <code>logs_sistema</code>.</li>
 <li class="">Pipeline Docs-as-Code con generador unificado en <code>tools/docs_gen.py</code>.</li>
 <li class="">Soporte de subcomandos <code>tech</code>, <code>user</code>, <code>changelog</code>, <code>all</code> y <code>check</code>.</li>
 <li class="">Doble superficie de despliegue híbrido consistente (GitHub Pages en <code>/</code> y Docker en <code>/docs/</code>).</li>
@@ -26,6 +27,8 @@ y este proyecto se rige por <a href="https://semver.org/lang/es/" target="_blank
 </ul>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="changed">Changed<a href="#changed" class="hash-link" aria-label="Enlace directo al Changed" title="Enlace directo al Changed" translate="no">​</a></h3>
 <ul>
+<li class="">Reutilización de <code>auth_service.restaurar_usuario</code> en Papelera (<code>/api/admin/trash/restore</code>) para reactivar <code>activo = True</code> y limpiar <code>motivo_suspension</code> al restaurar usuarios o entidades borradas lógicamente.</li>
+<li class="">Soporte de <code>commit=False</code> y serialización extendida en <code>registrar_log</code> para transacciones atómicas de limpieza.</li>
 <li class="">Reestructuración de Docusaurus en 4 bloques según la taxonomía Diátaxis (Tutoriales, Guías Prácticas, Referencia, Explicación).</li>
 <li class="">Normalización de rutas y slugs eliminando prefijos numéricos obsoletos.</li>
 </ul>
