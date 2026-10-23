@@ -475,7 +475,12 @@ const resources = {
       id_card: "ID / National Identification (Carné)",
       phone_whatsapp: "Phone / WhatsApp",
       confirm_spot: "Confirm My Spot",
-      upload_payment_proof: "Upload Payment Receipt"
+      upload_payment_proof: "Upload Payment Receipt",
+      admin_cleanup_tab: "Data Cleanup",
+      admin_cleanup_title: "Selective Data Cleanup with Traceability",
+      admin_cleanup_preset_superadmin: "Keep only superadmin",
+      admin_cleanup_soft_delete: "Soft Delete (Default - Restorable in Trash)",
+      admin_cleanup_hard_delete: "Hard Delete (Permanent Physical Deletion)"
     },
   },
   es: {
@@ -935,7 +940,12 @@ const resources = {
       id_card: "Carné de Identidad / CI",
       phone_whatsapp: "Teléfono / WhatsApp",
       confirm_spot: "Confirmar mi Lugar",
-      upload_payment_proof: "Subir Comprobante de Pago"
+      upload_payment_proof: "Subir Comprobante de Pago",
+      admin_cleanup_tab: "Limpieza de Datos",
+      admin_cleanup_title: "Limpieza Selectiva de Datos con Trazabilidad",
+      admin_cleanup_preset_superadmin: "Dejar solo superadmin",
+      admin_cleanup_soft_delete: "Soft Delete (Por defecto - Restaurable en Papelera)",
+      admin_cleanup_hard_delete: "Hard Delete (Borrado Físico Definitivo)"
     },
   },
 };

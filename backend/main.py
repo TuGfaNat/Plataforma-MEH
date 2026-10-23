@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
-from app.api import auth, eventos, cursos, academia, inscripciones, logs, pagos, comunidad, dashboard, recursos, asistencia, reports, badges, files, admin_directories, learning_path, souvenirs, certificados_admin, papelera
+from app.api import auth, eventos, cursos, academia, inscripciones, logs, pagos, comunidad, dashboard, recursos, asistencia, reports, badges, files, admin_directories, learning_path, souvenirs, certificados_admin, papelera, cleanup
 from app.core.exceptions import global_exception_handler, BaseDomainError, domain_exception_handler
 from app.core.email_config import SMTPConfig
 
@@ -78,6 +78,7 @@ app.include_router(learning_path.router)
 app.include_router(souvenirs.router)
 app.include_router(certificados_admin.router)
 app.include_router(papelera.router)
+app.include_router(cleanup.router)
 
 @app.get("/stats", include_in_schema=False)
 def get_stats_direct(

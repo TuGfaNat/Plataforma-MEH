@@ -111,10 +111,20 @@ const useStyles = makeStyles({
   }
 });
 
-// Componente inteligente para mostrar valores o imágenes
+// Componente inteligente para mostrar valores, objetos JSON o imágenes
 const ValuePresenter = ({ value, isOld = false }) => {
     const styles = useStyles();
-    if (!value) return <span className={isOld ? styles.oldValue : styles.newValue}>Nulo</span>;
+    if (value === null || value === undefined || value === '') {
+        return <span className={isOld ? styles.oldValue : styles.newValue}>Nulo</span>;
+    }
+
+    if (typeof value === 'object') {
+        return (
+            <pre style={{ fontSize: '11px', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                {JSON.stringify(value, null, 2)}
+            </pre>
+        );
+    }
 
     // Detectar si el valor es una URL de imagen
     const isImage = typeof value === 'string' && (value.includes('/static/uploads/') || value.startsWith('http'));
@@ -254,7 +264,16 @@ const Auditoria = () => {
         columnId: 'accion',
         renderHeaderCell: () => 'Acción',
         renderCell: (item) => (
-          <Badge appearance="outline" color={item.accion.includes('CREAR') ? 'success' : item.accion.includes('BORRAR') ? 'danger' : 'informative'}>
+          <Badge
+            appearance="outline"
+            color={
+              item.accion.includes('CREAR') || item.accion.includes('RESTAURAR')
+                ? 'success'
+                : item.accion.includes('BORRAR') || item.accion.includes('PURGAR') || item.accion.includes('LIMPIEZA')
+                ? 'danger'
+                : 'informative'
+            }
+          >
             {item.accion}
           </Badge>
         ),

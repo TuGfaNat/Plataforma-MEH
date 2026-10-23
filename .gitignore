@@ -64,3 +64,6 @@ docUser.md
 docuTec.md
 MATRIZ_ERRORES_QA.md
 specs/
+
+# --- Backups de Limpieza Selectiva (fuera de /static) ---
+backend/backups/

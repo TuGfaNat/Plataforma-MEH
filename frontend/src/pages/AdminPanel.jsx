@@ -7,7 +7,7 @@ import {
 import { 
   Settings24Filled, Library24Regular, People24Regular, Box24Regular,
   HatGraduation24Regular, CalendarLtr24Regular, MegaphoneLoud24Regular,
-  DeleteDismiss24Regular
+  DeleteDismiss24Regular, Database24Regular
 } from '@fluentui/react-icons';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 
@@ -26,6 +26,7 @@ import LibraryTab from './Admin/LibraryTab';
 import AcademyTab from './Admin/AcademyTab';
 import PapeleraTab from './Admin/PapeleraTab';
 import AnnouncementsTab from './Admin/AnnouncementsTab';
+import CleanupTab from './Admin/CleanupTab';
 
 const useStyles = makeStyles({
   container: {
@@ -122,7 +123,7 @@ const AdminPanel = () => {
     if (selectedTab === 'souvenirs' && currentUser?.rol !== 'ADMIN') return;
     if (selectedTab === 'biblioteca' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'MODERADOR') return;
     if (selectedTab === 'academia' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'MODERADOR' && currentUser?.rol !== 'SOPORTE') return;
-    if (selectedTab === 'anuncios' || selectedTab === 'papelera') return;
+    if (selectedTab === 'anuncios' || selectedTab === 'papelera' || selectedTab === 'limpieza') return;
     
     setData([]);
     setLoading(true);
@@ -371,6 +372,7 @@ const AdminPanel = () => {
         {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="biblioteca" icon={<Library24Regular />}>Biblioteca</Tab>}
         {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR' || currentUser?.rol === 'SOPORTE') && <Tab value="academia" icon={<HatGraduation24Regular />}>Aula Virtual</Tab>}
         {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="papelera" icon={<DeleteDismiss24Regular />}>Papelera</Tab>}
+        {currentUser?.rol === 'ADMIN' && <Tab value="limpieza" icon={<Database24Regular />} data-testid="admin-tab-limpieza">Limpieza de Datos</Tab>}
       </TabList>
 
       <MEHCard>
@@ -446,6 +448,17 @@ const AdminPanel = () => {
 
         {selectedTab === 'papelera' && (
           <PapeleraTab currentUser={currentUser} notify={notify} />
+        )}
+
+        {selectedTab === 'limpieza' && currentUser?.rol === 'ADMIN' && (
+          <CleanupTab
+            currentUser={currentUser}
+            notify={notify}
+            onGoToTrash={() => {
+              setSelectedTab('papelera');
+              setSearchParams({ tab: 'papelera' });
+            }}
+          />
         )}
       </MEHCard>
 

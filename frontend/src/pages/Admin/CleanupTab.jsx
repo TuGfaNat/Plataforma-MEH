@@ -1,0 +1,1274 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHeaderCell,
+  TableBody,
+  TableCell,
+  TabList,
+  Tab,
+  Spinner,
+  Input,
+  Badge,
+  Button,
+  Checkbox,
+  Switch,
+  Tooltip,
+  Dialog,
+  DialogSurface,
+  DialogBody,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  tokens,
+  makeStyles,
+  shorthands,
+} from '@fluentui/react-components';
+import {
+  ShieldLock24Regular,
+  DeleteDismiss24Regular,
+  Warning24Regular,
+  CheckmarkCircle24Regular,
+  Search24Regular,
+  ArrowRight24Regular,
+  ArrowLeft24Regular,
+  ArrowDownload24Regular,
+  Save24Regular,
+  Delete24Regular,
+  Add24Regular,
+  Database24Regular,
+  LockClosed24Regular,
+  History24Regular,
+} from '@fluentui/react-icons';
+import { MEHButton, MEHTypography } from '../../components/ui';
+import { useCleanupManager } from '../../hooks/admin/useCleanupManager';
+
+const useStyles = makeStyles({
+  banner: {
+    padding: '20px 24px',
+    backgroundColor: tokens.colorNeutralBackground2,
+    ...shorthands.borderRadius('16px'),
+    marginBottom: '20px',
+    borderLeft: `4px solid ${tokens.colorBrandForeground1}`,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '16px',
+  },
+  dangerBanner: {
+    padding: '20px 24px',
+    backgroundColor: tokens.colorPaletteRedBackground1,
+    ...shorthands.borderRadius('16px'),
+    marginBottom: '20px',
+    borderLeft: `5px solid ${tokens.colorPaletteRedBorderActive}`,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  stepBar: {
+    display: 'flex',
+    gap: '12px',
+    marginBottom: '24px',
+    flexWrap: 'wrap',
+  },
+  stepButton: {
+    ...shorthands.padding('10px', '18px'),
+    ...shorthands.borderRadius('12px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
+    backgroundColor: tokens.colorNeutralBackground1,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontWeight: '600',
+  },
+  stepActive: {
+    backgroundColor: tokens.colorBrandBackground2,
+    ...shorthands.borderColor(tokens.colorBrandStroke1),
+    color: tokens.colorBrandForeground1,
+  },
+  gridTwo: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+    gap: '20px',
+    marginBottom: '24px',
+  },
+  cardBox: {
+    padding: '20px',
+    ...shorthands.borderRadius('16px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
+    backgroundColor: tokens.colorNeutralBackground1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  presetGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+    gap: '12px',
+  },
+  presetCard: {
+    padding: '14px',
+    ...shorthands.borderRadius('12px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
+    backgroundColor: tokens.colorNeutralBackground2,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    gap: '10px',
+  },
+  presetActive: {
+    ...shorthands.border('2px', 'solid', tokens.colorBrandStroke1),
+    backgroundColor: tokens.colorBrandBackground2,
+  },
+  catalogGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+    gap: '12px',
+  },
+  tableWrapper: {
+    width: '100%',
+    overflowX: 'auto',
+    ...shorthands.borderRadius('16px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
+    backgroundColor: tokens.colorNeutralBackground1,
+  },
+  footerNav: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: '24px',
+    paddingTop: '16px',
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    flexWrap: 'wrap',
+    gap: '12px',
+  },
+});
+
+const GROUP_LABELS = {
+  usuarios_y_accesos: 'Usuarios y Accesos',
+  eventos_y_logistica: 'Eventos y Logística QR',
+  academia_lms: 'Academia y Aula Virtual (LMS)',
+  finanzas_y_tienda: 'Finanzas, Pagos y Tienda POS',
+  comunidad_y_sistema: 'Comunidad, Alianzas y Sistema',
+};
+
+const ORIGIN_COLORS = {
+  SEED: 'warning',
+  OCR: 'informative',
+  REAL: 'success',
+};
+
+const CleanupTab = ({ currentUser, notify, onGoToTrash }) => {
+  const styles = useStyles();
+  const navigate = useNavigate();
+
+  const [newWhitelistEmail, setNewWhitelistEmail] = useState('');
+  const [presetDialogOpen, setPresetDialogOpen] = useState(false);
+  const [newPresetName, setNewPresetName] = useState('');
+  const [newPresetDesc, setNewPresetDesc] = useState('');
+
+  const {
+    step,
+    setStep,
+    loadingInit,
+    loadingRows,
+    loadingPreview,
+    loadingBackup,
+    loadingExecute,
+    statusConfig,
+    catalog,
+    protectedConfig,
+    presets,
+    activePresetId,
+    selectedTables,
+    activeTable,
+    setActiveTable,
+    tableRows,
+    rowSearch,
+    setRowSearch,
+    originFilter,
+    setOriginFilter,
+    selections,
+    totalSelectedCount,
+    mode,
+    setMode,
+    includeDependencies,
+    setIncludeDependencies,
+    previewData,
+    backupData,
+    motivo,
+    setMotivo,
+    confirmationPhrase,
+    setConfirmationPhrase,
+    adminPassword,
+    setAdminPassword,
+    hardDeleteConfirmed,
+    setHardDeleteConfirmed,
+    executionError,
+    executionReport,
+    toggleTableInScope,
+    toggleRowSelection,
+    selectAllVisibleRows,
+    clearTableSelection,
+    applyPreset,
+    handleSaveCustomPreset,
+    handleDeleteCustomPreset,
+    handleAddWhitelistEmail,
+    handleRemoveWhitelistEmail,
+    runPreview,
+    handleGenerateBackup,
+    handleDownloadBackupFile,
+    handleExecuteCleanup,
+    resetWizard,
+  } = useCleanupManager({ notify, isAdmin: currentUser?.rol === 'ADMIN' });
+
+  if (currentUser?.rol !== 'ADMIN') {
+    return (
+      <div className={styles.dangerBanner} data-testid="cleanup-forbidden">
+        <MEHTypography variant="h3">Acceso Restringido</MEHTypography>
+        <MEHTypography variant="body">
+          Esta herramienta de limpieza selectiva de datos es exclusiva para Administradores (ADMIN).
+        </MEHTypography>
+      </div>
+    );
+  }
+
+  if (!statusConfig.enabled) {
+    return (
+      <div className={styles.dangerBanner} data-testid="cleanup-disabled">
+        <MEHTypography variant="h3">Módulo Deshabilitado</MEHTypography>
+        <MEHTypography variant="body">
+          La limpieza selectiva de datos se encuentra desactivada por configuración (ENABLE_DATA_CLEANUP=false).
+        </MEHTypography>
+      </div>
+    );
+  }
+
+  const goToStep3Preview = async () => {
+    setStep(3);
+    await runPreview(mode, includeDependencies);
+  };
+
+  const handleModeChange = async (newMode) => {
+    setMode(newMode);
+    setHardDeleteConfirmed(false);
+    setConfirmationPhrase('');
+    if (step === 3) {
+      await runPreview(newMode, includeDependencies);
+    }
+  };
+
+  const handleDepsChange = async (checked) => {
+    setIncludeDependencies(checked);
+    if (step === 3) {
+      await runPreview(mode, checked);
+    }
+  };
+
+  const requiredPhrase =
+    mode === 'hard'
+      ? statusConfig.hard_delete_phrase || 'BORRADO DEFINITIVO'
+      : statusConfig.soft_delete_phrase || 'ELIMINAR DATOS';
+
+  const isPhraseMatch = confirmationPhrase.trim().toUpperCase() === requiredPhrase;
+  const isExecuteReady =
+    previewData?.can_execute &&
+    backupData?.backup_id &&
+    backupData?.selection_hash === previewData?.selection_hash &&
+    motivo.trim().length >= 5 &&
+    isPhraseMatch &&
+    adminPassword.length > 0 &&
+    (mode !== 'hard' || hardDeleteConfirmed);
+
+  return (
+    <div data-testid="cleanup-tab-root">
+      {/* Encabezado Principal */}
+      <div className={styles.banner}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <Database24Regular style={{ fontSize: '36px', color: tokens.colorBrandForeground1 }} />
+          <div>
+            <MEHTypography variant="h3" style={{ fontWeight: 'bold' }}>
+              Limpieza Selectiva de Datos con Trazabilidad
+            </MEHTypography>
+            <MEHTypography variant="body" style={{ opacity: 0.85 }}>
+              Selecciona tablas y registros por origen (SEED, REAL, OCR), protege cuentas clave, genera respaldo obligatorio y ejecuta en modo Soft o Hard Delete con auditoría inmutable.
+            </MEHTypography>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <Badge appearance="filled" color={mode === 'hard' ? 'danger' : 'informative'} size="large">
+            Modo: {mode === 'hard' ? 'HARD DELETE (Físico)' : 'SOFT DELETE (Papelera)'}
+          </Badge>
+          <Badge appearance="outline" size="large">
+            Seleccionados: {totalSelectedCount}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Barra de 4 Pasos */}
+      <div className={styles.stepBar} role="tablist" aria-label="Pasos de limpieza de datos">
+        <button
+          type="button"
+          data-testid="cleanup-step-1-btn"
+          className={`${styles.stepButton} ${step === 1 ? styles.stepActive : ''}`}
+          onClick={() => setStep(1)}
+        >
+          <span>1. Catálogo, Presets y Protegidos</span>
+        </button>
+        <button
+          type="button"
+          data-testid="cleanup-step-2-btn"
+          className={`${styles.stepButton} ${step === 2 ? styles.stepActive : ''}`}
+          onClick={() => setStep(2)}
+        >
+          <span>2. Selección por Registro y Origen ({totalSelectedCount})</span>
+        </button>
+        <button
+          type="button"
+          data-testid="cleanup-step-3-btn"
+          className={`${styles.stepButton} ${step === 3 ? styles.stepActive : ''}`}
+          onClick={goToStep3Preview}
+        >
+          <span>3. Preview, Dependencias y Respaldo</span>
+        </button>
+        <button
+          type="button"
+          data-testid="cleanup-step-4-btn"
+          className={`${styles.stepButton} ${step === 4 ? styles.stepActive : ''}`}
+          disabled={!previewData?.can_execute || !backupData?.backup_id}
+          onClick={() => setStep(4)}
+        >
+          <span>4. Confirmación y Ejecución</span>
+        </button>
+      </div>
+
+      {loadingInit ? (
+        <div style={{ padding: '60px', textAlign: 'center' }}>
+          <Spinner label="Analizando catálogo, orígenes y cuentas protegidas..." />
+        </div>
+      ) : (
+        <>
+          {/* ==================== PASO 1: CATÁLOGO, PRESETS Y PROTEGIDOS ==================== */}
+          {step === 1 && (
+            <div data-testid="cleanup-step-1">
+              <div className={styles.gridTwo}>
+                {/* Panel de Cuentas Intocables y Lista Blanca */}
+                <div className={styles.cardBox}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ShieldLock24Regular style={{ color: tokens.colorPaletteGreenForeground1 }} />
+                    <MEHTypography variant="h3">Cuentas Protegidas e Intocables</MEHTypography>
+                  </div>
+                  <MEHTypography variant="caption">
+                    El Superadmin, tu usuario en sesión y los correos en lista blanca nunca pueden ser eliminados.
+                  </MEHTypography>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                    {protectedConfig.protected_users?.map((pu) => (
+                      <div
+                        key={pu.correo}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          backgroundColor: tokens.colorNeutralBackground2,
+                        }}
+                      >
+                        <div>
+                          <b>{pu.correo}</b>
+                          <div style={{ fontSize: '12px', opacity: 0.75 }}>
+                            {pu.nombres || 'Cuenta protegida'} {pu.rol ? `• ${pu.rol}` : ''}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Badge
+                            appearance="filled"
+                            color={
+                              pu.motivo === 'SUPERADMIN'
+                                ? 'important'
+                                : pu.motivo === 'USUARIO_ACTUAL'
+                                ? 'brand'
+                                : 'success'
+                            }
+                          >
+                            {pu.motivo}
+                          </Badge>
+                          {pu.motivo === 'LISTA_BLANCA' && (
+                            <Button
+                              size="small"
+                              appearance="subtle"
+                              icon={<Delete24Regular />}
+                              aria-label={`Quitar ${pu.correo} de lista blanca`}
+                              onClick={() => handleRemoveWhitelistEmail(pu.correo)}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Agregar correo a Lista Blanca */}
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <Input
+                      placeholder="Agregar correo a lista blanca..."
+                      aria-label="Correo para lista blanca"
+                      value={newWhitelistEmail}
+                      onChange={(e, d) => setNewWhitelistEmail(d.value)}
+                      style={{ flex: 1 }}
+                    />
+                    <Button
+                      appearance="secondary"
+                      icon={<Add24Regular />}
+                      onClick={() => {
+                        handleAddWhitelistEmail(newWhitelistEmail);
+                        setNewWhitelistEmail('');
+                      }}
+                    >
+                      Proteger
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Panel de Presets Configurables */}
+                <div className={styles.cardBox}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <MEHTypography variant="h3">Presets de Limpieza</MEHTypography>
+                    <Button
+                      size="small"
+                      appearance="secondary"
+                      icon={<Save24Regular />}
+                      onClick={() => setPresetDialogOpen(true)}
+                    >
+                      Guardar Selección como Preset
+                    </Button>
+                  </div>
+                  <MEHTypography variant="caption">
+                    Aplica un preset rápido (incluyendo &ldquo;Dejar solo superadmin&rdquo;) o usa tus presets personalizados.
+                  </MEHTypography>
+
+                  <div className={styles.presetGrid}>
+                    {presets.map((preset) => (
+                      <div
+                        key={preset.id}
+                        data-testid={`preset-card-${preset.id}`}
+                        className={`${styles.presetCard} ${
+                          activePresetId === preset.id ? styles.presetActive : ''
+                        }`}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <b>{preset.nombre}</b>
+                            <Badge appearance="outline" color={preset.built_in ? 'brand' : 'informative'}>
+                              {preset.built_in ? 'Nativo' : 'Custom'}
+                            </Badge>
+                          </div>
+                          <p style={{ fontSize: '12px', opacity: 0.8, margin: '6px 0' }}>{preset.descripcion}</p>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                          <Button
+                            size="small"
+                            appearance="primary"
+                            data-testid={`apply-preset-${preset.id}`}
+                            onClick={() => applyPreset(preset.id)}
+                          >
+                            Aplicar Preset
+                          </Button>
+                          {!preset.built_in && (
+                            <Button
+                              size="small"
+                              appearance="subtle"
+                              icon={<Delete24Regular />}
+                              aria-label={`Eliminar preset ${preset.nombre}`}
+                              onClick={() => handleDeleteCustomPreset(preset.id)}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Catálogo de Tablas por Grupo */}
+              <div className={styles.cardBox}>
+                <MEHTypography variant="h3">Catálogo de Tablas del Sistema</MEHTypography>
+                <MEHTypography variant="caption">
+                  Selecciona las tablas que deseas inspeccionar o limpiar. Se muestran conteos activos y clasificación de origen (SEED / REAL / OCR).
+                </MEHTypography>
+
+                {Object.entries(GROUP_LABELS).map(([groupKey, groupTitle]) => {
+                  const groupTables = catalog.filter((t) => t.group === groupKey);
+                  if (groupTables.length === 0) return null;
+                  return (
+                    <div key={groupKey} style={{ marginTop: '12px' }}>
+                      <MEHTypography variant="bold" style={{ display: 'block', marginBottom: '8px' }}>
+                        {groupTitle}
+                      </MEHTypography>
+                      <div className={styles.catalogGrid}>
+                        {groupTables.map((tbl) => {
+                          const isChecked = selectedTables.includes(tbl.key);
+                          const selectedCount = selections[tbl.key]?.length || 0;
+                          return (
+                            <div
+                              key={tbl.key}
+                              data-testid={`catalog-table-${tbl.key}`}
+                              style={{
+                                padding: '12px 14px',
+                                borderRadius: '12px',
+                                border: isChecked
+                                  ? `2px solid ${tokens.colorBrandStroke1}`
+                                  : `1px solid ${tokens.colorNeutralStroke1}`,
+                                backgroundColor: isChecked
+                                  ? tokens.colorNeutralBackground2
+                                  : tokens.colorNeutralBackground1,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '6px',
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Checkbox
+                                  label={<b>{tbl.label}</b>}
+                                  checked={isChecked}
+                                  onChange={() => toggleTableInScope(tbl.key)}
+                                />
+                                {selectedCount > 0 && (
+                                  <Badge appearance="filled" color="brand">
+                                    {selectedCount} sel.
+                                  </Badge>
+                                )}
+                              </div>
+                              <span style={{ fontSize: '12px', opacity: 0.75 }}>{tbl.description}</span>
+                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                                <Badge appearance="outline">Activos: {tbl.active_count}</Badge>
+                                <Badge appearance="tint" color="warning">
+                                  SEED: {tbl.seed_count}
+                                </Badge>
+                                <Badge appearance="tint" color="success">
+                                  REAL: {tbl.real_count}
+                                </Badge>
+                                {tbl.ocr_count > 0 && (
+                                  <Badge appearance="tint" color="informative">
+                                    OCR: {tbl.ocr_count}
+                                  </Badge>
+                                )}
+                                {tbl.protected_count > 0 && (
+                                  <Badge appearance="filled" color="important">
+                                    Protegidos: {tbl.protected_count}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className={styles.footerNav}>
+                <span style={{ fontSize: '13px', opacity: 0.8 }}>
+                  Tablas en alcance: <b>{selectedTables.length}</b> • Registros marcados: <b>{totalSelectedCount}</b>
+                </span>
+                <MEHButton
+                  appearance="primary"
+                  icon={<ArrowRight24Regular />}
+                  iconPosition="after"
+                  data-testid="go-to-step-2"
+                  onClick={() => {
+                    if (!activeTable && selectedTables.length > 0) {
+                      setActiveTable(selectedTables[0]);
+                    }
+                    setStep(2);
+                  }}
+                >
+                  Ir a Selección por Registro
+                </MEHButton>
+              </div>
+            </div>
+          )}
+
+          {/* ==================== PASO 2: SELECCIÓN POR REGISTRO Y ORIGEN ==================== */}
+          {step === 2 && (
+            <div data-testid="cleanup-step-2">
+              <div className={styles.cardBox}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                  }}
+                >
+                  <TabList
+                    selectedValue={activeTable}
+                    onTabSelect={(e, d) => setActiveTable(d.value)}
+                    style={{ overflowX: 'auto' }}
+                  >
+                    {selectedTables.map((tKey) => {
+                      const info = catalog.find((c) => c.key === tKey);
+                      const count = selections[tKey]?.length || 0;
+                      return (
+                        <Tab key={tKey} value={tKey} data-testid={`subtab-${tKey}`}>
+                          {info?.label || tKey}{' '}
+                          {count > 0 && (
+                            <Badge appearance="filled" color="brand" style={{ marginLeft: '6px' }}>
+                              {count}
+                            </Badge>
+                          )}
+                        </Tab>
+                      );
+                    })}
+                  </TabList>
+
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <Button
+                      size="small"
+                      appearance="secondary"
+                      data-testid="select-all-visible-btn"
+                      onClick={() => selectAllVisibleRows(activeTable, tableRows)}
+                    >
+                      Seleccionar visibles (no protegidos)
+                    </Button>
+                    <Button
+                      size="small"
+                      appearance="subtle"
+                      data-testid="clear-table-selection-btn"
+                      onClick={() => clearTableSelection(activeTable)}
+                    >
+                      Limpiar tabla
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Filtros de Origen y Búsqueda */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    marginTop: '8px',
+                  }}
+                >
+                  <Input
+                    placeholder="Buscar por ID, título, correo, creador o padre..."
+                    aria-label="Buscar registros en tabla"
+                    contentBefore={<Search24Regular />}
+                    value={rowSearch}
+                    onChange={(e, d) => setRowSearch(d.value)}
+                    style={{ minWidth: '300px', flex: 1 }}
+                  />
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '12px', opacity: 0.75 }}>Filtrar origen:</span>
+                    {['ALL', 'SEED', 'REAL', 'OCR'].map((orig) => (
+                      <Button
+                        key={orig}
+                        size="small"
+                        appearance={originFilter === orig ? 'primary' : 'secondary'}
+                        data-testid={`filter-origin-${orig}`}
+                        onClick={() => setOriginFilter(orig)}
+                      >
+                        {orig === 'ALL' ? 'TODOS' : orig}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tabla de Registros con Origen, Creador, Fechas y Padre */}
+                <div className={styles.tableWrapper}>
+                  {loadingRows ? (
+                    <div style={{ padding: '48px', textAlign: 'center' }}>
+                      <Spinner label="Cargando filas y trazabilidad de origen..." />
+                    </div>
+                  ) : tableRows.length === 0 ? (
+                    <div style={{ padding: '48px', textAlign: 'center', opacity: 0.7 }}>
+                      No se encontraron registros activos para los filtros seleccionados.
+                    </div>
+                  ) : (
+                    <Table size="medium" aria-label={`Registros de ${activeTable}`}>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHeaderCell style={{ width: '48px' }}>Sel.</TableHeaderCell>
+                          <TableHeaderCell>Registro / ID</TableHeaderCell>
+                          <TableHeaderCell>Origen</TableHeaderCell>
+                          <TableHeaderCell>Creador y Fechas</TableHeaderCell>
+                          <TableHeaderCell>Registro Padre</TableHeaderCell>
+                          <TableHeaderCell>Protección</TableHeaderCell>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tableRows.map((row) => {
+                          const isSelected = (selections[activeTable] || []).includes(row.id);
+                          return (
+                            <TableRow
+                              key={`${activeTable}-${row.id}`}
+                              data-testid={`cleanup-row-${activeTable}-${row.id}`}
+                              style={{
+                                opacity: row.protegido ? 0.65 : 1,
+                                backgroundColor: isSelected ? tokens.colorBrandBackground2 : undefined,
+                              }}
+                            >
+                              <TableCell>
+                                <Checkbox
+                                  checked={isSelected}
+                                  disabled={row.protegido}
+                                  aria-label={`Seleccionar ${row.titulo}`}
+                                  onChange={() => toggleRowSelection(activeTable, row)}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <b>{row.titulo}</b>
+                                  <div style={{ fontSize: '12px', opacity: 0.75 }}>
+                                    ID: #{row.id} {row.subtitulo ? `• ${row.subtitulo}` : ''}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Tooltip content={row.origen_detalle || row.origen} relationship="description">
+                                  <Badge appearance="filled" color={ORIGIN_COLORS[row.origen] || 'informative'}>
+                                    {row.origen}
+                                  </Badge>
+                                </Tooltip>
+                              </TableCell>
+                              <TableCell>
+                                <div style={{ fontSize: '12px' }}>
+                                  <div>
+                                    <b>Creador:</b> {row.creado_por_nombre || 'Sistema'}
+                                  </div>
+                                  <div style={{ opacity: 0.75 }}>
+                                    Creado:{' '}
+                                    {row.fecha_creacion
+                                      ? new Date(row.fecha_creacion).toLocaleDateString()
+                                      : 'N/D'}
+                                    {row.fecha_modificacion
+                                      ? ` • Mod: ${new Date(row.fecha_modificacion).toLocaleDateString()}`
+                                      : ''}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {row.padre ? (
+                                  <Badge appearance="outline">
+                                    {row.padre.tabla}: {row.padre.etiqueta}
+                                  </Badge>
+                                ) : (
+                                  <span style={{ fontSize: '12px', opacity: 0.5 }}>Entidad Raíz</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {row.protegido ? (
+                                  <Badge
+                                    appearance="filled"
+                                    color="important"
+                                    icon={<LockClosed24Regular />}
+                                  >
+                                    {row.motivo_proteccion || 'PROTEGIDO'}
+                                  </Badge>
+                                ) : (
+                                  <Badge appearance="outline" color="subtle">
+                                    Elegible
+                                  </Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.footerNav}>
+                <Button
+                  appearance="secondary"
+                  icon={<ArrowLeft24Regular />}
+                  onClick={() => setStep(1)}
+                >
+                  Volver al Catálogo
+                </Button>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <span>
+                    Total seleccionados: <b>{totalSelectedCount}</b> registros
+                  </span>
+                  <MEHButton
+                    appearance="primary"
+                    icon={<ArrowRight24Regular />}
+                    iconPosition="after"
+                    data-testid="go-to-step-3"
+                    disabled={totalSelectedCount === 0}
+                    onClick={goToStep3Preview}
+                  >
+                    Previsualizar Impacto y Dependencias
+                  </MEHButton>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ==================== PASO 3: PREVIEW, DEPENDENCIAS Y RESPALDO ==================== */}
+          {step === 3 && (
+            <div data-testid="cleanup-step-3">
+              {/* Configuración de Modo (Soft vs Hard) y Cascada */}
+              <div className={styles.gridTwo}>
+                <div className={styles.cardBox}>
+                  <MEHTypography variant="h3">Modo de Limpieza y Dependencias</MEHTypography>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <Button
+                      appearance={mode === 'soft' ? 'primary' : 'secondary'}
+                      data-testid="mode-soft-btn"
+                      onClick={() => handleModeChange('soft')}
+                    >
+                      Soft Delete (Por defecto - Restaurable en Papelera)
+                    </Button>
+                    <Button
+                      appearance={mode === 'hard' ? 'primary' : 'secondary'}
+                      data-testid="mode-hard-btn"
+                      style={
+                        mode === 'hard'
+                          ? { backgroundColor: tokens.colorPaletteRedBackground3, color: '#fff' }
+                          : {}
+                      }
+                      onClick={() => handleModeChange('hard')}
+                    >
+                      Hard Delete (Borrado Físico Definitivo)
+                    </Button>
+                  </div>
+
+                  <Switch
+                    checked={includeDependencies}
+                    onChange={(e, d) => handleDepsChange(d.checked)}
+                    label="Incluir registros hijos/dependencias automáticamente en cascada"
+                  />
+
+                  {mode === 'hard' && (
+                    <div className={styles.dangerBanner} data-testid="hard-delete-warning">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Warning24Regular style={{ color: tokens.colorPaletteRedForeground1 }} />
+                        <b>ADVERTENCIA DE PELIGRO CRÍTICO (HARD DELETE)</b>
+                      </div>
+                      <span style={{ fontSize: '13px' }}>
+                        El borrado físico destruirá permanentemente los registros de PostgreSQL y NO podrán recuperarse desde la Papelera.
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Respaldo Previo Obligatorio */}
+                <div className={styles.cardBox}>
+                  <MEHTypography variant="h3">Respaldo Previo Obligatorio (TTL 30 min)</MEHTypography>
+                  <MEHTypography variant="caption">
+                    Antes de continuar al paso de confirmación debes generar un respaldo JSON verificable por hash. Se almacena fuera de <code>/static</code>.
+                  </MEHTypography>
+
+                  {backupData ? (
+                    <div
+                      data-testid="backup-ready-box"
+                      style={{
+                        padding: '12px',
+                        borderRadius: '10px',
+                        backgroundColor: tokens.colorNeutralBackground2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <b>ID: {backupData.backup_id}</b>
+                        <Badge appearance="filled" color="success">
+                          Vigente ({backupData.ttl_minutes} min)
+                        </Badge>
+                      </div>
+                      <span style={{ fontSize: '12px', opacity: 0.8 }}>
+                        Registros respaldados: <b>{backupData.total_records}</b> • Hash:{' '}
+                        <code>{backupData.selection_hash?.slice(0, 16)}...</code>
+                      </span>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                        <Button
+                          size="small"
+                          appearance="secondary"
+                          icon={<ArrowDownload24Regular />}
+                          data-testid="download-backup-btn"
+                          onClick={() => handleDownloadBackupFile(backupData.backup_id)}
+                        >
+                          Descargar Respaldo JSON
+                        </Button>
+                        <Button
+                          size="small"
+                          appearance="subtle"
+                          onClick={handleGenerateBackup}
+                          disabled={loadingBackup}
+                        >
+                          Regenerar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      appearance="primary"
+                      icon={<Save24Regular />}
+                      data-testid="generate-backup-btn"
+                      disabled={loadingBackup || !previewData?.can_execute}
+                      onClick={handleGenerateBackup}
+                    >
+                      {loadingBackup ? 'Generando respaldo...' : 'Generar Respaldo Obligatorio'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Resultado del Preview */}
+              {loadingPreview ? (
+                <div style={{ padding: '48px', textAlign: 'center' }}>
+                  <Spinner label="Calculando árbol de dependencias y hash de selección..." />
+                </div>
+              ) : previewData ? (
+                <div className={styles.cardBox} data-testid="preview-summary-box">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <MEHTypography variant="h3">
+                      Resumen de Impacto ({previewData.total_effective_records} registros efectivos)
+                    </MEHTypography>
+                    <code style={{ fontSize: '12px' }}>
+                      selection_hash: {previewData.selection_hash}
+                    </code>
+                  </div>
+
+                  {/* Conteo por origen */}
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <Badge appearance="filled" color="warning" size="large">
+                      Origen SEED: {previewData.origin_summary?.SEED || 0}
+                    </Badge>
+                    <Badge appearance="filled" color="success" size="large">
+                      Origen REAL: {previewData.origin_summary?.REAL || 0}
+                    </Badge>
+                    <Badge appearance="filled" color="informative" size="large">
+                      Origen OCR: {previewData.origin_summary?.OCR || 0}
+                    </Badge>
+                  </div>
+
+                  {/* Conteo por tabla en orden de ejecución */}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                    {previewData.execution_order?.map((tKey, idx) => (
+                      <Badge key={tKey} appearance="outline" size="large">
+                        {idx + 1}. {tKey}: {previewData.effective_counts?.[tKey] || 0}
+                      </Badge>
+                    ))}
+                  </div>
+
+                  {/* Bloqueos */}
+                  {previewData.blockers?.length > 0 && (
+                    <div className={styles.dangerBanner} data-testid="preview-blockers">
+                      <b>Bloqueos detectados ({previewData.blockers.length}):</b>
+                      {previewData.blockers.map((b, i) => (
+                        <div key={i} style={{ fontSize: '13px' }}>
+                          • [{b.tipo}] {b.mensaje}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Dependencias detectadas */}
+                  {previewData.dependencies?.length > 0 && (
+                    <div style={{ marginTop: '8px' }}>
+                      <MEHTypography variant="bold">
+                        Dependencias e Hijos Detectados ({previewData.dependencies.length}):
+                      </MEHTypography>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+                        {previewData.dependencies.map((dep, i) => (
+                          <div
+                            key={i}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              backgroundColor: tokens.colorNeutralBackground2,
+                              fontSize: '13px',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <span>
+                              <b>{dep.parent_title}</b> → {dep.child_label}: {dep.message}
+                            </span>
+                            <Badge
+                              appearance="filled"
+                              color={
+                                dep.action === 'BLOCKED'
+                                  ? 'danger'
+                                  : dep.action === 'AUTO_INCLUDED'
+                                  ? 'brand'
+                                  : 'warning'
+                              }
+                            >
+                              {dep.action} ({dep.child_count})
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              <div className={styles.footerNav}>
+                <Button
+                  appearance="secondary"
+                  icon={<ArrowLeft24Regular />}
+                  onClick={() => setStep(2)}
+                >
+                  Volver a Selección
+                </Button>
+                <MEHButton
+                  appearance="primary"
+                  icon={<ArrowRight24Regular />}
+                  iconPosition="after"
+                  data-testid="go-to-step-4"
+                  disabled={!previewData?.can_execute || !backupData?.backup_id}
+                  onClick={() => setStep(4)}
+                >
+                  Continuar a Confirmación de Seguridad
+                </MEHButton>
+              </div>
+            </div>
+          )}
+
+          {/* ==================== PASO 4: CONFIRMACIÓN Y REPORTE ==================== */}
+          {step === 4 && (
+            <div data-testid="cleanup-step-4">
+              {executionReport ? (
+                <div className={styles.cardBox} data-testid="cleanup-execution-report">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <CheckmarkCircle24Regular
+                      style={{ fontSize: '36px', color: tokens.colorPaletteGreenForeground1 }}
+                    />
+                    <div>
+                      <MEHTypography variant="h3">
+                        Limpieza Ejecutada con Éxito ({executionReport.mode.toUpperCase()})
+                      </MEHTypography>
+                      <MEHTypography variant="body">
+                        Se procesaron <b>{executionReport.total_affected}</b> registros en una transacción atómica verificada.
+                      </MEHTypography>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '8px' }}>
+                    <Badge appearance="filled" color="success" size="large">
+                      Log Auditoría #{executionReport.audit_log_id}
+                    </Badge>
+                    <Badge appearance="outline" size="large">
+                      Backup: {executionReport.backup_id}
+                    </Badge>
+                    <Badge appearance="outline" size="large">
+                      Motivo: {executionReport.motivo}
+                    </Badge>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+                    {Object.entries(executionReport.affected_by_table || {}).map(([t, cnt]) => (
+                      <Badge key={t} appearance="tint" color="brand" size="large">
+                        {t}: {cnt}
+                      </Badge>
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '16px' }}>
+                    {executionReport.restorable_in_trash && onGoToTrash && (
+                      <Button
+                        appearance="primary"
+                        icon={<DeleteDismiss24Regular />}
+                        data-testid="report-go-to-trash-btn"
+                        onClick={onGoToTrash}
+                      >
+                        Ver Registros en Papelera
+                      </Button>
+                    )}
+                    <Button
+                      appearance="secondary"
+                      icon={<History24Regular />}
+                      data-testid="report-go-to-audit-btn"
+                      onClick={() => navigate('/auditoria')}
+                    >
+                      Ver Registro en Auditoría
+                    </Button>
+                    <Button
+                      appearance="secondary"
+                      icon={<ArrowDownload24Regular />}
+                      onClick={() => handleDownloadBackupFile(executionReport.backup_id)}
+                    >
+                      Descargar Respaldo ({executionReport.backup_id})
+                    </Button>
+                    <Button appearance="subtle" onClick={resetWizard}>
+                      Nueva Operación de Limpieza
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className={mode === 'hard' ? styles.dangerBanner : styles.cardBox}
+                  data-testid="cleanup-confirmation-form"
+                >
+                  <MEHTypography variant="h3">
+                    Confirmación de Seguridad Obligatoria ({mode === 'hard' ? 'HARD DELETE' : 'SOFT DELETE'})
+                  </MEHTypography>
+                  <MEHTypography variant="body">
+                    Se afectarán <b>{previewData?.total_effective_records || 0}</b> registros con respaldo verificado{' '}
+                    <code>{backupData?.backup_id}</code>. Si ocurre cualquier error, se aplicará rollback total.
+                  </MEHTypography>
+
+                  {executionError && (
+                    <div
+                      className={styles.dangerBanner}
+                      role="alert"
+                      data-testid="cleanup-execution-error"
+                    >
+                      <b>Error de ejecución:</b> {executionError}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px' }}>
+                        1. Motivo de la operación (obligatorio, mín. 5 caracteres)
+                      </label>
+                      <Input
+                        placeholder="Ej: Depuración de datos de demostración previos al lanzamiento..."
+                        aria-label="Motivo de la limpieza"
+                        data-testid="cleanup-motivo-input"
+                        value={motivo}
+                        onChange={(e, d) => setMotivo(d.value)}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px' }}>
+                        2. Escribe exactamente la frase de seguridad: <code>{requiredPhrase}</code>
+                      </label>
+                      <Input
+                        placeholder={requiredPhrase}
+                        aria-label="Frase de confirmación"
+                        data-testid="cleanup-phrase-input"
+                        value={confirmationPhrase}
+                        onChange={(e, d) => setConfirmationPhrase(d.value)}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px' }}>
+                        3. Contraseña de tu cuenta de Administrador ({currentUser?.correo})
+                      </label>
+                      <Input
+                        type="password"
+                        placeholder="Ingresa tu contraseña actual..."
+                        aria-label="Contraseña del administrador"
+                        data-testid="cleanup-password-input"
+                        value={adminPassword}
+                        onChange={(e, d) => setAdminPassword(d.value)}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    {mode === 'hard' && (
+                      <Checkbox
+                        data-testid="cleanup-hard-extra-checkbox"
+                        checked={hardDeleteConfirmed}
+                        onChange={(e, d) => setHardDeleteConfirmed(d.checked)}
+                        label="Confirmo que este borrado físico (Hard Delete) es irreversible y los registros no podrán restaurarse desde la papelera."
+                      />
+                    )}
+                  </div>
+
+                  <div className={styles.footerNav}>
+                    <Button
+                      appearance="secondary"
+                      icon={<ArrowLeft24Regular />}
+                      onClick={() => setStep(3)}
+                    >
+                      Volver al Preview
+                    </Button>
+                    <Button
+                      appearance="primary"
+                      data-testid="execute-cleanup-submit-btn"
+                      disabled={!isExecuteReady || loadingExecute}
+                      style={{
+                        backgroundColor:
+                          mode === 'hard'
+                            ? tokens.colorPaletteRedBackground3
+                            : tokens.colorBrandBackground,
+                        color: '#fff',
+                      }}
+                      onClick={handleExecuteCleanup}
+                    >
+                      {loadingExecute
+                        ? 'Ejecutando transacción atómica...'
+                        : mode === 'hard'
+                        ? 'Ejecutar Borrado Físico Definitivo'
+                        : 'Ejecutar Limpieza Lógica (Enviar a Papelera)'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Diálogo para Guardar Preset Personalizado */}
+      <Dialog open={presetDialogOpen} onOpenChange={(e, d) => setPresetDialogOpen(d.open)}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Guardar Preset Personalizado</DialogTitle>
+            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <Input
+                placeholder="Nombre del preset (ej. Limpiar eventos demo)"
+                aria-label="Nombre del preset"
+                value={newPresetName}
+                onChange={(e, d) => setNewPresetName(d.value)}
+              />
+              <Input
+                placeholder="Descripción opcional..."
+                aria-label="Descripción del preset"
+                value={newPresetDesc}
+                onChange={(e, d) => setNewPresetDesc(d.value)}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" onClick={() => setPresetDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                appearance="primary"
+                disabled={newPresetName.trim().length < 2}
+                onClick={async () => {
+                  await handleSaveCustomPreset({
+                    nombre: newPresetName,
+                    descripcion: newPresetDesc,
+                    origen_filter: originFilter,
+                  });
+                  setNewPresetName('');
+                  setNewPresetDesc('');
+                  setPresetDialogOpen(false);
+                }}
+              >
+                Guardar Preset
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+    </div>
+  );
+};
+
+export default CleanupTab;

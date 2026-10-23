@@ -9,12 +9,15 @@ y este proyecto se rige por [Semantic Versioning (SemVer)](https://semver.org/la
 
 ## [Unreleased]
 ### Added
+- **MEH-020:** Panel de limpieza selectiva de datos (Soft/Hard Delete) con trazabilidad de origen (`SEED`, `REAL`, `OCR`), cuentas protegidas (`SUPERADMIN_EMAIL`, usuario actual y lista blanca configurable), presets configurables (incluido *"Dejar solo superadmin"*), respaldo JSON obligatorio fuera de `/static` con TTL de 30 minutos, verificación criptográfica `selection_hash`, confirmación progresiva (frase + contraseña + motivo) y auditoría forense persistente en `logs_sistema`.
 - Pipeline Docs-as-Code con generador unificado en `tools/docs_gen.py`.
 - Soporte de subcomandos `tech`, `user`, `changelog`, `all` y `check`.
 - Doble superficie de despliegue híbrido consistente (GitHub Pages en `/` y Docker en `/docs/`).
 - Validaciones en CI para prevenir desincronización de documentación ante cambios en endpoints o esquemas.
 
 ### Changed
+- Reutilización de `auth_service.restaurar_usuario` en Papelera (`/api/admin/trash/restore`) para reactivar `activo = True` y limpiar `motivo_suspension` al restaurar usuarios o entidades borradas lógicamente.
+- Soporte de `commit=False` y serialización extendida en `registrar_log` para transacciones atómicas de limpieza.
 - Reestructuración de Docusaurus en 4 bloques según la taxonomía Diátaxis (Tutoriales, Guías Prácticas, Referencia, Explicación).
 - Normalización de rutas y slugs eliminando prefijos numéricos obsoletos.
 

@@ -11,8 +11,8 @@ Este documento se genera automáticamente a partir de los routers FastAPI en `ba
 Cualquier modificación en rutas, métodos o permisos se refleja directamente en esta especificación.
 :::
 
-**Total de módulos de API documentados:** 19  
-**Total de endpoints expuestos:** 143
+**Total de módulos de API documentados:** 20  
+**Total de endpoints expuestos:** 156
 
 ---
 
@@ -98,6 +98,24 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | Método | Endpoint URI | Descripción | Request Payload | Código HTTP | Autorización |
 |---|---|---|---|---|---|
 | **`POST`** | `/api/certificados-admin/bulk` | Operación generate_bulk | `tipo: str`, `id_referencia: int`, `criterio: str`, `titulo: str`, `background: UploadFile` | `200 OK` | Requiere Auth (JWT) |
+
+## Módulo `cleanup` (Prefix: `/admin/cleanup`)
+
+| Método | Endpoint URI | Descripción | Request Payload | Código HTTP | Autorización |
+|---|---|---|---|---|---|
+| **`GET`** | `/api/admin/cleanup/status` | Devuelve el estado del módulo de limpieza y configuración general (Solo ADMIN). | - | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
+| **`GET`** | `/api/admin/cleanup/catalog` | Obtiene el catálogo completo de tablas limpiables, conteos por origen y matriz de dependencias. | - | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
+| **`GET`** | `/api/admin/cleanup/tables/{tabla}/rows` | Lista los registros de una tabla con creador, fechas, padre, clasificación SEED/REAL/OCR y protección. | `tabla: str`, `include_deleted: bool` | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
+| **`GET`** | `/api/admin/cleanup/protected` | Obtiene la cuenta Superadmin, el usuario actual y la lista blanca de correos protegidos. | - | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
+| **`PUT`** | `/api/admin/cleanup/protected/whitelist` | Actualiza la lista blanca configurable de correos protegidos contra limpieza. | `payload: WhitelistUpdateRequest` | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
+| **`GET`** | `/api/admin/cleanup/presets` | Lista los presets de limpieza disponibles, incluido 'Dejar solo superadmin' y presets personalizados. | - | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
+| **`POST`** | `/api/admin/cleanup/presets` | Crea o actualiza un preset personalizado de limpieza. | `payload: CleanupPresetCreateRequest` | `201 Created` | Requiere Auth (JWT), Solo ADMIN |
+| **`DELETE`** | `/api/admin/cleanup/presets/{preset_id}` | Elimina un preset personalizado. | `preset_id: str` | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
+| **`POST`** | `/api/admin/cleanup/presets/{preset_id}/resolve` | Resuelve un preset a la selección concreta de tablas e IDs (excluyendo protegidos). | `preset_id: str` | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
+| **`POST`** | `/api/admin/cleanup/preview` | Calcula la previsualización de la limpieza con dependencias, bloqueos, orígenes y selection_hash. | `payload: CleanupPreviewRequest` | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
+| **`POST`** | `/api/admin/cleanup/backup` | Genera un respaldo JSON obligatorio fuera de /static con TTL de 30 minutos para la selección actual. | `payload: CleanupBackupRequest` | `201 Created` | Requiere Auth (JWT), Solo ADMIN |
+| **`GET`** | `/api/admin/cleanup/backup/{backup_id}` | Descarga el archivo JSON de un respaldo vigente (TTL <= 30 min). | `backup_id: str` | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
+| **`POST`** | `/api/admin/cleanup/execute` | Ejecuta la limpieza selectiva en transacción atómica verificando backup, hash, frase, contraseña y motivo. | `payload: CleanupExecuteRequest` | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
 
 ## Módulo `comunidad` (Prefix: `/comunidad`)
 
@@ -225,7 +243,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | Método | Endpoint URI | Descripción | Request Payload | Código HTTP | Autorización |
 |---|---|---|---|---|---|
 | **`GET`** | `/api/admin/papelera` | Obtiene todos los registros en estado ELIMINADO (0) accesibles por el rol del usuario. | - | `200 OK` | Requiere Auth (JWT) |
-| **`POST`** | `/api/admin/papelera/restaurar/{category}/{item_id}` | Restaura un elemento eliminado lógicamente (id_estado = 2). | `category: str`, `item_id: int` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/admin/papelera/restaurar/{category}/{item_id}` | Restaura un elemento eliminado lógicamente (id_estado = 2). En usuarios reactiva cuenta y limpia suspensión. | `category: str`, `item_id: int` | `200 OK` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/admin/papelera/destruir/{category}/{item_id}` | Borra físicamente un elemento de la base de datos de manera definitiva (Solo Admin). | `category: str`, `item_id: int` | `200 OK` | Requiere Auth (JWT) |
 
 ## Módulo `recursos` (Prefix: `/recursos`)
