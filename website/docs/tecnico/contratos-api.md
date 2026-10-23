@@ -114,7 +114,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`POST`** | `/api/admin/cleanup/presets/{preset_id}/resolve` | Resuelve un preset a la selección concreta de tablas e IDs (excluyendo protegidos). | `preset_id: str` | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
 | **`POST`** | `/api/admin/cleanup/preview` | Calcula la previsualización de la limpieza con dependencias, bloqueos, orígenes y selection_hash. | `payload: CleanupPreviewRequest` | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
 | **`POST`** | `/api/admin/cleanup/backup` | Genera un respaldo JSON obligatorio fuera de /static con TTL de 30 minutos para la selección actual. | `payload: CleanupBackupRequest` | `201 Created` | Requiere Auth (JWT), Solo ADMIN |
-| **`GET`** | `/api/admin/cleanup/backup/{backup_id}` | Descarga el archivo JSON de un respaldo vigente (TTL <= 30 min). | `backup_id: str` | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
+| **`GET`** | `/api/admin/cleanup/backup/{backup_id}` | Descarga el archivo JSON de un respaldo vigente (TTL de 30 min). | `backup_id: str` | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
 | **`POST`** | `/api/admin/cleanup/execute` | Ejecuta la limpieza selectiva en transacción atómica verificando backup, hash, frase, contraseña y motivo. | `payload: CleanupExecuteRequest` | `200 OK` | Requiere Auth (JWT), Solo ADMIN |
 
 ## Módulo `comunidad` (Prefix: `/comunidad`)

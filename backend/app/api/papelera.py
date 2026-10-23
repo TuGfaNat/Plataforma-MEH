@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from typing import Dict, List, Any
@@ -188,14 +188,15 @@ def restore_item(
         return {"message": "Elemento restaurado con éxito", "category": category, "id": item_id}
 
     # Cambiar estado a ACTIVO y reactivar flag 'activo' si el modelo lo posee
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
     item.id_estado = 2
-    item.fecha_modificacion_estado = datetime.utcnow()
+    item.fecha_modificacion_estado = now_utc
     if hasattr(item, "activo"):
         item.activo = True
     if hasattr(item, "modificado_por"):
         item.modificado_por = current_user.id_usuario
     if hasattr(item, "fecha_modificacion"):
-        item.fecha_modificacion = datetime.utcnow()
+        item.fecha_modificacion = now_utc
     db.commit()
 
     registrar_log(

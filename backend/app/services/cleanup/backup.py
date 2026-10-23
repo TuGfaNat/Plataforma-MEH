@@ -2,7 +2,7 @@ import os
 import json
 import uuid
 import hashlib
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session
@@ -45,7 +45,7 @@ def get_backup_ttl_minutes() -> int:
 def compute_selection_hash(effective_selections: Dict[str, List[int]], mode: str) -> str:
     """Calcula un hash SHA-256 canónico sobre la selección efectiva ordenada y el modo."""
     canonical_selections = {
-        tabla: sorted(set(int(i) for i in ids))
+        tabla: sorted({int(i) for i in ids})
         for tabla, ids in sorted(effective_selections.items())
         if ids
     }
@@ -77,10 +77,14 @@ def record_to_snapshot_dict(record: Any) -> Dict[str, Any]:
     return data
 
 
+def _now_utc_naive() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 def purge_expired_backups() -> int:
     """Elimina físicamente archivos de backup cuyo TTL (30 min por defecto) haya expirado."""
     b_dir = get_backup_dir()
-    now = datetime.utcnow()
+    now = _now_utc_naive()
     ttl = timedelta(minutes=get_backup_ttl_minutes())
     removed = 0
 
@@ -99,7 +103,7 @@ def purge_expired_backups() -> int:
                     removed += 1
                     continue
             else:
-                mtime = datetime.utcfromtimestamp(os.path.getmtime(fpath))
+                mtime = datetime.fromtimestamp(os.path.getmtime(fpath), tz=timezone.utc).replace(tzinfo=None)
                 if now - mtime > ttl:
                     os.remove(fpath)
                     removed += 1
@@ -124,7 +128,7 @@ def create_cleanup_backup(
     if total_records == 0:
         raise ValidacionNegocioError("No hay registros efectivos seleccionados para respaldar")
 
-    now = datetime.utcnow()
+    now = _now_utc_naive()
     ttl_minutes = get_backup_ttl_minutes()
     expires_at = now + timedelta(minutes=ttl_minutes)
     backup_id = f"bkp_{now.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
@@ -200,7 +204,7 @@ def get_valid_backup(backup_id: str) -> Dict[str, Any]:
     expires_str = data.get("expires_at")
     if expires_str:
         exp_dt = datetime.fromisoformat(expires_str)
-        if datetime.utcnow() > exp_dt:
+        if _now_utc_naive() > exp_dt:
             try:
                 os.remove(file_path)
             except OSError:

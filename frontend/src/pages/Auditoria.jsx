@@ -263,20 +263,23 @@ const Auditoria = () => {
     createTableColumn({
         columnId: 'accion',
         renderHeaderCell: () => 'Acción',
-        renderCell: (item) => (
-          <Badge
-            appearance="outline"
-            color={
-              item.accion.includes('CREAR') || item.accion.includes('RESTAURAR')
-                ? 'success'
-                : item.accion.includes('BORRAR') || item.accion.includes('PURGAR') || item.accion.includes('LIMPIEZA')
-                ? 'danger'
-                : 'informative'
-            }
-          >
-            {item.accion}
-          </Badge>
-        ),
+        renderCell: (item) => {
+          let badgeColor = 'informative';
+          if (item.accion.includes('CREAR') || item.accion.includes('RESTAURAR')) {
+            badgeColor = 'success';
+          } else if (
+            item.accion.includes('BORRAR') ||
+            item.accion.includes('PURGAR') ||
+            item.accion.includes('LIMPIEZA')
+          ) {
+            badgeColor = 'danger';
+          }
+          return (
+            <Badge appearance="outline" color={badgeColor}>
+              {item.accion}
+            </Badge>
+          );
+        },
       }),
     createTableColumn({
       columnId: 'tabla',

@@ -165,7 +165,7 @@ def download_cleanup_backup(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user),
 ):
-    """Descarga el archivo JSON de un respaldo vigente (TTL <= 30 min)."""
+    """Descarga el archivo JSON de un respaldo vigente (TTL de 30 min)."""
     ensure_admin(current_user.rol)
     cleanup_service.ensure_cleanup_admin(current_user)
     data = cleanup_service.get_valid_backup(backup_id)

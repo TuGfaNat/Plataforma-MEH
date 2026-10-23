@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 from sqlalchemy.orm import Session
 
@@ -64,7 +64,7 @@ def preview_cleanup(
         if tabla not in CLEANUP_CATALOG:
             raise ValidacionNegocioError(f"La tabla '{tabla}' no es válida en el catálogo de limpieza")
 
-        unique_ids = sorted(set(int(i) for i in raw_ids))
+        unique_ids = sorted({int(i) for i in raw_ids})
         requested_counts[tabla] = len(unique_ids)
 
         info = CLEANUP_CATALOG[tabla]
@@ -544,7 +544,7 @@ def execute_cleanup(
         snapshots_resumen[tabla] = [record_to_snapshot_dict(r) for r in rows[:25]]
 
     # 8. Ejecutar en una única transacción atómica con rollback total ante cualquier error
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     affected_by_table: Dict[str, int] = {}
 
     try:

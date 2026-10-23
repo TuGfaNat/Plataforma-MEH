@@ -1,6 +1,5 @@
 import os
 import json
-import re
 from typing import Dict, List, Optional, Set, Tuple
 from sqlalchemy.orm import Session
 
@@ -13,7 +12,11 @@ WHITELIST_CONFIG_KEY = "CLEANUP_PROTECTED_EMAILS"
 PRESETS_CONFIG_KEY = "CLEANUP_CUSTOM_PRESETS"
 PROTECTED_CONFIG_KEYS = {WHITELIST_CONFIG_KEY, PRESETS_CONFIG_KEY}
 
-EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+def _is_valid_email(value: str) -> bool:
+    if not value or " " in value or value.count("@") != 1:
+        return False
+    local, domain = value.split("@", 1)
+    return bool(local and "." in domain and not domain.startswith(".") and not domain.endswith("."))
 
 
 def is_cleanup_enabled() -> bool:
@@ -97,7 +100,7 @@ def update_whitelist_emails(
         clean = str(e).strip().lower()
         if not clean:
             continue
-        if not EMAIL_REGEX.match(clean):
+        if not _is_valid_email(clean):
             raise ValidacionNegocioError(f"El correo '{clean}' no tiene un formato válido")
         if clean != superadmin:
             normalized.add(clean)
@@ -157,7 +160,6 @@ def get_protected_config_response(
     ensure_cleanup_admin(current_user)
     superadmin_email = get_superadmin_email()
     whitelist = get_whitelist_emails(db)
-    reasons, _ = get_protected_user_reasons(db, current_user)
 
     users_by_id = {
         u.id_usuario: u

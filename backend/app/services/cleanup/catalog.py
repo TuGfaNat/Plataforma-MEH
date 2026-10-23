@@ -73,7 +73,7 @@ SEED_CONFIG_KEYS = {
 SEED_EMAIL_PATTERNS = (
     re.compile(r"^(admin|organizador|soporte|moderador|embajador)@meh\.com$", re.IGNORECASE),
     re.compile(r"^user\d+@test\.com$", re.IGNORECASE),
-    re.compile(r".+_(seed|demo|test).*@", re.IGNORECASE),
+    re.compile(r"^[^@]+_(?:seed|demo|test)[^@]*@", re.IGNORECASE),
 )
 
 # Definición completa del catálogo y orden topológico (Hijos -> Padres)

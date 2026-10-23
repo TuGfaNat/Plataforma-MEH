@@ -97,7 +97,8 @@ export const useCleanupManager = ({ notify, isAdmin = true }) => {
       });
       setTableRows(Array.isArray(rows) ? rows : []);
     } catch (err) {
-      notifySafe('Error', 'No se pudieron cargar los registros de la tabla', 'error');
+      const detail = err?.response?.data?.detail || 'No se pudieron cargar los registros de la tabla';
+      notifySafe('Error', detail, 'error');
     } finally {
       setLoadingRows(false);
     }
@@ -325,7 +326,7 @@ export const useCleanupManager = ({ notify, isAdmin = true }) => {
       a.download = `${backupId || backupData?.backup_id}.json`;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      a.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
       const detail = err?.response?.data?.detail || 'No se pudo descargar el respaldo';
