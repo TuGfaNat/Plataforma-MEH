@@ -17,6 +17,7 @@ class AnuncioBase(BaseModel):
 
 class AnuncioCreate(AnuncioBase):
     enviar_email: bool = False
+    dry_run: bool = False
 
 class AnuncioUpdate(BaseModel):
     titulo: Optional[str] = None
@@ -37,6 +38,9 @@ class AnuncioResponse(AnuncioBase):
     fecha_publicacion: datetime
     id_autor: Optional[int] = None
     evento_titulo: Optional[str] = None
+    evento_imagen_url: Optional[str] = None
+    evento_imagen_16x9: Optional[str] = None
+    evento_fecha: Optional[str] = None
 
     class Config:
         from_attributes = True

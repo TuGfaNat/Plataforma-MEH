@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { CalendarStar24Filled, DataTrending24Regular, ChevronRight24Regular, Share24Regular } from '@fluentui/react-icons';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import { resolveApiFileUrl } from '../services/api';
+import { getEventoCoverByContext, getEventoCoverVariants } from '../utils/eventoImagen';
 import eventoService from '../services/eventoService';
 import InscripcionEventoModal from '../components/InscripcionEventoModal';
 import { useNotify } from '../App';
@@ -237,9 +238,10 @@ const EventsMaster = () => {
                     onClick={() => setSelectedEventForDetails(event)}
                   >
                     <img 
-                      src={resolveApiFileUrl(event.imagen_url) || DEFAULT_EVENT_IMG} 
+                      src={getEventoCoverByContext(event, '16:9')} 
                       className={styles.cardBanner} 
-                      alt="banner de evento" 
+                      style={{ aspectRatio: '16 / 9' }}
+                      alt={`Portada 16:9 de ${event.titulo}`} 
                     />
                     <div className={styles.eventContent}>
                       <div className={styles.eventDate}>
@@ -310,13 +312,25 @@ const EventsMaster = () => {
           <DialogBody>
             <DialogTitle>{selectedEventForDetails?.titulo}</DialogTitle>
             <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px 0' }}>
-              {selectedEventForDetails && (
-                <img 
-                  src={resolveApiFileUrl(selectedEventForDetails.imagen_url) || DEFAULT_EVENT_IMG} 
-                  alt={selectedEventForDetails.titulo} 
-                  style={{ width: '100%', maxHeight: '250px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} 
-                />
-              )}
+              {selectedEventForDetails && (() => {
+                const detailVariants = getEventoCoverVariants(selectedEventForDetails);
+                const useSquare = detailVariants.recommendedDetailMode === '1:1';
+                return (
+                  <div style={{ display: 'flex', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <img 
+                      src={useSquare ? detailVariants.square1x1 : detailVariants.original} 
+                      alt={selectedEventForDetails.titulo} 
+                      style={{
+                        width: useSquare ? '260px' : '100%',
+                        aspectRatio: useSquare ? '1 / 1' : undefined,
+                        maxHeight: '280px',
+                        objectFit: useSquare ? 'cover' : 'contain',
+                        display: 'block'
+                      }} 
+                    />
+                  </div>
+                );
+              })()}
               
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                 <Badge color="brand" appearance="filled">📍 {selectedEventForDetails?.modalidad}</Badge>

@@ -132,14 +132,22 @@ def inscribir_evento(
             usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == user_id).first()
             if usuario:
                 items_incluidos = parse_incluidos_list(evento.incluidos)
-                email_service.notify_ticket_qr(
-                    email=usuario.correo,
-                    nombre=usuario.nombres,
-                    titulo_evento=evento.titulo,
-                    fecha=str(evento.fecha_inicio.date()) if evento.fecha_inicio else "",
-                    codigo_qr=token_qr,
-                    frontend_url=os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/"),
-                    incluidos=items_incluidos
+                email_service.call_notify_with_event_context(
+                    email_service.notify_ticket_qr,
+                    evento,
+                    {
+                        "email": usuario.correo,
+                        "nombre": usuario.nombres,
+                        "titulo_evento": evento.titulo,
+                        "fecha": str(evento.fecha_inicio.date()) if evento.fecha_inicio else "",
+                        "codigo_qr": token_qr,
+                        "frontend_url": os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/"),
+                        "incluidos": items_incluidos,
+                    },
+                    {
+                        "imagen_url": evento.imagen_url,
+                        "evento": evento,
+                    },
                 )
         except Exception as e:
             print("Error enviando email con QR de ticket:", e)
@@ -250,14 +258,22 @@ def aprobar_inscripcion_espera(
             usuario = inscripcion.usuario
             if usuario:
                 items_incluidos = parse_incluidos_list(evento.incluidos)
-                email_service.notify_ticket_qr(
-                    email=usuario.correo,
-                    nombre=usuario.nombres,
-                    titulo_evento=evento.titulo,
-                    fecha=str(evento.fecha_inicio.date()) if evento.fecha_inicio else "",
-                    codigo_qr=inscripcion.codigo_qr,
-                    frontend_url=os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/"),
-                    incluidos=items_incluidos
+                email_service.call_notify_with_event_context(
+                    email_service.notify_ticket_qr,
+                    evento,
+                    {
+                        "email": usuario.correo,
+                        "nombre": usuario.nombres,
+                        "titulo_evento": evento.titulo,
+                        "fecha": str(evento.fecha_inicio.date()) if evento.fecha_inicio else "",
+                        "codigo_qr": inscripcion.codigo_qr,
+                        "frontend_url": os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/"),
+                        "incluidos": items_incluidos,
+                    },
+                    {
+                        "imagen_url": evento.imagen_url,
+                        "evento": evento,
+                    },
                 )
         except Exception as e:
             print("Error enviando email tras aprobación de lista de espera:", e)

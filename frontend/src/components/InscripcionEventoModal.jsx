@@ -26,6 +26,7 @@ import pagoService from '../services/pagoService';
 import eventoService from '../services/eventoService';
 import * as offlineDb from '../utils/offlineDb';
 import { resolveApiFileUrl } from '../services/api';
+import { getEventoCoverByContext } from '../utils/eventoImagen';
 
 const useStyles = makeStyles({
   freeContainer: {
@@ -367,6 +368,18 @@ const InscripcionEventoModal = ({
           ) : (
             <DialogContent>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', boxSizing: 'border-box', padding: '8px 0', overflowX: 'hidden' }}>
+                <img
+                  src={getEventoCoverByContext(evento, '16:9')}
+                  alt={`Portada de ${evento.titulo}`}
+                  style={{
+                    width: '100%',
+                    aspectRatio: '16 / 9',
+                    maxHeight: '160px',
+                    objectFit: 'cover',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                  }}
+                />
                 
                 {/* Indicador de Cupos */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)' }}>

@@ -38,6 +38,7 @@ import { useAuth, useNotify, useTheme } from '../App';
 import eventoService from '../services/eventoService';
 import pagoService from '../services/pagoService';
 import { resolveApiFileUrl } from '../services/api';
+import { getEventoCoverVariants } from '../utils/eventoImagen';
 import { designTokens } from '../theme/theme';
 import BadgeSocialModal from '../components/BadgeSocialModal';
 
@@ -250,6 +251,7 @@ const EventoPublico = () => {
   // Estado de inscripción
   const [isInscribed, setIsInscribed] = useState(false);
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
+  const [coverDisplayMode, setCoverDisplayMode] = useState('auto');
   const [inscripcionInfo, setInscripcionInfo] = useState(null);
   const [packages, setPackages] = useState([]);
   const [selectedPackage, setSelectedPackage] = useState(null);
@@ -549,12 +551,99 @@ const EventoPublico = () => {
         )}
         {!loading && !error && Boolean(evento) && (
           <>
-            {/* Banner Hero */}
-            <img 
-              src={resolveApiFileUrl(evento.imagen_url) || DEFAULT_EVENT_IMG} 
-              alt={evento.titulo} 
-              className={styles.heroBanner}
-            />
+            {/* Banner Hero Adaptable (Original/Flexible o 1:1 en detalle) */}
+            {(() => {
+              const coverVariants = getEventoCoverVariants(evento);
+              let resolvedMode = coverDisplayMode;
+              if (coverDisplayMode === 'auto') {
+                resolvedMode =
+                  coverVariants.recommendedDetailMode === '1:1'
+                    ? '1:1'
+                    : 'flexible';
+              }
+              const isSquareMode = resolvedMode === '1:1';
+              const activeSrc = isSquareMode
+                ? coverVariants.square1x1
+                : coverVariants.original;
+
+              return (
+                <div
+                  data-testid="evento-publico-cover-wrapper"
+                  style={{
+                    position: 'relative',
+                    marginBottom: '28px',
+                    borderRadius: '24px',
+                    overflow: 'hidden',
+                    backgroundColor: 'rgba(18, 14, 30, 0.85)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <img
+                    src={activeSrc}
+                    alt={evento.titulo}
+                    data-testid="evento-publico-cover-img"
+                    className={isSquareMode ? undefined : styles.heroBanner}
+                    style={
+                      isSquareMode
+                        ? {
+                            width: '100%',
+                            maxWidth: '420px',
+                            aspectRatio: '1 / 1',
+                            objectFit: 'cover',
+                            borderRadius: '18px',
+                            margin: '16px auto',
+                            display: 'block',
+                          }
+                        : {
+                            width: '100%',
+                            maxHeight: '460px',
+                            objectFit: 'contain',
+                            marginBottom: 0,
+                            display: 'block',
+                          }
+                    }
+                  />
+                  {coverVariants.hasImage && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: '12px',
+                        right: '12px',
+                        display: 'flex',
+                        gap: '6px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        backdropFilter: 'blur(8px)',
+                      }}
+                    >
+                      <MEHButton
+                        size="small"
+                        appearance={
+                          !isSquareMode ? 'primary' : 'subtle'
+                        }
+                        onClick={() => setCoverDisplayMode('flexible')}
+                        data-testid="cover-mode-flexible-btn"
+                      >
+                        Original
+                      </MEHButton>
+                      <MEHButton
+                        size="small"
+                        appearance={isSquareMode ? 'primary' : 'subtle'}
+                        onClick={() => setCoverDisplayMode('1:1')}
+                        data-testid="cover-mode-1x1-btn"
+                      >
+                        1:1
+                      </MEHButton>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className={styles.contentGrid}>
               {/* Columna Izquierda: Detalles Completos del Evento */}

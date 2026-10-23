@@ -420,3 +420,68 @@ async def upload_plantilla_badge(
         ip_address=ip_address
     )
     return {"status": "success", "plantilla_badge_url": url}
+
+
+@router.post("/imagen", response_model=evento_schema.EventoImagenUploadResponse)
+async def upload_evento_imagen_borrador(
+    file: UploadFile = File(...),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Valida y procesa una imagen de portada generando original y variantes 16:9 y 1:1 antes de guardar el evento (Solo Staff)."""
+    from ..core.permissions import ADMIN_OR_ORGANIZER_ROLES, PERMISSION_EVENTS_MANAGE, has_permission
+    from ..core.exceptions import PermisoDenegadoError
+    from ..services import evento_imagen_service
+
+    if current_user.rol not in ADMIN_OR_ORGANIZER_ROLES and not has_permission(current_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError("No tienes permisos para subir imágenes de portada de eventos.")
+
+    content = await file.read()
+    return evento_imagen_service.process_and_save_evento_imagen(
+        file_content=content,
+        id_evento=None,
+        filename=file.filename,
+        content_type=file.content_type,
+    )
+
+
+@router.post("/{id_evento}/imagen", response_model=evento_schema.EventoResponse)
+async def upload_or_replace_evento_imagen(
+    id_evento: int,
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Sube o reemplaza la imagen de portada de un evento existente generando sus variantes 16:9 y 1:1 (Solo Staff)."""
+    from ..services import evento_imagen_service
+
+    ip_address = request.client.host if request.client else None
+    content = await file.read()
+    return evento_imagen_service.upload_or_replace_evento_imagen(
+        db=db,
+        id_evento=id_evento,
+        current_user=current_user,
+        file_content=content,
+        filename=file.filename,
+        content_type=file.content_type,
+        ip_address=ip_address,
+    )
+
+
+@router.delete("/{id_evento}/imagen", response_model=evento_schema.EventoResponse)
+def delete_evento_imagen(
+    id_evento: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Elimina la imagen de portada de un evento y limpia sus variantes en disco (Solo Staff)."""
+    from ..services import evento_imagen_service
+
+    ip_address = request.client.host if request.client else None
+    return evento_imagen_service.remove_evento_imagen(
+        db=db,
+        id_evento=id_evento,
+        current_user=current_user,
+        ip_address=ip_address,
+    )

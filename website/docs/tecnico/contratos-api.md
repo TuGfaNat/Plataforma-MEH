@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 20  
-**Total de endpoints expuestos:** 156
+**Total de endpoints expuestos:** 160
 
 ---
 
@@ -125,7 +125,8 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`GET`** | `/api/comunidad/miembros/{id_usuario}` | Obtiene el detalle de un perfil público. | `id_usuario: int` | `200 OK` | Público / Abierto |
 | **`GET`** | `/api/comunidad/anuncios` | Muestra los anuncios activos para la comunidad. | - | `200 OK` | Requiere Auth (JWT) |
 | **`GET`** | `/api/comunidad/anuncios/all` | Lista todos los anuncios (incluyendo inactivos) para gestión (Solo Staff). | - | `200 OK` | Requiere Auth (JWT) |
-| **`POST`** | `/api/comunidad/anuncios` | Crea y publica un nuevo anuncio. | `anuncio: AnuncioCreate` | `201 Created` | Requiere Auth (JWT) |
+| **`POST`** | `/api/comunidad/anuncios/dry-run` | Simula el envío por correo de un anuncio con los filtros configurados sin enviar correos reales ni persistir en BD. | `anuncio: AnuncioCreate` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/comunidad/anuncios` | Crea y publica un nuevo anuncio (o ejecuta dry-run si dry_run=True). | `anuncio: AnuncioCreate` | `201 Created` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/comunidad/anuncios/{id_anuncio}` | Actualiza un anuncio existente. | `id_anuncio: int`, `anuncio: AnuncioUpdate` | `200 OK` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/comunidad/anuncios/{id_anuncio}` | Elimina permanentemente un anuncio. | `id_anuncio: int` | `204 No Content` | Requiere Auth (JWT) |
 
@@ -187,6 +188,9 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`GET`** | `/api/eventos/{id_evento}/llegadas` | Obtiene métricas de llegadas por hora y resumen por checkpoint (Solo Staff o Creador). | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
 | **`GET`** | `/api/eventos/{id_evento}/badge-info` | Obtiene los datos del badge social para el participante inscrito o vista previa staff. | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/eventos/{id_evento}/plantilla-badge` | Carga y actualiza la plantilla de badge social de un evento (Solo Staff). | `id_evento: int`, `file: UploadFile` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/eventos/imagen` | Valida y procesa una imagen de portada generando original y variantes 16:9 y 1:1 antes de guardar el evento (Solo Staff). | `file: UploadFile` | `200 OK` | Requiere Auth (JWT), Staff / Organizador |
+| **`POST`** | `/api/eventos/{id_evento}/imagen` | Sube o reemplaza la imagen de portada de un evento existente generando sus variantes 16:9 y 1:1 (Solo Staff). | `id_evento: int`, `file: UploadFile` | `200 OK` | Requiere Auth (JWT) |
+| **`DELETE`** | `/api/eventos/{id_evento}/imagen` | Elimina la imagen de portada de un evento y limpia sus variantes en disco (Solo Staff). | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
 
 ## Módulo `files` (Prefix: `/files`)
 

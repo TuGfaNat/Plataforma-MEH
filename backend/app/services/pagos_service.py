@@ -283,17 +283,18 @@ def validar_pago(
     db_pago.notas_admin = pago_update.notas_admin
 
     # Si se aprueba un pago de EVENTO, confirmar la inscripción y asegurar el QR
-    if pago_update.estado_pago == "APROBADO" and db_pago.tipo_referencia == "EVENTO":
-        inscripcion = db.query(models.InscripcionEvento).filter(
+    inscripcion_ev = None
+    if db_pago.tipo_referencia == "EVENTO":
+        inscripcion_ev = db.query(models.InscripcionEvento).filter(
             models.InscripcionEvento.id_usuario == db_pago.id_usuario,
             models.InscripcionEvento.id_inscripcion == db_pago.id_referencia
         ).first()
-        if inscripcion:
-            inscripcion.estado_inscripcion = "CONFIRMADA"
-            inscripcion.fecha_validacion = datetime.utcnow()
-            
-            if not inscripcion.codigo_qr:
-                inscripcion.codigo_qr = str(uuid.uuid4())
+    if pago_update.estado_pago == "APROBADO" and db_pago.tipo_referencia == "EVENTO" and inscripcion_ev:
+        inscripcion_ev.estado_inscripcion = "CONFIRMADA"
+        inscripcion_ev.fecha_validacion = datetime.utcnow()
+        
+        if not inscripcion_ev.codigo_qr:
+            inscripcion_ev.codigo_qr = str(uuid.uuid4())
 
     db.commit()
     db.refresh(db_pago)
@@ -301,23 +302,41 @@ def validar_pago(
     # Notificación (Manejada con precaución de errores)
     try:
         from . import email_service
-        email_service.notify_pago_actualizado(
-            db_pago.usuario.correo, 
-            db_pago.usuario.nombres, 
-            db_pago.estado_pago, 
-            db_pago.tipo_referencia
+        evento_ref = inscripcion_ev.evento if inscripcion_ev else None
+        email_service.call_notify_with_event_context(
+            email_service.notify_pago_actualizado,
+            evento_ref,
+            {
+                "email": db_pago.usuario.correo,
+                "nombre": db_pago.usuario.nombres,
+                "estado": db_pago.estado_pago,
+                "actividad": db_pago.tipo_referencia,
+            },
+            {
+                "fecha_evento": evento_ref.fecha_inicio if evento_ref else None,
+                "imagen_url": evento_ref.imagen_url if evento_ref else None,
+                "evento": evento_ref,
+            } if evento_ref else None,
         )
-        if pago_update.estado_pago == "APROBADO" and db_pago.tipo_referencia == "EVENTO" and inscripcion:
+        if pago_update.estado_pago == "APROBADO" and db_pago.tipo_referencia == "EVENTO" and inscripcion_ev:
             from .eventos_service import parse_incluidos_list
-            items_incluidos = parse_incluidos_list(inscripcion.evento.incluidos) if inscripcion.evento else []
-            email_service.notify_ticket_qr(
-                email=db_pago.usuario.correo,
-                nombre=db_pago.usuario.nombres,
-                titulo_evento=inscripcion.evento.titulo if inscripcion.evento else "Evento",
-                fecha=str(inscripcion.evento.fecha_inicio.date()) if (inscripcion.evento and inscripcion.evento.fecha_inicio) else "",
-                codigo_qr=inscripcion.codigo_qr,
-                frontend_url=os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/"),
-                incluidos=items_incluidos
+            items_incluidos = parse_incluidos_list(evento_ref.incluidos) if evento_ref else []
+            email_service.call_notify_with_event_context(
+                email_service.notify_ticket_qr,
+                evento_ref,
+                {
+                    "email": db_pago.usuario.correo,
+                    "nombre": db_pago.usuario.nombres,
+                    "titulo_evento": evento_ref.titulo if evento_ref else "Evento",
+                    "fecha": str(evento_ref.fecha_inicio.date()) if (evento_ref and evento_ref.fecha_inicio) else "",
+                    "codigo_qr": inscripcion_ev.codigo_qr,
+                    "frontend_url": os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/"),
+                    "incluidos": items_incluidos,
+                },
+                {
+                    "imagen_url": evento_ref.imagen_url if evento_ref else None,
+                    "evento": evento_ref,
+                },
             )
     except Exception:
         pass
@@ -363,14 +382,15 @@ def reembolsar_pago(
     db_pago.notas_admin = f"REEMBOLSADO: {motivo_limpio}"
 
     # Si era pago de un evento, cancelar la inscripción y anular el ticket QR
+    inscripcion_reemb = None
     if db_pago.tipo_referencia == "EVENTO":
-        inscripcion = db.query(models.InscripcionEvento).filter(
+        inscripcion_reemb = db.query(models.InscripcionEvento).filter(
             models.InscripcionEvento.id_usuario == db_pago.id_usuario,
             models.InscripcionEvento.id_inscripcion == db_pago.id_referencia
         ).first()
-        if inscripcion:
-            inscripcion.estado_inscripcion = "CANCELADA"
-            inscripcion.codigo_qr = None
+        if inscripcion_reemb:
+            inscripcion_reemb.estado_inscripcion = "CANCELADA"
+            inscripcion_reemb.codigo_qr = None
 
     db.commit()
     db.refresh(db_pago)
@@ -378,11 +398,21 @@ def reembolsar_pago(
     # Notificación por email
     try:
         from . import email_service
-        email_service.notify_pago_actualizado(
-            db_pago.usuario.correo,
-            db_pago.usuario.nombres,
-            "REEMBOLSADO",
-            db_pago.tipo_referencia
+        evento_reemb = inscripcion_reemb.evento if inscripcion_reemb else None
+        email_service.call_notify_with_event_context(
+            email_service.notify_pago_actualizado,
+            evento_reemb,
+            {
+                "email": db_pago.usuario.correo,
+                "nombre": db_pago.usuario.nombres,
+                "estado": "REEMBOLSADO",
+                "actividad": db_pago.tipo_referencia,
+            },
+            {
+                "fecha_evento": evento_reemb.fecha_inicio if evento_reemb else None,
+                "imagen_url": evento_reemb.imagen_url if evento_reemb else None,
+                "evento": evento_reemb,
+            } if evento_reemb else None,
         )
     except Exception:
         pass

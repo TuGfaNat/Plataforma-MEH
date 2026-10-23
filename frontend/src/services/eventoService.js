@@ -130,6 +130,29 @@ const eventoService = {
     return response.data;
   },
 
+  uploadImagenBorrador: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/eventos/imagen', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
+  uploadEventoImagen: async (idEvento, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post(`/eventos/${idEvento}/imagen`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
+  deleteEventoImagen: async (idEvento) => {
+    const response = await api.delete(`/eventos/${idEvento}/imagen`);
+    return response.data;
+  },
+
   getInscritosConfirmados: async (idEvento) => {
     const response = await api.get(`/eventos/${idEvento}/inscritos-confirmados`);
     return response.data;
