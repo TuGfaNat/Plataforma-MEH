@@ -30,6 +30,8 @@ import {
 } from '@fluentui/react-icons';
 import { MEHTypography, MEHButton, MEHCard } from '../../components/ui';
 import api from '../../services/api';
+import comunidadService from '../../services/comunidadService';
+import EmailDryRunModal from '../../components/EmailDryRunModal';
 import { useNotify } from '../../App';
 
 const useStyles = makeStyles({
@@ -49,9 +51,12 @@ const AnnouncementsTab = () => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
+  const [eventosDisponibles, setEventosDisponibles] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [dryRunLoading, setDryRunLoading] = useState(false);
+  const [dryRunResult, setDryRunResult] = useState(null);
 
   const [formData, setFormData] = useState({
     titulo: '',
@@ -61,14 +66,21 @@ const AnnouncementsTab = () => {
     tipo: 'INFO',
     activo: true,
     enviar_email: false,
-    exclusivo_embajadores: false
+    exclusivo_embajadores: false,
+    roles_destino: 'TODOS',
+    id_evento: null,
+    solo_inscritos_evento: false
   });
 
   const fetchAnnouncements = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/comunidad/anuncios/all');
+      const [res, evRes] = await Promise.all([
+        api.get('/comunidad/anuncios/all'),
+        api.get('/eventos/').catch(() => ({ data: [] }))
+      ]);
       setAnnouncements(res.data || []);
+      setEventosDisponibles(evRes.data || []);
     } catch (err) {
       notify("Error", t("no_announcements_load_error"), "error");
     } finally {
@@ -93,7 +105,10 @@ const AnnouncementsTab = () => {
       tipo: 'INFO',
       activo: true,
       enviar_email: false,
-      exclusivo_embajadores: false
+      exclusivo_embajadores: false,
+      roles_destino: 'TODOS',
+      id_evento: null,
+      solo_inscritos_evento: false
     });
     setIsEditing(false);
     setCurrentId(null);
@@ -108,10 +123,32 @@ const AnnouncementsTab = () => {
       tipo: ann.tipo,
       activo: ann.activo,
       enviar_email: false,
-      exclusivo_embajadores: ann.exclusivo_embajadores || false
+      exclusivo_embajadores: ann.exclusivo_embajadores || false,
+      roles_destino: ann.roles_destino || 'TODOS',
+      id_evento: ann.id_evento || null,
+      solo_inscritos_evento: Boolean(ann.solo_inscritos_evento)
     });
     setCurrentId(ann.id_anuncio);
     setIsEditing(true);
+  };
+
+  const handleDryRunAnuncio = async () => {
+    if (!formData.titulo.trim() || !formData.contenido.trim()) {
+      notify("Validación", "Completa el título y contenido para simular el correo.", "warning");
+      return;
+    }
+    setDryRunLoading(true);
+    try {
+      const res = await comunidadService.dryRunAnuncio({
+        ...formData,
+        id_evento: formData.id_evento ? Number(formData.id_evento) : null,
+      });
+      setDryRunResult(res);
+    } catch (err) {
+      notify("Error", "No se pudo simular el envío del anuncio.", "error");
+    } finally {
+      setDryRunLoading(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -250,9 +287,46 @@ const AnnouncementsTab = () => {
             </Field>
           </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <Field label="Vincular a Evento (Cabecera en Correo)">
+              <Select
+                data-testid="anuncio-evento-select"
+                value={formData.id_evento || ''}
+                onChange={(e, d) =>
+                  handleInputChange('id_evento', d.value ? Number(d.value) : null)
+                }
+              >
+                <option value="">Sin evento vinculado</option>
+                {eventosDisponibles.map((ev) => (
+                  <option key={ev.id_evento} value={ev.id_evento}>
+                    {ev.titulo}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Roles Destino">
+              <Select
+                value={formData.roles_destino || 'TODOS'}
+                onChange={(e, d) => handleInputChange('roles_destino', d.value)}
+              >
+                <option value="TODOS">Todos los miembros</option>
+                <option value="MIEMBRO">Solo Miembros</option>
+                <option value="EMBAJADOR">Solo Embajadores</option>
+                <option value="ORGANIZADOR">Solo Organizadores</option>
+              </Select>
+            </Field>
+          </div>
+
           <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
             <Switch label={t("visible") || "Visible"} checked={formData.activo} onChange={(e, d) => handleInputChange('activo', d.checked)} />
             <Switch label="Exclusivo Embajadores" checked={formData.exclusivo_embajadores} onChange={(e, d) => handleInputChange('exclusivo_embajadores', d.checked)} />
+            {formData.id_evento && (
+              <Switch
+                label="Solo inscritos al evento"
+                checked={Boolean(formData.solo_inscritos_evento)}
+                onChange={(e, d) => handleInputChange('solo_inscritos_evento', d.checked)}
+              />
+            )}
             {!isEditing && (
               <Field label={t("admin_notify_email") || "Notificar Email"}>
                 <Switch checked={formData.enviar_email} onChange={(e, d) => handleInputChange('enviar_email', d.checked)} />
@@ -290,7 +364,20 @@ const AnnouncementsTab = () => {
           </div>
           {formData.url_imagen && <img src={formData.url_imagen} className={styles.previewImg} alt="Vista previa de la imagen del anuncio" />}
 
-          <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '12px', flexWrap: 'wrap' }}>
+            {!isEditing && (
+              <MEHButton
+                type="button"
+                appearance="outline"
+                data-testid="anuncio-dry-run-btn"
+                disabled={dryRunLoading || !formData.titulo.trim() || !formData.contenido.trim()}
+                onClick={() => {
+                  void handleDryRunAnuncio();
+                }}
+              >
+                {dryRunLoading ? "Simulando..." : "Simular Correo (Dry-Run)"}
+              </MEHButton>
+            )}
             <MEHButton type="submit" appearance="primary" style={{ flexGrow: 1 }} icon={isEditing ? <Save24Regular /> : <Send24Regular />}>
               {isEditing ? t("admin_save_changes") : t("admin_publish_now")}
             </MEHButton>
@@ -298,6 +385,12 @@ const AnnouncementsTab = () => {
           </div>
         </form>
       </div>
+
+      <EmailDryRunModal
+        open={Boolean(dryRunResult)}
+        onClose={() => setDryRunResult(null)}
+        dryRunResult={dryRunResult}
+      />
     </div>
   );
 };

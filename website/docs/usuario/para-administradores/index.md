@@ -117,3 +117,22 @@ El motor bloquea automáticamente cualquier intento de borrado lógico o físico
    - Ingresa el **motivo de auditoría**, la **frase exacta de confirmación** (`ELIMINAR DATOS` para Soft Delete o `BORRADO DEFINITIVO` para Hard Delete) y tu **contraseña actual de administrador**.
    - En modo Hard Delete se exige marcar la casilla adicional de destrucción irreversible.
    - La ejecución corre dentro de una **transacción atómica única**: ante cualquier error de integridad se aplica *rollback* total. Al finalizar, se registra un log forense en `logs_sistema` con snapshots de los registros afectados que sobrevive incluso cuando se limpia la propia tabla `logs_sistema`.
+
+
+---
+
+## 6. Gestión de Portada en Eventos y Simulación de Correos Dry-Run (MEH-021)
+
+Desde el panel de **Gestión de Eventos** (`/admin` → pestaña **Eventos**) y **Anuncios de Comunidad** (`/admin` → pestaña **Anuncios**), los administradores y organizadores disponen de herramientas visuales y de previsualización de notificaciones:
+
+### Subida, Reemplazo y Eliminación de Portada con Variantes Automáticas
+1. Al crear o editar un evento, el bloque **Imagen de Portada del Evento** permite seleccionar archivos `PNG`, `JPG/JPEG` o `WEBP` (máximo **8 MB**, dimensiones mínimas **64×64 px**).
+2. Al subir o reemplazar una portada, el backend (`evento_imagen_service.py`) genera automáticamente tres archivos físicos en `/static/eventos/` **sin requerir migraciones de base de datos**:
+   - `_orig`: Imagen original optimizada para modales de inscripción y cabeceras flexibles.
+   - `_16x9` (`1280×720 px`): Recorte centrado panorámico para tarjetas de listado (`Landing`, `Dashboard`, `EventsMaster`, `EventsTab`) y cabeceras de correo.
+   - `_1x1` (`800×800 px`): Recorte cuadrado para miniaturas compactas y vista de detalle adaptable (`EventoPublico`).
+3. El conmutador de vista previa (`16:9`, `1:1`, `Original`) permite verificar el encuadre antes de guardar, y el botón **Quitar portada** elimina los archivos físicos asociados restaurando el banner institucional por defecto (`DEFAULT_EVENT_IMG`).
+
+### Cabecera Unificada en Correos y Modo Dry-Run (Sin Envío SMTP Real)
+- Todos los correos vinculados a un evento (tickets QR, cancelación, reprogramación, avisos a inscritos, actualización de pago, emisión de certificados y anuncios de comunidad vinculados a `id_evento`) incluyen una **cabecera unificada** con la variante `16:9` (embebida vía CID inline o URL absoluta con fallback visual), el título del evento y su fecha formateada.
+- En el modal **Enviar Aviso a Inscritos** y en el editor de **Anuncios de Comunidad**, el botón **Previsualizar correo (Dry-Run)** evalúa los filtros reales de audiencia (`solo_confirmados`, `estado_pago`, `solo_asistentes`, `target_role`, `target_curso_id`, `id_evento`) y abre un modal interactivo con el conteo exacto de destinatarios y el HTML renderizado **sin realizar llamadas reales al servidor SMTP**.

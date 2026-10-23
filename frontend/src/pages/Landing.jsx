@@ -13,6 +13,7 @@ import { designTokens } from "../theme/theme";
 import { MEHButton, MEHCard, MEHTypography } from "../components/ui";
 import eventoService from "../services/eventoService";
 import cursoService from "../services/cursoService";
+import { getEventoCoverByContext } from "../utils/eventoImagen";
 
 import {
   CalendarStar24Regular,
@@ -428,9 +429,10 @@ const Landing = () => {
               return (
                 <MEHCard key={evento.id_evento} className={styles.card}>
                   <img
-                    src={evento.imagen_url || DEFAULT_EVENT_IMG}
+                    src={getEventoCoverByContext(evento, "16:9")}
                     alt={`Portada del evento ${evento.titulo}`}
                     className={styles.cardImage}
+                    style={{ aspectRatio: "16 / 9" }}
                   />
                   <div className={styles.cardContent}>
                     <div

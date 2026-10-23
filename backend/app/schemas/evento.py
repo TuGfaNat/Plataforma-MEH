@@ -1,6 +1,6 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 # --- RELACIONES SIMPLES ---
 class SpeakerSimple(BaseModel):
@@ -82,12 +82,34 @@ class EventoResponse(EventoBase):
     cupos_ocupados: Optional[int] = None
     total_en_espera: Optional[int] = None
     capacidad_maxima: Optional[int] = None
+    imagen_url_original: Optional[str] = None
+    imagen_url_16x9: Optional[str] = None
+    imagen_url_1x1: Optional[str] = None
+    imagen_variantes: Optional[Dict[str, Any]] = None
     
     speakers: List[SpeakerSimple] = []
     auspiciadores: List[AuspiciadorSimple] = []
     comunidades: List[ComunidadSimple] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="after")
+    def _populate_imagen_variantes(self) -> "EventoResponse":
+        from ..services.evento_imagen_service import resolve_evento_imagen_variantes
+
+        variantes = resolve_evento_imagen_variantes(self.imagen_url)
+        self.imagen_url_original = variantes.get("original")
+        self.imagen_url_16x9 = variantes.get("widescreen_16x9")
+        self.imagen_url_1x1 = variantes.get("square_1x1")
+        self.imagen_variantes = variantes
+        return self
+
+class EventoImagenUploadResponse(BaseModel):
+    imagen_url: str
+    imagen_url_original: str
+    imagen_url_16x9: str
+    imagen_url_1x1: str
+    imagen_variantes: Dict[str, Any]
 
 # --- CHECKPOINTS ---
 class CheckpointBase(BaseModel):
@@ -144,9 +166,22 @@ class EventoCancelarRequest(BaseModel):
     motivo: str
 
 class EventoAvisarRequest(BaseModel):
-    titulo: str
+    titulo: Optional[str] = None
+    asunto: Optional[str] = None
     mensaje: str
-    enviar_email: Optional[bool] = False
+    enviar_email: Optional[bool] = True
+    estados_inscripcion: Optional[List[str]] = None
+    solo_asistentes: Optional[bool] = False
+    dry_run: Optional[bool] = False
+
+    @model_validator(mode="after")
+    def _normalize_titulo_asunto(self) -> "EventoAvisarRequest":
+        resolved = (self.titulo or self.asunto or "").strip()
+        if not resolved:
+            raise ValueError("El asunto o título del aviso es obligatorio")
+        self.titulo = resolved
+        self.asunto = resolved
+        return self
 
 class LoteAprobacionRequest(BaseModel):
     cantidad: Optional[int] = None
@@ -199,6 +234,3 @@ class BadgeSocialResponse(BaseModel):
     copy_sugerido: str
     esta_inscrito: bool = True
     model_config = ConfigDict(from_attributes=True)
-
-
-

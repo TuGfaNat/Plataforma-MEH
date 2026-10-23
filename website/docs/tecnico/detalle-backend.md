@@ -147,3 +147,22 @@ Para el envío de correos, la plataforma utiliza el servidor SMTP de Gmail. Debi
 * [02. Detalle de Frontend React](./detalle-frontend.md)
 * [03. Mapeo de Componentes .jsx](./mapeo-paginas-jsx.md)
 * [05. Base de Datos y Seguridad](./base-datos-seguridad.md)
+
+
+---
+
+## 7. Procesamiento de Portadas de Eventos y Cabecera Unificada de Correo (MEH-021)
+
+### A. Generación de Variantes sin Migraciones (`evento_imagen_service.py`)
+Para soportar múltiples proporciones visuales en web y clientes de correo manteniendo **cero migraciones de esquema** sobre la columna `eventos.imagen_url`, el servicio `evento_imagen_service.py` aplica una convención determinística sobre `/static/eventos/`:
+1. **Validación en Memoria:** Verifica extensión permitida (`.png`, `.jpg`, `.jpeg`, `.webp`), MIME declarado, firma de bytes mágicos, peso máximo (`8 MB`) y resolución mínima (`64×64 px`).
+2. **Recorte Inteligente con Pillow (`ImageOps.fit`):**
+   - `*_orig.<ext>`: Imagen original normalizada (orientación EXIF corregida).
+   - `*_16x9.<ext>`: Variante panorámica `1280×720 px` para tarjetas de listado y cabeceras de correo.
+   - `*_1x1.<ext>`: Variante cuadrada `800×800 px` para miniaturas y vista de detalle adaptable.
+3. **Hidratación Dinámica en Pydantic (`EventoResponse`):** Mediante `@model_validator(mode="after")`, cualquier instancia de `Evento` expone automáticamente `imagen_url_original`, `imagen_url_16x9`, `imagen_url_1x1` e `imagen_variantes` resolviendo las rutas existentes en disco o aplicando fallback limpio si no hay portada.
+
+### B. Cabecera Unificada en Correos y Modo `dry_run` (`email_service.py`)
+- `build_event_email_header(...)` construye el bloque HTML superior con el título del evento, fecha formateada y la variante `16:9` adjunta como imagen inline `cid:evento_cover_header` (con fallback al banner institucional de MEH cuando el evento carece de portada).
+- Todos los flujos de correo asociados a eventos (`notify_ticket_qr`, `notify_evento_cancelado`, `notify_evento_reprogramado`, `notify_aviso_evento`, `notify_pago_actualizado`, `notify_nuevo_certificado` y `notify_nuevo_anuncio` vinculado a `id_evento`) reutilizan esta cabecera.
+- Los endpoints `POST /eventos/{id_evento}/avisar` y `POST /comunidad/anuncios/dry-run` (o `POST /comunidad/anuncios` con `dry_run=true`) evalúan los filtros reales de audiencia en base de datos y retornan la lista de destinatarios junto con `preview_subject` y `preview_html` sin invocar `smtplib.SMTP`.

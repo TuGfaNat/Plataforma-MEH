@@ -48,6 +48,8 @@ def list_anuncios_activos(
 
     # Si es ADMIN, tiene visibilidad completa para supervisión
     if current_user.rol == 'ADMIN':
+        for an in anuncios:
+            _hydrate_anuncio_evento(an)
         return anuncios
 
     roles_privilegiados = {'ADMIN', 'ORGANIZADOR', 'MODERADOR', 'SOPORTE', 'EMBAJADOR'}
@@ -79,17 +81,123 @@ def list_anuncios_activos(
             if current_user.rol not in {'ADMIN', 'ORGANIZADOR'} and an.id_evento not in eventos_inscritos_ids:
                 continue
 
+        _hydrate_anuncio_evento(an)
         anuncios_visibles.append(an)
 
     return anuncios_visibles
+
+
+def _hydrate_anuncio_evento(an: models.Anuncio) -> None:
+    """Enriquece el anuncio con metadatos e imagen 16:9 del evento vinculado si existe."""
+    ev = getattr(an, "evento", None)
+    if ev is not None:
+        from .evento_imagen_service import resolve_evento_imagen_variantes
+
+        variantes = resolve_evento_imagen_variantes(ev.imagen_url)
+        an.evento_imagen_url = ev.imagen_url
+        an.evento_imagen_16x9 = variantes.get("widescreen_16x9")
+        an.evento_fecha = ev.fecha_inicio.isoformat() if ev.fecha_inicio else None
+
+
+def _get_segmented_miembros_for_anuncio(
+    db: Session,
+    roles_destino: Optional[str],
+    exclusivo_embajadores: bool,
+    id_evento: Optional[int],
+    solo_inscritos_evento: bool,
+) -> List[models.Usuario]:
+    """Aplica los filtros de audiencia de un anuncio sobre usuarios activos."""
+    query_miembros = db.query(models.Usuario).filter(models.Usuario.activo == True)
+
+    if roles_destino and roles_destino.strip().upper() != "TODOS":
+        target_roles = [r.strip().upper() for r in roles_destino.split(",") if r.strip()]
+        query_miembros = query_miembros.filter(models.Usuario.rol.in_(target_roles))
+    elif exclusivo_embajadores:
+        query_miembros = query_miembros.filter(models.Usuario.rol.in_(['EMBAJADOR', 'ORGANIZADOR', 'ADMIN']))
+
+    if id_evento and solo_inscritos_evento:
+        inscritos_ids = db.query(models.InscripcionEvento.id_usuario).filter(
+            models.InscripcionEvento.id_evento == id_evento,
+            models.InscripcionEvento.id_estado != 0,
+            models.InscripcionEvento.estado_inscripcion.in_(["CONFIRMADA", "PENDIENTE", "PENDIENTE_APROBACION"])
+        ).subquery()
+        query_miembros = query_miembros.filter(models.Usuario.id_usuario.in_(inscritos_ids))
+
+    return query_miembros.all()
+
+
+def simulate_anuncio_dry_run(
+    db: Session,
+    current_user: models.Usuario,
+    anuncio: anuncio_schema.AnuncioCreate,
+) -> dict:
+    """Simula el envío de correo de un anuncio aplicando filtros reales sin persistir ni enviar por SMTP."""
+    if not has_permission(current_user.rol, PERMISSION_ANNOUNCEMENTS_MANAGE):
+        raise PermisoDenegadoError("No tienes permisos para simular anuncios")
+
+    evento_vinculado = None
+    if anuncio.id_evento:
+        evento_vinculado = db.query(models.Evento).filter(models.Evento.id_evento == anuncio.id_evento).first()
+
+    miembros = _get_segmented_miembros_for_anuncio(
+        db=db,
+        roles_destino=anuncio.roles_destino,
+        exclusivo_embajadores=bool(anuncio.exclusivo_embajadores),
+        id_evento=anuncio.id_evento,
+        solo_inscritos_evento=bool(anuncio.solo_inscritos_evento),
+    )
+
+    destinatarios_preview = [
+        {
+            "id_usuario": m.id_usuario,
+            "nombre": f"{m.nombres or ''} {m.apellidos or ''}".strip(),
+            "correo": m.correo,
+            "rol": m.rol,
+        }
+        for m in miembros
+        if m.correo
+    ]
+
+    from . import email_service
+
+    ejemplo_nombre = destinatarios_preview[0]["nombre"] if destinatarios_preview else "Miembro MEH"
+    subject_preview, html_preview, _, header_meta = email_service.render_nuevo_anuncio_email(
+        nombre=ejemplo_nombre,
+        titulo_anuncio=anuncio.titulo,
+        contenido_anuncio=anuncio.contenido,
+        evento=evento_vinculado,
+        for_preview=True,
+    )
+
+    return {
+        "status": "dry_run",
+        "dry_run": True,
+        "message": f"Simulación (dry-run) completada: {len(destinatarios_preview)} destinatarios coinciden con los filtros (sin envío SMTP real).",
+        "total_destinatarios": len(destinatarios_preview),
+        "destinatarios_preview": destinatarios_preview[:50],
+        "filtros_aplicados": {
+            "roles_destino": anuncio.roles_destino or "TODOS",
+            "exclusivo_embajadores": bool(anuncio.exclusivo_embajadores),
+            "id_evento": anuncio.id_evento,
+            "solo_inscritos_evento": bool(anuncio.solo_inscritos_evento),
+        },
+        "asunto_renderizado": subject_preview,
+        "tiene_imagen_portada": bool(header_meta and header_meta.get("tiene_imagen_portada")),
+        "evento_cabecera": header_meta,
+        "html_preview": html_preview,
+    }
+
 
 def list_all_anuncios(db: Session, role: str) -> List[models.Anuncio]:
     """Lista todos los anuncios incluyendo inactivos (Solo Staff), excluyendo eliminados (id_estado=0)."""
     if not has_permission(role, PERMISSION_ANNOUNCEMENTS_MANAGE):
         raise PermisoDenegadoError()
-    return db.query(models.Anuncio).filter(
+    rows = db.query(models.Anuncio).filter(
         models.Anuncio.id_estado != 0
     ).order_by(models.Anuncio.fecha_publicacion.desc()).all()
+    for an in rows:
+        _hydrate_anuncio_evento(an)
+    return rows
 
 def create_anuncio(
     db: Session,
@@ -103,6 +211,7 @@ def create_anuncio(
 
     anuncio_data = anuncio.model_dump()
     enviar_email = anuncio_data.pop("enviar_email", False)
+    anuncio_data.pop("dry_run", False)
 
     db_anuncio = models.Anuncio(
         **anuncio_data, 
@@ -111,6 +220,7 @@ def create_anuncio(
     db.add(db_anuncio)
     db.commit()
     db.refresh(db_anuncio)
+    _hydrate_anuncio_evento(db_anuncio)
 
     # Registro en auditoría
     registrar_log(
@@ -126,33 +236,37 @@ def create_anuncio(
     # Notificaciones segmentadas por email
     if enviar_email:
         try:
-            from .email_service import notify_nuevo_anuncio
-            query_miembros = db.query(models.Usuario).filter(models.Usuario.activo == True)
+            from . import email_service
+            evento_vinculado = db_anuncio.evento
+            if evento_vinculado is None and db_anuncio.id_evento:
+                evento_vinculado = db.query(models.Evento).filter(
+                    models.Evento.id_evento == db_anuncio.id_evento
+                ).first()
 
-            # Segmentar por rol
-            if db_anuncio.roles_destino and db_anuncio.roles_destino.strip().upper() != "TODOS":
-                target_roles = [r.strip().upper() for r in db_anuncio.roles_destino.split(",") if r.strip()]
-                query_miembros = query_miembros.filter(models.Usuario.rol.in_(target_roles))
-            elif db_anuncio.exclusivo_embajadores:
-                query_miembros = query_miembros.filter(models.Usuario.rol.in_(['EMBAJADOR', 'ORGANIZADOR', 'ADMIN']))
-
-            # Segmentar si es exclusivo para inscritos en un evento
-            if db_anuncio.id_evento and db_anuncio.solo_inscritos_evento:
-                inscritos_ids = db.query(models.InscripcionEvento.id_usuario).filter(
-                    models.InscripcionEvento.id_evento == db_anuncio.id_evento,
-                    models.InscripcionEvento.id_estado != 0,
-                    models.InscripcionEvento.estado_inscripcion.in_(["CONFIRMADA", "PENDIENTE", "PENDIENTE_APROBACION"])
-                ).subquery()
-                query_miembros = query_miembros.filter(models.Usuario.id_usuario.in_(inscritos_ids))
-
-            miembros = query_miembros.all()
+            miembros = _get_segmented_miembros_for_anuncio(
+                db=db,
+                roles_destino=db_anuncio.roles_destino,
+                exclusivo_embajadores=bool(db_anuncio.exclusivo_embajadores),
+                id_evento=db_anuncio.id_evento,
+                solo_inscritos_evento=bool(db_anuncio.solo_inscritos_evento),
+            )
             for miembro in miembros:
                 try:
-                    notify_nuevo_anuncio(
-                        email=miembro.correo,
-                        nombre=f"{miembro.nombres} {miembro.apellidos}",
-                        titulo_anuncio=db_anuncio.titulo,
-                        contenido_anuncio=db_anuncio.contenido
+                    email_service.call_notify_with_event_context(
+                        email_service.notify_nuevo_anuncio,
+                        evento_vinculado,
+                        {
+                            "email": miembro.correo,
+                            "nombre": f"{miembro.nombres} {miembro.apellidos}",
+                            "titulo_anuncio": db_anuncio.titulo,
+                            "contenido_anuncio": db_anuncio.contenido,
+                        },
+                        {
+                            "evento": evento_vinculado,
+                            "titulo_evento": evento_vinculado.titulo if evento_vinculado else None,
+                            "fecha_evento": evento_vinculado.fecha_inicio if evento_vinculado else None,
+                            "imagen_url": evento_vinculado.imagen_url if evento_vinculado else None,
+                        } if evento_vinculado else None,
                     )
                 except Exception:
                     pass

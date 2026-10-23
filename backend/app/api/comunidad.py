@@ -46,16 +46,28 @@ def get_all_anuncios(
     """Lista todos los anuncios (incluyendo inactivos) para gestión (Solo Staff)."""
     return comunidad_service.list_all_anuncios(db, current_user.rol)
 
-@router.post("/anuncios", response_model=anuncio_schema.AnuncioResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/anuncios/dry-run")
+def preview_anuncio_dry_run(
+    anuncio: anuncio_schema.AnuncioCreate,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Simula el envío por correo de un anuncio con los filtros configurados sin enviar correos reales ni persistir en BD."""
+    return comunidad_service.simulate_anuncio_dry_run(db, current_user, anuncio)
+
+@router.post("/anuncios", status_code=status.HTTP_201_CREATED)
 def create_anuncio(
     request: Request,
     anuncio: anuncio_schema.AnuncioCreate,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    """Crea y publica un nuevo anuncio."""
+    """Crea y publica un nuevo anuncio (o ejecuta dry-run si dry_run=True)."""
+    if anuncio.dry_run:
+        return comunidad_service.simulate_anuncio_dry_run(db, current_user, anuncio)
     ip_address = request.client.host if request.client else None
-    return comunidad_service.create_anuncio(db, current_user, anuncio, ip_address)
+    created = comunidad_service.create_anuncio(db, current_user, anuncio, ip_address)
+    return anuncio_schema.AnuncioResponse.model_validate(created)
 
 @router.put("/anuncios/{id_anuncio}", response_model=anuncio_schema.AnuncioResponse)
 def update_anuncio(

@@ -26,6 +26,14 @@ const comunidadService = {
     return response.data;
   },
 
+  dryRunAnuncio: async (anuncioData) => {
+    const response = await api.post('/comunidad/anuncios/dry-run', {
+      ...anuncioData,
+      dry_run: true,
+    });
+    return response.data;
+  },
+
   actualizarAnuncio: async (idAnuncio, anuncioData) => {
     const response = await api.put(`/comunidad/anuncios/${idAnuncio}`, anuncioData);
     return response.data;

@@ -20,6 +20,8 @@ import { useNotify } from '../../App';
 import AcreditacionPanel from './AcreditacionPanel';
 import BadgeSocialModal from '../../components/BadgeSocialModal';
 import CheckpointPermisosPanel from '../../components/CheckpointPermisosPanel';
+import EventoPortadaUploader from '../../components/EventoPortadaUploader';
+import EmailDryRunModal from '../../components/EmailDryRunModal';
 
 const useStyles = makeStyles({
   grid: { 
@@ -128,8 +130,12 @@ const EventsTab = ({
   const [isAvisarModalOpen, setIsAvisarModalOpen] = useState(false);
   const [avisoTitulo, setAvisoTitulo] = useState('');
   const [avisoMensaje, setAvisoMensaje] = useState('');
-  const [avisoEnviarEmail, setAvisoEnviarEmail] = useState(false);
+  const [avisoEnviarEmail, setAvisoEnviarEmail] = useState(true);
+  const [avisoEstados, setAvisoEstados] = useState(['CONFIRMADA']);
+  const [avisoSoloAsistentes, setAvisoSoloAsistentes] = useState(false);
   const [avisando, setAvisando] = useState(false);
+  const [dryRunLoading, setDryRunLoading] = useState(false);
+  const [dryRunResult, setDryRunResult] = useState(null);
 
   useEffect(() => {
     if (selectedEventoId) {
@@ -288,6 +294,41 @@ const EventsTab = ({
     }
   };
 
+  const toggleAvisoEstado = (estado) => {
+    setAvisoEstados((prev) => {
+      if (prev.includes(estado)) {
+        const next = prev.filter((s) => s !== estado);
+        return next.length > 0 ? next : ['CONFIRMADA'];
+      }
+      return [...prev, estado];
+    });
+  };
+
+  const handleDryRunAviso = async () => {
+    if (!avisoTitulo.trim() || !avisoMensaje.trim()) {
+      alert("El título y el mensaje son obligatorios para simular el envío.");
+      return;
+    }
+    setDryRunLoading(true);
+    try {
+      const res = await eventoService.avisarInscritos(selectedEventoId, {
+        titulo: avisoTitulo.trim(),
+        mensaje: avisoMensaje.trim(),
+        enviar_email: true,
+        estados_inscripcion: avisoEstados,
+        solo_asistentes: avisoSoloAsistentes,
+        dry_run: true,
+      });
+      setDryRunResult(res);
+    } catch (err) {
+      console.error("Error en dry-run de aviso:", err);
+      const detail = err.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : "No se pudo simular el envío del aviso.");
+    } finally {
+      setDryRunLoading(false);
+    }
+  };
+
   const handleAvisarInscritos = async () => {
     if (!avisoTitulo.trim() || !avisoMensaje.trim()) {
       alert("El título y el mensaje son obligatorios.");
@@ -298,13 +339,24 @@ const EventsTab = ({
       const res = await eventoService.avisarInscritos(selectedEventoId, {
         titulo: avisoTitulo.trim(),
         mensaje: avisoMensaje.trim(),
-        enviar_email: avisoEnviarEmail
+        enviar_email: avisoEnviarEmail,
+        estados_inscripcion: avisoEstados,
+        solo_asistentes: avisoSoloAsistentes,
+        dry_run: false,
       });
-      alert(`Aviso enviado con éxito a ${res.inscritos_notificados || 0} inscritos confirmados.`);
+      const count = res.destinatarios_notificados ?? res.inscritos_notificados ?? 0;
+      if (notify) {
+        notify("Aviso emitido", `Aviso enviado con éxito a ${count} participantes.`, "success");
+      } else {
+        alert(`Aviso enviado con éxito a ${count} participantes.`);
+      }
+      setDryRunResult(null);
       setIsAvisarModalOpen(false);
       setAvisoTitulo('');
       setAvisoMensaje('');
-      setAvisoEnviarEmail(false);
+      setAvisoEnviarEmail(true);
+      setAvisoEstados(['CONFIRMADA']);
+      setAvisoSoloAsistentes(false);
     } catch (err) {
       console.error("Error al avisar a los inscritos:", err);
       const detail = err.response?.data?.detail;
@@ -546,6 +598,18 @@ const EventsTab = ({
                 <Input contentBefore={<Link24Regular />} value={newEvento.link_mapas} onChange={(e, d) => setNewEvento({...newEvento, link_mapas: d.value})} placeholder={t("admin_maps_link_placeholder")} />
               </Field>
             </div>
+
+            <EventoPortadaUploader
+              mode="form"
+              evento={newEvento}
+              notify={notify}
+              onFormChange={(coverData) =>
+                setNewEvento((prev) => ({
+                  ...prev,
+                  ...coverData,
+                }))
+              }
+            />
 
             <Divider>{t("admin_invited_speakers")}</Divider>
             <div className={styles.speakerSelection}>
@@ -831,6 +895,18 @@ const EventsTab = ({
                 </div>
             </div>
 
+            {/* Gestión de Imagen de Portada del Evento (MEH-021) */}
+            <div style={{ marginBottom: '24px' }}>
+              <EventoPortadaUploader
+                mode="detail"
+                evento={currentEvent}
+                notify={notify}
+                onEventoUpdated={async () => {
+                  if (fetchData) await fetchData();
+                }}
+              />
+            </div>
+
             {/* Plantilla de Badge Social para Redes (MEH-019) */}
             <div className={styles.infoCard} style={{ backgroundColor: tokens.colorNeutralBackground2, marginBottom: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
@@ -1050,13 +1126,13 @@ const EventsTab = ({
       </Dialog>
 
       {/* Modal Avisar Inscritos */}
-      <Dialog open={isAvisarModalOpen} onOpenChange={(e, d) => { if (!avisando) setIsAvisarModalOpen(d.open); }}>
-        <DialogSurface style={{ backgroundColor: tokens.colorNeutralBackground1, maxWidth: '520px', width: '90%', borderRadius: '16px' }}>
+      <Dialog open={isAvisarModalOpen} onOpenChange={(e, d) => { if (!avisando && !dryRunLoading) setIsAvisarModalOpen(d.open); }}>
+        <DialogSurface style={{ backgroundColor: tokens.colorNeutralBackground1, maxWidth: '560px', width: '92%', borderRadius: '16px' }}>
           <DialogBody>
             <DialogTitle><Megaphone24Regular style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Avisar a los Inscritos</DialogTitle>
             <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px 0' }}>
               <MEHTypography variant="caption" style={{ opacity: 0.8 }}>
-                Envía un aviso o comunicado especial únicamente a los participantes con inscripción <b>CONFIRMADA</b> para este evento.
+                Envía un comunicado oficial a los participantes inscritos incluyendo la <b>cabecera del evento (portada 16:9, título y fecha)</b>. Puedes simular el envío (Dry-Run) sin disparar SMTP real.
               </MEHTypography>
               <Field label="Título del Comunicado" required>
                 <Input 
@@ -1070,23 +1146,60 @@ const EventsTab = ({
                   rows={4} 
                   value={avisoMensaje} 
                   onChange={(e, d) => setAvisoMensaje(d.value)} 
-                  placeholder="Detalles importantes para los asistentes confirmados..." 
+                  placeholder="Detalles importantes para los asistentes..." 
                 />
               </Field>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px 12px', borderRadius: '10px', backgroundColor: tokens.colorNeutralBackground2 }}>
+                <MEHTypography variant="caption" style={{ fontWeight: 'bold' }}>
+                  Filtros de Audiencia del Evento:
+                </MEHTypography>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <Checkbox
+                    label="Confirmados"
+                    checked={avisoEstados.includes('CONFIRMADA')}
+                    onChange={() => toggleAvisoEstado('CONFIRMADA')}
+                  />
+                  <Checkbox
+                    label="Pendientes de Pago"
+                    checked={avisoEstados.includes('PENDIENTE')}
+                    onChange={() => toggleAvisoEstado('PENDIENTE')}
+                  />
+                  <Checkbox
+                    label="Lista de Espera"
+                    checked={avisoEstados.includes('PENDIENTE_APROBACION')}
+                    onChange={() => toggleAvisoEstado('PENDIENTE_APROBACION')}
+                  />
+                </div>
+                <Checkbox
+                  label="Solo asistentes acreditados (asistió = Sí)"
+                  checked={avisoSoloAsistentes}
+                  onChange={(e, d) => setAvisoSoloAsistentes(Boolean(d.checked))}
+                />
+              </div>
+
               <Switch 
                 label="Enviar también notificación por correo electrónico" 
                 checked={avisoEnviarEmail} 
                 onChange={(e, d) => setAvisoEnviarEmail(d.checked)} 
               />
             </DialogContent>
-            <DialogActions style={{ gap: '10px' }}>
-              <Button appearance="secondary" onClick={() => setIsAvisarModalOpen(false)} disabled={avisando}>
+            <DialogActions style={{ gap: '10px', flexWrap: 'wrap' }}>
+              <Button appearance="secondary" onClick={() => setIsAvisarModalOpen(false)} disabled={avisando || dryRunLoading}>
                 Cancelar
+              </Button>
+              <Button
+                appearance="outline"
+                data-testid="avisar-dry-run-btn"
+                onClick={() => { void handleDryRunAviso(); }}
+                disabled={avisando || dryRunLoading || !avisoTitulo.trim() || !avisoMensaje.trim()}
+              >
+                {dryRunLoading ? "Simulando..." : "Simular Dry-Run (Sin envío real)"}
               </Button>
               <MEHButton 
                 appearance="primary" 
                 onClick={() => { void handleAvisarInscritos(); }}
-                disabled={avisando || !avisoTitulo.trim() || !avisoMensaje.trim()}
+                disabled={avisando || dryRunLoading || !avisoTitulo.trim() || !avisoMensaje.trim()}
               >
                 {avisando ? "Enviando..." : "Enviar Aviso"}
               </MEHButton>
@@ -1094,6 +1207,16 @@ const EventsTab = ({
           </DialogBody>
         </DialogSurface>
       </Dialog>
+
+      <EmailDryRunModal
+        open={Boolean(dryRunResult)}
+        onClose={() => setDryRunResult(null)}
+        dryRunResult={dryRunResult}
+        sendingReal={avisando}
+        onConfirmRealSend={() => {
+          void handleAvisarInscritos();
+        }}
+      />
 
       {/* Modal Editar Paquete de Pago y QR */}
       <Dialog open={editQrDialog.open} onOpenChange={(e, d) => setEditQrDialog(prev => ({ ...prev, open: d.open }))}>

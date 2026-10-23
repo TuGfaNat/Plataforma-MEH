@@ -246,6 +246,7 @@ def update_evento(
 
     fecha_inicio_ant = db_evento.fecha_inicio
     hora_inicio_ant = db_evento.hora_inicio
+    imagen_url_ant = db_evento.imagen_url
 
     update_data = evento_update.model_dump(exclude_unset=True)
     
@@ -260,6 +261,10 @@ def update_evento(
 
     for key, value in update_data.items():
         setattr(db_evento, key, value)
+
+    if "imagen_url" in update_data and imagen_url_ant and imagen_url_ant != db_evento.imagen_url:
+        from .evento_imagen_service import delete_evento_imagen_files
+        delete_evento_imagen_files(imagen_url_ant)
 
     if id_speakers is not None:
         db_evento.speakers = db.query(models.Speaker).filter(models.Speaker.id_speaker.in_(id_speakers)).all()
@@ -312,12 +317,20 @@ def update_evento(
             for ins in inscripciones:
                 if ins.usuario and ins.usuario.correo:
                     try:
-                        email_service.notify_evento_reprogramado(
-                            email=ins.usuario.correo,
-                            nombre=f"{ins.usuario.nombres} {ins.usuario.apellidos}".strip(),
-                            titulo_evento=db_evento.titulo,
-                            nueva_fecha=nueva_fecha_str,
-                            nuevo_horario=nuevo_horario
+                        email_service.call_notify_with_event_context(
+                            email_service.notify_evento_reprogramado,
+                            db_evento,
+                            {
+                                "email": ins.usuario.correo,
+                                "nombre": f"{ins.usuario.nombres} {ins.usuario.apellidos}".strip(),
+                                "titulo_evento": db_evento.titulo,
+                                "nueva_fecha": nueva_fecha_str,
+                                "nuevo_horario": nuevo_horario,
+                            },
+                            {
+                                "imagen_url": db_evento.imagen_url,
+                                "evento": db_evento,
+                            },
                         )
                     except Exception:
                         pass
@@ -402,11 +415,20 @@ def cancelar_evento(
         for ins in inscripciones:
             if ins.usuario and ins.usuario.correo:
                 try:
-                    email_service.notify_evento_cancelado(
-                        email=ins.usuario.correo,
-                        nombre=f"{ins.usuario.nombres} {ins.usuario.apellidos}".strip(),
-                        titulo_evento=db_evento.titulo,
-                        motivo=motivo_limpio
+                    email_service.call_notify_with_event_context(
+                        email_service.notify_evento_cancelado,
+                        db_evento,
+                        {
+                            "email": ins.usuario.correo,
+                            "nombre": f"{ins.usuario.nombres} {ins.usuario.apellidos}".strip(),
+                            "titulo_evento": db_evento.titulo,
+                            "motivo": motivo_limpio,
+                        },
+                        {
+                            "fecha_evento": db_evento.fecha_inicio,
+                            "imagen_url": db_evento.imagen_url,
+                            "evento": db_evento,
+                        },
                     )
                 except Exception:
                     pass
@@ -434,16 +456,80 @@ def avisar_inscritos_evento(
     payload: evento_schema.EventoAvisarRequest,
     ip_address: Optional[str] = None
 ) -> dict:
-    """Emite un aviso oficial in-app (y opcionalmente email) exclusivamente a los inscritos con estado CONFIRMADA."""
+    """Emite un aviso oficial in-app y por correo a inscritos del evento según filtros (o simula vía dry_run)."""
     ensure_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE, "No tienes permisos para emitir avisos a inscritos")
 
-    titulo_limpio = payload.titulo.strip() if payload.titulo else ""
+    titulo_limpio = (payload.titulo or payload.asunto or "").strip()
     mensaje_limpio = payload.mensaje.strip() if payload.mensaje else ""
 
     if not titulo_limpio or not mensaje_limpio:
         raise ValidacionNegocioError("El título y el mensaje del aviso son obligatorios")
 
     db_evento = get_evento_by_id(db, id_evento)
+
+    estados_filtro = [
+        e.strip().upper()
+        for e in (payload.estados_inscripcion or ["CONFIRMADA"])
+        if e and e.strip()
+    ]
+    if not estados_filtro:
+        estados_filtro = ["CONFIRMADA"]
+    solo_asistentes = bool(payload.solo_asistentes)
+
+    query_inscritos = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_evento == id_evento,
+        models.InscripcionEvento.estado_inscripcion.in_(estados_filtro),
+        models.InscripcionEvento.id_estado != 0,
+    )
+    if solo_asistentes:
+        query_inscritos = query_inscritos.filter(models.InscripcionEvento.asistio == True)
+
+    inscripciones_filtradas = query_inscritos.all()
+
+    if payload.dry_run:
+        from . import email_service
+
+        destinatarios_preview = []
+        for ins in inscripciones_filtradas:
+            if ins.usuario and ins.usuario.correo:
+                destinatarios_preview.append({
+                    "id_usuario": ins.id_usuario,
+                    "nombre": f"{ins.usuario.nombres or ''} {ins.usuario.apellidos or ''}".strip(),
+                    "correo": ins.usuario.correo,
+                    "estado_inscripcion": ins.estado_inscripcion,
+                    "asistio": bool(ins.asistio),
+                })
+
+        ejemplo_nombre = destinatarios_preview[0]["nombre"] if destinatarios_preview else "Participante MEH"
+        subject_preview, html_preview, _, header_meta = email_service.render_aviso_evento_email(
+            nombre=ejemplo_nombre,
+            titulo_evento=db_evento.titulo,
+            titulo_aviso=titulo_limpio,
+            mensaje=mensaje_limpio,
+            fecha_evento=db_evento.fecha_inicio,
+            imagen_url=db_evento.imagen_url,
+            evento=db_evento,
+            for_preview=True,
+        )
+
+        return {
+            "status": "dry_run",
+            "dry_run": True,
+            "message": f"Simulación (dry-run) completada: {len(destinatarios_preview)} destinatarios coinciden con los filtros (sin envío SMTP real).",
+            "destinatarios_notificados": 0,
+            "total_destinatarios": len(destinatarios_preview),
+            "emails_enviados": 0,
+            "destinatarios_preview": destinatarios_preview[:50],
+            "filtros_aplicados": {
+                "id_evento": id_evento,
+                "estados_inscripcion": estados_filtro,
+                "solo_asistentes": solo_asistentes,
+            },
+            "asunto_renderizado": subject_preview,
+            "tiene_imagen_portada": bool(header_meta.get("tiene_imagen_portada")),
+            "evento_cabecera": header_meta,
+            "html_preview": html_preview,
+        }
 
     # 1. In-app Anuncio segmentado a inscritos del evento
     anuncio = models.Anuncio(
@@ -459,25 +545,27 @@ def avisar_inscritos_evento(
     db.add(anuncio)
     db.commit()
 
-    # 2. Filtrar SOLO inscritos en estado CONFIRMADA
-    inscripciones_confirmadas = db.query(models.InscripcionEvento).filter(
-        models.InscripcionEvento.id_evento == id_evento,
-        models.InscripcionEvento.estado_inscripcion == "CONFIRMADA",
-        models.InscripcionEvento.id_estado != 0
-    ).all()
-
     emails_enviados = 0
     if payload.enviar_email:
         from . import email_service
-        for ins in inscripciones_confirmadas:
+        for ins in inscripciones_filtradas:
             if ins.usuario and ins.usuario.correo:
                 try:
-                    email_service.notify_aviso_evento(
-                        email=ins.usuario.correo,
-                        nombre=f"{ins.usuario.nombres} {ins.usuario.apellidos}".strip(),
-                        titulo_evento=db_evento.titulo,
-                        titulo_aviso=titulo_limpio,
-                        mensaje=mensaje_limpio
+                    email_service.call_notify_with_event_context(
+                        email_service.notify_aviso_evento,
+                        db_evento,
+                        {
+                            "email": ins.usuario.correo,
+                            "nombre": f"{ins.usuario.nombres} {ins.usuario.apellidos}".strip(),
+                            "titulo_evento": db_evento.titulo,
+                            "titulo_aviso": titulo_limpio,
+                            "mensaje": mensaje_limpio,
+                        },
+                        {
+                            "fecha_evento": db_evento.fecha_inicio,
+                            "imagen_url": db_evento.imagen_url,
+                            "evento": db_evento,
+                        },
                     )
                     emails_enviados += 1
                 except Exception:
@@ -493,7 +581,9 @@ def avisar_inscritos_evento(
             "titulo": titulo_limpio,
             "mensaje": mensaje_limpio,
             "enviar_email": payload.enviar_email,
-            "destinatarios_confirmados": len(inscripciones_confirmadas),
+            "estados_inscripcion": estados_filtro,
+            "solo_asistentes": solo_asistentes,
+            "destinatarios_confirmados": len(inscripciones_filtradas),
             "emails_enviados": emails_enviados
         },
         ip_direccion=ip_address
@@ -501,8 +591,10 @@ def avisar_inscritos_evento(
 
     return {
         "status": "success",
-        "message": f"Aviso emitido exitosamente a {len(inscripciones_confirmadas)} participantes confirmados",
-        "destinatarios_notificados": len(inscripciones_confirmadas),
+        "dry_run": False,
+        "message": f"Aviso emitido exitosamente a {len(inscripciones_filtradas)} participantes confirmados",
+        "destinatarios_notificados": len(inscripciones_filtradas),
+        "total_destinatarios": len(inscripciones_filtradas),
         "emails_enviados": emails_enviados
     }
 
@@ -1653,14 +1745,22 @@ def aprobar_lista_espera_lote(
 
             if insc.usuario:
                 try:
-                    email_service.notify_ticket_qr(
-                        email=insc.usuario.correo,
-                        nombre=insc.usuario.nombres,
-                        titulo_evento=evento.titulo,
-                        fecha=str(evento.fecha_inicio.date()) if evento.fecha_inicio else "",
-                        codigo_qr=insc.codigo_qr,
-                        frontend_url=frontend_url,
-                        incluidos=items_incluidos
+                    email_service.call_notify_with_event_context(
+                        email_service.notify_ticket_qr,
+                        evento,
+                        {
+                            "email": insc.usuario.correo,
+                            "nombre": insc.usuario.nombres,
+                            "titulo_evento": evento.titulo,
+                            "fecha": str(evento.fecha_inicio.date()) if evento.fecha_inicio else "",
+                            "codigo_qr": insc.codigo_qr,
+                            "frontend_url": frontend_url,
+                            "incluidos": items_incluidos,
+                        },
+                        {
+                            "imagen_url": evento.imagen_url,
+                            "evento": evento,
+                        },
                     )
                 except Exception as e:
                     print(f"Error enviando email tras aprobación lote: {e}")
@@ -1729,6 +1829,10 @@ def duplicar_evento(
     )
     db.add(nuevo_evento)
     db.flush()
+
+    if original.imagen_url:
+        from .evento_imagen_service import clone_evento_imagen_files
+        nuevo_evento.imagen_url = clone_evento_imagen_files(original.imagen_url, nuevo_evento.id_evento)
 
     # Copiar relaciones Many-to-Many
     if original.speakers:

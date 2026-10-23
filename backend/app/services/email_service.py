@@ -5,7 +5,12 @@ from email.mime.image import MIMEImage
 import os
 import io
 import base64
-from typing import Optional, List, Dict, Tuple
+import inspect
+import contextvars
+import html as html_lib
+from contextlib import contextmanager
+from datetime import datetime, date
+from typing import Optional, List, Dict, Tuple, Any, Callable
 import logging
 import qrcode
 from pydantic import EmailStr, ValidationError, TypeAdapter
@@ -26,6 +31,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 FRONTEND_DASHBOARD = FRONTEND_URL + os.getenv("FRONTEND_DASHBOARD", "/dashboard")
 FRONTEND_LEARNING = FRONTEND_URL + os.getenv("FRONTEND_LEARNING", "/learning")
 FRONTEND_FINANZAS = FRONTEND_URL + os.getenv("FRONTEND_FINANZAS", "/finanzas")
+BACKEND_PUBLIC_URL = os.getenv("BACKEND_PUBLIC_URL", "http://localhost:8000").rstrip("/")
 
 
 def generate_qr_image_bytes(data: str) -> bytes:
@@ -42,6 +48,187 @@ def generate_qr_image_bytes(data: str) -> bytes:
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
+
+
+def format_evento_fecha_humana(fecha_val: Optional[Any], hora_inicio: Optional[str] = None) -> str:
+    """Formatea la fecha y hora de un evento de forma legible para cabeceras de correo."""
+    if fecha_val is None or fecha_val == "":
+        return "Fecha por confirmar"
+
+    fecha_str = ""
+    if isinstance(fecha_val, datetime):
+        fecha_str = fecha_val.strftime("%d/%m/%Y")
+        if not hora_inicio and (fecha_val.hour or fecha_val.minute):
+            hora_inicio = fecha_val.strftime("%H:%M")
+    elif isinstance(fecha_val, date):
+        fecha_str = fecha_val.strftime("%d/%m/%Y")
+    else:
+        raw = str(fecha_val).strip()
+        try:
+            parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            fecha_str = parsed.strftime("%d/%m/%Y")
+            if not hora_inicio and (parsed.hour or parsed.minute):
+                hora_inicio = parsed.strftime("%H:%M")
+        except ValueError:
+            fecha_str = raw
+
+    if hora_inicio:
+        return f"{fecha_str} · {hora_inicio}"
+    return fecha_str
+
+
+_ACTIVE_EVENT_CTX: contextvars.ContextVar[Optional[Any]] = contextvars.ContextVar(
+    "_ACTIVE_EVENT_CTX", default=None
+)
+
+
+@contextmanager
+def event_email_context(evento: Optional[Any]):
+    """Context manager para asociar un objeto/dict Evento al envío de correo actual."""
+    token = _ACTIVE_EVENT_CTX.set(evento)
+    try:
+        yield
+    finally:
+        _ACTIVE_EVENT_CTX.reset(token)
+
+
+def call_notify_with_event_context(
+    notify_fn: Callable[..., Any],
+    evento: Optional[Any],
+    base_kwargs: Dict[str, Any],
+    extra_kwargs: Optional[Dict[str, Any]] = None,
+) -> Any:
+    """Invoca una función notify_* propagando el contexto de evento sin romper mocks con firmas reducidas."""
+    with event_email_context(evento):
+        if not extra_kwargs:
+            return notify_fn(**base_kwargs)
+        try:
+            sig = inspect.signature(notify_fn)
+            has_var_kw = any(
+                p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+            )
+            if has_var_kw:
+                return notify_fn(**base_kwargs, **extra_kwargs)
+            accepted_extra = {
+                k: v for k, v in extra_kwargs.items() if k in sig.parameters
+            }
+            return notify_fn(**base_kwargs, **accepted_extra)
+        except (ValueError, TypeError):
+            return notify_fn(**base_kwargs)
+
+
+def _extract_evento_header_fields(
+    evento: Optional[Any] = None,
+    titulo_evento: Optional[str] = None,
+    fecha_evento: Optional[Any] = None,
+    hora_evento: Optional[str] = None,
+    imagen_url: Optional[str] = None,
+) -> Tuple[str, str, Optional[str]]:
+    """Extrae título, fecha formateada e imagen_url a partir de un objeto Evento, dict o argumentos."""
+    active_ev = evento if evento is not None else _ACTIVE_EVENT_CTX.get()
+    ev_titulo = titulo_evento
+    ev_fecha = fecha_evento
+    ev_hora = hora_evento
+    ev_img = imagen_url
+
+    if active_ev is not None:
+        if isinstance(active_ev, dict):
+            ev_titulo = ev_titulo or active_ev.get("titulo")
+            ev_fecha = ev_fecha if ev_fecha is not None else active_ev.get("fecha_inicio") or active_ev.get("fecha")
+            ev_hora = ev_hora or active_ev.get("hora_inicio")
+            ev_img = ev_img if ev_img is not None else active_ev.get("imagen_url")
+        else:
+            ev_titulo = ev_titulo or getattr(active_ev, "titulo", None)
+            ev_fecha = ev_fecha if ev_fecha is not None else getattr(active_ev, "fecha_inicio", None)
+            ev_hora = ev_hora or getattr(active_ev, "hora_inicio", None)
+            ev_img = ev_img if ev_img is not None else getattr(active_ev, "imagen_url", None)
+
+    safe_title = str(ev_titulo or "Evento MEH").strip()
+    formatted_date = format_evento_fecha_humana(ev_fecha, ev_hora)
+    return safe_title, formatted_date, ev_img
+
+
+def _detect_subtype_from_bytes(img_bytes: bytes) -> str:
+    if img_bytes.startswith(b"\xff\xd8\xff"):
+        return "jpeg"
+    if len(img_bytes) >= 12 and img_bytes[:4] == b"RIFF" and img_bytes[8:12] == b"WEBP":
+        return "webp"
+    return "png"
+
+
+def build_event_email_header(
+    evento: Optional[Any] = None,
+    *,
+    titulo_evento: Optional[str] = None,
+    fecha_evento: Optional[Any] = None,
+    hora_evento: Optional[str] = None,
+    imagen_url: Optional[str] = None,
+    for_preview: bool = False,
+) -> Tuple[str, Dict[str, Tuple[bytes, str]], Dict[str, Any]]:
+    """Construye la cabecera HTML unificada de evento (imagen 16:9 + título + fecha) con fallback limpio."""
+    from .evento_imagen_service import get_evento_email_cover_bytes, resolve_evento_imagen_variantes
+
+    safe_title, formatted_date, raw_img_url = _extract_evento_header_fields(
+        evento=evento,
+        titulo_evento=titulo_evento,
+        fecha_evento=fecha_evento,
+        hora_evento=hora_evento,
+        imagen_url=imagen_url,
+    )
+
+    escaped_title = html_lib.escape(safe_title)
+    escaped_date = html_lib.escape(formatted_date)
+
+    variantes = resolve_evento_imagen_variantes(raw_img_url)
+    cover_bytes, url_16x9 = get_evento_email_cover_bytes(raw_img_url)
+
+    inline_images: Dict[str, Tuple[bytes, str]] = {}
+    img_src_attr: Optional[str] = None
+
+    if cover_bytes:
+        subtype = _detect_subtype_from_bytes(cover_bytes)
+        if for_preview:
+            b64_str = base64.b64encode(cover_bytes).decode("ascii")
+            img_src_attr = f"data:image/{subtype};base64,{b64_str}"
+        else:
+            inline_images["evento_portada"] = (cover_bytes, subtype)
+            img_src_attr = "cid:evento_portada"
+    elif url_16x9:
+        if url_16x9.startswith("http://") or url_16x9.startswith("https://") or url_16x9.startswith("data:"):
+            img_src_attr = url_16x9
+        elif url_16x9.startswith("/"):
+            img_src_attr = f"{BACKEND_PUBLIC_URL}{url_16x9}"
+
+    meta = {
+        "titulo_evento": safe_title,
+        "fecha_evento": formatted_date,
+        "tiene_imagen_portada": bool(img_src_attr),
+        "imagen_url_original": variantes.get("original"),
+        "imagen_url_16x9": variantes.get("widescreen_16x9"),
+        "imagen_url_1x1": variantes.get("square_1x1"),
+    }
+
+    if img_src_attr:
+        header_html = f"""
+        <div data-testid="event-email-header" style="margin-bottom: 22px; border-radius: 12px; overflow: hidden; border: 1px solid #e5dcf7; background: #161224;">
+            <img src="{img_src_attr}" alt="Portada de {escaped_title}" style="width: 100%; max-height: 220px; object-fit: cover; display: block;" />
+            <div style="padding: 16px 20px; background: linear-gradient(135deg, #1a102e 0%, #3b0a75 100%); color: #ffffff; text-align: left;">
+                <span style="display: inline-block; background: rgba(255, 255, 255, 0.16); color: #e9d5ff; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase;">EVENTO MEH</span>
+                <h2 style="margin: 8px 0 4px 0; color: #ffffff; font-size: 1.25rem; line-height: 1.3;">{escaped_title}</h2>
+                <p style="margin: 0; color: #ddd6fe; font-size: 0.88rem;">📅 <b>Fecha:</b> {escaped_date}</p>
+            </div>
+        </div>
+        """
+    else:
+        header_html = f"""
+        <div data-testid="event-email-header-fallback" style="margin-bottom: 22px; border-radius: 12px; overflow: hidden; padding: 18px 20px; background: linear-gradient(135deg, #2b0952 0%, #7f13ec 100%); color: #ffffff; text-align: left;">
+            <span style="display: inline-block; background: rgba(255, 255, 255, 0.2); color: #ffffff; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase;">EVENTO MEH</span>
+            <h2 style="margin: 8px 0 4px 0; color: #ffffff; font-size: 1.25rem; line-height: 1.3;">{escaped_title}</h2>
+            <p style="margin: 0; color: #f3e8ff; font-size: 0.88rem;">📅 <b>Fecha:</b> {escaped_date}</p>
+        </div>
+        """
+
+    return header_html, inline_images, meta
 
 
 def is_smtp_configured() -> bool:
@@ -123,28 +310,13 @@ def send_email(
 ) -> bool:
     """
     Función base para envío de correos vía SMTP
-    
-    Args:
-        to_email: Email destinatario
-        subject: Asunto del correo
-        html_content: Contenido HTML
-        retry_count: Número de reintentos en caso de fallo
-        images: Diccionario opcional de imágenes inline {cid: (bytes, subtype)}
-        db: Sesión de base de datos opcional para trazabilidad
-        id_admin: Identificador del administrador o ejecutor opcional
-    
-    Returns:
-        bool: True si se envió, False si falló
     """
-    
-    # Validar que SMTP esté configurado
     if not is_smtp_configured():
         msg = f"SMTP no configurado (servidor={SMTP_HOST})"
         logger.warning(f"⚠️ Correo NO enviado a {to_email}: {msg}")
         registrar_log_fallo_email(to_email, subject, msg, db=db, id_admin=id_admin)
         return False
     
-    # Validar email destinatario
     if not validate_email(to_email):
         msg = f"Email destinatario inválido: {to_email}"
         logger.error(f"❌ {msg}")
@@ -152,7 +324,6 @@ def send_email(
         return False
     
     try:
-        # Construir mensaje
         if images:
             message = MIMEMultipart("related")
             alt_part = MIMEMultipart("alternative")
@@ -161,7 +332,7 @@ def send_email(
             for cid, (img_bytes, subtype) in images.items():
                 mime_img = MIMEImage(img_bytes, _subtype=subtype)
                 mime_img.add_header("Content-ID", f"<{cid}>")
-                mime_img.add_header("Content-Disposition", "inline", filename=f"{cid}.png")
+                mime_img.add_header("Content-Disposition", "inline", filename=f"{cid}.{subtype}")
                 message.attach(mime_img)
         else:
             message = MIMEMultipart("alternative")
@@ -172,7 +343,6 @@ def send_email(
         message["From"] = f"{EMAIL_FROM_NAME} <{SMTP_USER}>"
         message["To"] = to_email
         
-        # Conexión segura al servidor SMTP (con reintentos)
         attempt = 0
         while attempt < retry_count:
             try:
@@ -217,13 +387,33 @@ def send_email(
 
 # ============= PLANTILLAS DE CORREOS =============
 
-def notify_pago_actualizado(email: str, nombre: str, estado: str, actividad: str) -> bool:
-    """Notifica actualización de estado de pago"""
+def notify_pago_actualizado(
+    email: str,
+    nombre: str,
+    estado: str,
+    actividad: str,
+    fecha_evento: Optional[Any] = None,
+    imagen_url: Optional[str] = None,
+    evento: Optional[Any] = None,
+) -> bool:
+    """Notifica actualización de estado de pago (incluye cabecera de evento cuando está vinculado a un evento)."""
     subject = f"Actualización de tu pago - {actividad}"
     color = "#4ecb71" if estado == "APROBADO" else "#ff4d4d"
-    
+
+    active_ev = evento if evento is not None else _ACTIVE_EVENT_CTX.get()
+    header_html = ""
+    inline_images: Dict[str, Tuple[bytes, str]] = {}
+    if active_ev is not None or fecha_evento is not None or imagen_url is not None:
+        header_html, inline_images, _ = build_event_email_header(
+            evento=active_ev,
+            titulo_evento=actividad,
+            fecha_evento=fecha_evento,
+            imagen_url=imagen_url,
+        )
+
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+        {header_html}
         <h2 style="color: #7f13ec;">Hola {nombre},</h2>
         <p>Te informamos que el estado de tu pago para <b>{actividad}</b> ha sido actualizado:</p>
         <div style="background: {color}; color: white; padding: 10px; border-radius: 5px; text-align: center; font-weight: bold; font-size: 1.2rem;">
@@ -240,15 +430,34 @@ def notify_pago_actualizado(email: str, nombre: str, estado: str, actividad: str
         </footer>
     </div>
     """
-    return send_email(email, subject, html)
+    return send_email(email, subject, html, images=inline_images or None)
 
 
-def notify_nuevo_certificado(email: str, nombre: str, actividad: str) -> bool:
-    """Notifica que un certificado está listo"""
+def notify_nuevo_certificado(
+    email: str,
+    nombre: str,
+    actividad: str,
+    fecha_evento: Optional[Any] = None,
+    imagen_url: Optional[str] = None,
+    evento: Optional[Any] = None,
+) -> bool:
+    """Notifica que un certificado está listo (con cabecera de evento si corresponde)."""
     subject = f"¡Felicidades! Tu diploma de {actividad} está listo"
-    
+
+    active_ev = evento if evento is not None else _ACTIVE_EVENT_CTX.get()
+    header_html = ""
+    inline_images: Dict[str, Tuple[bytes, str]] = {}
+    if active_ev is not None or fecha_evento is not None or imagen_url is not None:
+        header_html, inline_images, _ = build_event_email_header(
+            evento=active_ev,
+            titulo_evento=actividad,
+            fecha_evento=fecha_evento,
+            imagen_url=imagen_url,
+        )
+
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px; text-align: center;">
+        {header_html}
         <h1 style="color: #7f13ec;">¡Lo lograste! 🎓</h1>
         <p style="font-size: 1.1rem;">Hola <b>{nombre}</b>, tu esfuerzo ha dado frutos.</p>
         <p>Ya puedes visualizar y descargar tu certificado oficial de <b>{actividad}</b> desde el Learning Hub.</p>
@@ -263,7 +472,7 @@ def notify_nuevo_certificado(email: str, nombre: str, actividad: str) -> bool:
         </footer>
     </div>
     """
-    return send_email(email, subject, html)
+    return send_email(email, subject, html, images=inline_images or None)
 
 
 def notify_bienvenida(email: str, nombre: str) -> bool:
@@ -294,20 +503,49 @@ def notify_bienvenida(email: str, nombre: str) -> bool:
     return send_email(email, subject, html)
 
 
-def notify_nuevo_anuncio(email: str, nombre: str, titulo_anuncio: str, contenido_anuncio: str) -> bool:
-    """Notifica un nuevo anuncio importante a la comunidad"""
+def render_nuevo_anuncio_email(
+    nombre: str,
+    titulo_anuncio: str,
+    contenido_anuncio: str,
+    evento: Optional[Any] = None,
+    titulo_evento: Optional[str] = None,
+    fecha_evento: Optional[Any] = None,
+    imagen_url: Optional[str] = None,
+    for_preview: bool = False,
+) -> Tuple[str, str, Dict[str, Tuple[bytes, str]], Optional[Dict[str, Any]]]:
+    """Construye el asunto, HTML e imágenes inline para un correo de anuncio (con cabecera si está vinculado a evento)."""
     subject = f"🔔 Anuncio Importante: {titulo_anuncio}"
-    
+    header_html = ""
+    inline_images: Dict[str, Tuple[bytes, str]] = {}
+    meta: Optional[Dict[str, Any]] = None
+
+    active_ev = evento if evento is not None else _ACTIVE_EVENT_CTX.get()
+    has_linked_event = (
+        active_ev is not None
+        or bool(titulo_evento)
+        or fecha_evento is not None
+        or bool(imagen_url)
+    )
+    if has_linked_event:
+        header_html, inline_images, meta = build_event_email_header(
+            evento=active_ev,
+            titulo_evento=titulo_evento,
+            fecha_evento=fecha_evento,
+            imagen_url=imagen_url,
+            for_preview=for_preview,
+        )
+
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
         <div style="text-align: center; margin-bottom: 20px;">
             <span style="background: #7f13ec; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">COMUNIDAD MEH</span>
         </div>
+        {header_html}
         <h2 style="color: #333;">Hola {nombre},</h2>
         <p>Se ha publicado un nuevo anuncio que podría interesarte:</p>
         <div style="background: #f9f9f9; border-left: 4px solid #7f13ec; padding: 15px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #7f13ec;">{titulo_anuncio}</h3>
-            <p style="color: #555; line-height: 1.6;">{contenido_anuncio}</p>
+            <div style="color: #555; line-height: 1.6;">{contenido_anuncio}</div>
         </div>
         <div style="text-align: center; margin: 30px 0;">
             <a href="{FRONTEND_DASHBOARD}" style="display: inline-block; background: #7f13ec; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver en el Dashboard</a>
@@ -319,7 +557,31 @@ def notify_nuevo_anuncio(email: str, nombre: str, titulo_anuncio: str, contenido
         </footer>
     </div>
     """
-    return send_email(email, subject, html)
+    return subject, html, inline_images, meta
+
+
+def notify_nuevo_anuncio(
+    email: str,
+    nombre: str,
+    titulo_anuncio: str,
+    contenido_anuncio: str,
+    evento: Optional[Any] = None,
+    titulo_evento: Optional[str] = None,
+    fecha_evento: Optional[Any] = None,
+    imagen_url: Optional[str] = None,
+) -> bool:
+    """Notifica un nuevo anuncio importante a la comunidad (con cabecera del evento si está vinculado)."""
+    subject, html, inline_images, _ = render_nuevo_anuncio_email(
+        nombre=nombre,
+        titulo_anuncio=titulo_anuncio,
+        contenido_anuncio=contenido_anuncio,
+        evento=evento,
+        titulo_evento=titulo_evento,
+        fecha_evento=fecha_evento,
+        imagen_url=imagen_url,
+        for_preview=False,
+    )
+    return send_email(email, subject, html, images=inline_images or None)
 
 
 def notify_reset_password(email: str, nombre: str, token: str) -> bool:
@@ -360,15 +622,22 @@ def notify_ticket_qr(
     fecha: str, 
     codigo_qr: str, 
     frontend_url: str,
-    incluidos: Optional[List[str]] = None
+    incluidos: Optional[List[str]] = None,
+    imagen_url: Optional[str] = None,
+    evento: Optional[Any] = None,
 ) -> bool:
-    """Envía el ticket de entrada con su código QR para un evento generado internamente con la librería qrcode."""
+    """Envía el ticket de entrada con su código QR y la cabecera unificada del evento."""
     subject = f"🎟️ Tu entrada para {titulo_evento}"
     
-    # Generar imagen QR localmente con librería qrcode
     qr_bytes = generate_qr_image_bytes(codigo_qr)
+    header_html, inline_images, _ = build_event_email_header(
+        evento=evento,
+        titulo_evento=titulo_evento,
+        fecha_evento=fecha,
+        imagen_url=imagen_url,
+    )
+    inline_images["ticket_qr"] = (qr_bytes, "png")
     
-    # Renderizar sección de incluidos si existen
     incluidos_html = ""
     if incluidos and len(incluidos) > 0:
         items_list = "".join([f"<li style='margin-bottom: 6px;'><b>{item}</b></li>" for item in incluidos])
@@ -386,9 +655,10 @@ def notify_ticket_qr(
     
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
-        <div style="text-align: center; margin-bottom: 20px;">
+        <div style="text-align: center; margin-bottom: 16px;">
             <span style="background: #7f13ec; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;">TICKET DE ENTRADA</span>
         </div>
+        {header_html}
         <h2 style="color: #333; text-align: center;">¡Tu lugar está confirmado! 🎉</h2>
         <p>Hola <b>{nombre}</b>,</p>
         <p>Tu inscripción para el evento <b>{titulo_evento}</b> ha sido confirmada exitosamente. A continuación se encuentra tu ticket de ingreso:</p>
@@ -418,7 +688,7 @@ def notify_ticket_qr(
         </footer>
     </div>
     """
-    return send_email(email, subject, html, images={"ticket_qr": (qr_bytes, "png")})
+    return send_email(email, subject, html, images=inline_images)
 
 
 def notify_email_verification(email: str, nombre: str, codigo: str) -> bool:
@@ -426,7 +696,6 @@ def notify_email_verification(email: str, nombre: str, codigo: str) -> bool:
     subject = f"🔐 Código de verificación: {codigo} - Plataforma MEH"
     verification_url = f"{FRONTEND_URL}/verificar-email?email={email}"
 
-    # Log seguro para desarrollo / tests cuando no hay SMTP configurado
     logger.info(f"📧 [EMAIL VERIFICATION] Para: {email} | Código: {codigo} | URL: {verification_url}")
 
     html = f"""
@@ -459,14 +728,29 @@ def notify_email_verification(email: str, nombre: str, codigo: str) -> bool:
     return send_email(email, subject, html)
 
 
-def notify_evento_cancelado(email: str, nombre: str, titulo_evento: str, motivo: str) -> bool:
-    """Notifica la cancelación de un evento con su motivo correspondiente."""
+def notify_evento_cancelado(
+    email: str,
+    nombre: str,
+    titulo_evento: str,
+    motivo: str,
+    fecha_evento: Optional[Any] = None,
+    imagen_url: Optional[str] = None,
+    evento: Optional[Any] = None,
+) -> bool:
+    """Notifica la cancelación de un evento con su motivo y cabecera del evento."""
     subject = f"❌ Cancelación de evento: {titulo_evento} - Plataforma MEH"
+    header_html, inline_images, _ = build_event_email_header(
+        evento=evento,
+        titulo_evento=titulo_evento,
+        fecha_evento=fecha_evento,
+        imagen_url=imagen_url,
+    )
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
-        <div style="text-align: center; margin-bottom: 20px;">
+        <div style="text-align: center; margin-bottom: 16px;">
             <span style="background: #e53935; color: white; padding: 6px 18px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">EVENTO CANCELADO</span>
         </div>
+        {header_html}
         <h2 style="color: #333; text-align: center;">Aviso Importante</h2>
         <p>Hola <b>{nombre}</b>,</p>
         <p>Te informamos que el evento <b>{titulo_evento}</b> en el cual estabas registrado ha sido <b>cancelado</b>.</p>
@@ -488,7 +772,7 @@ def notify_evento_cancelado(email: str, nombre: str, titulo_evento: str, motivo:
         </footer>
     </div>
     """
-    return send_email(email, subject, html)
+    return send_email(email, subject, html, images=inline_images or None)
 
 
 def notify_evento_reprogramado(
@@ -496,16 +780,26 @@ def notify_evento_reprogramado(
     nombre: str, 
     titulo_evento: str, 
     nueva_fecha: str, 
-    nuevo_horario: Optional[str] = None
+    nuevo_horario: Optional[str] = None,
+    imagen_url: Optional[str] = None,
+    evento: Optional[Any] = None,
 ) -> bool:
-    """Notifica la reprogramación de fecha u horario de un evento."""
+    """Notifica la reprogramación de fecha u horario de un evento incluyendo su cabecera."""
     subject = f"📅 Reprogramación de fecha: {titulo_evento} - Plataforma MEH"
+    header_html, inline_images, _ = build_event_email_header(
+        evento=evento,
+        titulo_evento=titulo_evento,
+        fecha_evento=nueva_fecha,
+        hora_evento=nuevo_horario,
+        imagen_url=imagen_url,
+    )
     horario_texto = f"<p style='margin: 6px 0 0 0; color: #333;'><b>Nuevo Horario:</b> {nuevo_horario}</p>" if nuevo_horario else ""
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
-        <div style="text-align: center; margin-bottom: 20px;">
+        <div style="text-align: center; margin-bottom: 16px;">
             <span style="background: #f59e0b; color: white; padding: 6px 18px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">CAMBIO DE FECHA</span>
         </div>
+        {header_html}
         <h2 style="color: #333; text-align: center;">¡Atención, nueva fecha confirmada! 📅</h2>
         <p>Hola <b>{nombre}</b>,</p>
         <p>El evento <b>{titulo_evento}</b> ha sido reprogramado. A continuación encontrarás los nuevos detalles del evento:</p>
@@ -529,26 +823,37 @@ def notify_evento_reprogramado(
         </footer>
     </div>
     """
-    return send_email(email, subject, html)
+    return send_email(email, subject, html, images=inline_images or None)
 
 
-def notify_aviso_evento(
-    email: str, 
-    nombre: str, 
-    titulo_evento: str, 
-    titulo_aviso: str, 
-    mensaje: str
-) -> bool:
-    """Envía un aviso oficial de los organizadores a los inscritos confirmados de un evento."""
+def render_aviso_evento_email(
+    nombre: str,
+    titulo_evento: str,
+    titulo_aviso: str,
+    mensaje: str,
+    fecha_evento: Optional[Any] = None,
+    imagen_url: Optional[str] = None,
+    evento: Optional[Any] = None,
+    for_preview: bool = False,
+) -> Tuple[str, str, Dict[str, Tuple[bytes, str]], Dict[str, Any]]:
+    """Construye asunto, HTML, imágenes inline y metadatos para un aviso de evento."""
     subject = f"📢 Comunicado: {titulo_evento} - {titulo_aviso}"
+    header_html, inline_images, meta = build_event_email_header(
+        evento=evento,
+        titulo_evento=titulo_evento,
+        fecha_evento=fecha_evento,
+        imagen_url=imagen_url,
+        for_preview=for_preview,
+    )
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
-        <div style="text-align: center; margin-bottom: 20px;">
+        <div style="text-align: center; margin-bottom: 16px;">
             <span style="background: #7f13ec; color: white; padding: 6px 18px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">COMUNICADO OFICIAL</span>
         </div>
+        {header_html}
         <h2 style="color: #333; text-align: center;">{titulo_aviso}</h2>
         <p>Hola <b>{nombre}</b>,</p>
-        <p>Los organizadores del evento <b>{titulo_evento}</b> han publicado el siguiente comunicado para los asistentes confirmados:</p>
+        <p>Los organizadores del evento <b>{titulo_evento}</b> han publicado el siguiente comunicado para los asistentes:</p>
         
         <div style="background: #f7f3fd; border-left: 4px solid #7f13ec; padding: 18px; margin: 25px 0; border-radius: 4px; text-align: left;">
             <p style="margin: 0; color: #222; font-size: 0.95rem; line-height: 1.6; white-space: pre-line;">{mensaje}</p>
@@ -566,7 +871,28 @@ def notify_aviso_evento(
         </footer>
     </div>
     """
-    return send_email(email, subject, html)
+    return subject, html, inline_images, meta
 
 
-
+def notify_aviso_evento(
+    email: str, 
+    nombre: str, 
+    titulo_evento: str, 
+    titulo_aviso: str, 
+    mensaje: str,
+    fecha_evento: Optional[Any] = None,
+    imagen_url: Optional[str] = None,
+    evento: Optional[Any] = None,
+) -> bool:
+    """Envía un aviso oficial de los organizadores a los inscritos de un evento."""
+    subject, html, inline_images, _ = render_aviso_evento_email(
+        nombre=nombre,
+        titulo_evento=titulo_evento,
+        titulo_aviso=titulo_aviso,
+        mensaje=mensaje,
+        fecha_evento=fecha_evento,
+        imagen_url=imagen_url,
+        evento=evento,
+        for_preview=False,
+    )
+    return send_email(email, subject, html, images=inline_images or None)

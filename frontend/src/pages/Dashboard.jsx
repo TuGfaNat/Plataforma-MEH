@@ -37,6 +37,7 @@ import { useNavigate } from 'react-router-dom';
 import { designTokens } from '../theme/theme';
 import { useAuth, useNotify } from '../App';
 import { resolveApiFileUrl } from '../services/api';
+import { getEventoCoverByContext } from '../utils/eventoImagen';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import RankBenefitsTable from '../components/RankBenefitsTable';
 import DashboardAnalytics from '../components/DashboardAnalytics';
@@ -484,7 +485,7 @@ const Dashboard = () => {
                   
                   return (
                     <div key={evento.id_evento} className={styles.eventItem}>
-                      <img src={resolveApiFileUrl(evento.imagen_url) || DEFAULT_EVENT_IMG} className={styles.eventMiniature} alt={`Miniatura del evento ${evento.titulo}`} />
+                      <img src={getEventoCoverByContext(evento, '1:1')} className={styles.eventMiniature} alt={`Miniatura del evento ${evento.titulo}`} />
                       <div className={styles.dateBox}>
                         <MEHTypography variant="caption" style={{ display: 'block', fontWeight: 'bold', color: tokens.colorBrandForeground1, fontSize: '10px' }}>{month}</MEHTypography>
                         <MEHTypography variant="h3" style={{ fontSize: '16px' }}>{day}</MEHTypography>
@@ -778,11 +779,11 @@ const Dashboard = () => {
               </div>
               <DialogTitle>{selectedAnnouncement?.titulo}</DialogTitle>
               <DialogContent style={{ padding: '16px 0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {selectedAnnouncement?.url_imagen && (
+                {(selectedAnnouncement?.url_imagen || selectedAnnouncement?.evento_imagen_16x9) && (
                   <img 
-                    src={resolveApiFileUrl(selectedAnnouncement.url_imagen)} 
+                    src={resolveApiFileUrl(selectedAnnouncement.url_imagen || selectedAnnouncement.evento_imagen_16x9)} 
                     alt={selectedAnnouncement.titulo} 
-                    style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} 
+                    style={{ width: '100%', aspectRatio: '16 / 9', maxHeight: '220px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} 
                   />
                 )}
                 <div 
