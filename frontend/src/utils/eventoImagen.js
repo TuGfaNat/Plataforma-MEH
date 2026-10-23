@@ -78,3 +78,88 @@ export function getEventoCoverByContext(evento, context = '16:9') {
   }
   return variants.widescreen16x9;
 }
+
+/**
+ * Optimiza imágenes grandes en el cliente (< 800 KB) mediante HTML5 Canvas
+ * para evitar errores HTTP 413 (Content Too Large) en proxies externos con límite de 1 MB.
+ */
+export async function optimizeImageForUpload(
+  file,
+  { maxBytes = 800 * 1024, maxDimension = 1920 } = {}
+) {
+  if (!file || typeof document === 'undefined' || file.size <= maxBytes) {
+    return file;
+  }
+  if (typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const srcWidth = img.naturalWidth || img.width;
+      const srcHeight = img.naturalHeight || img.height;
+
+      if (!srcWidth || !srcHeight) {
+        resolve(file);
+        return;
+      }
+
+      const scale = Math.min(1, maxDimension / Math.max(srcWidth, srcHeight));
+      const targetWidth = Math.max(64, Math.round(srcWidth * scale));
+      const targetHeight = Math.max(64, Math.round(srcHeight * scale));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx || typeof canvas.toBlob !== 'function') {
+        resolve(file);
+        return;
+      }
+
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(0, 0, targetWidth, targetHeight);
+      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+      const baseName = (file.name || 'portada').replace(/\.[^.]+$/, '');
+      const qualities = [0.84, 0.72, 0.6];
+
+      const tryEncode = (idx) => {
+        const quality = qualities[idx] ?? 0.6;
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            if (blob.size <= maxBytes || idx >= qualities.length - 1) {
+              const optimizedFile = new File([blob], `${baseName}.jpg`, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(optimizedFile);
+              return;
+            }
+            tryEncode(idx + 1);
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+
+      tryEncode(0);
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+
+    img.src = objectUrl;
+  });
+}

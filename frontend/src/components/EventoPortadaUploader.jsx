@@ -19,10 +19,22 @@ import eventoService from '../services/eventoService';
 import {
   getEventoCoverVariants,
   hasEventoCustomCover,
+  optimizeImageForUpload,
 } from '../utils/eventoImagen';
 
 const MAX_SIZE_BYTES = 8 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+
+const resolveUploadErrorMessage = (err) => {
+  if (err?.response?.status === 413) {
+    return 'La imagen excede el límite permitido por el servidor proxy (HTTP 413). Intenta con una imagen más ligera.';
+  }
+  const detail = err?.response?.data?.detail;
+  if (typeof detail === 'string') {
+    return detail;
+  }
+  return 'No se pudo procesar la imagen de portada.';
+};
 
 const EventoPortadaUploader = ({
   evento,
@@ -78,8 +90,9 @@ const EventoPortadaUploader = ({
     setValidationError('');
 
     try {
+      const payloadFile = await optimizeImageForUpload(selectedFile);
       if (mode === 'form' && onFormChange) {
-        const res = await eventoService.uploadImagenBorrador(selectedFile);
+        const res = await eventoService.uploadImagenBorrador(payloadFile);
         onFormChange({
           imagen_url: res.imagen_url,
           imagen_url_original: res.imagen_url_original,
@@ -95,7 +108,7 @@ const EventoPortadaUploader = ({
       } else if (evento?.id_evento) {
         const updated = await eventoService.uploadEventoImagen(
           evento.id_evento,
-          selectedFile
+          payloadFile
         );
         if (onEventoUpdated) {
           await onEventoUpdated(updated);
@@ -109,11 +122,7 @@ const EventoPortadaUploader = ({
       setSelectedFile(null);
       setFileInputKey((prev) => prev + 1);
     } catch (err) {
-      const detail = err.response?.data?.detail;
-      const msg =
-        typeof detail === 'string'
-          ? detail
-          : 'No se pudo procesar la imagen de portada.';
+      const msg = resolveUploadErrorMessage(err);
       setValidationError(msg);
       notifyUser('Error de imagen', msg, 'error');
     } finally {
@@ -326,7 +335,7 @@ const EventoPortadaUploader = ({
             </Button>
           </div>
           <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
-            Formatos permitidos: PNG, JPG, WEBP (máx. 8 MB, mín. 64x64 px).
+            Formatos permitidos: PNG, JPG, WEBP (máx. 8 MB, optimización automática).
           </MEHTypography>
         </div>
       </div>
