@@ -7,7 +7,8 @@ import {
 import { 
   Settings24Filled, Library24Regular, People24Regular, Box24Regular,
   HatGraduation24Regular, CalendarLtr24Regular, MegaphoneLoud24Regular,
-  DeleteDismiss24Regular, Database24Regular
+  DeleteDismiss24Regular, Database24Regular, PeopleCommunity24Regular,
+  Print24Regular
 } from '@fluentui/react-icons';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 
@@ -27,6 +28,8 @@ import AcademyTab from './Admin/AcademyTab';
 import PapeleraTab from './Admin/PapeleraTab';
 import AnnouncementsTab from './Admin/AnnouncementsTab';
 import CleanupTab from './Admin/CleanupTab';
+import EcosystemDirectory from './Admin/EcosystemDirectory';
+import GeneradorCertificados from './Admin/GeneradorCertificados';
 
 const useStyles = makeStyles({
   container: {
@@ -170,14 +173,14 @@ const AdminPanel = () => {
   
   const getDefaultTab = () => {
     if (tabParam) return tabParam;
-    if (currentUser?.rol === 'ADMIN') return 'usuarios';
+    if (currentUser?.rol === 'ADMIN') return 'eventos';
     if (currentUser?.rol === 'ORGANIZADOR') return 'eventos';
-    if (currentUser?.rol === 'MODERADOR') return 'academia';
+    if (currentUser?.rol === 'MODERADOR') return 'eventos';
     if (currentUser?.rol === 'SOPORTE') return 'usuarios';
-    return 'usuarios';
+    return 'eventos';
   };
 
-  const [selectedTab, setSelectedTab] = useState(() => tabParam || 'usuarios');
+  const [selectedTab, setSelectedTab] = useState(() => tabParam || 'eventos');
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]); 
   const [usuariosList, setUsuariosList] = useState([]);
@@ -234,7 +237,7 @@ const AdminPanel = () => {
     if (selectedTab === 'souvenirs' && currentUser?.rol !== 'ADMIN') return;
     if (selectedTab === 'biblioteca' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'MODERADOR') return;
     if (selectedTab === 'academia' && currentUser?.rol !== 'ADMIN' && currentUser?.rol !== 'ORGANIZADOR' && currentUser?.rol !== 'MODERADOR' && currentUser?.rol !== 'SOPORTE') return;
-    if (selectedTab === 'anuncios' || selectedTab === 'papelera' || selectedTab === 'limpieza') return;
+    if (selectedTab === 'anuncios' || selectedTab === 'ecosistema' || selectedTab === 'certificados' || selectedTab === 'papelera' || selectedTab === 'limpieza') return;
     
     setData([]);
     setLoading(true);
@@ -493,23 +496,27 @@ const AdminPanel = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-          <Settings24Filled style={{ color: tokens.colorBrandForeground1, fontSize: '42px', flexShrink: 0 }} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
-            <MEHTypography variant="h1" style={{ fontSize: 'clamp(1.5rem, 3.5vw, 2.2rem)' }}>Master Admin Panel</MEHTypography>
-            <MEHTypography variant="body" style={{ opacity: 0.7 }}>Gestión operativa de alto nivel para la red MEH.</MEHTypography>
+          <Settings24Filled style={{ color: tokens.colorBrandForeground1, fontSize: '38px', flexShrink: 0 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+            <MEHTypography variant="h1" style={{ fontSize: 'clamp(1.4rem, 3vw, 2rem)' }}>Centro de Gestión MEH</MEHTypography>
+            <MEHTypography variant="caption" style={{ opacity: 0.7 }}>Administración centralizada de eventos, comunidad, academia y mantenimiento según tu rol ({currentUser?.rol}).</MEHTypography>
           </div>
       </div>
 
-      <TabList selectedValue={selectedTab} onTabSelect={(e, d) => { setData([]); setSelectedTab(d.value); setSearchParams({ tab: d.value }); }} style={{ overflowX: 'auto', maxWidth: '100%' }}>
-        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'SOPORTE') && <Tab value="usuarios" icon={<People24Regular />}>Miembros</Tab>}
-        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="eventos" icon={<CalendarLtr24Regular />}>Eventos</Tab>}
-        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR') && <Tab value="anuncios" icon={<MegaphoneLoud24Regular />}>Anuncios</Tab>}
-        {currentUser?.rol === 'ADMIN' && <Tab value="souvenirs" icon={<Box24Regular />}>POS & Stock</Tab>}
-        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="biblioteca" icon={<Library24Regular />}>Biblioteca</Tab>}
-        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR' || currentUser?.rol === 'SOPORTE') && <Tab value="academia" icon={<HatGraduation24Regular />}>Aula Virtual</Tab>}
-        {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="papelera" icon={<DeleteDismiss24Regular />}>Papelera</Tab>}
-        {currentUser?.rol === 'ADMIN' && <Tab value="limpieza" icon={<Database24Regular />} data-testid="admin-tab-limpieza">Limpieza de Datos</Tab>}
-      </TabList>
+      <div style={{ backgroundColor: tokens.colorNeutralBackground2, padding: '6px 10px', borderRadius: '14px', border: `1px solid ${tokens.colorNeutralBackground3}`, overflowX: 'auto', maxWidth: '100%' }}>
+        <TabList selectedValue={selectedTab} onTabSelect={(e, d) => { setData([]); setSelectedTab(d.value); setSearchParams({ tab: d.value }); }} style={{ whiteSpace: 'nowrap' }}>
+          {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="eventos" icon={<CalendarLtr24Regular />}>Eventos</Tab>}
+          {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'SOPORTE') && <Tab value="usuarios" icon={<People24Regular />}>Miembros</Tab>}
+          {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR') && <Tab value="anuncios" icon={<MegaphoneLoud24Regular />}>Anuncios</Tab>}
+          {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR' || currentUser?.rol === 'SOPORTE') && <Tab value="academia" icon={<HatGraduation24Regular />}>Aula Virtual</Tab>}
+          {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="biblioteca" icon={<Library24Regular />}>Biblioteca</Tab>}
+          {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR') && <Tab value="ecosistema" icon={<PeopleCommunity24Regular />}>Ecosistema</Tab>}
+          {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="certificados" icon={<Print24Regular />}>Certificados</Tab>}
+          {currentUser?.rol === 'ADMIN' && <Tab value="souvenirs" icon={<Box24Regular />}>POS & Stock</Tab>}
+          {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="papelera" icon={<DeleteDismiss24Regular />}>Papelera</Tab>}
+          {currentUser?.rol === 'ADMIN' && <Tab value="limpieza" icon={<Database24Regular />} data-testid="admin-tab-limpieza">Limpieza de Datos</Tab>}
+        </TabList>
+      </div>
 
       <MEHCard style={{ minWidth: 0, maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
         {selectedTab === 'usuarios' && (
@@ -580,6 +587,14 @@ const AdminPanel = () => {
 
         {selectedTab === 'anuncios' && (
           <AnnouncementsTab />
+        )}
+
+        {selectedTab === 'ecosistema' && (
+          <EcosystemDirectory />
+        )}
+
+        {selectedTab === 'certificados' && (
+          <GeneradorCertificados />
         )}
 
         {selectedTab === 'papelera' && (

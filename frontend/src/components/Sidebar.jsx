@@ -14,8 +14,6 @@ import {
   Trophy24Filled,
   Library24Regular,
   Library24Filled,
-  Certificate24Regular,
-  Certificate24Filled,
   Settings24Regular,
   Settings24Filled,
   Payment24Regular,
@@ -32,20 +30,14 @@ import {
   WeatherSunny24Regular,
   ShieldSettings24Regular,
   ShieldSettings24Filled,
-  Print24Regular,
-  Print24Filled,
   ReceiptMoney24Regular,
   ReceiptMoney24Filled,
   QrCode24Regular,
   QrCode24Filled,
-  MegaphoneLoud24Regular,
-  MegaphoneLoud24Filled,
   BookToolbox24Regular,
   BookToolbox24Filled,
   DataTrending24Regular,
   DataTrending24Filled,
-  PeopleCommunity24Regular,
-  PeopleCommunity24Filled,
   Globe24Regular,
   CalendarStar24Regular,
   CalendarStar24Filled,
@@ -76,65 +68,63 @@ import {
 const useStyles = makeStyles({
   sidebar: {
     width: "280px",
-    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    backgroundColor: "rgba(0, 0, 0, 0.22)",
     backdropFilter: "blur(20px)",
     display: "flex",
     flexDirection: "column",
     ...shorthands.borderRight("1px", "solid", tokens.colorNeutralBackground3),
-    padding: "32px 16px",
+    padding: "24px 14px",
     height: "100vh",
     boxSizing: "border-box",
     zIndex: 100,
-    // Menú interno scrolleable si hay muchos items
     overflowY: "auto",
-    scrollbarWidth: "none",
-    "&::-webkit-scrollbar": { display: "none" },
+    scrollbarWidth: "thin",
   },
   logoContainer: {
     display: "flex",
     alignItems: "center",
     gap: "12px",
-    marginBottom: "48px",
-    paddingLeft: "12px",
+    marginBottom: "20px",
+    paddingLeft: "10px",
     textDecorationLine: "none",
     color: "inherit",
     flexShrink: 0,
   },
-  logoImg: { width: "42px" },
+  logoImg: { width: "38px" },
   navSection: {
     display: "flex",
     flexDirection: "column",
-    gap: "8px",
+    gap: "4px",
     flexGrow: 1,
   },
   sectionTitle: {
-    fontSize: "0.75rem",
+    fontSize: "0.7rem",
     fontWeight: tokens.fontWeightBold,
-    color: tokens.colorNeutralForeground4,
+    color: tokens.colorNeutralForeground3,
     textTransform: "uppercase",
-    letterSpacing: "0.05em",
-    padding: "16px 16px 8px 16px",
+    letterSpacing: "0.06em",
+    padding: "14px 12px 4px 12px",
   },
   navItem: {
     display: "flex",
     alignItems: "center",
     gap: "12px",
-    padding: "14px 16px",
-    ...shorthands.borderRadius("12px"),
+    padding: "10px 14px",
+    ...shorthands.borderRadius("10px"),
     textDecorationLine: "none",
     color: tokens.colorNeutralForeground2,
-    transition: "all 0.2s",
+    transition: "all 0.18s ease",
     cursor: "pointer",
     ":hover": {
-      backgroundColor: "rgba(255, 255, 255, 0.05)",
+      backgroundColor: "rgba(255, 255, 255, 0.06)",
       color: tokens.colorNeutralForeground1,
     },
   },
-  navText: { fontSize: "0.95rem" },
+  navText: { fontSize: "0.9rem" },
   navActive: {
-    backgroundColor: "rgba(127, 19, 236, 0.2)",
+    backgroundColor: "rgba(127, 19, 236, 0.22)",
     color: tokens.colorBrandForeground1,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
   navButtonReset: {
     backgroundColor: "transparent",
@@ -146,23 +136,22 @@ const useStyles = makeStyles({
   },
   footer: {
     marginTop: "auto",
-    paddingTop: "24px",
-    ...shorthands.borderTop("1.5px", "solid", tokens.colorNeutralBackground3),
+    paddingTop: "16px",
+    ...shorthands.borderTop("1px", "solid", tokens.colorNeutralBackground3),
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
+    gap: "8px",
     flexShrink: 0,
   },
   themeToggle: {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    gap: "12px",
+    gap: "8px",
     backgroundColor: "rgba(255, 255, 255, 0.03)",
-    ...shorthands.padding("12px"),
-    ...shorthands.borderRadius("16px"),
+    ...shorthands.padding("8px"),
+    ...shorthands.borderRadius("12px"),
     ...shorthands.border("1px", "solid", tokens.colorNeutralBackground3),
-    marginBottom: "8px",
   },
   themeButton: {
     flexGrow: 1,
@@ -276,20 +265,12 @@ const Sidebar = ({ onClose }) => {
     );
   };
 
+  const isStaff = ["ADMIN", "ORGANIZADOR", "MODERADOR", "SOPORTE"].includes(user?.rol);
   const canAccessVip = hasPermission(user?.rol, PERMISSION_VIP_ACCESS);
-  const canAccessSpeakerKit = hasPermission(
-    user?.rol,
-    PERMISSION_SPEAKER_ACCESS,
-  );
+  const canAccessSpeakerKit = hasPermission(user?.rol, PERMISSION_SPEAKER_ACCESS);
   const canManageEvents = hasPermission(user?.rol, PERMISSION_EVENTS_MANAGE);
-  const canReadAllPayments = hasPermission(
-    user?.rol,
-    PERMISSION_PAYMENTS_READ_ALL,
-  );
-  const canScanAttendance = hasPermission(
-    user?.rol,
-    PERMISSION_ATTENDANCE_SCAN,
-  );
+  const canReadAllPayments = hasPermission(user?.rol, PERMISSION_PAYMENTS_READ_ALL);
+  const canScanAttendance = hasPermission(user?.rol, PERMISSION_ATTENDANCE_SCAN) || isStaff;
   const canReadAudit = hasPermission(user?.rol, PERMISSION_AUDIT_READ);
 
   const currentLanguageLabel = String(i18n.language || "")
@@ -302,18 +283,22 @@ const Sidebar = ({ onClose }) => {
     <aside className={styles.sidebar}>
       <Link to="/" className={styles.logoContainer}>
         <img src={designTokens.logo} alt="Logotipo de Plataforma MEH" className={styles.logoImg} />
-        <Body1
-          style={{
-            fontWeight: tokens.fontWeightBlack,
-            color: tokens.colorNeutralForeground1,
-          }}
-        >
-          MEH
-        </Body1>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <Body1
+            style={{
+              fontWeight: tokens.fontWeightBlack,
+              color: tokens.colorNeutralForeground1,
+              lineHeight: "1.1",
+            }}
+          >
+            Plataforma MEH
+          </Body1>
+          <span style={{ fontSize: "0.7rem", opacity: 0.6 }}>Microsoft Education Hub</span>
+        </div>
       </Link>
 
       <nav className={styles.navSection}>
-        {/* SECTION 1: PERSONAL / MEMBER SPACE */}
+        {/* BLOQUE 1: MI ESPACIO (TODOS LOS ROLES) */}
         <div className={styles.sectionTitle}>
           {t("menu_personal") || "Mi Espacio"}
         </div>
@@ -321,7 +306,7 @@ const Sidebar = ({ onClose }) => {
           to="/dashboard"
           icon={Home24Regular}
           activeIcon={Home24Filled}
-          label={t("dashboard")}
+          label={t("dashboard") || "Inicio"}
         />
         <NavItem
           to="/dashboard/events-master"
@@ -330,56 +315,50 @@ const Sidebar = ({ onClose }) => {
           label={t("events") || "Eventos"}
         />
         <NavItem
-          to="/validador"
-          icon={Certificate24Regular}
-          activeIcon={Certificate24Filled}
-          label={t("verificar_talento")}
+          to="/learning"
+          icon={Library24Regular}
+          activeIcon={Library24Filled}
+          label={t("learning_hub") || "Learning Hub"}
         />
         <NavItem
           to="/insignias"
           icon={Trophy24Regular}
           activeIcon={Trophy24Filled}
-          label={t("badges")}
-        />
-        <NavItem
-          to="/finanzas"
-          icon={Payment24Regular}
-          activeIcon={Payment24Filled}
-          label={t("finances")}
-        />
-        <NavItem
-          to="/learning"
-          icon={Library24Regular}
-          activeIcon={Library24Filled}
-          label={t("learning_hub")}
+          label={t("badges") || "Mis Insignias"}
         />
         <NavItem
           to="/comunidad"
           icon={People24Regular}
           activeIcon={People24Filled}
-          label={t("community")}
+          label={t("community") || "Comunidad"}
         />
         <NavItem
-          icon={ArrowSync24Regular}
-          activeIcon={ArrowSync24Filled}
-          label={t("menu_sync_queue") || "Cola de Sincronización"}
-          badge={offlinePendingCount > 0 ? offlinePendingCount : null}
-          badgeColor={hasOfflineErrors ? "danger" : "warning"}
-          onClick={() => setShowSyncPanel(true)}
+          to="/finanzas"
+          icon={Payment24Regular}
+          activeIcon={Payment24Filled}
+          label={t("finances") || "Mis Pagos"}
         />
+        {(canAccessVip || canAccessSpeakerKit) && (
+          <NavItem
+            to="/recursos-vip"
+            icon={BookToolbox24Regular}
+            activeIcon={BookToolbox24Filled}
+            label={canAccessSpeakerKit ? "Zona VIP & Speakers" : (t("ambassador_resources") || "Recursos VIP")}
+          />
+        )}
 
-        {/* SECTION 2: OPERATIONS CENTER (STAFF) */}
-        {(canManageEvents || canReadAllPayments || canScanAttendance) && (
+        {/* BLOQUE 2: OPERACIONES EN VIVO (SOLO STAFF) */}
+        {isStaff && (
           <>
             <div className={styles.sectionTitle}>
-              {t("menu_operations") || "Centro de Operaciones"}
+              {t("menu_operations") || "Operaciones en Vivo"}
             </div>
             {canScanAttendance && (
               <NavItem
                 to="/escaneo-qr"
                 icon={QrCode24Regular}
                 activeIcon={QrCode24Filled}
-                label={t("qr_scan")}
+                label={t("qr_scan") || "Escáner QR"}
               />
             )}
             {canReadAllPayments && (
@@ -387,88 +366,40 @@ const Sidebar = ({ onClose }) => {
                 to="/gestion-pagos"
                 icon={ReceiptMoney24Regular}
                 activeIcon={ReceiptMoney24Filled}
-                label={t("manage_payments")}
+                label={t("manage_payments") || "Validar Pagos"}
               />
             )}
-            {(user?.rol === 'ADMIN' || user?.rol === 'ORGANIZADOR') && (
+            {(offlinePendingCount > 0 || isStaff) && (
               <NavItem
-                to="/admin/ecosistema"
-                icon={PeopleCommunity24Regular}
-                activeIcon={PeopleCommunity24Filled}
-                label={t("menu_ecosystem")}
+                icon={ArrowSync24Regular}
+                activeIcon={ArrowSync24Filled}
+                label={offlinePendingCount > 0 ? "Cola Offline (Pendiente)" : "Sincronización Offline"}
+                badge={offlinePendingCount > 0 ? offlinePendingCount : null}
+                badgeColor={hasOfflineErrors ? "danger" : "warning"}
+                onClick={() => setShowSyncPanel(true)}
               />
             )}
           </>
         )}
 
-        {/* SECTION 3: LEADERSHIP & VIP */}
-        {(canAccessVip || canAccessSpeakerKit) && (
+        {/* BLOQUE 3: ADMINISTRACIÓN Y ANALÍTICA (SOLO STAFF) */}
+        {(canManageEvents || isStaff) && (
           <>
             <div className={styles.sectionTitle}>
-              {t("menu_liderazgo") || "Liderazgo"}
-            </div>
-            {canAccessVip && (
-              <NavItem
-                to="/recursos-vip"
-                icon={BookToolbox24Regular}
-                activeIcon={BookToolbox24Filled}
-                label={t("ambassador_resources")}
-              />
-            )}
-            {canAccessSpeakerKit && (
-              <NavItem
-                to="/speaker-kit"
-                icon={MegaphoneLoud24Regular}
-                activeIcon={MegaphoneLoud24Filled}
-                label={t("speaker_kit")}
-              />
-            )}
-          </>
-        )}
-
-        {/* SECTION 4: ACADEMIC & CONTENT (MANAGEMENT) */}
-        {(canManageEvents || user?.rol === 'MODERADOR' || user?.rol === 'SOPORTE') && (
-          <>
-            <div className={styles.sectionTitle}>
-              {t("menu_academic") || "Academia y Contenido"}
+              {t("menu_academic") || "Administración"}
             </div>
             <NavItem
               to="/admin"
               icon={ShieldSettings24Regular}
               activeIcon={ShieldSettings24Filled}
-              label={t("admin_panel")}
+              label="Centro de Gestión"
             />
-            {(user?.rol === 'ADMIN' || user?.rol === 'ORGANIZADOR') && (
-              <NavItem
-                to="/admin?tab=anuncios"
-                icon={MegaphoneLoud24Regular}
-                activeIcon={MegaphoneLoud24Filled}
-                label={t("admin_announcements_management")}
-              />
-            )}
-            {canManageEvents && (
-              <NavItem
-                to="/admin/generador-certificados"
-                icon={Print24Regular}
-                activeIcon={Print24Filled}
-                label={t("admin_cert_generator")}
-              />
-            )}
-          </>
-        )}
-
-        {/* SECTION 5: INTELLIGENCE & SYSTEM (ADMIN) */}
-        {((user?.rol === 'ADMIN' || user?.rol === 'ORGANIZADOR') || canReadAudit) && (
-          <>
-            <div className={styles.sectionTitle}>
-              {t("menu_intelligence") || "Inteligencia y Sistema"}
-            </div>
-            {(user?.rol === 'ADMIN' || user?.rol === 'ORGANIZADOR') && (
+            {(user?.rol === "ADMIN" || user?.rol === "ORGANIZADOR") && (
               <NavItem
                 to="/dashboard/analytics"
                 icon={DataTrending24Regular}
                 activeIcon={DataTrending24Filled}
-                label={t("analytics")}
+                label={t("analytics") || "Analítica e Impacto"}
               />
             )}
             {canReadAudit && (
@@ -476,7 +407,7 @@ const Sidebar = ({ onClose }) => {
                 to="/auditoria"
                 icon={ShieldLock24Regular}
                 activeIcon={ShieldLock24Filled}
-                label={t("audit")}
+                label={t("audit") || "Auditoría"}
               />
             )}
           </>
@@ -489,11 +420,10 @@ const Sidebar = ({ onClose }) => {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "12px",
-              padding: "12px 16px",
-              backgroundColor: "rgba(255, 255, 255, 0.03)",
+              gap: "10px",
+              padding: "10px 12px",
+              backgroundColor: "rgba(255, 255, 255, 0.04)",
               borderRadius: "12px",
-              marginBottom: "8px",
             }}
           >
             <Avatar
@@ -511,22 +441,29 @@ const Sidebar = ({ onClose }) => {
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
+                flexGrow: 1,
+                minWidth: 0,
               }}
             >
-              <Body1
-                style={{
-                  fontWeight: "bold",
-                  fontSize: "0.85rem",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {user.nombres} {user.apellidos}
-              </Body1>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <Body1
+                  style={{
+                    fontWeight: "bold",
+                    fontSize: "0.82rem",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {user.nombres}
+                </Body1>
+                <Badge size="tiny" appearance="tint" color="brand">
+                  {user.rol}
+                </Badge>
+              </div>
               <span
                 style={{
-                  fontSize: "0.75rem",
+                  fontSize: "0.72rem",
                   opacity: 0.6,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
@@ -589,7 +526,7 @@ const Sidebar = ({ onClose }) => {
         <div
           className={styles.navItem}
           onClick={handleLogout}
-          style={{ color: tokens.colorPaletteRedForeground1 }}
+          style={{ color: tokens.colorPaletteRedForeground1, padding: "8px 14px" }}
         >
           <SignOut24Regular />
           <span className={styles.navText}>

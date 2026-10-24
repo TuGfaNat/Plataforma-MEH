@@ -5,7 +5,9 @@ import {
   tokens, 
   Button,
   Spinner,
-  Caption1
+  Caption1,
+  TabList,
+  Tab
 } from '@fluentui/react-components';
 import { 
   BookToolbox24Filled, 
@@ -17,6 +19,9 @@ import {
 } from '@fluentui/react-icons';
 import { MEHCard, MEHTypography } from '../components/ui';
 import recursoService from '../services/recursoService';
+import { useAuth } from '../App';
+import { hasPermission, PERMISSION_SPEAKER_ACCESS } from '../auth/rbac';
+import SpeakerKit from './SpeakerKit';
 
 const useStyles = makeStyles({
   container: {
@@ -86,6 +91,9 @@ const PERMANENT_RESOURCES = [
 
 const RecursosVIP = () => {
   const styles = useStyles();
+  const { user } = useAuth();
+  const canAccessSpeakerKit = hasPermission(user?.rol, PERMISSION_SPEAKER_ACCESS);
+  const [activeSection, setActiveSection] = useState('vip');
   const [recursos, setRecursos] = useState([]);
   const [loading, setLoading] = useState(true);
 

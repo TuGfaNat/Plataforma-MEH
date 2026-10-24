@@ -238,7 +238,7 @@ export default function App() {
                   <Route path="/admin/ecosistema" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}><EcosystemDirectory /></ProtectedRoute>} />
                   <Route path="/admin/generador-certificados" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR']}><GeneradorCertificados /></ProtectedRoute>} />
                   <Route path="/gestion-pagos" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'SOPORTE']}><GestionPagos /></ProtectedRoute>} />
-                  <Route path="/escaneo-qr" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR']}><EscaneoQR /></ProtectedRoute>} />
+                  <Route path="/escaneo-qr" element={<ProtectedRoute allowedRoles={['ADMIN', 'ORGANIZADOR', 'MODERADOR', 'SOPORTE']}><EscaneoQR /></ProtectedRoute>} />
                   <Route path="/auditoria" element={<ProtectedRoute allowedRoles={['ADMIN']}><Auditoria /></ProtectedRoute>} />
                 </Route>
 

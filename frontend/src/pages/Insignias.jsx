@@ -16,6 +16,8 @@ import {
   Edit24Regular
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { Certificate24Regular } from '@fluentui/react-icons';
 import { MEHCard, MEHButton, MEHTypography } from '../components/ui';
 import BadgeForm from '../components/BadgeForm';
 import BadgeDetailModal from '../components/BadgeDetailModal';
@@ -104,6 +106,7 @@ const useStyles = makeStyles({
 
 const Insignias = () => {
   const styles = useStyles();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
   const { notify } = useNotify();
@@ -185,7 +188,14 @@ const Insignias = () => {
             Visualiza tu progreso y las competencias validadas por el programa MEH.
           </MEHTypography>
         </div>
-        <MEHButton icon={<Share24Filled />} appearance="outline" onClick={handleShareProfile}>Compartir Perfil</MEHButton>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <MEHButton icon={<Certificate24Regular />} appearance="secondary" onClick={() => navigate('/validador')}>
+            Validador de Talento
+          </MEHButton>
+          <MEHButton icon={<Share24Filled />} appearance="outline" onClick={handleShareProfile}>
+            Compartir Perfil
+          </MEHButton>
+        </div>
       </div>
 
       {/* Resumen de Hito actual */}
