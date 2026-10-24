@@ -303,7 +303,7 @@ def send_email(
     to_email: str, 
     subject: str, 
     html_content: str, 
-    retry_count: int = 3,
+    retry_count: int = 1,
     images: Optional[Dict[str, Tuple[bytes, str]]] = None,
     db: Optional[Session] = None,
     id_admin: Optional[int] = None
@@ -346,7 +346,7 @@ def send_email(
         attempt = 0
         while attempt < retry_count:
             try:
-                with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=6) as server:
                     server.starttls()
                     server.login(SMTP_USER, SMTP_PASSWORD)
                     server.sendmail(SMTP_USER, to_email, message.as_string())

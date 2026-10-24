@@ -85,6 +85,7 @@ class UserResponse(UserBase):
     activo: bool
     es_nuevo: Optional[bool] = False
     email_verificado: bool = False
+    codigo_verificacion: Optional[str] = None
     motivo_suspension: Optional[str] = None
     id_estado: Optional[int] = 2
     badge_count: Optional[int] = 0

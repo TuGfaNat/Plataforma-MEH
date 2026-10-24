@@ -174,7 +174,7 @@ const Login = () => {
             <MessageBar intent="error">{errorApi}</MessageBar>
             {errorApi.toLowerCase().includes('verifi') && (
               <div style={{ textAlign: 'center' }}>
-                <Link to={`/verificar-email?email=${encodeURIComponent(formData.correo)}`} className={styles.link} style={{ fontSize: '13px' }}>
+                <Link to={`/verificar-email?email=${encodeURIComponent(formData.correo)}${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}`} className={styles.link} style={{ fontSize: '13px' }}>
                   👉 Haz clic aquí para verificar tu correo electrónico
                 </Link>
               </div>

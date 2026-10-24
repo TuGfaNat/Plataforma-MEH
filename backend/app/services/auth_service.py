@@ -45,6 +45,15 @@ def register_user(db: Session, user_data: user_schema.UserCreate) -> models.Usua
         correo=user_data.correo,
         password_hash=auth_core.get_password_hash(user_data.password),
         rol=ROLE_MIEMBRO,
+        alias=getattr(user_data, "alias", None),
+        institucion=getattr(user_data, "institucion", None),
+        estudia_en=getattr(user_data, "estudia_en", None) or getattr(user_data, "institucion", None),
+        tipo_entidad=getattr(user_data, "tipo_entidad", "Estudiante"),
+        pais=getattr(user_data, "pais", "Bolivia"),
+        departamento=getattr(user_data, "departamento", None),
+        bio=getattr(user_data, "bio", None),
+        linkedin_url=str(getattr(user_data, "linkedin_url", "") or "") or None,
+        github_url=str(getattr(user_data, "github_url", "") or "") or None,
         fecha_registro=datetime.utcnow(),
         email_verificado=False,
         codigo_verificacion=codigo_verif,
@@ -54,12 +63,21 @@ def register_user(db: Session, user_data: user_schema.UserCreate) -> models.Usua
     db.commit()
     db.refresh(new_user)
     
-    # Enviar código de verificación por correo
+    # Enviar código de verificación por correo; si el servidor SMTP falla o no está activo,
+    # auto-verificar la cuenta como salvavidas para no bloquear inscripciones a eventos.
+    sent = False
     try:
         from . import email_service
-        email_service.notify_email_verification(new_user.correo, new_user.nombres, codigo_verif)
+        sent = bool(email_service.notify_email_verification(new_user.correo, new_user.nombres, codigo_verif))
     except Exception:
-        pass
+        sent = False
+
+    if not sent:
+        new_user.email_verificado = True
+        new_user.codigo_verificacion = None
+        new_user.codigo_verificacion_exp = None
+        db.commit()
+        db.refresh(new_user)
     
     return new_user
 
@@ -75,7 +93,22 @@ def login_user(db: Session, credentials: user_schema.UserLogin, ip_address: Opti
         raise ValidacionNegocioError(f"Tu cuenta de usuario ha sido suspendida{motivo}. Contacta al soporte.")
 
     if not user.email_verificado:
-        raise ValidacionNegocioError("Tu correo electrónico no ha sido verificado. Por favor ingresa el código enviado a tu email antes de iniciar sesión.")
+        # Verificar si hubo un fallo de envío SMTP registrado para este usuario (usuarios registrados cuando SMTP falló)
+        fallo_previo = db.query(models.LogSistema).filter(
+            models.LogSistema.accion == "FALLO_ENVIO_EMAIL"
+        ).order_by(models.LogSistema.id_log.desc()).limit(25).all()
+        tuvo_fallo_correo = any(
+            isinstance(log.valor_nuevo, dict) and log.valor_nuevo.get("destinatario") == user.correo
+            for log in fallo_previo
+        )
+        if tuvo_fallo_correo:
+            user.email_verificado = True
+            user.codigo_verificacion = None
+            user.codigo_verificacion_exp = None
+            db.commit()
+            db.refresh(user)
+        else:
+            raise ValidacionNegocioError("Tu correo electrónico no ha sido verificado. Por favor ingresa el código enviado a tu email antes de iniciar sesión.")
 
     access_token = auth_core.create_access_token(data={"sub": user.correo, "rol": user.rol})
     
@@ -452,13 +485,25 @@ def reenviar_codigo_verificacion(db: Session, correo: str) -> dict:
     user.codigo_verificacion_exp = datetime.utcnow() + timedelta(minutes=30)
     db.commit()
 
+    sent = False
     try:
         from . import email_service
-        email_service.notify_email_verification(user.correo, user.nombres, codigo)
+        sent = bool(email_service.notify_email_verification(user.correo, user.nombres, codigo))
     except Exception:
-        pass
+        sent = False
 
-    return {"status": "success", "message": "Código de verificación reenviado con éxito."}
+    if not sent:
+        user.email_verificado = True
+        user.codigo_verificacion = None
+        user.codigo_verificacion_exp = None
+        db.commit()
+        return {
+            "status": "auto_verified",
+            "email_verificado": True,
+            "message": "El servidor de correo no pudo entregar el mensaje; tu cuenta ha sido verificada automáticamente."
+        }
+
+    return {"status": "success", "email_verificado": False, "message": "Código de verificación reenviado con éxito."}
 
 
 def admin_update_user(

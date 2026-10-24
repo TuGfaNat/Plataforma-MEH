@@ -64,6 +64,9 @@ const VerificarEmail = () => {
   const [searchParams] = useSearchParams();
   const { notify } = useNotify();
 
+  const returnTo = searchParams.get('returnTo');
+  const loginTarget = returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login';
+
   const [correo, setCorreo] = useState(searchParams.get('email') || '');
   const [codigo, setCodigo] = useState('');
   const [loading, setLoading] = useState(false);
@@ -93,8 +96,8 @@ const VerificarEmail = () => {
       setExito(true);
       notify('¡Correo Verificado!', 'Tu cuenta ha sido activada correctamente. Ya puedes iniciar sesión.', 'success');
       setTimeout(() => {
-        navigate('/login');
-      }, 2500);
+        navigate(loginTarget);
+      }, 2000);
     } catch (err) {
       const detail = err.response?.data?.detail;
       setErrorApi(typeof detail === 'string' ? detail : 'Código de verificación inválido o expirado.');
@@ -112,8 +115,16 @@ const VerificarEmail = () => {
     setResending(true);
     setErrorApi(null);
     try {
-      await authService.reenviarCodigo(correo.trim());
-      notify('Código Reenviado', `Se ha enviado un nuevo código a ${correo}.`, 'info');
+      const res = await authService.reenviarCodigo(correo.trim());
+      if (res && (res.email_verificado || res.status === 'auto_verified')) {
+        setExito(true);
+        notify('¡Cuenta Verificada!', res.message || 'Tu cuenta ha sido activada automáticamente. Ya puedes iniciar sesión.', 'success');
+        setTimeout(() => {
+          navigate(loginTarget);
+        }, 1800);
+      } else {
+        notify('Código Reenviado', `Se ha enviado un nuevo código a ${correo}.`, 'info');
+      }
     } catch (err) {
       const detail = err.response?.data?.detail;
       setErrorApi(typeof detail === 'string' ? detail : 'Error al reenviar el código.');
@@ -184,14 +195,14 @@ const VerificarEmail = () => {
                 {resending ? 'Reenviando...' : 'Reenviar código'}
               </MEHButton>
 
-              <Link to="/login" style={{ textDecoration: 'none', color: tokens.colorBrandForeground1, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Link to={loginTarget} style={{ textDecoration: 'none', color: tokens.colorBrandForeground1, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <ArrowLeft24Regular style={{ fontSize: '14px' }} /> Iniciar sesión
               </Link>
             </div>
           </form>
         ) : (
           <div style={{ padding: '16px 0' }}>
-            <MEHButton appearance="primary" onClick={() => navigate('/login')}>
+            <MEHButton appearance="primary" onClick={() => navigate(loginTarget)}>
               Ir a Iniciar Sesión Ahora
             </MEHButton>
           </div>

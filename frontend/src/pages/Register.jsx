@@ -111,10 +111,21 @@ const Register = () => {
     setLoading(true);
     
     try {
-      await authService.register({
+      const regUser = await authService.register({
         ...formData,
         rol: 'MIEMBRO'
       });
+      if (regUser && regUser.email_verificado) {
+        try {
+          await authService.login(formData.correo, formData.password);
+          if (checkAuth) await checkAuth();
+          navigate(returnTo || '/dashboard');
+          return;
+        } catch (_loginErr) {
+          navigate(returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login');
+          return;
+        }
+      }
       const returnParam = returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : '';
       navigate(`/verificar-email?email=${encodeURIComponent(formData.correo)}${returnParam}`);
     } catch (err) {

@@ -257,9 +257,34 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
                           Verificado
                         </Badge>
                       ) : (
-                        <Badge appearance="tint" color="warning" icon={<Warning24Filled />}>
-                          Pendiente
-                        </Badge>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <Badge appearance="tint" color="warning" icon={<Warning24Filled />}>
+                              Pendiente
+                            </Badge>
+                            <MEHButton
+                              size="small"
+                              appearance="primary"
+                              style={{ minWidth: 'auto', padding: '2px 8px', fontSize: '11px', height: '24px' }}
+                              onClick={async () => {
+                                try {
+                                  await authService.adminUpdateUser(u.id_usuario, { email_verificado: true });
+                                  notify('Usuario Verificado', `Se activó el correo de ${u.nombres} exitosamente.`, 'success');
+                                  if (fetchData) fetchData();
+                                } catch (err) {
+                                  notify('Error', err.response?.data?.detail || 'No se pudo verificar el usuario.', 'error');
+                                }
+                              }}
+                            >
+                              Verificar 1-clic
+                            </MEHButton>
+                          </div>
+                          {u.codigo_verificacion && (
+                            <span style={{ fontSize: '11px', fontFamily: 'monospace', opacity: 0.8 }}>
+                              Código: <b>{u.codigo_verificacion}</b>
+                            </span>
+                          )}
+                        </div>
                       )}
                     </TableCell>
 
