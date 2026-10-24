@@ -47,54 +47,88 @@ import { useCleanupManager } from '../../hooks/admin/useCleanupManager';
 
 const useStyles = makeStyles({
   banner: {
-    padding: '20px 24px',
+    padding: '16px 22px',
     backgroundColor: tokens.colorNeutralBackground2,
     ...shorthands.borderRadius('16px'),
-    marginBottom: '20px',
+    marginBottom: '18px',
     borderLeft: `4px solid ${tokens.colorBrandForeground1}`,
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: '16px',
+    gap: '14px',
   },
   dangerBanner: {
-    padding: '20px 24px',
-    backgroundColor: tokens.colorPaletteRedBackground1,
-    ...shorthands.borderRadius('16px'),
-    marginBottom: '20px',
-    borderLeft: `5px solid ${tokens.colorPaletteRedBorderActive}`,
+    padding: '16px 20px',
+    backgroundColor: 'rgba(220, 38, 38, 0.14)',
+    color: tokens.colorNeutralForeground1,
+    ...shorthands.borderRadius('14px'),
+    ...shorthands.border('1px', 'solid', 'rgba(239, 68, 68, 0.45)'),
+    borderLeft: '4px solid #ef4444',
+    marginBottom: '16px',
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
   },
   stepBar: {
-    display: 'flex',
-    gap: '12px',
-    marginBottom: '24px',
-    flexWrap: 'wrap',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 210px), 1fr))',
+    gap: '10px',
+    marginBottom: '20px',
   },
   stepButton: {
-    ...shorthands.padding('10px', '18px'),
+    ...shorthands.padding('12px', '16px'),
     ...shorthands.borderRadius('12px'),
     ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
-    backgroundColor: tokens.colorNeutralBackground1,
+    backgroundColor: tokens.colorNeutralBackground2,
+    color: tokens.colorNeutralForeground1,
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
+    gap: '10px',
     fontWeight: '600',
+    fontSize: '0.92rem',
+    textAlign: 'left',
+    transition: 'all 0.2s ease',
+    ':hover:not(:disabled)': {
+      ...shorthands.borderColor(tokens.colorBrandStroke1),
+      backgroundColor: tokens.colorNeutralBackground3,
+    },
+    ':disabled': {
+      opacity: 0.45,
+      cursor: 'not-allowed',
+    },
   },
   stepActive: {
-    backgroundColor: tokens.colorBrandBackground2,
-    ...shorthands.borderColor(tokens.colorBrandStroke1),
-    color: tokens.colorBrandForeground1,
+    backgroundColor: 'rgba(127, 19, 236, 0.22)',
+    ...shorthands.border('2px', 'solid', tokens.colorBrandStroke1),
+    color: tokens.colorNeutralForeground1,
+    boxShadow: '0 4px 16px rgba(127, 19, 236, 0.2)',
+  },
+  stepBadge: {
+    width: '26px',
+    height: '26px',
+    ...shorthands.borderRadius('50%'),
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '0.82rem',
+    fontWeight: '700',
+    flexShrink: 0,
+    backgroundColor: tokens.colorNeutralBackground4,
+    color: tokens.colorNeutralForeground1,
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1),
+  },
+  stepBadgeActive: {
+    backgroundColor: tokens.colorBrandBackground,
+    color: '#ffffff',
+    ...shorthands.borderColor(tokens.colorBrandBackground),
   },
   gridTwo: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-    gap: '20px',
-    marginBottom: '24px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+    gap: '16px',
+    marginBottom: '20px',
   },
   cardBox: {
     padding: '20px',
@@ -212,44 +246,40 @@ const Step1CatalogPresets = ({
             El Superadmin, tu usuario en sesión y los correos en lista blanca nunca pueden ser eliminados.
           </MEHTypography>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
             {protectedConfig.protected_users?.map((pu) => (
               <div
                 key={pu.correo}
                 style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  padding: '8px 12px',
+                  gap: '8px',
+                  padding: '6px 10px',
                   borderRadius: '8px',
                   backgroundColor: tokens.colorNeutralBackground2,
+                  border: `1px solid ${tokens.colorNeutralStroke2}`,
+                  fontSize: '12px',
                 }}
               >
-                <div>
-                  <b>{pu.correo}</b>
-                  <div style={{ fontSize: '12px', opacity: 0.75 }}>
-                    {pu.nombres || 'Cuenta protegida'} {pu.rol ? `• ${pu.rol}` : ''}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Badge
-                    appearance="filled"
-                    color={PROTECTED_REASON_COLORS[pu.motivo] || 'success'}
-                  >
-                    {pu.motivo}
-                  </Badge>
-                  {pu.motivo === 'LISTA_BLANCA' && (
-                    <Button
-                      size="small"
-                      appearance="subtle"
-                      icon={<Delete24Regular />}
-                      aria-label={`Quitar ${pu.correo} de lista blanca`}
-                      onClick={() => {
-                        void handleRemoveWhitelistEmail(pu.correo);
-                      }}
-                    />
-                  )}
-                </div>
+                <span><b>{pu.correo}</b></span>
+                <Badge
+                  size="small"
+                  appearance="filled"
+                  color={PROTECTED_REASON_COLORS[pu.motivo] || 'success'}
+                >
+                  {pu.motivo}
+                </Badge>
+                {pu.motivo === 'LISTA_BLANCA' && (
+                  <Button
+                    size="small"
+                    appearance="subtle"
+                    icon={<Delete24Regular />}
+                    aria-label={`Quitar ${pu.correo} de lista blanca`}
+                    onClick={() => {
+                      void handleRemoveWhitelistEmail(pu.correo);
+                    }}
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -385,15 +415,18 @@ const Step1CatalogPresets = ({
                           </Badge>
                         )}
                       </div>
-                      <span style={{ fontSize: '12px', opacity: 0.75 }}>{tbl.description}</span>
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
-                        <Badge appearance="outline">Activos: {tbl.active_count}</Badge>
-                        <Badge appearance="tint" color="warning">
-                          SEED: {tbl.seed_count}
-                        </Badge>
-                        <Badge appearance="tint" color="success">
-                          REAL: {tbl.real_count}
-                        </Badge>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                        <Badge appearance="outline">Total: {tbl.active_count}</Badge>
+                        {tbl.seed_count > 0 && (
+                          <Badge appearance="tint" color="warning">
+                            SEED: {tbl.seed_count}
+                          </Badge>
+                        )}
+                        {tbl.real_count > 0 && (
+                          <Badge appearance="tint" color="success">
+                            REAL: {tbl.real_count}
+                          </Badge>
+                        )}
                         {tbl.ocr_count > 0 && (
                           <Badge appearance="tint" color="informative">
                             OCR: {tbl.ocr_count}
@@ -836,13 +869,13 @@ const Step3PreviewBackup = ({
 
     {!loadingPreview && previewData && (
       <div className={styles.cardBox} data-testid="preview-summary-box">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <MEHTypography variant="h3">
-            Resumen de Impacto ({previewData.total_effective_records} registros efectivos)
+            Resumen de Impacto ({previewData.total_effective_records} registros a procesar)
           </MEHTypography>
-          <code style={{ fontSize: '12px' }}>
-            selection_hash: {previewData.selection_hash}
-          </code>
+          <Badge appearance="outline" size="medium">
+            Verificación: {previewData.selection_hash?.slice(0, 10)}
+          </Badge>
         </div>
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -879,9 +912,9 @@ const Step3PreviewBackup = ({
         {previewData.dependencies?.length > 0 && (
           <div style={{ marginTop: '8px' }}>
             <MEHTypography variant="bold">
-              Dependencias e Hijos Detectados ({previewData.dependencies.length}):
+              Dependencias vinculadas ({previewData.dependencies.length}):
             </MEHTypography>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px', maxHeight: '220px', overflowY: 'auto', paddingRight: '4px' }}>
               {previewData.dependencies.map((dep) => (
                 <div
                   key={`${dep.parent_table}-${dep.parent_id}-${dep.child_table}`}
@@ -1284,28 +1317,28 @@ const CleanupTab = ({ currentUser, notify, onGoToTrash }) => {
     <div data-testid="cleanup-tab-root">
       {/* Encabezado Principal */}
       <div className={styles.banner}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <Database24Regular style={{ fontSize: '36px', color: tokens.colorBrandForeground1 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0, flex: '1 1 280px' }}>
+          <Database24Regular style={{ fontSize: '32px', flexShrink: 0, color: tokens.colorBrandForeground1 }} />
           <div>
-            <MEHTypography variant="h3" style={{ fontWeight: 'bold' }}>
-              Limpieza Selectiva de Datos con Trazabilidad
+            <MEHTypography variant="h3" style={{ fontWeight: 'bold', margin: 0 }}>
+              Limpieza Selectiva de Datos
             </MEHTypography>
-            <MEHTypography variant="body" style={{ opacity: 0.85 }}>
-              Selecciona tablas y registros por origen (SEED, REAL, OCR), protege cuentas clave, genera respaldo obligatorio y ejecuta en modo Soft o Hard Delete con auditoría inmutable.
+            <MEHTypography variant="caption" style={{ opacity: 0.8 }}>
+              Elige un preset o tablas, genera el respaldo previo y confirma la limpieza.
             </MEHTypography>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           <Badge appearance="filled" color={mode === 'hard' ? 'danger' : 'informative'} size="large">
-            Modo: {mode === 'hard' ? 'HARD DELETE (Físico)' : 'SOFT DELETE (Papelera)'}
+            {mode === 'hard' ? 'Modo: Borrado Físico' : 'Modo: Enviar a Papelera'}
           </Badge>
-          <Badge appearance="outline" size="large">
+          <Badge appearance="tint" color="brand" size="large">
             Seleccionados: {totalSelectedCount}
           </Badge>
         </div>
       </div>
 
-      {/* Barra de 4 Pasos */}
+      {/* Barra de 4 Pasos con alto contraste */}
       <div className={styles.stepBar} role="tablist" aria-label="Pasos de limpieza de datos">
         <button
           type="button"
@@ -1313,7 +1346,8 @@ const CleanupTab = ({ currentUser, notify, onGoToTrash }) => {
           className={`${styles.stepButton} ${step === 1 ? styles.stepActive : ''}`}
           onClick={() => setStep(1)}
         >
-          <span>1. Catálogo, Presets y Protegidos</span>
+          <span className={`${styles.stepBadge} ${step === 1 ? styles.stepBadgeActive : ''}`}>1</span>
+          <span>Alcance y Presets</span>
         </button>
         <button
           type="button"
@@ -1321,7 +1355,8 @@ const CleanupTab = ({ currentUser, notify, onGoToTrash }) => {
           className={`${styles.stepButton} ${step === 2 ? styles.stepActive : ''}`}
           onClick={() => setStep(2)}
         >
-          <span>2. Selección por Registro y Origen ({totalSelectedCount})</span>
+          <span className={`${styles.stepBadge} ${step === 2 ? styles.stepBadgeActive : ''}`}>2</span>
+          <span>Registros ({totalSelectedCount})</span>
         </button>
         <button
           type="button"
@@ -1329,7 +1364,8 @@ const CleanupTab = ({ currentUser, notify, onGoToTrash }) => {
           className={`${styles.stepButton} ${step === 3 ? styles.stepActive : ''}`}
           onClick={goToStep3Preview}
         >
-          <span>3. Preview, Dependencias y Respaldo</span>
+          <span className={`${styles.stepBadge} ${step === 3 ? styles.stepBadgeActive : ''}`}>3</span>
+          <span>Preview y Respaldo</span>
         </button>
         <button
           type="button"
@@ -1338,7 +1374,8 @@ const CleanupTab = ({ currentUser, notify, onGoToTrash }) => {
           disabled={!previewData?.can_execute || !backupData?.backup_id}
           onClick={() => setStep(4)}
         >
-          <span>4. Confirmación y Ejecución</span>
+          <span className={`${styles.stepBadge} ${step === 4 ? styles.stepBadgeActive : ''}`}>4</span>
+          <span>Confirmar y Ejecutar</span>
         </button>
       </div>
 
