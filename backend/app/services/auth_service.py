@@ -55,6 +55,7 @@ def register_user(db: Session, user_data: user_schema.UserCreate) -> models.Usua
         linkedin_url=str(getattr(user_data, "linkedin_url", "") or "") or None,
         github_url=str(getattr(user_data, "github_url", "") or "") or None,
         fecha_registro=datetime.utcnow(),
+        es_nuevo=False,
         email_verificado=False,
         codigo_verificacion=codigo_verif,
         codigo_verificacion_exp=datetime.utcnow() + timedelta(minutes=30)
@@ -121,6 +122,12 @@ def login_user(db: Session, credentials: user_schema.UserLogin, ip_address: Opti
         ip_direccion=ip_address
     )
     
+    # Si es un miembro auto-registrado (sin creado_por y sin reset administrativo previo),
+    # no debe forzarse el cambio de contraseña en su primer ingreso.
+    if user.es_nuevo and user.rol == ROLE_MIEMBRO and user.creado_por is None and user.modificado_por is None:
+        user.es_nuevo = False
+        db.commit()
+
     return {
         "access_token": access_token, 
         "token_type": "bearer",
@@ -220,6 +227,7 @@ def login_with_google(db: Session, google_jwt: str, ip_address: Optional[str] = 
                 password_hash="google_oauth_no_password",
                 rol=ROLE_MIEMBRO,
                 fecha_registro=datetime.utcnow(),
+                es_nuevo=False,
                 email_verificado=True
             )
             db.add(user)
