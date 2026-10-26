@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { makeStyles, tokens, Button, mergeClasses } from '@fluentui/react-components';
-import { Navigation24Filled, Dismiss24Filled } from '@fluentui/react-icons';
+import { Navigation24Filled, Dismiss24Filled, SignOut24Regular } from '@fluentui/react-icons';
+import authService from '../../services/authService';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from '../Sidebar';
 import { designTokens } from '../../theme/theme';
@@ -23,6 +24,9 @@ const useStyles = makeStyles({
     transition: 'transform 0.3s ease-in-out',
     [designTokens.breakpoints.sm]: {
       width: '280px',
+      height: '100dvh',
+      maxHeight: '100dvh',
+      overflow: 'hidden',
     },
   },
   sidebarVisible: {
@@ -200,17 +204,30 @@ const DashboardLayout = ({ children }) => {
         />
       )}
 
-      {/* Mobile Header con Hamburguesa */}
-      <header className={styles.mobileHeader}>
-        <Button 
-          icon={<Navigation24Filled />} 
-          appearance="subtle" 
-          aria-label="Abrir menú de navegación"
-          aria-expanded={isSidebarOpen}
-          onClick={() => setIsSidebarOpen(true)}
-          style={{ color: tokens.colorNeutralForeground1 }}
+      {/* Mobile Header con Hamburguesa y Botón Rápido de Salir */}
+      <header className={styles.mobileHeader} style={{ justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <Button 
+            icon={<Navigation24Filled />} 
+            appearance="subtle" 
+            aria-label="Abrir menú de navegación"
+            aria-expanded={isSidebarOpen}
+            onClick={() => setIsSidebarOpen(true)}
+            style={{ color: tokens.colorNeutralForeground1 }}
+          />
+          <span style={{ marginLeft: '10px', fontWeight: 'bold', color: tokens.colorNeutralForeground1 }}>Plataforma MEH</span>
+        </div>
+        <Button
+          icon={<SignOut24Regular style={{ color: tokens.colorPaletteRedForeground1 }} />}
+          appearance="subtle"
+          size="small"
+          aria-label="Cerrar Sesión"
+          title="Cerrar Sesión"
+          onClick={() => {
+            authService.logout();
+            window.location.href = '/login';
+          }}
         />
-        <span style={{ marginLeft: '12px', fontWeight: 'bold', color: tokens.colorNeutralForeground1 }}>Plataforma MEH</span>
       </header>
 
       <main className={styles.content}>

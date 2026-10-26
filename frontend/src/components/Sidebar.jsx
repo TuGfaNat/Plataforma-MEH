@@ -74,11 +74,17 @@ const useStyles = makeStyles({
     flexDirection: "column",
     ...shorthands.borderRight("1px", "solid", tokens.colorNeutralBackground3),
     padding: "24px 14px",
-    height: "100vh",
+    height: "100%",
+    maxHeight: "100dvh",
     boxSizing: "border-box",
     zIndex: 100,
     overflowY: "auto",
     scrollbarWidth: "thin",
+    WebkitOverflowScrolling: "touch",
+    '@media (max-width: 768px)': {
+      paddingBottom: "80px",
+      height: "100dvh",
+    }
   },
   logoContainer: {
     display: "flex",
@@ -142,6 +148,29 @@ const useStyles = makeStyles({
     flexDirection: "column",
     gap: "8px",
     flexShrink: 0,
+    '@media (max-width: 768px)': {
+      paddingBottom: "40px",
+    }
+  },
+  logoutButton: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    width: "100%",
+    padding: "10px 14px",
+    borderRadius: "10px",
+    border: "1px solid rgba(239, 68, 68, 0.3)",
+    backgroundColor: "rgba(239, 68, 68, 0.08)",
+    color: tokens.colorPaletteRedForeground1,
+    fontWeight: "bold",
+    fontSize: "13px",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    ":hover": {
+      backgroundColor: "rgba(239, 68, 68, 0.18)",
+      borderColor: "rgba(239, 68, 68, 0.5)",
+    }
   },
   themeToggle: {
     display: "flex",
@@ -523,16 +552,17 @@ const Sidebar = ({ onClose }) => {
           label={t("settings") || "Configuración"}
         />
 
-        <div
-          className={styles.navItem}
+        <button
+          type="button"
           onClick={handleLogout}
-          style={{ color: tokens.colorPaletteRedForeground1, padding: "8px 14px" }}
+          className={styles.logoutButton}
+          aria-label={t("logout") || "Cerrar Sesión"}
         >
           <SignOut24Regular />
-          <span className={styles.navText}>
+          <span>
             {t("logout") || "Cerrar Sesión"}
           </span>
-        </div>
+        </button>
       </div>
 
       <SyncQueuePanel
