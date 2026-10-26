@@ -17,10 +17,6 @@ router = APIRouter(
 def get_productos(categoria: Optional[str] = None, db: Session = Depends(get_db)):
     return souvenirs_service.list_productos(db, categoria)
 
-@router.get("/{id_producto}", response_model=schema.ProductoResponse)
-def get_producto(id_producto: int, db: Session = Depends(get_db)):
-    return souvenirs_service.get_producto(db, id_producto)
-
 @router.post("/", response_model=schema.ProductoResponse, status_code=status.HTTP_201_CREATED)
 def create_producto(
     data: schema.ProductoCreate,
@@ -29,6 +25,31 @@ def create_producto(
 ):
     ensure_permission(current_user.rol, PERMISSION_EVENTS_MANAGE, "Acceso denegado")
     return souvenirs_service.create_producto(db, data.model_dump(), current_user.id_usuario)
+
+# RUTAS ESTÁTICAS PRIMERO (para evitar colisión de ruta con /{id_producto})
+@router.post("/ventas", response_model=schema.PedidoResponse)
+def register_venta(
+    request: Request,
+    data: schema.VentaRequest,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    ensure_permission(current_user.rol, PERMISSION_EVENTS_MANAGE, "Acceso denegado")
+    ip = request.client.host if request.client else None
+    return souvenirs_service.create_pedido(db, data.id_usuario, [item.model_dump() for item in data.items], current_user.id_usuario, data.metodo_pago, ip)
+
+@router.get("/ventas", response_model=List[schema.PedidoResponse])
+def get_ventas(
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    ensure_permission(current_user.rol, PERMISSION_EVENTS_MANAGE, "Acceso denegado")
+    return souvenirs_service.list_pedidos(db)
+
+# RUTAS DINÁMICAS POR ID AL FINAL
+@router.get("/{id_producto}", response_model=schema.ProductoResponse)
+def get_producto(id_producto: int, db: Session = Depends(get_db)):
+    return souvenirs_service.get_producto(db, id_producto)
 
 @router.put("/{id_producto}", response_model=schema.ProductoResponse)
 def update_producto(
@@ -49,22 +70,3 @@ def delete_producto(
     ensure_permission(current_user.rol, PERMISSION_EVENTS_MANAGE, "Acceso denegado")
     souvenirs_service.delete_producto(db, id_producto, current_user.id_usuario)
     return None
-
-@router.post("/ventas", response_model=schema.PedidoResponse)
-def register_venta(
-    request: Request,
-    data: schema.VentaRequest,
-    db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(get_current_user)
-):
-    ensure_permission(current_user.rol, PERMISSION_EVENTS_MANAGE, "Acceso denegado")
-    ip = request.client.host if request.client else None
-    return souvenirs_service.create_pedido(db, data.id_usuario, [item.model_dump() for item in data.items], current_user.id_usuario, data.metodo_pago, ip)
-
-@router.get("/ventas", response_model=List[schema.PedidoResponse])
-def get_ventas(
-    db: Session = Depends(get_db),
-    current_user: models.Usuario = Depends(get_current_user)
-):
-    ensure_permission(current_user.rol, PERMISSION_EVENTS_MANAGE, "Acceso denegado")
-    return souvenirs_service.list_pedidos(db)
