@@ -21,6 +21,7 @@ import {
   CheckmarkCircle24Filled,
   Warning24Filled,
 } from '@fluentui/react-icons';
+import { QRCodeCanvas } from 'qrcode.react';
 import { MEHTypography } from './ui';
 import eventoService from '../services/eventoService';
 import { resolveApiFileUrl } from '../services/api';
@@ -198,6 +199,7 @@ const BadgeSocialModal = ({ isOpen, onClose, eventoId, eventoTitulo = '' }) => {
     else if (notifyContext?.notify) notifyContext.notify(title, msg, intent);
   };
   const canvasRef = useRef(null);
+  const qrWrapperRef = useRef(null);
 
   const [loading, setLoading] = useState(false);
   const [badgeData, setBadgeData] = useState(null);
@@ -252,20 +254,20 @@ const BadgeSocialModal = ({ isOpen, onClose, eventoId, eventoTitulo = '' }) => {
 
       // 2. FOTO DE PERFIL / AVATAR
       const avatarX = width / 2;
-      const avatarY = 410;
-      const avatarRadius = 140;
+      const avatarY = 305;
+      const avatarRadius = 115;
       await drawAvatar(ctx, avatarX, avatarY, avatarRadius, badgeData.foto_perfil_url, badgeData.nombre_completo);
 
       // 3. ROL PILL
       const rolText = badgeData.rol_evento || 'PARTICIPANTE';
       ctx.fillStyle = '#7f13ec';
       const pillWidth = 320;
-      const pillHeight = 48;
+      const pillHeight = 46;
       const pillX = width / 2 - pillWidth / 2;
-      const pillY = 590;
+      const pillY = 450;
       ctx.beginPath();
       if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 24);
+        ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 23);
       } else {
         ctx.rect(pillX, pillY, pillWidth, pillHeight);
       }
@@ -279,21 +281,20 @@ const BadgeSocialModal = ({ isOpen, onClose, eventoId, eventoTitulo = '' }) => {
 
       // 4. NOMBRE DEL PARTICIPANTE
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 56px -apple-system, Segoe UI, sans-serif';
+      ctx.font = 'bold 52px -apple-system, Segoe UI, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(badgeData.nombre_completo || 'Participante MEH', width / 2, 700);
+      ctx.fillText(badgeData.nombre_completo || 'Participante MEH', width / 2, 560);
 
       // 5. TÍTULO DEL EVENTO
       ctx.fillStyle = '#c084fc';
-      ctx.font = 'bold 36px -apple-system, Segoe UI, sans-serif';
+      ctx.font = 'bold 34px -apple-system, Segoe UI, sans-serif';
       const maxTitleWidth = width - 160;
       const title = badgeData.titulo_evento || eventoTitulo;
-      // Truncar o envolver
       if (ctx.measureText(title).width > maxTitleWidth) {
-        ctx.fillText(`${title.substring(0, 40)}...`, width / 2, 765);
+        ctx.fillText(`${title.substring(0, 42)}...`, width / 2, 620);
       } else {
-        ctx.fillText(title, width / 2, 765);
+        ctx.fillText(title, width / 2, 620);
       }
 
       // 6. FECHA Y MODALIDAD
@@ -308,39 +309,63 @@ const BadgeSocialModal = ({ isOpen, onClose, eventoId, eventoTitulo = '' }) => {
       }
       ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
       ctx.font = '24px -apple-system, Segoe UI, sans-serif';
-      ctx.fillText(`${fechaTexto} • ${badgeData.modalidad || 'Presencial'}`, width / 2, 820);
+      ctx.fillText(`${fechaTexto} • ${badgeData.modalidad || 'Presencial'}`, width / 2, 668);
 
-      // 7. TARJETA INFERIOR CON CÓDIGO QR / VALIDACIÓN
-      const cardBoxY = 880;
+      // 7. TARJETA INFERIOR CON CÓDIGO QR REAL Y VALIDACIÓN
+      const cardBoxY = 705;
+      const cardBoxHeight = 495;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
       ctx.lineWidth = 2;
       ctx.beginPath();
       if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(140, cardBoxY, width - 280, 280, 16);
+        ctx.roundRect(120, cardBoxY, width - 240, cardBoxHeight, 20);
       } else {
-        ctx.rect(140, cardBoxY, width - 280, 280);
+        ctx.rect(120, cardBoxY, width - 240, cardBoxHeight);
       }
       ctx.fill();
       ctx.stroke();
 
-      // Detalles dentro de la tarjeta
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = '20px -apple-system, Segoe UI, sans-serif';
-      ctx.fillText('CÓDIGO DE ACCESO / CHECK-IN:', width / 2, cardBoxY + 50);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = 'bold 20px -apple-system, Segoe UI, sans-serif';
+      ctx.fillText('ESCANEA ESTE CÓDIGO QR EN PUERTA (CHECK-IN):', width / 2, cardBoxY + 42);
+
+      // Dibujar QR real desde el QRCodeCanvas oculto
+      const qrSize = 230;
+      const qrX = width / 2 - qrSize / 2;
+      const qrY = cardBoxY + 66;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(qrX - 12, qrY - 12, qrSize + 24, qrSize + 24, 16);
+      } else {
+        ctx.rect(qrX - 12, qrY - 12, qrSize + 24, qrSize + 24);
+      }
+      ctx.fill();
+
+      await new Promise((r) => setTimeout(r, 20));
+      const qrCanvasEl = qrWrapperRef.current?.querySelector('canvas');
+      if (qrCanvasEl) {
+        try {
+          ctx.drawImage(qrCanvasEl, qrX, qrY, qrSize, qrSize);
+        } catch {
+          // Fallback en entorno de test sin implementación nativa de drawImage
+        }
+      }
 
       ctx.fillStyle = '#38bdf8';
-      ctx.font = 'bold 38px monospace';
-      ctx.fillText(badgeData.codigo_qr || `MEH-EVT-${eventoId}`, width / 2, cardBoxY + 110);
+      ctx.font = 'bold 24px monospace';
+      ctx.fillText(badgeData.codigo_qr || `MEH-EVT-${eventoId}`, width / 2, cardBoxY + 350);
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
       ctx.font = '18px -apple-system, Segoe UI, sans-serif';
-      ctx.fillText('Presenta este código en puerta para validar tu acreditación', width / 2, cardBoxY + 160);
+      ctx.fillText('Presenta este pase digital en puerta para validar tu acreditación', width / 2, cardBoxY + 392);
 
       if (badgeData.redes_sociales?.linkedin) {
         ctx.fillStyle = '#60a5fa';
         ctx.font = '20px -apple-system, Segoe UI, sans-serif';
-        ctx.fillText(badgeData.redes_sociales.linkedin.replace('https://', ''), width / 2, cardBoxY + 220);
+        ctx.fillText(badgeData.redes_sociales.linkedin.replace('https://', ''), width / 2, cardBoxY + 440);
       }
 
       // 8. PIE DE PÁGINA
@@ -404,6 +429,16 @@ const BadgeSocialModal = ({ isOpen, onClose, eventoId, eventoTitulo = '' }) => {
 
     return (
       <>
+        {/* QR OCULTO PARA COMPONER EN EL CANVAS DEL PASE */}
+        <div ref={qrWrapperRef} style={{ display: 'none' }} aria-hidden="true">
+          <QRCodeCanvas
+            value={badgeData?.codigo_qr || `MEH-EVT-${eventoId}`}
+            size={240}
+            level="M"
+            includeMargin={true}
+          />
+        </div>
+
         {/* CANVAS DE BADGE */}
         <canvas ref={canvasRef} className={styles.canvasPreview} />
 
