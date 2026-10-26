@@ -150,6 +150,11 @@ const useStyles = makeStyles({
   heroContent: {
     zIndex: 2,
     maxWidth: "1000px",
+    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    textAlign: "center",
     animationName: {
       from: { opacity: 0, transform: "translateY(30px)" },
       to: { opacity: 1, transform: "translateY(0)" },
@@ -164,6 +169,7 @@ const useStyles = makeStyles({
     lineHeight: "1",
     letterSpacing: "-2px",
     marginBottom: "24px",
+    textAlign: "center",
     background: `linear-gradient(135deg, ${tokens.colorNeutralForeground1} 30%, ${tokens.colorBrandForeground1} 100%)`,
     WebkitBackgroundClip: "text",
     WebkitTextFillColor: "transparent",
@@ -172,6 +178,8 @@ const useStyles = makeStyles({
     },
   },
   subtitle: {
+    textAlign: "center",
+    width: "100%",
     marginBottom: "60px",
     opacity: 0.7,
     fontWeight: tokens.fontWeightRegular,
@@ -182,6 +190,7 @@ const useStyles = makeStyles({
     lineHeight: "1.6",
     [designTokens.breakpoints.sm]: {
       fontSize: "1.1rem",
+      marginBottom: "40px",
     },
   },
   buttonGroup: {
@@ -370,7 +379,7 @@ const Landing = () => {
       <section className={styles.hero}>
         <div className={styles.heroContent}>
           <h1 className={styles.title}>{t("hero_title")}</h1>
-          <MEHTypography variant="h3" className={styles.subtitle}>
+          <MEHTypography variant="h3" className={styles.subtitle} style={{ textAlign: "center", width: "100%" }}>
             {t("hero_subtitle")}
           </MEHTypography>
           <div className={styles.buttonGroup}>
@@ -400,13 +409,13 @@ const Landing = () => {
         <div style={{ textAlign: "center", marginBottom: "48px" }}>
           <MEHTypography
             variant="h1"
-            style={{ display: "block", marginBottom: "12px", fontSize: "3rem" }}
+            style={{ display: "block", marginBottom: "12px", fontSize: "3rem", textAlign: "center" }}
           >
             {t("next_talleres")}
           </MEHTypography>
           <MEHTypography
             variant="body"
-            style={{ opacity: 0.8, fontSize: "1.2rem" }}
+            style={{ opacity: 0.8, fontSize: "1.2rem", textAlign: "center" }}
           >
             {t("exclusive_events_desc")}
           </MEHTypography>
@@ -517,13 +526,13 @@ const Landing = () => {
         <div style={{ textAlign: "center", marginBottom: "48px" }}>
           <MEHTypography
             variant="h1"
-            style={{ display: "block", marginBottom: "12px", fontSize: "3rem" }}
+            style={{ display: "block", marginBottom: "12px", fontSize: "3rem", textAlign: "center" }}
           >
             {t("rutas_aprendizaje")}
           </MEHTypography>
           <MEHTypography
             variant="body"
-            style={{ opacity: 0.8, fontSize: "1.2rem" }}
+            style={{ opacity: 0.8, fontSize: "1.2rem", textAlign: "center" }}
           >
             Cursos diseñados para llevar tu carrera al siguiente nivel
             tecnológico.
