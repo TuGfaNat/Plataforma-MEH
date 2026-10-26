@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 20  
-**Total de endpoints expuestos:** 160
+**Total de endpoints expuestos:** 161
 
 ---
 
@@ -270,6 +270,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | Método | Endpoint URI | Descripción | Request Payload | Código HTTP | Autorización |
 |---|---|---|---|---|---|
 | **`GET`** | `/api/souvenirs` | Operación get_productos | - | `200 OK` | Público / Abierto |
+| **`GET`** | `/api/souvenirs/{id_producto}` | Operación get_producto | `id_producto: int` | `200 OK` | Público / Abierto |
 | **`POST`** | `/api/souvenirs` | Operación create_producto | `data: ProductoCreate` | `201 Created` | Requiere Auth (JWT), Permiso events_manage |
 | **`PUT`** | `/api/souvenirs/{id_producto}` | Operación update_producto | `id_producto: int`, `data: ProductoUpdate` | `200 OK` | Requiere Auth (JWT), Permiso events_manage |
 | **`DELETE`** | `/api/souvenirs/{id_producto}` | Operación delete_producto | `id_producto: int` | `204 No Content` | Requiere Auth (JWT), Permiso events_manage |

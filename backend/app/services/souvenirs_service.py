@@ -5,6 +5,12 @@ from ..models import models
 from datetime import datetime
 from ..core.logging import registrar_log
 
+def get_producto(db: Session, id_producto: int):
+    prod = db.query(models.Producto).filter(models.Producto.id_producto == id_producto).first()
+    if not prod or prod.id_estado == 0:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    return prod
+
 def list_productos(db: Session, categoria: Optional[str] = None):
     query = db.query(models.Producto)
     if categoria:

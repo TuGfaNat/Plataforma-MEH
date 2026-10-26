@@ -17,6 +17,10 @@ router = APIRouter(
 def get_productos(categoria: Optional[str] = None, db: Session = Depends(get_db)):
     return souvenirs_service.list_productos(db, categoria)
 
+@router.get("/{id_producto}", response_model=schema.ProductoResponse)
+def get_producto(id_producto: int, db: Session = Depends(get_db)):
+    return souvenirs_service.get_producto(db, id_producto)
+
 @router.post("/", response_model=schema.ProductoResponse, status_code=status.HTTP_201_CREATED)
 def create_producto(
     data: schema.ProductoCreate,

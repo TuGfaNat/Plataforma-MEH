@@ -6,10 +6,11 @@ import {
 import { useTranslation } from 'react-i18next';
 import { 
   Add24Regular, ArrowUpload24Regular, Edit20Regular, Delete20Regular, 
-  Box24Filled, Money20Regular, Info20Regular, Search24Regular 
+  Box24Filled, Money20Regular, Info20Regular, Search24Regular, Link20Regular, Open20Regular 
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import adminService from '../../services/adminService';
+import { useNotify } from '../../App';
 
 const useStyles = makeStyles({
   grid: { 
@@ -90,6 +91,7 @@ const SouvenirsTab = ({
   const styles = useStyles();
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = React.useState('');
+  const { notify } = useNotify();
 
   const filteredData = React.useMemo(() => {
     if (!searchTerm.trim()) return data;
@@ -220,9 +222,18 @@ const SouvenirsTab = ({
 
       <div className={styles.tableWrapper}>
         <div style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', borderBottom: `1px solid ${tokens.colorNeutralBackground3}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <MEHTypography variant="h3">{t("admin_souvenirs_inventory")}</MEHTypography>
             <Badge appearance="filled" color="brand">{t("admin_count_products", { count: filteredData.length })}</Badge>
+            <MEHButton
+              size="small"
+              appearance="outline"
+              icon={<Open20Regular />}
+              onClick={() => window.open('/souvenirs', '_blank')}
+              style={{ marginLeft: '6px' }}
+            >
+              Ver Catálogo Público
+            </MEHButton>
           </div>
           <div style={{ maxWidth: '240px', width: '100%' }}>
             <Input
@@ -292,6 +303,27 @@ const SouvenirsTab = ({
                               console.error("Error al actualizar estado del souvenir:", err);
                             }
                           }} 
+                        />
+                      </Tooltip>
+                      <Tooltip content="Copiar Enlace Público (tipo Luma)" relationship="label">
+                        <Button 
+                          appearance="subtle" 
+                          icon={<Link20Regular />} 
+                          onClick={() => {
+                            const url = `${window.location.origin}/souvenir/${i.id_producto}`;
+                            if (navigator.clipboard) {
+                              navigator.clipboard.writeText(url).then(() => {
+                                notify('Enlace Copiado', 'Enlace al souvenir copiado al portapapeles', 'success');
+                              });
+                            }
+                          }}
+                        />
+                      </Tooltip>
+                      <Tooltip content="Ver Página Pública" relationship="label">
+                        <Button 
+                          appearance="subtle" 
+                          icon={<Open20Regular />} 
+                          onClick={() => window.open(`/souvenir/${i.id_producto}`, '_blank')}
                         />
                       </Tooltip>
                       <Tooltip content={t("edit")} relationship="label">

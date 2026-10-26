@@ -29,6 +29,10 @@ const adminService = {
     const response = await api.get('/souvenirs/');
     return response.data;
   },
+  getSouvenirById: async (id) => {
+    const response = await api.get(/souvenirs/);
+    return response.data;
+  },
   createSouvenir: async (data) => {
     const response = await api.post('/souvenirs/', data);
     return response.data;

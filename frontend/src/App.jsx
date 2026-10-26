@@ -37,6 +37,8 @@ import CursoAula from './pages/CursoAula.jsx';
 import AccesoDenegado from './pages/AccesoDenegado.jsx';
 import CambiarContrasena from './pages/CambiarContrasena.jsx';
 import EventoPublico from './pages/EventoPublico.jsx';
+import SouvenirPublico from './pages/SouvenirPublico.jsx';
+import SouvenirsCatalogoPublico from './pages/SouvenirsCatalogoPublico.jsx';
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
@@ -212,6 +214,9 @@ export default function App() {
                 <Route path="/cambiar-contrasena" element={<ProtectedRoute><CambiarContrasena /></ProtectedRoute>} />
                 <Route path="/verificar/:uuid" element={<UniversalVerification />} />
                 <Route path="/evento/:id" element={<EventoPublico />} />
+                <Route path="/souvenir/:id" element={<SouvenirPublico />} />
+                <Route path="/souvenirs" element={<SouvenirsCatalogoPublico />} />
+                <Route path="/tienda" element={<Navigate to="/souvenirs" replace />} />
                 
                 {/* Validador Público (Sin Sidebar) */}
                 <Route path="/validador-publico" element={<ValidadorTalento />} />

@@ -81,6 +81,9 @@ def _hydrate_pago_details(db: Session, p: models.Pago) -> None:
         else:
             curso = db.query(models.Curso).filter(models.Curso.id_curso == p.id_referencia).first()
             p.detalles_referencia = curso.nombre_curso if curso else f"Curso/Inscripción #{p.id_referencia}"
+    elif p.tipo_referencia == "SOUVENIR":
+        producto = db.query(models.Producto).filter(models.Producto.id_producto == p.id_referencia).first()
+        p.detalles_referencia = f"Souvenir: {producto.nombre}" if producto else f"Souvenir #{p.id_referencia}"
     else:
         p.detalles_referencia = f"{p.tipo_referencia} #{p.id_referencia}"
 
@@ -297,6 +300,29 @@ def validar_pago(
         
         if not inscripcion_ev.codigo_qr:
             inscripcion_ev.codigo_qr = str(uuid.uuid4())
+
+    if pago_update.estado_pago == "APROBADO" and db_pago.tipo_referencia == "SOUVENIR":
+        prod = db.query(models.Producto).filter(models.Producto.id_producto == db_pago.id_referencia).first()
+        if prod and prod.stock > 0:
+            prod.stock -= 1
+        pedido_existente = db.query(models.Pedido).filter(models.Pedido.id_pago == db_pago.id_pago).first()
+        if not pedido_existente:
+            nuevo_pedido = models.Pedido(
+                id_usuario=db_pago.id_usuario,
+                id_pago=db_pago.id_pago,
+                total=db_pago.monto,
+                estado="COMPLETADO",
+                fecha_pedido=datetime.utcnow()
+            )
+            db.add(nuevo_pedido)
+            db.flush()
+            if prod:
+                db.add(models.PedidoDetalle(
+                    id_pedido=nuevo_pedido.id_pedido,
+                    id_producto=prod.id_producto,
+                    cantidad=1,
+                    precio_unitario=prod.precio
+                ))
 
     db.commit()
     db.refresh(db_pago)
