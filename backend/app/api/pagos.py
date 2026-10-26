@@ -49,6 +49,7 @@ async def upload_comprobante_ocr(
     tipo_referencia: str = Form(...),
     monto: Decimal = Form(...),
     metodo_pago: str = Form(...),
+    notas_admin: Optional[str] = Form(None),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
@@ -68,7 +69,8 @@ async def upload_comprobante_ocr(
         metodo_pago=metodo_pago,
         file_content=file_content,
         file_extension=file_extension,
-        ip_address=ip_address
+        ip_address=ip_address,
+        notas_admin=notas_admin
     )
 
 

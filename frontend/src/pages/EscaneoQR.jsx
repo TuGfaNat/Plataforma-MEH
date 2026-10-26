@@ -506,8 +506,16 @@ const EscaneoQR = () => {
         const res = await offlineDb.validarQROffline(normalizedCode, selectedCheckpoint, selectedEvento);
         if (res.success) {
           playBeep(true);
-          setScanResult(`${res.message}: ${res.usuario.nombre}`);
-          setTimeout(() => setScanResult(null), 4000);
+          const usuarioNombre = res.usuario?.nombre || 'Participante';
+          setLastScan({
+            usuarioNombre,
+            eventoTitulo: 'Modo Offline',
+            paquete: res.paquete,
+            monto_pagado: res.monto_pagado,
+            incluidos: res.incluidos || [],
+            timestamp: Date.now(),
+          });
+          setScanResult(`${res.message}: ${usuarioNombre}`);
           void updateQueueCount();
         } else {
           playBeep(false);
@@ -541,6 +549,9 @@ const EscaneoQR = () => {
         id_checkpoint: result.id_checkpoint,
         usuarioNombre,
         eventoTitulo,
+        paquete: result.paquete,
+        monto_pagado: result.monto_pagado,
+        incluidos: result.incluidos || [],
         timestamp: Date.now(),
       });
       setTimeLeft(30);
@@ -895,13 +906,37 @@ const EscaneoQR = () => {
           <div className={styles.resultOkBanner}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: tokens.colorPaletteGreenForeground1 }}>
               <CheckmarkCircle24Filled fontSize={26} />
-              <div style={{ textAlign: 'center' }}>
+              <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
                 <MEHTypography variant="body" style={{ fontWeight: 'bold', margin: 0, color: tokens.colorPaletteGreenForeground1 }}>
                   {scanResult}
                 </MEHTypography>
                 <span style={{ fontSize: '12px', opacity: 0.9 }}>
                   Punto: <b>{currentCpNombre}</b> • Registrado con éxito
                 </span>
+
+                {/* Información de Paquete e Ítems a Entregar para el Acreditador */}
+                {lastScan.paquete && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
+                    <Badge appearance="filled" color="brand" size="large">
+                      📦 {lastScan.paquete}
+                    </Badge>
+                    {lastScan.monto_pagado !== null && lastScan.monto_pagado !== undefined && (
+                      <Badge appearance="tint" color="success">
+                        Bs. {lastScan.monto_pagado}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+                {lastScan.incluidos && lastScan.incluidos.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '2px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '11px', opacity: 0.8, fontWeight: 'bold' }}>Entregar:</span>
+                    {lastScan.incluidos.map((item, idx) => (
+                      <Badge key={idx} appearance="outline" color="informative" size="small">
+                        ✓ {item}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -993,6 +1028,20 @@ const EscaneoQR = () => {
                           <div>
                             <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{att.nombre_completo}</div>
                             <div style={{ fontSize: '11px', opacity: 0.7 }}>{att.correo}</div>
+                            {att.paquete && (
+                              <Badge appearance="tint" color="brand" size="small" style={{ marginTop: '2px' }}>
+                                📦 {att.paquete}
+                              </Badge>
+                            )}
+                            {att.incluidos && att.incluidos.length > 0 && (
+                              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '3px' }}>
+                                {att.incluidos.map((item, idx) => (
+                                  <Badge key={idx} appearance="outline" color="informative" size="extra-small">
+                                    ✓ {item}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
 

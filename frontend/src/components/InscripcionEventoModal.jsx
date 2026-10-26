@@ -266,6 +266,7 @@ const InscripcionEventoModal = ({
     formData.append('tipo_referencia', 'EVENTO');
     formData.append('monto', selectedPackage.monto);
     formData.append('metodo_pago', 'TRANSFERENCIA');
+    formData.append('notas_admin', `Paquete: ${selectedPackage.nombre_paquete}`);
     formData.append('file', file);
 
     await pagoService.uploadComprobanteOcr(formData);
@@ -450,12 +451,63 @@ const InscripcionEventoModal = ({
                       Este evento requiere inscripción de pago. Selecciona un paquete y transfiere al código QR bancario oficial:
                     </MEHTypography>
                     
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-                      <Label required htmlFor="paquete-select" style={{ fontWeight: '600' }}>Selecciona tu Paquete</Label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Label required htmlFor="paquete-select" style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                          Selecciona tu Paquete de Inscripción:
+                        </Label>
+                        {selectedPackage && (
+                          <Badge appearance="tint" color="brand">
+                            Seleccionado: {selectedPackage.nombre_paquete}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Tarjetas interactivas de paquetes para compra clara */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                        {packages.map(pkg => {
+                          const isSelected = selectedPackage?.id_qr === pkg.id_qr;
+                          return (
+                            <div
+                              key={pkg.id_qr}
+                              onClick={() => setSelectedPackage(pkg)}
+                              style={{
+                                padding: '14px',
+                                borderRadius: '12px',
+                                border: isSelected ? `2px solid ${tokens.colorBrandStroke1}` : '1px solid rgba(255,255,255,0.1)',
+                                backgroundColor: isSelected ? 'rgba(127, 19, 236, 0.18)' : 'rgba(255,255,255,0.03)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px',
+                                transition: 'all 0.18s ease',
+                                boxShadow: isSelected ? '0 4px 16px rgba(127, 19, 236, 0.3)' : 'none',
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
+                                <span style={{ fontWeight: 'bold', fontSize: '14px', lineHeight: '1.2' }}>
+                                  {pkg.nombre_paquete}
+                                </span>
+                                {isSelected ? (
+                                  <Badge color="brand" appearance="filled" size="small">✓ Elegido</Badge>
+                                ) : (
+                                  <Badge appearance="outline" size="small">Elegir</Badge>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '20px', fontWeight: 'bold', color: tokens.colorBrandForeground1 }}>
+                                Bs. {pkg.monto}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Dropdown oculto para compatibilidad con selectores accesibles y tests */}
                       <Dropdown
                         id="paquete-select"
                         placeholder="Selecciona un paquete de inscripción"
-                        style={{ width: '100%' }}
+                        style={{ display: 'none' }}
+                        value={selectedPackage ? `${selectedPackage.nombre_paquete} — Bs. ${selectedPackage.monto}` : ''}
                         onOptionSelect={(e, data) => {
                           const pkg = packages.find(p => p.id_qr.toString() === data.optionValue);
                           setSelectedPackage(pkg);
@@ -499,7 +551,14 @@ const InscripcionEventoModal = ({
                     )}
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-                      <Label required style={{ fontWeight: '600' }}>Comprobante de Pago (PDF/JPG/PNG)</Label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Label required style={{ fontWeight: '600' }}>Comprobante de Pago (PDF/JPG/PNG)</Label>
+                        {file && (
+                          <Badge appearance="tint" color="success">
+                            Archivo cargado ({(file.size / 1024).toFixed(0)} KB)
+                          </Badge>
+                        )}
+                      </div>
                       <div className={styles.uploadArea}>
                         <Input 
                           type="file" 
@@ -507,10 +566,13 @@ const InscripcionEventoModal = ({
                           className={styles.fileInput}
                           accept=".pdf,.jpg,.jpeg,.png"
                         />
-                        <Attach24Regular style={{ fontSize: '36px', color: tokens.colorBrandForeground1, marginBottom: '10px', opacity: 0.8 }} />
-                        <MEHTypography variant="caption" style={{ display: 'block', fontWeight: 'bold' }}>
-                          {file ? file.name : "Haz clic para seleccionar o arrastra el archivo aquí"}
+                        <Attach24Regular style={{ fontSize: '36px', color: tokens.colorBrandForeground1, marginBottom: '6px', opacity: 0.85 }} />
+                        <MEHTypography variant="caption" style={{ display: 'block', fontWeight: 'bold', fontSize: '13px' }}>
+                          {file ? `✓ ${file.name}` : "Haz clic para seleccionar o tomar foto de tu comprobante"}
                         </MEHTypography>
+                        <span style={{ fontSize: '11px', opacity: 0.7 }}>
+                          Sube la captura de pantalla o PDF de la transferencia bancaria
+                        </span>
                       </div>
                     </div>
 

@@ -143,7 +143,8 @@ async def process_comprobante_upload_ocr(
     metodo_pago: str,
     file_content: bytes,
     file_extension: str,
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
+    notas_admin: Optional[str] = None
 ) -> models.Pago:
     """Procesa la subida física del comprobante, realiza validación OCR determinística y registra el pago en la DB."""
     file_path = _safe_save_comprobante(file_content, user_id)
@@ -217,7 +218,8 @@ async def process_comprobante_upload_ocr(
         estado_pago=estado_asignado,
         porcentaje_ocr=porcentaje_dec,
         texto_ocr=texto_ocr,
-        fecha_pago=datetime.utcnow()
+        fecha_pago=datetime.utcnow(),
+        notas_admin=notas_admin
     )
     db.add(nuevo_pago)
     db.commit()

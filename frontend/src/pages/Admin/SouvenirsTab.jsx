@@ -6,7 +6,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { 
   Add24Regular, ArrowUpload24Regular, Edit20Regular, Delete20Regular, 
-  Box24Filled, Money20Regular, Info20Regular 
+  Box24Filled, Money20Regular, Info20Regular, Search24Regular 
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import adminService from '../../services/adminService';
@@ -30,7 +30,7 @@ const useStyles = makeStyles({
   },
   tableWrapper: { 
     width: '100%', 
-    overflowX: 'hidden', 
+    overflowX: 'auto', 
     ...shorthands.borderRadius('24px'), 
     ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), 
     backgroundColor: tokens.colorNeutralBackground1, 
@@ -89,6 +89,16 @@ const SouvenirsTab = ({
 }) => {
   const styles = useStyles();
   const { t } = useTranslation();
+  const [searchTerm, setSearchTerm] = React.useState('');
+
+  const filteredData = React.useMemo(() => {
+    if (!searchTerm.trim()) return data;
+    const term = searchTerm.toLowerCase();
+    return data.filter(i => 
+      (i.nombre && i.nombre.toLowerCase().includes(term)) ||
+      (i.descripcion && i.descripcion.toLowerCase().includes(term))
+    );
+  }, [data, searchTerm]);
 
   return (
     <div className={styles.grid}>
@@ -209,21 +219,32 @@ const SouvenirsTab = ({
       </div>
 
       <div className={styles.tableWrapper}>
-        <div style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${tokens.colorNeutralBackground3}` }}>
-          <MEHTypography variant="h3">{t("admin_souvenirs_inventory")}</MEHTypography>
-          <Badge appearance="filled" color="brand">{t("admin_count_products", { count: data.length })}</Badge>
+        <div style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', borderBottom: `1px solid ${tokens.colorNeutralBackground3}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <MEHTypography variant="h3">{t("admin_souvenirs_inventory")}</MEHTypography>
+            <Badge appearance="filled" color="brand">{t("admin_count_products", { count: filteredData.length })}</Badge>
+          </div>
+          <div style={{ maxWidth: '240px', width: '100%' }}>
+            <Input
+              contentBefore={<Search24Regular />}
+              placeholder="Buscar souvenir..."
+              value={searchTerm}
+              onChange={(e, d) => setSearchTerm(d.value)}
+              style={{ width: '100%' }}
+            />
+          </div>
         </div>
         
         <Table size="medium">
           <TableBody>
-            {data.length === 0 ? (
+            {filteredData.length === 0 ? (
               <TableRow>
-                <TableCell colspan={3} style={{ textAlign: 'center', padding: '40px' }}>
+                <TableCell colSpan={3} style={{ textAlign: 'center', padding: '40px' }}>
                   <MEHTypography variant="body">{t("admin_no_products")}</MEHTypography>
                 </TableCell>
               </TableRow>
             ) : (
-              data.map(i => (
+              filteredData.map(i => (
                 <TableRow key={`p-${i.id_producto}`} className={styles.userRow}>
                   <TableCell>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>

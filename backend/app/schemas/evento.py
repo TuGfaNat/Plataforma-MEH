@@ -147,6 +147,9 @@ class InscriptoConfirmadoResponse(BaseModel):
     asistio: bool
     nombre_completo: str
     correo: Optional[str] = None
+    paquete: Optional[str] = None
+    monto_pagado: Optional[float] = None
+    incluidos: Optional[List[str]] = None
     model_config = ConfigDict(from_attributes=True)
 
 class AcreditarParticipanteRequest(BaseModel):

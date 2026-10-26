@@ -103,6 +103,10 @@ export const guardarInscritos = async (idEvento, nombreEvento, registrados, chec
             id_usuario: item.id_usuario,
             id_evento: idEvento,
             nombre_completo: item.nombre_completo,
+            correo: item.correo,
+            paquete: item.paquete,
+            monto_pagado: item.monto_pagado,
+            incluidos: item.incluidos || [],
             asistio: item.asistio
           });
         });
@@ -185,6 +189,9 @@ export const validarQROffline = async (codigoQR, idCheckpoint, idEventoSeleccion
         resolve({
           success: true,
           usuario: { nombre: inscrito.nombre_completo },
+          paquete: inscrito.paquete,
+          monto_pagado: inscrito.monto_pagado,
+          incluidos: inscrito.incluidos || [],
           message: 'Asistencia registrada con éxito (Modo Offline)'
         });
       } else {

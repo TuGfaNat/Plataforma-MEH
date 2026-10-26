@@ -744,16 +744,32 @@ def registrar_asistencia_qr(
     if checkpoint:
         ret_evento_titulo = f"{evento.titulo} - Checkpoint: {checkpoint.nombre_checkpoint}"
 
+    pago = db.query(models.Pago).filter(
+        models.Pago.tipo_referencia == "EVENTO",
+        models.Pago.id_referencia == inscripcion.id_inscripcion
+    ).order_by(models.Pago.id_pago.desc()).first()
+    nombre_paquete = None
+    monto_pagado = None
+    if pago:
+        nombre_paquete = pago.notas_admin or (f"Bs. {pago.monto}")
+        monto_pagado = float(pago.monto) if pago.monto is not None else None
+
     return {
         "message": "Asistencia registrada con éxito", 
         "usuario": {
             "nombre": f"{usuario.nombres} {usuario.apellidos}",
-            "id_usuario": usuario.id_usuario
+            "id_usuario": usuario.id_usuario,
+            "correo": getattr(usuario, "correo", "")
         },
         "evento": {
             "titulo": ret_evento_titulo,
-            "id_evento": evento.id_evento
+            "id_evento": evento.id_evento,
+            "incluidos": parse_incluidos_list(evento.incluidos),
+            "refrigerio_incluido": bool(evento.refrigerio_incluido)
         },
+        "paquete": nombre_paquete,
+        "monto_pagado": monto_pagado,
+        "incluidos": parse_incluidos_list(evento.incluidos),
         "id_asistencia": nueva_asistencia.id_asistencia if nueva_asistencia else None,
         "id_inscripcion": inscripcion.id_inscripcion,
         "id_checkpoint": id_checkpoint,
@@ -1259,13 +1275,26 @@ def get_inscritos_confirmados(db: Session, id_evento: int, staff_user: models.Us
     
     resultado = []
     for ins in inscripciones:
+        pago = db.query(models.Pago).filter(
+            models.Pago.tipo_referencia == "EVENTO",
+            models.Pago.id_referencia == ins.id_inscripcion
+        ).order_by(models.Pago.id_pago.desc()).first()
+        nombre_paquete = None
+        monto_pagado = None
+        if pago:
+            nombre_paquete = pago.notas_admin or (f"Bs. {pago.monto}")
+            monto_pagado = float(pago.monto) if pago.monto is not None else None
+
         resultado.append({
             "id_inscripcion": ins.id_inscripcion,
             "id_usuario": ins.id_usuario,
             "codigo_qr": ins.codigo_qr or "",
             "asistio": ins.asistio,
             "nombre_completo": f"{ins.usuario.nombres} {ins.usuario.apellidos}",
-            "correo": getattr(ins.usuario, "correo", "") or ""
+            "correo": getattr(ins.usuario, "correo", "") or "",
+            "paquete": nombre_paquete,
+            "monto_pagado": monto_pagado,
+            "incluidos": parse_incluidos_list(evento.incluidos)
         })
     return resultado
  
