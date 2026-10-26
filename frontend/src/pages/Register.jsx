@@ -36,18 +36,21 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground4,
     background: `radial-gradient(circle at bottom left, ${tokens.colorBrandBackground2} 0%, ${tokens.colorNeutralBackground4} 60%)`,
     position: 'relative',
-    ...shorthands.padding('40px', '0'),
+    boxSizing: 'border-box',
+    ...shorthands.padding('32px', '16px'),
   },
   registerCard: {
-    width: '600px',
+    width: '100%',
+    maxWidth: '600px',
+    boxSizing: 'border-box',
     zIndex: 1,
     ...shorthands.padding('48px'),
     display: 'flex',
     flexDirection: 'column',
     gap: '24px',
     '@media (max-width: 650px)': {
-      width: '90%',
-      ...shorthands.padding('32px', '20px'),
+      width: '100%',
+      ...shorthands.padding('28px', '20px'),
     }
   },
   form: {
@@ -149,13 +152,13 @@ const Register = () => {
           <MEHTypography variant="body" className={styles.sectionTitle}>1. Información Básica</MEHTypography>
           <div className={styles.row}>
             <MEHInput 
-              label="Nombres"
+              label="Nombre(s)"
               value={formData.nombres}
               onChange={(e, d) => handleInputChange('nombres', d.value, validateName)}
               required 
             />
             <MEHInput 
-              label="Apellidos"
+              label="Apellido(s)"
               value={formData.apellidos}
               onChange={(e, d) => handleInputChange('apellidos', d.value, validateName)}
               required 

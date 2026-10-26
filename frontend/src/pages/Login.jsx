@@ -29,7 +29,9 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground4,
     background: `radial-gradient(circle at top right, ${tokens.colorBrandBackground2} 0%, ${tokens.colorNeutralBackground4} 60%)`,
     position: 'relative',
-    overflow: 'hidden',
+    overflowX: 'hidden',
+    boxSizing: 'border-box',
+    ...shorthands.padding('24px', '16px'),
   },
   glow: {
     position: 'absolute',
@@ -44,7 +46,9 @@ const useStyles = makeStyles({
     left: '-200px',
   },
   loginCard: {
-    width: '450px',
+    width: '100%',
+    maxWidth: '450px',
+    boxSizing: 'border-box',
     zIndex: 1,
     ...shorthands.padding('48px'),
     display: 'flex',
@@ -56,8 +60,8 @@ const useStyles = makeStyles({
     },
     animationDuration: '0.8s',
     '@media (max-width: 480px)': {
-      width: '90%',
-      ...shorthands.padding('32px', '20px'),
+      width: '100%',
+      ...shorthands.padding('28px', '20px'),
     }
   },
   logoContainer: {
@@ -89,7 +93,10 @@ const useStyles = makeStyles({
   footer: {
     marginTop: '16px',
     textAlign: 'center',
-    borderTop: `1px solid rgba(255, 255, 255, 0.05)`,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    borderTop: `1px solid rgba(255, 255, 255, 0.08)`,
     paddingTop: '24px',
   },
   forgotLink: {
@@ -234,15 +241,30 @@ const Login = () => {
         </form>
 
         <div className={styles.footer}>
-          <MEHTypography variant="body" style={{ opacity: 0.7, marginBottom: '16px', display: 'block' }}>
-            {t("new_member_prompt")} <Link to={returnTo ? `/register?returnTo=${encodeURIComponent(returnTo)}` : "/register"} className={styles.link}>{t("join_here")}</Link>
+          <MEHTypography variant="body" style={{ opacity: 0.8, marginBottom: '16px', display: 'block', textAlign: 'center', lineHeight: '1.6' }}>
+            {t("new_member_prompt")}
+            <br />
+            <Link
+              to={returnTo ? `/register?returnTo=${encodeURIComponent(returnTo)}` : "/register"}
+              className={styles.link}
+              style={{ display: 'inline-block', marginTop: '4px', fontSize: '15px' }}
+            >
+              {t("join_here")}
+            </Link>
           </MEHTypography>
           
           <MEHButton 
-            appearance="subtle" 
-            size="small" 
+            appearance="outline" 
+            size="medium" 
             onClick={() => navigate('/')}
-            style={{ marginTop: '8px', opacity: 0.8 }}
+            style={{
+              marginTop: '6px',
+              fontSize: '15px',
+              fontWeight: '600',
+              padding: '10px 28px',
+              border: `1px solid ${tokens.colorBrandStroke1}`,
+              borderRadius: '10px',
+            }}
           >
             {t("return_home")}
           </MEHButton>

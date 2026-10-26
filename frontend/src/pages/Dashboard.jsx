@@ -79,7 +79,7 @@ const useStyles = makeStyles({
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
     ...shorthands.gap('24px'),
   },
   sectionTitle: {
@@ -91,8 +91,9 @@ const useStyles = makeStyles({
   eventItem: {
     display: 'flex',
     alignItems: 'center',
-    gap: '16px',
-    ...shorthands.padding('12px'),
+    justifyContent: 'space-between',
+    gap: '14px',
+    ...shorthands.padding('14px'),
     ...shorthands.borderRadius('12px'),
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
     transition: 'all 0.2s ease',
@@ -100,6 +101,33 @@ const useStyles = makeStyles({
     ':hover': {
       backgroundColor: 'rgba(255, 255, 255, 0.05)',
       transform: 'translateX(4px)',
+    },
+    '@media (max-width: 600px)': {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+      gap: '12px',
+    }
+  },
+  eventMainInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    flexGrow: 1,
+    minWidth: 0,
+  },
+  eventActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexShrink: 0,
+    '@media (max-width: 600px)': {
+      width: '100%',
+      justifyContent: 'flex-end',
+      borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+      paddingTop: '10px',
+      '& > button': {
+        width: '100%',
+      }
     }
   },
   eventMiniature: {
@@ -485,15 +513,18 @@ const Dashboard = () => {
                   
                   return (
                     <div key={evento.id_evento} className={styles.eventItem}>
-                      <img src={getEventoCoverByContext(evento, '1:1')} className={styles.eventMiniature} alt={`Miniatura del evento ${evento.titulo}`} />
-                      <div className={styles.dateBox}>
-                        <MEHTypography variant="caption" style={{ display: 'block', fontWeight: 'bold', color: tokens.colorBrandForeground1, fontSize: '10px' }}>{month}</MEHTypography>
-                        <MEHTypography variant="h3" style={{ fontSize: '16px' }}>{day}</MEHTypography>
+                      <div className={styles.eventMainInfo}>
+                        <img src={getEventoCoverByContext(evento, '1:1')} className={styles.eventMiniature} style={{ flexShrink: 0 }} alt={`Miniatura del evento ${evento.titulo}`} />
+                        <div className={styles.dateBox} style={{ flexShrink: 0 }}>
+                          <MEHTypography variant="caption" style={{ display: 'block', fontWeight: 'bold', color: tokens.colorBrandForeground1, fontSize: '10px' }}>{month}</MEHTypography>
+                          <MEHTypography variant="h3" style={{ fontSize: '16px' }}>{day}</MEHTypography>
+                        </div>
+                        <div style={{ flexGrow: 1, minWidth: 0 }}>
+                          <MEHTypography variant="body" style={{ fontWeight: 'bold', fontSize: '14px', display: 'block', lineHeight: '1.35', wordBreak: 'break-word' }}>{evento.titulo}</MEHTypography>
+                          <MEHTypography variant="caption" style={{ opacity: 0.6, display: 'block', fontSize: '12px', marginTop: '2px' }}>{evento.modalidad}</MEHTypography>
+                        </div>
                       </div>
-                      <div style={{ flexGrow: 1 }}>
-                        <MEHTypography variant="body" style={{ fontWeight: 'bold', fontSize: '14px' }}>{evento.titulo}</MEHTypography>
-                        <MEHTypography variant="caption" style={{ opacity: 0.6, display: 'block', fontSize: '12px' }}>{evento.modalidad}</MEHTypography>
-                      </div>
+                      <div className={styles.eventActions}>
                       {hasValidEventQr ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <MEHButton 
@@ -583,6 +614,7 @@ const Dashboard = () => {
                             buttonSize="small" 
                           />
                       )}
+                      </div>
                     </div>
                   );
                 })

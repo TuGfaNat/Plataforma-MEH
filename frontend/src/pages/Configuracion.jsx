@@ -362,7 +362,7 @@ const Configuracion = () => {
 
             <div className={styles.socialGrid}>
               <div className={styles.fieldGroup}>
-                <Label required>Nombres</Label>
+                <Label required>Nombre(s)</Label>
                 <Input
                   value={formData.nombres}
                   onChange={(e, d) => handleInputChange('nombres', d.value)}
@@ -371,7 +371,7 @@ const Configuracion = () => {
                 {errors.nombres && <MEHTypography variant="caption" style={{ color: tokens.colorPaletteRedForeground1 }}>{errors.nombres}</MEHTypography>}
               </div>
               <div className={styles.fieldGroup}>
-                <Label required>Apellidos</Label>
+                <Label required>Apellido(s)</Label>
                 <Input
                   value={formData.apellidos}
                   onChange={(e, d) => handleInputChange('apellidos', d.value)}
