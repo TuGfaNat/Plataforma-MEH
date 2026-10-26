@@ -1231,8 +1231,20 @@ def delete_evento(db: Session, id_evento: int, admin_user: models.Usuario, ip_ad
     return True
 
 def get_inscritos_confirmados(db: Session, id_evento: int, staff_user: models.Usuario):
-    if not has_permission(staff_user.rol, PERMISSION_ATTENDANCE_SCAN):
-        raise PermisoDenegadoError("No tienes permisos para descargar los inscritos de este evento")
+    tiene_permiso = (
+        has_permission(staff_user.rol, PERMISSION_ATTENDANCE_SCAN)
+        or staff_user.rol in ["ADMIN", "ORGANIZADOR", "MODERADOR", "SOPORTE"]
+    )
+    if not tiene_permiso:
+        tiene_cp = db.query(models.CheckpointPermiso).join(
+            models.Checkpoint, models.CheckpointPermiso.id_checkpoint == models.Checkpoint.id_checkpoint
+        ).filter(
+            models.Checkpoint.id_evento == id_evento,
+            models.CheckpointPermiso.id_usuario == staff_user.id_usuario,
+            models.CheckpointPermiso.puede_escanear == True
+        ).first()
+        if not tiene_cp:
+            raise PermisoDenegadoError("No tienes permisos para descargar los inscritos de este evento")
         
     evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
     if not evento:
