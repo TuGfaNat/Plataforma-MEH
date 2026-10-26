@@ -201,7 +201,7 @@ const AdminPanel = () => {
   // Souvenirs & POS
   const [isEditingSouvenir, setIsEditingSouvenir] = useState(false);
   const [currentSouvenirId, setCurrentSouvenirId] = useState(null);
-  const [newSouvenir, setNewSouvenir] = useState({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', categoria: 'SOUVENIR', id_estado: 2 });
+  const [newSouvenir, setNewSouvenir] = useState({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', qr_url: '', categoria: 'SOUVENIR', id_estado: 2 });
 
   // Biblioteca
   const [isEditingRecurso, setIsEditingRecurso] = useState(false);
@@ -470,7 +470,7 @@ const AdminPanel = () => {
               await adminService.createSouvenir(newSouvenir);
               notify("Éxito", "Producto agregado", "success");
           }
-          setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', categoria: 'SOUVENIR', id_estado: 2 });
+          setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', qr_url: '', categoria: 'SOUVENIR', id_estado: 2 });
           setIsEditingSouvenir(false); void fetchData();
       } catch (e) { notify("Error", "Fallo al guardar producto", "error"); }
   };
@@ -482,6 +482,7 @@ const AdminPanel = () => {
         precio: s.precio, 
         stock: s.stock, 
         imagen_url: s.imagen_url || '', 
+        qr_url: s.qr_url || '',
         categoria: s.categoria || 'SOUVENIR',
         id_estado: s.id_estado ?? 2
     });

@@ -179,6 +179,7 @@ class Producto(Base, AuditMixin, EstadoLifecycleMixin):
     stock = Column(Integer, default=0)
     es_kit_evento = Column(Boolean, default=False)
     imagen_url = Column(TEXT, nullable=True)
+    qr_url = Column(TEXT, nullable=True)
     categoria = Column(String, default="SOUVENIR")
     activo = Column(Boolean, default=True)
 

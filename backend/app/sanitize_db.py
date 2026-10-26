@@ -45,6 +45,7 @@ def sanitize():
         # 5. Asegurar columnas OCR en tabla pagos
         run_sql(db, "ALTER TABLE pagos ADD COLUMN IF NOT EXISTS porcentaje_ocr NUMERIC(5, 2)", "Asegurar columna 'porcentaje_ocr' en pagos")
         run_sql(db, "ALTER TABLE pagos ADD COLUMN IF NOT EXISTS texto_ocr TEXT", "Asegurar columna 'texto_ocr' en pagos")
+        run_sql(db, "ALTER TABLE productos ADD COLUMN IF NOT EXISTS qr_url TEXT", "Asegurar columna 'qr_url' en productos")
 
         # 5b. Asegurar secuencia e id_inscripcion_curso autoincremental en inscripciones_cursos
         run_sql(db, "CREATE SEQUENCE IF NOT EXISTS inscripciones_cursos_id_inscripcion_curso_seq", "Crear secuencia para inscripciones_cursos")

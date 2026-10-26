@@ -220,6 +220,7 @@ erDiagram
 | `stock` | `INTEGER` | **-** | SÍ | default=0 |
 | `es_kit_evento` | `BOOLEAN` | **-** | SÍ | default=False |
 | `imagen_url` | `TEXT` | **-** | SÍ | - |
+| `qr_url` | `TEXT` | **-** | SÍ | - |
 | `categoria` | `STRING` | **-** | SÍ | default=SOUVENIR |
 | `activo` | `BOOLEAN` | **-** | SÍ | default=True |
 | `creado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |

@@ -195,45 +195,87 @@ const SouvenirsTab = ({
           </Field>
         </div>
 
-        <Field label={t("admin_product_image")}>
-          <div 
-            className={styles.uploadBox} 
-            role="button"
-            tabIndex={0}
-            aria-label={newSouvenir.imagen_url ? t("admin_change_image") : t("admin_upload_image")}
-            onClick={() => document.getElementById('souv-file')?.click()}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                document.getElementById('souv-file')?.click();
-              }
-            }}
-          >
-            {uploading ? (
-              <Spinner size="medium" label={t("uploading")} />
-            ) : (
-              <>
-                {newSouvenir.imagen_url && (
-                  <img src={newSouvenir.imagen_url} alt={`Vista previa de ${newSouvenir.nombre || 'souvenir'}`} className={styles.previewImage} />
-                )}
-                <div className={styles.uploadContent}>
-                  <ArrowUpload24Regular aria-hidden="true" /> 
-                  <MEHTypography variant="caption">
-                    {newSouvenir.imagen_url ? t("admin_change_image") : t("admin_upload_image")}
-                  </MEHTypography>
-                </div>
-                <input 
-                  id="souv-file" 
-                  type="file" 
-                  accept="image/*" 
-                  aria-label={newSouvenir.imagen_url ? t("admin_change_image") : t("admin_upload_image")}
-                  onChange={(e) => handleFileUpload(e, setNewSouvenir, newSouvenir, 'imagen_url')} 
-                  style={{ display: 'none' }} 
-                />
-              </>
-            )}
-          </div>
-        </Field>
+        <div className={styles.rowTwo}>
+          <Field label={t("admin_product_image") || "Foto del Producto"}>
+            <div 
+              className={styles.uploadBox} 
+              role="button"
+              tabIndex={0}
+              aria-label={newSouvenir.imagen_url ? t("admin_change_image") : t("admin_upload_image")}
+              onClick={() => document.getElementById('souv-file')?.click()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  document.getElementById('souv-file')?.click();
+                }
+              }}
+            >
+              {uploading ? (
+                <Spinner size="medium" label={t("uploading")} />
+              ) : (
+                <>
+                  {newSouvenir.imagen_url && (
+                    <img src={newSouvenir.imagen_url} alt={`Vista previa de ${newSouvenir.nombre || 'souvenir'}`} className={styles.previewImage} />
+                  )}
+                  <div className={styles.uploadContent}>
+                    <ArrowUpload24Regular aria-hidden="true" /> 
+                    <MEHTypography variant="caption">
+                      {newSouvenir.imagen_url ? "Cambiar Foto" : "Subir Foto Producto"}
+                    </MEHTypography>
+                  </div>
+                  <input 
+                    id="souv-file" 
+                    type="file" 
+                    accept="image/*" 
+                    aria-label={newSouvenir.imagen_url ? t("admin_change_image") : t("admin_upload_image")}
+                    onChange={(e) => handleFileUpload(e, setNewSouvenir, newSouvenir, 'imagen_url')} 
+                    style={{ display: 'none' }} 
+                  />
+                </>
+              )}
+            </div>
+          </Field>
+
+          <Field label="QR de Pago (Simple / Banco)">
+            <div 
+              className={styles.uploadBox} 
+              role="button"
+              tabIndex={0}
+              aria-label={newSouvenir.qr_url ? "Cambiar QR de Pago" : "Subir QR de Pago"}
+              onClick={() => document.getElementById('souv-qr-file')?.click()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  document.getElementById('souv-qr-file')?.click();
+                }
+              }}
+            >
+              {uploading ? (
+                <Spinner size="medium" label={t("uploading")} />
+              ) : (
+                <>
+                  {newSouvenir.qr_url && (
+                    <img src={newSouvenir.qr_url} alt={`QR de Pago de ${newSouvenir.nombre || 'souvenir'}`} className={styles.previewImage} />
+                  )}
+                  <div className={styles.uploadContent}>
+                    <ArrowUpload24Regular aria-hidden="true" /> 
+                    <MEHTypography variant="caption">
+                      {newSouvenir.qr_url ? "Cambiar QR" : "Subir QR Simple/Banco"}
+                    </MEHTypography>
+                  </div>
+                  <input 
+                    id="souv-qr-file" 
+                    type="file" 
+                    accept="image/*" 
+                    aria-label={newSouvenir.qr_url ? "Cambiar QR de Pago" : "Subir QR de Pago"}
+                    onChange={(e) => handleFileUpload(e, setNewSouvenir, newSouvenir, 'qr_url')} 
+                    style={{ display: 'none' }} 
+                  />
+                </>
+              )}
+            </div>
+          </Field>
+        </div>
 
         <div style={{ margin: '4px 0' }}>
           <Switch 
@@ -257,7 +299,7 @@ const SouvenirsTab = ({
           <Button 
             appearance="subtle" 
             onClick={() => {
-              setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', categoria: 'SOUVENIR', id_estado: 2 });
+              setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', qr_url: '', categoria: 'SOUVENIR', id_estado: 2 });
               setIsEditingSouvenir(false);
             }}
           >

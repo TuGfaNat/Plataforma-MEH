@@ -30,7 +30,7 @@ const adminService = {
     return response.data;
   },
   getSouvenirById: async (id) => {
-    const response = await api.get(/souvenirs/);
+    const response = await api.get(`/souvenirs/${id}`);
     return response.data;
   },
   createSouvenir: async (data) => {

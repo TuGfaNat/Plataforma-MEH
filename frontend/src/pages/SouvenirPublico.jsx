@@ -146,18 +146,26 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: '380px',
-    maxHeight: '480px',
+    minHeight: '260px',
+    maxHeight: '460px',
     background: 'radial-gradient(circle, rgba(127, 19, 236, 0.05) 0%, rgba(0,0,0,0.2) 100%)',
+    '@media (max-width: 600px)': {
+      minHeight: '200px',
+      maxHeight: '280px',
+      ...shorthands.borderRadius('16px'),
+    }
   },
   productImage: {
     width: '100%',
     height: '100%',
-    maxHeight: '480px',
+    maxHeight: '460px',
     objectFit: 'contain',
     transition: 'transform 0.3s ease',
     ':hover': {
       transform: 'scale(1.02)'
+    },
+    '@media (max-width: 600px)': {
+      maxHeight: '280px',
     }
   },
   stickyCard: {
@@ -170,7 +178,14 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: '20px',
     position: 'sticky',
-    top: '90px'
+    top: '90px',
+    '@media (max-width: 860px)': {
+      position: 'static',
+      top: 'auto',
+      padding: '18px 14px',
+      ...shorthands.borderRadius('16px'),
+      gap: '14px',
+    }
   },
   infoCard: {
     backgroundColor: tokens.colorNeutralBackground1,
@@ -181,7 +196,13 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: '16px',
-    marginTop: '20px'
+    marginTop: '20px',
+    '@media (max-width: 860px)': {
+      padding: '16px 14px',
+      ...shorthands.borderRadius('16px'),
+      marginTop: '12px',
+      gap: '12px',
+    }
   },
   quantityWrapper: {
     display: 'flex',
@@ -622,19 +643,38 @@ const SouvenirPublico = () => {
 
                   {/* QR Bancario Oficial */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '16px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                    <span style={{ fontSize: '12px', opacity: 0.85, fontWeight: 'bold' }}>
-                      1. Transfiere exactamente Bs. {subtotal} con QR Bancario:
+                    <span style={{ fontSize: '13px', opacity: 0.9, fontWeight: 'bold', textAlign: 'center' }}>
+                      1. Transfiere exactamente <b style={{ color: tokens.colorBrandForeground1 }}>Bs. {subtotal}</b> escaneando el QR oficial:
                     </span>
-                    <div style={{ padding: '12px', backgroundColor: '#FFFFFF', borderRadius: '12px', boxShadow: '0 6px 16px rgba(0,0,0,0.3)' }}>
-                      <QRCodeSVG
-                        value={`MEH_PAGO_SOUVENIR_${producto.id_producto}_TOTAL_${subtotal}`}
-                        size={170}
-                        level="H"
-                        includeMargin={false}
-                      />
+                    <div style={{ padding: '12px', backgroundColor: '#FFFFFF', borderRadius: '14px', boxShadow: '0 6px 16px rgba(0,0,0,0.3)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      {producto.qr_url ? (
+                        <img 
+                          src={resolveApiFileUrl(producto.qr_url)} 
+                          alt={`QR de pago para ${producto.nombre}`} 
+                          style={{ maxWidth: '220px', maxHeight: '220px', width: '100%', objectFit: 'contain' }} 
+                        />
+                      ) : (
+                        <QRCodeSVG
+                          value={`MEH_PAGO_SOUVENIR_${producto.id_producto}_TOTAL_${subtotal}`}
+                          size={180}
+                          level="H"
+                          includeMargin={false}
+                        />
+                      )}
                     </div>
+                    {producto.qr_url && (
+                      <a 
+                        href={resolveApiFileUrl(producto.qr_url)} 
+                        download={`QR_Pago_${producto.nombre}.png`} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        style={{ fontSize: '12px', color: tokens.colorBrandForeground1, textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <ArrowDownload24Regular fontSize={14} /> Descargar Imagen del QR
+                      </a>
+                    )}
                     <div style={{ textAlign: 'center', fontSize: '11px', opacity: 0.75 }}>
-                      Comunidad Microsoft Education Hub • Banco Unión / Simple QR
+                      Comunidad Microsoft Education Hub • Simple QR / Transferencia Bancaria
                     </div>
                   </div>
 
