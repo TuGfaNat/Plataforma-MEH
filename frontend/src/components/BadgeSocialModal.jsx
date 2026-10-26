@@ -131,7 +131,7 @@ const drawBackground = async (ctx, width, height, plantillaUrl) => {
   ctx.fillStyle = '#a855f7';
   ctx.font = 'bold 28px -apple-system, Segoe UI, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('COMUNIDAD MICROSOFT ENGINEERING HUB', width / 2, 110);
+  ctx.fillText('COMUNIDAD MICROSOFT EDUCATION HUB', width / 2, 110);
 
   ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
   ctx.font = '20px -apple-system, Segoe UI, sans-serif';
@@ -346,7 +346,7 @@ const BadgeSocialModal = ({ isOpen, onClose, eventoId, eventoTitulo = '' }) => {
       // 8. PIE DE PÁGINA
       ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
       ctx.font = '18px -apple-system, Segoe UI, sans-serif';
-      ctx.fillText('www.comunidadmeh.com • #ComunidadMEH • Microsoft Engineering Hub', width / 2, 1260);
+      ctx.fillText('#ComunidadMEH • Microsoft Education Hub • Bolivia', width / 2, 1260);
     };
 
     void renderCanvas();

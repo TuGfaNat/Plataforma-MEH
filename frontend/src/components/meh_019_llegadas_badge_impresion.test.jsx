@@ -123,7 +123,7 @@ describe('🎫 MEH-019: Componentes de Acreditación, Llegadas y Badge Social', 
       const tabCredenciales = screen.getByRole('tab', { name: /Credenciales Físicas con QR/i });
       fireEvent.click(tabCredenciales);
 
-      expect(screen.getAllByText('Microsoft Engineering Hub').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Microsoft Education Hub').length).toBeGreaterThan(0);
     });
 
     it('dispara la función window.print al hacer click en Imprimir', () => {

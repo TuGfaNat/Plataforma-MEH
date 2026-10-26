@@ -245,7 +245,7 @@ const ImprimirLista = ({
                     {eventoTitulo}
                   </h2>
                   <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
-                    Comunidad Microsoft Engineering Hub • {eventoFecha ? new Date(eventoFecha).toLocaleDateString('es-BO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'Control de Asistencia Oficial'}
+                    Comunidad Microsoft Education Hub • {eventoFecha ? new Date(eventoFecha).toLocaleDateString('es-BO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'Control de Asistencia Oficial'}
                   </p>
                 </div>
                 <div style={{ textAlign: 'right', fontSize: '11px', color: '#4b5563' }}>
@@ -309,7 +309,7 @@ const ImprimirLista = ({
                 <div className={styles.badgeGrid}>
                   {inscritosFiltrados.map((item) => (
                     <div key={item.id_inscripcion} className={styles.badgeCard}>
-                      <div className={styles.badgeHeader}>Microsoft Engineering Hub</div>
+                      <div className={styles.badgeHeader}>Microsoft Education Hub</div>
                       <div style={{ padding: '4px', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
                         <QRCodeSVG
                           value={item.codigo_qr || `MEH-${item.id_inscripcion}`}
