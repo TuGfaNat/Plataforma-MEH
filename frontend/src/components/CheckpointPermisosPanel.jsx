@@ -29,6 +29,7 @@ import {
 import { MEHButton, MEHTypography } from './ui';
 import asistenciaService from '../services/asistenciaService';
 import api from '../services/api';
+import { matchesSmartSearch } from '../utils/smartSearch';
 import { useNotify } from '../App';
 
 const useStyles = makeStyles({
@@ -106,6 +107,7 @@ const CheckpointPermisosPanel = ({ eventoId, eventoTitulo }) => {
   const [userIdInput, setUserIdInput] = useState('');
   const [assigning, setAssigning] = useState(false);
   const [availableUsers, setAvailableUsers] = useState([]);
+  const [operatorSearch, setOperatorSearch] = useState('');
 
   // Cargar Checkpoints
   const loadCheckpoints = async () => {
@@ -127,7 +129,7 @@ const CheckpointPermisosPanel = ({ eventoId, eventoTitulo }) => {
   // Cargar usuarios para el selector rápido de asignación
   const loadUsers = async () => {
     try {
-      const res = await api.get('/auth/users');
+      const res = await api.get('/auth/usuarios');
       setAvailableUsers(res.data || []);
     } catch (_) {
       // Fallback si no tiene permisos de listar usuarios directos
@@ -307,15 +309,26 @@ const CheckpointPermisosPanel = ({ eventoId, eventoTitulo }) => {
 
           {/* Formulario de Asignación */}
           <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '16px' }}>
-            <Field label="Seleccionar o Ingresar ID de Usuario Staff" style={{ flexGrow: 1, minWidth: '220px' }}>
+            {availableUsers.length > 0 && (
+              <Field label="Filtrar usuario por nombre o correo" style={{ minWidth: '220px', flexGrow: 1 }}>
+                <Input
+                  value={operatorSearch}
+                  onChange={(e, d) => setOperatorSearch(d.value)}
+                  placeholder="Ej: Edgar Sanchez, @alias..."
+                />
+              </Field>
+            )}
+            <Field label="Seleccionar Operador Staff" style={{ flexGrow: 2, minWidth: '240px' }}>
               {availableUsers.length > 0 ? (
                 <Select value={userIdInput} onChange={(e, d) => setUserIdInput(d.value)}>
                   <option value="">-- Seleccionar operador --</option>
-                  {availableUsers.map(u => (
-                    <option key={u.id_usuario} value={u.id_usuario}>
-                      {u.nombres} {u.apellidos} ({u.correo} - {u.rol})
-                    </option>
-                  ))}
+                  {availableUsers
+                    .filter(u => matchesSmartSearch([u.nombres, u.apellidos, u.correo, u.alias, u.rol], operatorSearch))
+                    .map(u => (
+                      <option key={u.id_usuario} value={u.id_usuario}>
+                        {u.nombres} {u.apellidos} ({u.rol} — {u.correo})
+                      </option>
+                    ))}
                 </Select>
               ) : (
                 <Input 

@@ -300,7 +300,7 @@ const Sidebar = ({ onClose }) => {
       <nav className={styles.navSection}>
         {/* BLOQUE 1: MI ESPACIO (TODOS LOS ROLES) */}
         <div className={styles.sectionTitle}>
-          {t("menu_personal") || "Mi Espacio"}
+          Mi Espacio
         </div>
         <NavItem
           to="/dashboard"
@@ -312,7 +312,7 @@ const Sidebar = ({ onClose }) => {
           to="/dashboard/events-master"
           icon={CalendarStar24Regular}
           activeIcon={CalendarStar24Filled}
-          label={t("events") || "Eventos"}
+          label={"Eventos"}
         />
         <NavItem
           to="/learning"
@@ -351,7 +351,7 @@ const Sidebar = ({ onClose }) => {
         {isStaff && (
           <>
             <div className={styles.sectionTitle}>
-              {t("menu_operations") || "Operaciones en Vivo"}
+              Operaciones en Vivo
             </div>
             {canScanAttendance && (
               <NavItem
@@ -386,7 +386,7 @@ const Sidebar = ({ onClose }) => {
         {(canManageEvents || isStaff) && (
           <>
             <div className={styles.sectionTitle}>
-              {t("menu_academic") || "Administración"}
+              Administración
             </div>
             <NavItem
               to="/admin"

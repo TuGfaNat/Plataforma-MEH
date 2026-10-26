@@ -22,6 +22,7 @@ import {
 import { MEHButton, MEHTypography, MEHInput } from '../../components/ui';
 import authService from '../../services/authService';
 import { resolveApiFileUrl } from '../../services/api';
+import { matchesSmartSearch } from '../../utils/smartSearch';
 import { useNotify } from '../../App';
 
 const useStyles = makeStyles({
@@ -91,12 +92,17 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
 
   // Estados para modal de suspensión
   const [suspendModal, setSuspendModal] = useState({ open: false, user: null, motivo: '', loading: false });
+  const [roleFilter, setRoleFilter] = useState('ALL');
 
   const filteredUsers = [...(data || [])]
     .sort((a, b) => (b.id_usuario || 0) - (a.id_usuario || 0))
-    .filter(u => 
-      `${u.nombres} ${u.apellidos} ${u.correo} ${u.alias || ''}`.toLowerCase().includes((searchTerm || '').toLowerCase())
-    );
+    .filter(u => {
+      if (roleFilter !== 'ALL' && u.rol !== roleFilter) return false;
+      return matchesSmartSearch(
+        [u.nombres, u.apellidos, u.correo, u.alias, u.rol, u.institucion, u.id_usuario],
+        searchTerm
+      );
+    });
 
   // Abrir modal de edición
   const handleOpenEdit = (user) => {
@@ -191,14 +197,42 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-        <Input 
-          placeholder={t("search_placeholder") || "Buscar por nombre, correo o alias..."} 
-          contentBefore={<Search24Regular />} 
-          value={searchTerm} 
-          onChange={(e, d) => setSearchBox(d.value)} 
-          style={{ width: '100%', maxWidth: '420px', height: '45px' }} 
-        />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flexGrow: 1 }}>
+          <Input 
+            placeholder="Buscar por nombre(s), apellido(s), correo o @alias..." 
+            contentBefore={<Search24Regular />}
+            contentAfter={
+              searchTerm ? (
+                <DismissCircle24Regular
+                  style={{ cursor: 'pointer', opacity: 0.7 }}
+                  title="Limpiar búsqueda"
+                  onClick={() => setSearchBox('')}
+                />
+              ) : undefined
+            }
+            value={searchTerm} 
+            onChange={(e, d) => setSearchBox(d.value)} 
+            style={{ width: '100%', maxWidth: '420px', height: '42px' }} 
+          />
+          <Select
+            value={roleFilter}
+            onChange={(e, d) => setRoleFilter(d.value)}
+            style={{ minWidth: '170px', height: '42px' }}
+            aria-label="Filtrar por rol"
+          >
+            <option value="ALL">Todos los roles ({(data || []).length})</option>
+            <option value="ADMIN">ADMIN</option>
+            <option value="ORGANIZADOR">ORGANIZADOR</option>
+            <option value="MODERADOR">MODERADOR</option>
+            <option value="SOPORTE">SOPORTE</option>
+            <option value="EMBAJADOR">EMBAJADOR</option>
+            <option value="MIEMBRO">MIEMBRO</option>
+          </Select>
+          <Badge appearance="tint" color="brand" size="large">
+            {filteredUsers.length} de {(data || []).length} miembro(s)
+          </Badge>
+        </div>
         <MEHButton size="small" icon={<ArrowDownload24Regular />} appearance="primary" onClick={handleExportCSV}>
           {t("admin_export_excel")}
         </MEHButton>

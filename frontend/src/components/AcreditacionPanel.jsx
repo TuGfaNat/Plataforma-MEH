@@ -32,6 +32,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { MEHButton, MEHTypography } from './ui';
 import { useAuth, useNotify } from '../App';
 import eventoService from '../services/eventoService';
+import { matchesSmartSearch } from '../utils/smartSearch';
 import ImprimirLista from './ImprimirLista';
 import LlegadasEventoChart from './LlegadasEventoChart';
 
@@ -203,15 +204,14 @@ const AcreditacionPanel = ({
     }
   }, [eventoId]);
 
-  // Filtrado reactivo por nombre, email o código QR
+  // Filtrado reactivo inteligente por nombre(s), apellido(s), email o código QR (tolerante a tildes y orden)
   const filteredParticipantes = useMemo(() => {
     if (!searchTerm.trim()) return participantes;
-    const term = searchTerm.toLowerCase().trim();
     return participantes.filter(p => {
-      const nombre = (p.nombre_completo || `${p.usuario?.nombres || ''} ${p.usuario?.apellidos || ''}`).toLowerCase();
-      const correo = (p.correo || p.usuario?.email || p.usuario?.correo || '').toLowerCase();
-      const codigo = (p.codigo_qr || '').toLowerCase();
-      return nombre.includes(term) || correo.includes(term) || codigo.includes(term);
+      const nombre = p.nombre_completo || `${p.usuario?.nombres || ''} ${p.usuario?.apellidos || ''}`;
+      const correo = p.correo || p.usuario?.email || p.usuario?.correo || '';
+      const codigo = p.codigo_qr || '';
+      return matchesSmartSearch([nombre, correo, codigo], searchTerm);
     });
   }, [participantes, searchTerm]);
 

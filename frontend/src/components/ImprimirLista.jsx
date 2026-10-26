@@ -25,6 +25,7 @@ import {
 import { QRCodeSVG } from 'qrcode.react';
 import { MEHTypography } from './ui';
 import eventoService from '../services/eventoService';
+import { matchesSmartSearch } from '../utils/smartSearch';
 
 const useStyles = makeStyles({
   surface: {
@@ -175,13 +176,9 @@ const ImprimirLista = ({
 
   const inscritosFiltrados = useMemo(() => {
     if (!filtro.trim()) return inscritos;
-    const q = filtro.toLowerCase().trim();
-    return inscritos.filter((i) => {
-      const nombre = (i.nombre_completo || '').toLowerCase();
-      const correo = (i.correo || '').toLowerCase();
-      const codigo = (i.codigo_qr || '').toLowerCase();
-      return nombre.includes(q) || correo.includes(q) || codigo.includes(q);
-    });
+    return inscritos.filter((i) =>
+      matchesSmartSearch([i.nombre_completo, i.correo, i.codigo_qr], filtro)
+    );
   }, [inscritos, filtro]);
 
   const handlePrint = () => {
