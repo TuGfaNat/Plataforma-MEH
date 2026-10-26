@@ -30,7 +30,7 @@ const useStyles = makeStyles({
   },
   tableWrapper: { 
     width: '100%', 
-    overflowX: 'hidden', 
+    overflowX: 'auto', 
     ...shorthands.borderRadius('24px'), 
     ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), 
     backgroundColor: tokens.colorNeutralBackground1, 
@@ -187,7 +187,7 @@ const LibraryTab = ({
           <Badge appearance="filled" color="brand">{t("admin_count_resources", { count: data.length }) || `${data.length} recursos`}</Badge>
         </div>
         
-        <Table size="medium">
+        <Table size="medium" style={{ minWidth: '600px' }}>
           <TableBody>
             {data.length === 0 ? (
               <TableRow>

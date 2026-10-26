@@ -248,7 +248,7 @@ const Finanzas = () => {
               {loading ? (
                 <Spinner label="Cargando transacciones..." />
               ) : pagos.length > 0 ? (
-                <Table>
+                <Table style={{ minWidth: '650px' }}>
                   <TableHeader>
                     <TableRow style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
                       <TableHeaderCell>ID</TableHeaderCell>

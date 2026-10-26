@@ -222,9 +222,9 @@ const GestionPagos = () => {
           </div>
 
           {matches && (
-            <div style={{ marginTop: '24px' }}>
+            <div style={{ marginTop: '24px', overflowX: 'auto' }}>
               <MEHTypography variant="h4" style={{ marginBottom: '16px' }}>Resultados del cruce de datos</MEHTypography>
-              <Table>
+              <Table style={{ minWidth: '650px' }}>
                 <TableHeader>
                   <TableRow>
                     <TableHeaderCell>Fecha Banco</TableHeaderCell>
@@ -279,7 +279,7 @@ const GestionPagos = () => {
           <Spinner label="Cargando todos los pagos..." />
         ) : pagos.length > 0 ? (
           <div style={{ overflowX: 'auto' }}>
-            <Table>
+            <Table style={{ minWidth: '780px' }}>
               <TableHeader>
                 <TableRow style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
                   <TableHeaderCell>Usuario</TableHeaderCell>

@@ -24,10 +24,27 @@ const useStyles = makeStyles({
     flexDirection: 'column', 
     gap: '20px', 
     padding: '28px', 
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
     backgroundColor: tokens.colorNeutralBackground2, 
     ...shorthands.borderRadius('24px'), 
     ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
-    boxShadow: tokens.shadow4
+    boxShadow: tokens.shadow4,
+    '@media (max-width: 600px)': {
+      padding: '16px 14px',
+      ...shorthands.borderRadius('16px'),
+      gap: '14px',
+    }
+  },
+  rowTwo: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px',
+    '@media (max-width: 600px)': {
+      gridTemplateColumns: '1fr',
+      gap: '12px',
+    }
   },
   tableWrapper: { 
     width: '100%', 
@@ -35,7 +52,32 @@ const useStyles = makeStyles({
     ...shorthands.borderRadius('24px'), 
     ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), 
     backgroundColor: tokens.colorNeutralBackground1, 
-    boxShadow: tokens.shadow8 
+    boxShadow: tokens.shadow8,
+    '@media (max-width: 720px)': {
+      display: 'none',
+    }
+  },
+  mobileCardsWrapper: {
+    display: 'none',
+    '@media (max-width: 720px)': {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px',
+      width: '100%',
+      boxSizing: 'border-box',
+    }
+  },
+  mobileProductCard: {
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.borderRadius('16px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    padding: '16px',
+    boxShadow: tokens.shadow4,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    boxSizing: 'border-box',
+    width: '100%',
   },
   userRow: { 
     height: '90px', 
@@ -119,6 +161,7 @@ const SouvenirsTab = ({
             placeholder={t("admin_product_name_placeholder")}
             value={newSouvenir.nombre} 
             onChange={(e, d) => setNewSouvenir({...newSouvenir, nombre: d.value})} 
+            style={{ width: '100%', boxSizing: 'border-box' }}
           />
         </Field>
 
@@ -127,16 +170,18 @@ const SouvenirsTab = ({
             placeholder={t("admin_description_placeholder")}
             value={newSouvenir.descripcion} 
             onChange={(e, d) => setNewSouvenir({...newSouvenir, descripcion: d.value})} 
+            style={{ width: '100%', boxSizing: 'border-box' }}
           />
         </Field>
 
-        <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px'}}>
+        <div className={styles.rowTwo}>
           <Field label={t("admin_price")} required>
             <Input 
               type="number" 
               contentBefore={<Money20Regular />} 
               value={newSouvenir.precio} 
               onChange={(e, d) => setNewSouvenir({...newSouvenir, precio: d.value})} 
+              style={{ width: '100%', boxSizing: 'border-box' }}
             />
           </Field>
           <Field label={t("admin_initial_stock")} required>
@@ -145,6 +190,7 @@ const SouvenirsTab = ({
               contentBefore={<Box24Filled fontSize="16px" />}
               value={newSouvenir.stock} 
               onChange={(e, d) => setNewSouvenir({...newSouvenir, stock: d.value})} 
+              style={{ width: '100%', boxSizing: 'border-box' }}
             />
           </Field>
         </div>
@@ -246,7 +292,7 @@ const SouvenirsTab = ({
           </div>
         </div>
         
-        <Table size="medium">
+        <Table size="medium" style={{ minWidth: "620px" }}>
           <TableBody>
             {filteredData.length === 0 ? (
               <TableRow>
@@ -347,6 +393,114 @@ const SouvenirsTab = ({
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Vista Móvil para Catálogo de Souvenirs (<= 720px) */}
+      <div className={styles.mobileCardsWrapper}>
+        <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '14px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <MEHTypography variant="bold">{t("admin_souvenirs_inventory")}</MEHTypography>
+            <Badge appearance="filled" color="brand">{filteredData.length}</Badge>
+          </div>
+          <MEHButton
+            size="small"
+            appearance="subtle"
+            icon={<Open20Regular />}
+            onClick={() => window.open('/souvenirs', '_blank')}
+          >
+            Tienda
+          </MEHButton>
+        </div>
+
+        {filteredData.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '30px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '16px' }}>
+            <MEHTypography variant="body">{t("admin_no_products")}</MEHTypography>
+          </div>
+        ) : (
+          filteredData.map(i => (
+            <div key={`mob-souv-${i.id_producto}`} className={styles.mobileProductCard}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Avatar 
+                  image={{ src: i.imagen_url }} 
+                  name={i.nombre} 
+                  size={52} 
+                  shape="rounded"
+                  badge={{ status: i.stock > 0 ? 'available' : 'busy' }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '15px' }}>{i.nombre}</span>
+                    <Badge color={i.id_estado === 1 ? 'warning' : 'success'} appearance="filled" size="small">
+                      {i.id_estado === 1 ? 'INACTIVO' : 'ACTIVO'}
+                    </Badge>
+                  </div>
+                  <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {i.descripcion || t("admin_no_description")}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${tokens.colorNeutralBackground3}`, paddingTop: '8px' }}>
+                <div>
+                  <span style={{ fontSize: '18px', fontWeight: 'bold', color: tokens.colorBrandForeground1 }}>
+                    Bs. {i.precio}
+                  </span>
+                  <span style={{ fontSize: '11px', opacity: 0.7, marginLeft: '6px' }}>
+                    ({t("admin_count_available", { count: i.stock })})
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Tooltip content={i.id_estado === 1 ? "Activar" : "Desactivar"} relationship="label">
+                    <Switch 
+                      checked={i.id_estado !== 1} 
+                      onChange={async (e, d) => {
+                        try {
+                          const newStatus = d.checked ? 2 : 1;
+                          await adminService.updateSouvenir(i.id_producto, { ...i, id_estado: newStatus });
+                          if (fetchData) fetchData();
+                        } catch (err) {
+                          console.error("Error al actualizar estado del souvenir:", err);
+                        }
+                      }} 
+                    />
+                  </Tooltip>
+                  <Tooltip content="Copiar link" relationship="label">
+                    <Button 
+                      size="small"
+                      appearance="subtle" 
+                      icon={<Link20Regular />} 
+                      onClick={() => {
+                        const url = `${window.location.origin}/souvenir/${i.id_producto}`;
+                        if (navigator.clipboard) {
+                          navigator.clipboard.writeText(url).then(() => {
+                            notify('Enlace Copiado', 'Enlace al souvenir copiado al portapapeles', 'success');
+                          });
+                        }
+                      }}
+                    />
+                  </Tooltip>
+                  <Tooltip content="Editar" relationship="label">
+                    <Button 
+                      size="small"
+                      appearance="subtle" 
+                      icon={<Edit20Regular />} 
+                      onClick={() => handleEditSouvenir(i)}
+                    />
+                  </Tooltip>
+                  <Tooltip content="Eliminar" relationship="label">
+                    <Button 
+                      size="small"
+                      appearance="subtle" 
+                      icon={<Delete20Regular style={{ color: tokens.colorPaletteRedForeground1 }} />} 
+                      onClick={() => confirmDelete('souvenir', i.id_producto, i.nombre)}
+                    />
+                  </Tooltip>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

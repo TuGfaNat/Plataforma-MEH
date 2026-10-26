@@ -24,31 +24,75 @@ import { MEHButton, MEHTypography } from "../ui";
 
 const useStyles = makeStyles({
   header: {
-    ...shorthands.padding("24px", "40px"),
+    ...shorthands.padding("20px", "40px"),
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     position: "sticky",
     top: 0,
     width: "100%",
+    maxWidth: "100vw",
     boxSizing: "border-box",
     zIndex: 100,
     backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground1} 20%, transparent)`,
     backdropFilter: 'blur(20px)',
     ...shorthands.borderBottom("1px", "solid", `color-mix(in srgb, ${tokens.colorNeutralStroke1} 5%, transparent)`),
-    [designTokens.breakpoints.sm]: {
-      ...shorthands.padding("15px", "20px"),
+    '@media (max-width: 768px)': {
+      ...shorthands.padding("12px", "16px"),
     },
+    '@media (max-width: 480px)': {
+      ...shorthands.padding("10px", "12px"),
+    }
+  },
+  validadorBtn: {
+    marginRight: "4px",
+    '@media (max-width: 680px)': {
+      display: 'none',
+    }
+  },
+  rightNav: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    '@media (max-width: 480px)': {
+      gap: "4px",
+    }
+  },
+  loginLink: {
+    textDecoration: "none",
+    marginLeft: "8px",
+    '@media (max-width: 480px)': {
+      marginLeft: "2px",
+    }
   },
   headerButton: {
     ...shorthands.border("1px", "solid", `color-mix(in srgb, ${tokens.colorNeutralStroke1} 10%, transparent)`),
     transition: "all 0.2s ease",
     backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground1} 5%, transparent)`,
-    ":hover": {
+    whiteSpace: 'nowrap',
+    ':hover': {
       backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground1} 15%, transparent)`,
       transform: "translateY(-2px)",
       ...shorthands.borderColor(tokens.colorBrandForeground1),
     },
+    '@media (max-width: 480px)': {
+      paddingLeft: '10px',
+      paddingRight: '10px',
+      fontSize: '13px',
+      height: '32px'
+    }
+  },
+  desktopText: {
+    display: 'inline',
+    '@media (max-width: 480px)': {
+      display: 'none'
+    }
+  },
+  mobileText: {
+    display: 'none',
+    '@media (max-width: 480px)': {
+      display: 'inline'
+    }
   }
 });
 
@@ -79,11 +123,11 @@ export const LandingHeader = () => {
         </MEHTypography>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <div className={styles.rightNav}>
         <MEHButton
           appearance="subtle"
           onClick={() => navigate("/validador")}
-          style={{ marginRight: "8px" }}
+          className={styles.validadorBtn}
         >
           {t("verificar_talento")}
         </MEHButton>
@@ -118,14 +162,15 @@ export const LandingHeader = () => {
         })()}
         <Link
           to="/login"
-          style={{ textDecoration: "none", marginLeft: "12px" }}
+          className={styles.loginLink}
         >
           <MEHButton
             shape="circular"
             appearance="outline"
             className={styles.headerButton}
           >
-            {t("enter_portal")}
+            <span className={styles.desktopText}>{t("enter_portal")}</span>
+            <span className={styles.mobileText}>Ingresar</span>
           </MEHButton>
         </Link>
       </div>

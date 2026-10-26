@@ -389,6 +389,7 @@ const Users = () => {
         ) : (
           <div className={styles.tableWrapper}>
             <DataGrid
+              style={{ minWidth: '750px' }}
               items={users}
               columns={columns}
               selectionMode="multiselect"

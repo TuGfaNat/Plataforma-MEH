@@ -503,7 +503,7 @@ const AdminPanel = () => {
           </div>
       </div>
 
-      <div style={{ backgroundColor: tokens.colorNeutralBackground2, padding: '6px 10px', borderRadius: '14px', border: `1px solid ${tokens.colorNeutralBackground3}`, overflowX: 'auto', maxWidth: '100%' }}>
+      <div style={{ backgroundColor: tokens.colorNeutralBackground2, padding: '6px 10px', borderRadius: '14px', border: `1px solid ${tokens.colorNeutralBackground3}`, overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
         <TabList selectedValue={selectedTab} onTabSelect={(e, d) => { setData([]); setSelectedTab(d.value); setSearchParams({ tab: d.value }); }} style={{ whiteSpace: 'nowrap' }}>
           {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'MODERADOR') && <Tab value="eventos" icon={<CalendarLtr24Regular />}>Eventos</Tab>}
           {(currentUser?.rol === 'ADMIN' || currentUser?.rol === 'ORGANIZADOR' || currentUser?.rol === 'SOPORTE') && <Tab value="usuarios" icon={<People24Regular />}>Miembros</Tab>}
@@ -518,7 +518,7 @@ const AdminPanel = () => {
         </TabList>
       </div>
 
-      <MEHCard style={{ minWidth: 0, maxWidth: '100%', boxSizing: 'border-box', overflowX: 'hidden' }}>
+      <MEHCard style={{ minWidth: 0, maxWidth: '100%', boxSizing: 'border-box' }}>
         {selectedTab === 'usuarios' && (
           <UsersTab 
             loading={loading} data={data} searchTerm={searchTerm} setSearchBox={setSearchBox} 

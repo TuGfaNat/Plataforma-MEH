@@ -40,7 +40,7 @@ const useStyles = makeStyles({
   toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   grid: { display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '24px', marginTop: '16px' },
   form: { display: 'flex', flexDirection: 'column', gap: '16px', padding: '20px', backgroundColor: tokens.colorNeutralBackground2, ...shorthands.borderRadius('16px'), ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3) },
-  tableWrapper: { ...shorthands.borderRadius('16px'), ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), backgroundColor: tokens.colorNeutralBackground1, overflow: 'hidden' },
+  tableWrapper: { ...shorthands.borderRadius('16px'), ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), backgroundColor: tokens.colorNeutralBackground1, overflowX: 'auto' },
   uploadBox: { ...shorthands.border('2px', 'dashed', tokens.colorBrandStroke1), ...shorthands.padding('16px'), ...shorthands.borderRadius('12px'), textAlign: 'center', cursor: 'pointer', backgroundColor: tokens.colorNeutralBackground1, transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', ':hover': { backgroundColor: tokens.colorBrandBackground2 } },
   previewImg: { width: '100%', maxHeight: '150px', objectFit: 'cover', ...shorthands.borderRadius('8px'), marginTop: '8px' }
 });

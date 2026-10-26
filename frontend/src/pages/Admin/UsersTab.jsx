@@ -42,7 +42,33 @@ const useStyles = makeStyles({
     ...shorthands.borderRadius('24px'), 
     ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), 
     backgroundColor: tokens.colorNeutralBackground1, 
-    boxShadow: tokens.shadow8 
+    boxShadow: tokens.shadow8,
+    '@media (max-width: 768px)': {
+      display: 'none',
+    }
+  },
+  mobileCardsContainer: {
+    display: 'none',
+    '@media (max-width: 768px)': {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px',
+      width: '100%',
+      boxSizing: 'border-box',
+    }
+  },
+  mobileUserCard: {
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.borderRadius('16px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    padding: '16px',
+    boxShadow: tokens.shadow4,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    boxSizing: 'border-box',
+    width: '100%',
+    transition: 'all 0.2s ease',
   },
   userRow: { 
     minHeight: '85px', 
@@ -242,7 +268,7 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
         {loading ? (
           <div style={{ padding: '60px', textAlign: 'center' }}><Spinner label={t("loading")} /></div>
         ) : (
-          <Table size="extra-small">
+          <Table size="extra-small" style={{ minWidth: "760px" }}>
             <TableHeader>
               <TableRow>
                 <TableHeaderCell>{t("admin_member_col") || "Miembro"}</TableHeaderCell>
@@ -385,6 +411,133 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
           </Table>
         )}
       </div>
+
+      {/* Vista de Tarjetas Adaptativas para Móviles (<= 768px) */}
+      {!loading && (
+        <div className={styles.mobileCardsContainer}>
+          {filteredUsers.length === 0 ? (
+            <div style={{ padding: '40px 20px', textAlign: 'center', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '16px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+              <MEHTypography variant="body" style={{ opacity: 0.7 }}>
+                {t("admin_no_users_found") || "No se encontraron miembros."}
+              </MEHTypography>
+            </div>
+          ) : (
+            filteredUsers.map(u => {
+              const isSuspended = u.activo === false || u.id_estado === 0;
+              const isVerified = u.email_verificado !== false;
+
+              return (
+                <div 
+                  key={`card-u-${u.id_usuario}`} 
+                  className={styles.mobileUserCard}
+                  style={isSuspended ? { opacity: 0.75, borderLeft: `4px solid ${tokens.colorPaletteRedBackground3}` } : { borderLeft: `4px solid ${tokens.colorBrandBackground}` }}
+                >
+                  {/* Fila 1: Avatar + Nombre + Correo + Alias */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Avatar size={44} name={u.nombres} image={{ src: resolveApiFileUrl(u.foto_url) }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '15px', color: tokens.colorNeutralForeground1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {u.nombres} {u.apellidos}
+                      </div>
+                      <div style={{ fontSize: '12px', opacity: 0.75, wordBreak: 'break-all' }}>
+                        {u.correo}
+                      </div>
+                      {u.alias && (
+                        <Badge appearance="outline" size="small" style={{ marginTop: '2px' }}>
+                          @{u.alias}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Fila 2: Badges de Estado, Rol, Email */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', paddingTop: '4px' }}>
+                    <Badge appearance="outline" color={u.rol === 'ADMIN' ? 'danger' : u.rol === 'ORGANIZADOR' ? 'warning' : 'brand'}>
+                      {u.rol}
+                    </Badge>
+
+                    {isSuspended ? (
+                      <Badge appearance="filled" color="danger">SUSPENDIDO</Badge>
+                    ) : (
+                      <Badge appearance="tint" color="informative">ACTIVO</Badge>
+                    )}
+
+                    {isVerified ? (
+                      <Badge appearance="tint" color="success" icon={<CheckmarkCircle24Filled />}>
+                        Verificado
+                      </Badge>
+                    ) : (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Badge appearance="tint" color="warning" icon={<Warning24Filled />}>
+                          Pendiente
+                        </Badge>
+                        <MEHButton
+                          size="small"
+                          appearance="primary"
+                          style={{ minWidth: 'auto', padding: '1px 6px', fontSize: '10px', height: '22px' }}
+                          onClick={async () => {
+                            try {
+                              await authService.adminUpdateUser(u.id_usuario, { email_verificado: true });
+                              notify('Usuario Verificado', `Se activó el correo de ${u.nombres} exitosamente.`, 'success');
+                              if (fetchData) fetchData();
+                            } catch (err) {
+                              notify('Error', err.response?.data?.detail || 'No se pudo verificar el usuario.', 'error');
+                            }
+                          }}
+                        >
+                          Verificar
+                        </MEHButton>
+                      </div>
+                    )}
+
+                    <span style={{ fontSize: '11px', opacity: 0.6, marginLeft: 'auto' }}>
+                      {new Date(u.fecha_registro).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  {/* Fila 3: Botones de Acción */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: `1px solid ${tokens.colorNeutralBackground3}`, paddingTop: '10px', marginTop: '2px' }}>
+                    <MEHButton 
+                      size="small" 
+                      appearance="subtle"
+                      icon={<Edit24Regular />} 
+                      onClick={() => handleOpenEdit(u)} 
+                    >
+                      Editar
+                    </MEHButton>
+
+                    <MEHButton 
+                      size="small" 
+                      appearance="subtle"
+                      icon={<Key24Regular />} 
+                      onClick={() => setPasswordModal({ open: true, user: u, password: '', loading: false })} 
+                    >
+                      Clave
+                    </MEHButton>
+
+                    {u.id_usuario !== currentUser?.id_usuario && (
+                      <MEHButton 
+                        size="small" 
+                        appearance="subtle"
+                        style={isSuspended ? { color: tokens.colorPaletteGreenForeground1 } : { color: tokens.colorPaletteRedForeground1 }}
+                        onClick={() => {
+                          if (isSuspended) {
+                            handleRestore(u);
+                          } else {
+                            setSuspendModal({ open: true, user: u, motivo: '', loading: false });
+                          }
+                        }}
+                      >
+                        {isSuspended ? 'Restaurar' : 'Suspender'}
+                      </MEHButton>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
       {/* DIÁLOGO MODAL: EDICIÓN DE USUARIO */}
       <Dialog 
