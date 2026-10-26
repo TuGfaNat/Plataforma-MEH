@@ -43,6 +43,7 @@ import { useAuth, useNotify, useTheme } from '../App';
 import adminService from '../services/adminService';
 import pagoService from '../services/pagoService';
 import { resolveApiFileUrl } from '../services/api';
+import { designTokens } from '../theme/theme';
 
 const DEFAULT_SOUVENIR_IMG = "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=1000&auto=format&fit=crop";
 
@@ -322,7 +323,7 @@ const SouvenirPublico = () => {
   };
 
   const handleOpenCheckout = () => {
-    if (!isAuthenticated || !user) {
+    if (!user) {
       notify("Iniciar Sesión", "Inicia sesión en tu cuenta para registrar la compra de tu souvenir", "info");
       navigate(`/login?returnTo=${encodeURIComponent(`/souvenir/${id}`)}`);
       return;
@@ -374,7 +375,7 @@ const SouvenirPublico = () => {
       <div className={styles.container}>
         <div className={styles.header}>
           <Link to="/" className={styles.logoContainer}>
-            <img src="/logo.png" alt="MEH Logo" className={styles.logo} />
+            <img src={designTokens.logo} alt="MEH Logo" className={styles.logo} />
             <span style={{ fontWeight: 'bold', fontSize: '18px' }}>Microsoft Education Hub</span>
           </Link>
         </div>
@@ -408,7 +409,7 @@ const SouvenirPublico = () => {
       {/* Top Navbar Luma-Style */}
       <header className={styles.header}>
         <Link to="/" className={styles.logoContainer}>
-          <img src="/logo.png" alt="MEH Logo" className={styles.logo} />
+          <img src={designTokens.logo} alt="MEH Logo" className={styles.logo} />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontWeight: 'bold', fontSize: '16px', lineHeight: '1.2' }}>Microsoft Education Hub</span>
             <span style={{ fontSize: '11px', opacity: 0.7 }}>Tienda Oficial & Merch</span>
@@ -422,7 +423,7 @@ const SouvenirPublico = () => {
             </MEHButton>
           </Tooltip>
 
-          {isAuthenticated ? (
+          {user ? (
             <Link to="/dashboard" style={{ textDecoration: 'none' }}>
               <MEHButton appearance="outline" size="small">Mi Dashboard</MEHButton>
             </Link>
@@ -570,7 +571,7 @@ const SouvenirPublico = () => {
               {isAgotado ? 'Agotado Temporalmente' : `Comprar Souvenir (Bs. ${subtotal})`}
             </MEHButton>
 
-            {!isAuthenticated && (
+            {!user && (
               <span style={{ fontSize: '11px', textAlign: 'center', opacity: 0.7 }}>
                 Al presionar, se te solicitará iniciar sesión para vincular tu compra a tu perfil.
               </span>

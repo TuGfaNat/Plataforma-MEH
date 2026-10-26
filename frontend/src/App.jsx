@@ -198,7 +198,7 @@ export default function App() {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, checkAuth, loading }}>
+    <AuthContext.Provider value={{ user, setUser, checkAuth, loading, isAuthenticated: !!user }}>
       <ThemeContext.Provider value={{ currentTheme, toggleTheme, setCurrentTheme }}>
         <NotificationContext.Provider value={{ notify }}>
             <FluentProvider theme={themes[currentTheme] || themes.dark}>

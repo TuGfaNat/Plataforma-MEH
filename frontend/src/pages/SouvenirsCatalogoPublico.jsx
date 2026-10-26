@@ -25,6 +25,7 @@ import { MEHButton, MEHTypography } from '../components/ui';
 import { useAuth, useNotify, useTheme } from '../App';
 import adminService from '../services/adminService';
 import { resolveApiFileUrl } from '../services/api';
+import { designTokens } from '../theme/theme';
 
 const DEFAULT_SOUVENIR_IMG = "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=1000&auto=format&fit=crop";
 
@@ -219,7 +220,7 @@ const SouvenirsCatalogoPublico = () => {
       {/* Header Luma-Style */}
       <header className={styles.header}>
         <Link to="/" className={styles.logoContainer}>
-          <img src="/logo.png" alt="MEH Logo" className={styles.logo} />
+          <img src={designTokens.logo} alt="MEH Logo" className={styles.logo} />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontWeight: 'bold', fontSize: '16px', lineHeight: '1.2' }}>Microsoft Education Hub</span>
             <span style={{ fontSize: '11px', opacity: 0.7 }}>Tienda Oficial & Merch</span>
@@ -233,7 +234,7 @@ const SouvenirsCatalogoPublico = () => {
             </MEHButton>
           </Tooltip>
 
-          {isAuthenticated ? (
+          {user ? (
             <Link to="/dashboard" style={{ textDecoration: 'none' }}>
               <MEHButton appearance="outline" size="small">Mi Dashboard</MEHButton>
             </Link>
