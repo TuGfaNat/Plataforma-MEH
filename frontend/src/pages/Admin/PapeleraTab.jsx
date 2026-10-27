@@ -26,15 +26,47 @@ const useStyles = makeStyles({
     alignItems: 'center', 
     gap: '16px',
     animationName: { from: { opacity: 0, transform: 'translateY(-10px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
-    animationDuration: '0.4s'
+    animationDuration: '0.4s',
+    '@media (max-width: 600px)': {
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      padding: '16px',
+      gap: '12px'
+    }
   },
   tableContainer: { 
     width: '100%', 
-    overflowX: 'hidden', 
+    overflowX: 'auto', 
     ...shorthands.borderRadius('24px'), 
     ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), 
     backgroundColor: tokens.colorNeutralBackground1, 
-    boxShadow: tokens.shadow8 
+    boxShadow: tokens.shadow8,
+    '@media (max-width: 768px)': {
+      display: 'none'
+    }
+  },
+  mobileCardsContainer: {
+    display: 'none',
+    '@media (max-width: 768px)': {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px',
+      width: '100%',
+      boxSizing: 'border-box',
+    }
+  },
+  mobileTrashCard: {
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.borderRadius('16px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    padding: '16px',
+    boxShadow: tokens.shadow4,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    boxSizing: 'border-box',
+    width: '100%',
+    transition: 'all 0.2s ease',
   },
   rowItem: { 
     height: '80px', 
@@ -306,6 +338,79 @@ const PapeleraTab = ({ currentUser, notify }) => {
           </Table>
         )}
       </div>
+
+      {/* Vista de Tarjetas Adaptativas para Móviles (<= 768px) */}
+      {!loading && (
+        <div className={styles.mobileCardsContainer}>
+          {filteredList.length === 0 ? (
+            <div className={styles.emptyState} style={{ backgroundColor: tokens.colorNeutralBackground1, borderRadius: '16px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+              <DeleteDismiss24Regular className={styles.emptyIcon} />
+              <MEHTypography variant="bold" style={{ fontSize: '1.1rem' }}>
+                Papelera Vacía
+              </MEHTypography>
+              <MEHTypography variant="caption" style={{ maxWidth: '320px' }}>
+                {searchTerm ? 'Ningún elemento eliminado coincide con la búsqueda.' : 'No hay registros eliminados en esta categoría.'}
+              </MEHTypography>
+            </div>
+          ) : (
+            filteredList.map(item => (
+              <div key={`m-trash-${selectedSubTab}-${item.id}`} className={styles.mobileTrashCard}>
+                {/* Header: Avatar + Título + ID */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Avatar 
+                    name={item.titulo} 
+                    size={40} 
+                    color="colorful"
+                    initials={item.titulo ? item.titulo.substring(0, 2).toUpperCase() : 'MEH'}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '15px', color: tokens.colorNeutralForeground1, wordBreak: 'break-word' }}>
+                      {item.titulo}
+                    </div>
+                    <Badge appearance="outline" size="tiny" style={{ marginTop: '2px' }}>ID: {item.id}</Badge>
+                  </div>
+                </div>
+
+                {/* Subtítulo / Metadatos */}
+                {item.subtitulo && (
+                  <div style={{ fontSize: '13px', fontStyle: 'italic', opacity: 0.8, wordBreak: 'break-word', backgroundColor: tokens.colorNeutralBackground2, padding: '8px 12px', borderRadius: '8px' }}>
+                    {item.subtitulo}
+                  </div>
+                )}
+
+                {/* Fecha de baja lógica */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', opacity: 0.7 }}>
+                  <CalendarLtr24Regular fontSize={16} />
+                  <span>
+                    Baja: {item.fecha_eliminacion ? `${new Date(item.fecha_eliminacion).toLocaleDateString()} a las ${new Date(item.fecha_eliminacion).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'No disponible'}
+                  </span>
+                </div>
+
+                {/* Botones de Acción */}
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px', paddingTop: '10px', borderTop: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                  <Button 
+                    appearance="primary" 
+                    icon={<ArrowUndo24Regular />} 
+                    onClick={() => setActionDialog({ open: true, type: 'restore', category: selectedSubTab, itemId: item.id, itemName: item.titulo })}
+                    style={{ flex: 1, backgroundColor: tokens.colorPaletteGreenBackground3, color: '#fff' }}
+                  >
+                    Restaurar
+                  </Button>
+
+                  {currentUser?.rol === 'ADMIN' && (
+                    <Button 
+                      appearance="subtle" 
+                      icon={<Delete24Regular style={{ color: tokens.colorPaletteRedForeground1 }} />} 
+                      onClick={() => setActionDialog({ open: true, type: 'purge', category: selectedSubTab, itemId: item.id, itemName: item.titulo })}
+                      aria-label="Eliminar definitivamente"
+                    />
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Confirmation Dialog */}
       <Dialog open={actionDialog.open} onOpenChange={(e, d) => setActionDialog({ ...actionDialog, open: d.open })}>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { 
   Divider, Badge, Field, Input, Textarea, Select, Switch, Button, tokens, makeStyles, shorthands,
   Avatar, Tooltip, Spinner,
@@ -193,6 +194,7 @@ const EventsTab = ({
 }) => {
   const { t } = useTranslation();
   const { notify } = useNotify();
+  const navigate = useNavigate();
   const styles = useStyles();
   const [agenda, setAgenda] = useState([]);
   const [selectedSpeakers, setSelectedSpeakers] = useState([]);
@@ -986,8 +988,22 @@ const EventsTab = ({
                 <div className={styles.infoCard}>
                     <MEHTypography variant="h3"><PeopleTeam24Regular style={{ verticalAlign: 'middle', marginRight: '6px' }} /> {t("management")}</MEHTypography>
                     <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                        <MEHButton icon={<QrCode24Regular />} appearance="primary">{t("admin_scan_qr")}</MEHButton>
-                        <MEHButton appearance="outline">{t("admin_attendance_list")}</MEHButton>
+                        <MEHButton 
+                          icon={<QrCode24Regular />} 
+                          appearance="primary"
+                          onClick={() => navigate(`/escaneo-qr?eventoId=${currentEvent?.id_evento || selectedEventoId}`)}
+                        >
+                          {t("admin_scan_qr")}
+                        </MEHButton>
+                        <MEHButton 
+                          appearance="outline"
+                          onClick={() => {
+                            const el = document.getElementById('panel-acreditacion');
+                            if (el) el.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                        >
+                          {t("admin_attendance_list")}
+                        </MEHButton>
                     </div>
                 </div>
             </div>
@@ -1192,7 +1208,7 @@ const EventsTab = ({
               <Divider style={{ margin: '16px 0' }} />
 
               {/* PANEL DE ACREDITACIÓN Y CONTROL DE ASISTENCIA */}
-              <div style={{ minWidth: 0 }}>
+              <div id="panel-acreditacion" style={{ minWidth: 0, scrollMarginTop: '24px' }}>
                 <AcreditacionPanel 
                   eventoId={selectedEventoId} 
                   eventoTitulo={currentEvent?.titulo}

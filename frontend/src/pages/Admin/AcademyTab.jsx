@@ -12,6 +12,7 @@ import {
   ClipboardTask24Regular, Person24Regular, Checkmark24Regular, Link24Regular, CalendarLtr24Regular
 } from '@fluentui/react-icons';
 import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import { useTranslation } from 'react-i18next';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
@@ -113,23 +114,71 @@ const useStyles = makeStyles({
     gap: '8px',
     alignItems: 'center'
   },
+  formGrid2Col: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px',
+    '@media (max-width: 600px)': {
+      gridTemplateColumns: '1fr',
+      gap: '12px'
+    }
+  },
+  formGrid2ColUneven: {
+    display: 'grid',
+    gridTemplateColumns: '2fr 1fr',
+    gap: '16px',
+    '@media (max-width: 600px)': {
+      gridTemplateColumns: '1fr',
+      gap: '12px'
+    }
+  },
   quillWrapper: { 
     marginTop: '4px', 
     '& .ql-toolbar': { 
       ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1), 
       ...shorthands.borderRadius('12px', '12px', '0', '0'), 
-      backgroundColor: tokens.colorNeutralBackground3 
+      backgroundColor: tokens.colorNeutralBackground3,
+      '& .ql-picker': {
+        color: tokens.colorNeutralForeground1,
+      },
+      '& .ql-stroke': {
+        stroke: tokens.colorNeutralForeground1,
+      },
+      '& .ql-fill': {
+        fill: tokens.colorNeutralForeground1,
+      },
+      '& button:hover .ql-stroke, & .ql-picker:hover .ql-stroke': {
+        stroke: tokens.colorBrandForeground1,
+      },
+      '& button:hover .ql-fill, & .ql-picker:hover .ql-fill': {
+        fill: tokens.colorBrandForeground1,
+      },
+      '& button.ql-active .ql-stroke': {
+        stroke: tokens.colorBrandForeground1,
+      },
+      '& button.ql-active .ql-fill': {
+        fill: tokens.colorBrandForeground1,
+      }
     }, 
     '& .ql-container': { 
       ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1), 
       ...shorthands.borderRadius('0', '0', '12px', '12px'), 
       minHeight: '200px', 
-      backgroundColor: tokens.colorNeutralBackground1 
+      backgroundColor: tokens.colorNeutralBackground1,
+      color: tokens.colorNeutralForeground1,
+      fontSize: '14px',
+      '& .ql-editor': {
+        minHeight: '180px',
+        color: tokens.colorNeutralForeground1,
+      }
     } 
   },
   quillSmall: {
     '& .ql-container': {
       minHeight: '120px'
+    },
+    '& .ql-container .ql-editor': {
+      minHeight: '100px'
     }
   },
   uploadBox: { 
@@ -392,7 +441,7 @@ const AcademyTab = ({
               </div>
             </Field>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className={styles.formGrid2Col}>
               <Field label={t("admin_academic_hours")}>
                 <Input 
                   type="number" 
@@ -534,7 +583,7 @@ const AcademyTab = ({
                   <Badge appearance="outline">{t("admin_order_badge", { order: newLeccion.orden })}</Badge>
                 </div>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
+                <div className={styles.formGrid2ColUneven}>
                   <Field label={t("admin_lesson_title")} required>
                     <Input 
                       placeholder={t("admin_lesson_title_placeholder")}

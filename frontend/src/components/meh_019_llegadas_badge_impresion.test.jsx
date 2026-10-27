@@ -44,6 +44,7 @@ beforeEach(() => {
     putImageData: vi.fn(),
     createImageData: vi.fn(() => []),
     setTransform: vi.fn(),
+    scale: vi.fn(),
     drawImage: vi.fn(),
     save: vi.fn(),
     fillText: vi.fn(),

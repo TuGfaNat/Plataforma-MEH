@@ -329,7 +329,15 @@ const EscaneoQR = () => {
         const data = await asistenciaService.getActividades();
         const lista = data.eventos || [];
         setEventos(lista);
-        if (lista.length > 0 && !selectedEvento) {
+
+        // Auto-seleccionar evento desde parámetro URL si viene de Admin/EventsTab
+        const params = new URLSearchParams(window.location.search);
+        const queryEventoId = params.get('eventoId') || params.get('id');
+
+        if (queryEventoId && lista.some(e => String(e.id_evento) === String(queryEventoId))) {
+          setSelectedEvento(String(queryEventoId));
+          void handleEventoSelection(String(queryEventoId));
+        } else if (lista.length > 0 && !selectedEvento) {
           const primerEventoId = String(lista[0].id_evento);
           setSelectedEvento(primerEventoId);
           void handleEventoSelection(primerEventoId);
