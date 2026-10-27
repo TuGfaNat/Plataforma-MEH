@@ -347,3 +347,69 @@ def inscribir_curso(
         ip_direccion=ip_address
     )
     return nueva_inscripcion
+
+def inscribir_participante_manual(
+    db: Session,
+    admin_user: models.Usuario,
+    id_evento: int,
+    id_usuario: int,
+    estado_inscripcion: str = "CONFIRMADA",
+    ip_address: Optional[str] = None
+) -> models.InscripcionEvento:
+    """Permite a un Administrador u Organizador inscribir directamente a un miembro en un evento."""
+    evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
+    if not evento:
+        raise EventoNoEncontradoError()
+
+    usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
+    if not usuario:
+        raise ValidacionNegocioError("El usuario no existe.")
+
+    inscripcion_existente = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_usuario == id_usuario,
+        models.InscripcionEvento.id_evento == id_evento
+    ).first()
+
+    token_qr = str(uuid.uuid4())
+    ahora = _get_utc_now()
+
+    if inscripcion_existente:
+        inscripcion_existente.id_estado = 2
+        inscripcion_existente.fecha_inscripcion = ahora
+        inscripcion_existente.estado_inscripcion = estado_inscripcion
+        if not inscripcion_existente.codigo_qr:
+            inscripcion_existente.codigo_qr = token_qr
+        if estado_inscripcion == "CONFIRMADA":
+            inscripcion_existente.fecha_validacion = ahora
+        db_inscripcion = inscripcion_existente
+    else:
+        db_inscripcion = models.InscripcionEvento(
+            id_usuario=id_usuario,
+            id_evento=id_evento,
+            fecha_inscripcion=ahora,
+            estado_inscripcion=estado_inscripcion,
+            codigo_qr=token_qr,
+            asistio=False,
+            fecha_validacion=ahora if estado_inscripcion == "CONFIRMADA" else None,
+            id_estado=2
+        )
+        db.add(db_inscripcion)
+
+    db.commit()
+    db.refresh(db_inscripcion)
+
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="INSCRIPCION_MANUAL_STAFF",
+        tabla_afectada="inscripciones_eventos",
+        id_registro_afectado=db_inscripcion.id_inscripcion,
+        valor_nuevo={
+            "id_evento": id_evento,
+            "id_usuario": id_usuario,
+            "usuario_correo": usuario.correo,
+            "estado": estado_inscripcion
+        },
+        ip_direccion=ip_address
+    )
+    return db_inscripcion

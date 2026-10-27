@@ -17,8 +17,10 @@ import {
   CheckmarkCircle24Filled,
   Warning24Filled,
   ShieldCheckmark24Regular,
-  PersonProhibited24Regular
+  PersonProhibited24Regular,
+  PersonAdd24Regular
 } from '@fluentui/react-icons';
+import CreateUserModal from '../../components/CreateUserModal';
 import { MEHButton, MEHTypography, MEHInput } from '../../components/ui';
 import authService from '../../services/authService';
 import { resolveApiFileUrl } from '../../services/api';
@@ -119,6 +121,7 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
   // Estados para modal de suspensión
   const [suspendModal, setSuspendModal] = useState({ open: false, user: null, motivo: '', loading: false });
   const [roleFilter, setRoleFilter] = useState('ALL');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const filteredUsers = [...(data || [])]
     .sort((a, b) => (b.id_usuario || 0) - (a.id_usuario || 0))
@@ -259,9 +262,14 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
             {filteredUsers.length} de {(data || []).length} miembro(s)
           </Badge>
         </div>
-        <MEHButton size="small" icon={<ArrowDownload24Regular />} appearance="primary" onClick={handleExportCSV}>
-          {t("admin_export_excel")}
-        </MEHButton>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <MEHButton size="small" icon={<PersonAdd24Regular />} appearance="primary" onClick={() => setIsCreateModalOpen(true)}>
+            + Nuevo Miembro
+          </MEHButton>
+          <MEHButton size="small" icon={<ArrowDownload24Regular />} appearance="outline" onClick={handleExportCSV}>
+            {t("admin_export_excel")}
+          </MEHButton>
+        </div>
       </div>
 
       <div className={styles.tableContainer}>
@@ -730,6 +738,12 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
           </DialogBody>
         </DialogSurface>
       </Dialog>
+
+      <CreateUserModal
+        open={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => { if (fetchData) fetchData(); }}
+      />
     </div>
   );
 };

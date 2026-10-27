@@ -898,4 +898,69 @@ def get_directorio_miembros(
 
     return items[skip:skip + limit]
 
+def admin_create_user(
+    db: Session,
+    admin_user: models.Usuario,
+    user_data: dict,
+    ip_address: Optional[str] = None
+) -> dict:
+    """Crea una cuenta de usuario directamente por parte de un Administrador con email verificado."""
+    correo = user_data.get("correo", "").strip().lower()
+    if not correo:
+        raise ValidacionNegocioError("El correo electronico es requerido.")
 
+    existing = db.query(models.Usuario).filter(models.Usuario.correo == correo).first()
+    if existing:
+        raise RegistroDuplicadoError("El correo electronico ya esta registrado.")
+
+    raw_password = user_data.get("password")
+    if not raw_password or len(raw_password.strip()) < 6:
+        raw_password = secrets.token_urlsafe(8)
+
+    rol = user_data.get("rol", ROLE_MIEMBRO)
+    if rol not in ALL_DB_ROLES:
+        rol = ROLE_MIEMBRO
+
+    new_user = models.Usuario(
+        nombres=user_data.get("nombres", "").strip(),
+        apellidos=user_data.get("apellidos", "").strip(),
+        correo=correo,
+        password_hash=auth_core.get_password_hash(raw_password),
+        rol=rol,
+        institucion=user_data.get("institucion"),
+        estudia_en=user_data.get("institucion"),
+        tipo_entidad=user_data.get("tipo_entidad", "Estudiante"),
+        pais=user_data.get("pais", "Bolivia"),
+        departamento=user_data.get("departamento"),
+        fecha_registro=datetime.utcnow(),
+        es_nuevo=False,
+        email_verificado=True,
+        codigo_verificacion=None,
+        codigo_verificacion_exp=None,
+        creado_por=admin_user.id_usuario,
+        id_estado=2,
+        activo=True
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="CREAR_USUARIO_ADMIN",
+        tabla_afectada="usuarios",
+        id_registro_afectado=new_user.id_usuario,
+        valor_nuevo={"correo": correo, "rol": rol, "nombres": new_user.nombres},
+        ip_direccion=ip_address
+    )
+
+    return {
+        "id_usuario": new_user.id_usuario,
+        "nombres": new_user.nombres,
+        "apellidos": new_user.apellidos,
+        "correo": new_user.correo,
+        "rol": new_user.rol,
+        "email_verificado": True,
+        "temporary_password": raw_password
+    }

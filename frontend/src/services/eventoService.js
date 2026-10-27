@@ -55,6 +55,14 @@ const eventoService = {
     return response.data;
   },
 
+  inscribirManual: async (idEvento, idUsuario, estadoInscripcion = 'CONFIRMADA') => {
+    const response = await api.post(`/inscripciones/eventos/${idEvento}/manual`, {
+      id_usuario: idUsuario,
+      estado_inscripcion: estadoInscripcion
+    });
+    return response.data;
+  },
+
   getEventoTokenQr: async (idEvento) => {
     const response = await api.get(`/eventos/${idEvento}/token-qr`);
     return response.data;

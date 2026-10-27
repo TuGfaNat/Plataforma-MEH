@@ -299,4 +299,15 @@ def restaurar_direct(
     ip_address = request.client.host if request.client else None
     return auth_service.restaurar_usuario(db, current_user, id_usuario, ip_address)
 
-
+@router.post("/admin/users", status_code=status.HTTP_201_CREATED)
+def admin_create_user_endpoint(
+    request: Request,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Endpoint para que Administradores creen cuentas de usuario directamente."""
+    from ..core.permissions import ensure_admin
+    ensure_admin(current_user.rol, "Solo Administradores pueden crear cuentas directamente.")
+    ip_address = request.client.host if request.client else None
+    return auth_service.admin_create_user(db, current_user, payload, ip_address)

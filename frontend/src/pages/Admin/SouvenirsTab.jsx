@@ -10,6 +10,7 @@ import {
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import adminService from '../../services/adminService';
+import VentaSouvenirModal from '../../components/VentaSouvenirModal';
 import { useNotify } from '../../App';
 
 const useStyles = makeStyles({
@@ -133,6 +134,7 @@ const SouvenirsTab = ({
   const styles = useStyles();
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [isVentaModalOpen, setIsVentaModalOpen] = React.useState(false);
   const { notify } = useNotify();
 
   const filteredData = React.useMemo(() => {
@@ -315,10 +317,18 @@ const SouvenirsTab = ({
             <Badge appearance="filled" color="brand">{t("admin_count_products", { count: filteredData.length })}</Badge>
             <MEHButton
               size="small"
+              appearance="primary"
+              icon={<Box24Filled />}
+              onClick={() => setIsVentaModalOpen(true)}
+              style={{ marginLeft: '6px' }}
+            >
+              Registrar Venta / Asignar
+            </MEHButton>
+            <MEHButton
+              size="small"
               appearance="outline"
               icon={<Open20Regular />}
               onClick={() => window.open('/souvenirs', '_blank')}
-              style={{ marginLeft: '6px' }}
             >
               Ver Catálogo Público
             </MEHButton>
@@ -544,6 +554,11 @@ const SouvenirsTab = ({
           ))
         )}
       </div>
+      <VentaSouvenirModal
+        open={isVentaModalOpen}
+        onClose={() => setIsVentaModalOpen(false)}
+        onSuccess={() => { if (fetchData) fetchData(); }}
+      />
     </div>
   );
 };

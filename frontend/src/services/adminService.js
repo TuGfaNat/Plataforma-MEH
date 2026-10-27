@@ -44,6 +44,18 @@ const adminService = {
   deleteSouvenir: async (id) => {
     const response = await api.delete(`/souvenirs/${id}`);
     return response.data;
+  },
+  registrarVentaSouvenir: async (idUsuario, items, metodoPago = 'EFECTIVO') => {
+    const response = await api.post('/souvenirs/ventas', {
+      id_usuario: idUsuario,
+      items,
+      metodo_pago: metodoPago
+    });
+    return response.data;
+  },
+  getVentasSouvenirs: async () => {
+    const response = await api.get('/souvenirs/ventas');
+    return response.data;
   }
 };
 

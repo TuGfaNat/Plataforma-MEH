@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 20  
-**Total de endpoints expuestos:** 161
+**Total de endpoints expuestos:** 163
 
 ---
 
@@ -81,6 +81,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`PUT`** | `/api/auth/usuarios/{id_usuario}/rol` | Cambia el rango de un usuario (Solo para Administradores). | `id_usuario: int`, `nuevo_rol: str` | `200 OK` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/auth/usuarios/{id_usuario}` | Suspende lógicamente un usuario sin borrado físico (Solo Administradores). | `id_usuario: int` | `204 No Content` | Requiere Auth (JWT) |
 | **`GET`** | `/api/auth/directorio` | Directorio de miembros con métricas y nivel (Solo ADMIN/ORGANIZADOR). | `skip: int`, `limit: int` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/auth/admin/users` | Endpoint para que Administradores creen cuentas de usuario directamente. | `payload: dict` | `201 Created` | Requiere Auth (JWT), Solo ADMIN |
 
 ## Módulo `badges` (Prefix: `/insignias`)
 
@@ -212,6 +213,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`POST`** | `/api/inscripciones/cursos/{id_curso}` | Inscribe al usuario actual en un curso. | `id_curso: int` | `201 Created` | Requiere Auth (JWT) |
 | **`GET`** | `/api/inscripciones/cursos/mis-inscripciones` | Obtiene las inscripciones a cursos del usuario actual. | - | `200 OK` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/inscripciones/cursos/{id_curso}/progreso` | Actualiza el progreso de un usuario en un curso. | `id_curso: int`, `progreso: int` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/inscripciones/eventos/{id_evento}/manual` | Inscripcion manual de un miembro a un evento por parte del Staff (Admin u Organizador). | `id_evento: int`, `data: InscribirManualBody` | `201 Created` | Requiere Auth (JWT), Staff / Organizador |
 
 ## Módulo `learning_path` (Prefix: `/ms-learning`)
 

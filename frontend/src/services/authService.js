@@ -47,6 +47,11 @@ const authService = {
     return response.data;
   },
 
+  adminCreateUser: async (userData) => {
+    const response = await api.post('/auth/admin/users', userData);
+    return response.data;
+  },
+
   getAllUsers: async (search = '', rol = '') => {
     let url = '/auth/usuarios';
     const params = new URLSearchParams();

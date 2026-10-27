@@ -141,3 +141,28 @@ def actualizar_progreso_curso(
     db.commit()
     db.refresh(inscripcion)
     return inscripcion
+
+class InscribirManualBody(inscripcion_schema.BaseModel):
+    id_usuario: int
+    estado_inscripcion: Optional[str] = "CONFIRMADA"
+
+@router.post("/eventos/{id_evento}/manual", response_model=inscripcion_schema.InscripcionEventoResponse, status_code=status.HTTP_201_CREATED)
+def inscribir_evento_manual(
+    id_evento: int,
+    data: InscribirManualBody,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Inscripcion manual de un miembro a un evento por parte del Staff (Admin u Organizador)."""
+    from ..core.permissions import ensure_roles, ROLE_ADMIN, ROLE_ORGANIZADOR
+    ensure_roles(current_user.rol, [ROLE_ADMIN, ROLE_ORGANIZADOR], "Acceso restringido al Staff")
+    ip_address = request.client.host if request.client else None
+    return inscripciones_service.inscribir_participante_manual(
+        db,
+        current_user,
+        id_evento,
+        data.id_usuario,
+        data.estado_inscripcion or "CONFIRMADA",
+        ip_address
+    )

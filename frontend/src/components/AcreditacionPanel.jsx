@@ -26,8 +26,12 @@ import {
   Dismiss24Regular,
   ShieldCheckmark24Regular,
   Print24Regular,
-  DataTrending24Regular
+  DataTrending24Regular,
+  PersonAdd24Regular,
+  Box24Filled
 } from '@fluentui/react-icons';
+import InscribirManualModal from './InscribirManualModal';
+import VentaSouvenirModal from './VentaSouvenirModal';
 import { QRCodeSVG } from 'qrcode.react';
 import { MEHButton, MEHTypography } from './ui';
 import { useAuth, useNotify } from '../App';
@@ -172,6 +176,8 @@ const AcreditacionPanel = ({
 
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showLlegadasChart, setShowLlegadasChart] = useState(false);
+  const [showInscribirModal, setShowInscribirModal] = useState(false);
+  const [souvenirModalState, setSouvenirModalState] = useState({ open: false, user: null });
 
   const fetchParticipantes = async () => {
     if (!eventoId) return;
@@ -408,6 +414,24 @@ const AcreditacionPanel = ({
                   {p.estado_inscripcion || 'REGISTRADO'}
                 </Badge>
 
+                {/* Botón Asignar Souvenir */}
+                <Tooltip content="Asignar o vender souvenir en efectivo/QR" relationship="label">
+                  <Button
+                    size="small"
+                    appearance="subtle"
+                    icon={<Box24Filled />}
+                    onClick={() => setSouvenirModalState({
+                      open: true,
+                      user: {
+                        id_usuario: p.id_usuario,
+                        nombres: p.nombre,
+                        correo: p.correo
+                      }
+                    })}
+                    aria-label="Vender Souvenir"
+                  />
+                </Tooltip>
+
                 {/* Botón Marcar Presente */}
                 {!isPresente ? (
                   <MEHButton 
@@ -471,6 +495,22 @@ const AcreditacionPanel = ({
           )}
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <MEHButton 
+            size="small" 
+            appearance="primary"
+            icon={<PersonAdd24Regular />} 
+            onClick={() => setShowInscribirModal(true)}
+          >
+            + Inscribir Participante
+          </MEHButton>
+          <MEHButton 
+            size="small" 
+            appearance="outline"
+            icon={<Box24Filled />} 
+            onClick={() => setSouvenirModalState({ open: true, user: null })}
+          >
+            Venta Souvenir
+          </MEHButton>
           <MEHButton 
             size="small" 
             appearance={showLlegadasChart ? "primary" : "secondary"}
@@ -667,6 +707,21 @@ const AcreditacionPanel = ({
         eventoId={eventoId}
         eventoTitulo={eventoTitulo}
         participantesIniciales={participantes}
+      />
+
+      <InscribirManualModal
+        open={showInscribirModal}
+        onClose={() => setShowInscribirModal(false)}
+        eventoId={eventoId}
+        eventoTitulo={eventoTitulo}
+        onSuccess={fetchParticipantes}
+      />
+
+      <VentaSouvenirModal
+        open={souvenirModalState.open}
+        onClose={() => setSouvenirModalState({ open: false, user: null })}
+        initialUser={souvenirModalState.user}
+        onSuccess={fetchParticipantes}
       />
     </div>
   );
