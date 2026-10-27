@@ -16,17 +16,37 @@ const useStyles = makeStyles({
     display: 'grid', 
     gridTemplateColumns: '1fr 1.5fr', 
     gap: '32px',
-    '@media (max-width: 900px)': { gridTemplateColumns: '1fr' }
+    minWidth: 0,
+    maxWidth: '100%',
+    '@media (max-width: 900px)': { gridTemplateColumns: '1fr', gap: '20px' }
   },
   formPanel: { 
     display: 'flex', 
     flexDirection: 'column', 
     gap: '16px', 
     padding: '28px', 
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
     backgroundColor: tokens.colorNeutralBackground2, 
     ...shorthands.borderRadius('24px'), 
     ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
-    boxShadow: tokens.shadow4
+    boxShadow: tokens.shadow4,
+    '@media (max-width: 600px)': {
+      padding: '16px 12px',
+      ...shorthands.borderRadius('16px'),
+      gap: '14px',
+    }
+  },
+  rowTwo: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px',
+    minWidth: 0,
+    '@media (max-width: 600px)': {
+      gridTemplateColumns: '1fr',
+      gap: '12px',
+    }
   },
   tableWrapper: { 
     width: '100%', 
@@ -106,7 +126,7 @@ const LibraryTab = ({
           />
         </Field>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div className={styles.rowTwo}>
           <Field label={t("admin_category") || "Categoría"} required>
             <Select 
               value={newRecurso.categoria} 

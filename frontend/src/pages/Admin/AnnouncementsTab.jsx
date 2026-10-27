@@ -36,11 +36,61 @@ import { useNotify } from '../../App';
 
 const useStyles = makeStyles({
 // ... (rest of styles same)
-  container: { display: 'flex', flexDirection: 'column', gap: '24px' },
-  toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  grid: { display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '24px', marginTop: '16px' },
-  form: { display: 'flex', flexDirection: 'column', gap: '16px', padding: '20px', backgroundColor: tokens.colorNeutralBackground2, ...shorthands.borderRadius('16px'), ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3) },
-  tableWrapper: { ...shorthands.borderRadius('16px'), ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), backgroundColor: tokens.colorNeutralBackground1, overflowX: 'auto' },
+  container: { display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0, maxWidth: '100%', boxSizing: 'border-box' },
+  toolbar: { 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    flexWrap: 'wrap', 
+    gap: '12px',
+    '@media (max-width: 600px)': {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+    }
+  },
+  grid: { 
+    display: 'grid', 
+    gridTemplateColumns: '1.5fr 1fr', 
+    gap: '24px', 
+    marginTop: '16px',
+    minWidth: 0,
+    maxWidth: '100%',
+    '@media (max-width: 900px)': {
+      gridTemplateColumns: '1fr',
+      gap: '16px',
+    }
+  },
+  form: { 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '16px', 
+    padding: '20px', 
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    backgroundColor: tokens.colorNeutralBackground2, 
+    ...shorthands.borderRadius('16px'), 
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    '@media (max-width: 600px)': {
+      padding: '16px 12px',
+    }
+  },
+  formRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '12px',
+    '@media (max-width: 600px)': {
+      gridTemplateColumns: '1fr',
+    }
+  },
+  tableWrapper: { 
+    ...shorthands.borderRadius('16px'), 
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3), 
+    backgroundColor: tokens.colorNeutralBackground1, 
+    overflowX: 'auto',
+    WebkitOverflowScrolling: 'touch',
+    minWidth: 0,
+  },
   uploadBox: { ...shorthands.border('2px', 'dashed', tokens.colorBrandStroke1), ...shorthands.padding('16px'), ...shorthands.borderRadius('12px'), textAlign: 'center', cursor: 'pointer', backgroundColor: tokens.colorNeutralBackground1, transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', ':hover': { backgroundColor: tokens.colorBrandBackground2 } },
   previewImg: { width: '100%', maxHeight: '150px', objectFit: 'cover', ...shorthands.borderRadius('8px'), marginTop: '8px' }
 });
@@ -274,7 +324,7 @@ const AnnouncementsTab = () => {
             <Textarea value={formData.contenido} onChange={(e, d) => handleInputChange('contenido', d.value)} placeholder={t("admin_announcement_content_placeholder")} rows={5} required />
           </Field>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div className={styles.formRow}>
             <Field label={t("admin_announcement_type")}>
               <Select value={formData.tipo} onChange={(e, d) => handleInputChange('tipo', d.value)}>
                 <option value="INFO">{t("admin_info")}</option>
@@ -287,7 +337,7 @@ const AnnouncementsTab = () => {
             </Field>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div className={styles.formRow}>
             <Field label="Vincular a Evento (Cabecera en Correo)">
               <Select
                 data-testid="anuncio-evento-select"

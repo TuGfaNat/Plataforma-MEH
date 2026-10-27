@@ -19,12 +19,17 @@ import api, { resolveApiFileUrl } from '../../services/api';
 const useStyles = makeStyles({
   grid: { 
     display: 'grid', 
-    gridTemplateColumns: '320px 1fr', 
+    gridTemplateColumns: '320px minmax(0, 1fr)', 
     gap: '24px', 
     marginTop: '24px', 
     alignItems: 'start',
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
     '@media (max-width: 900px)': {
-      gridTemplateColumns: '1fr'
+      gridTemplateColumns: '1fr',
+      gap: '16px',
+      marginTop: '12px',
     }
   },
   sidebar: { 
@@ -34,7 +39,13 @@ const useStyles = makeStyles({
     position: 'sticky', 
     top: '24px', 
     maxHeight: 'calc(100vh - 200px)', 
-    paddingRight: '8px' 
+    paddingRight: '8px',
+    minWidth: 0,
+    '@media (max-width: 900px)': {
+      position: 'static',
+      maxHeight: 'none',
+      paddingRight: 0,
+    }
   },
   selectableCard: { 
     padding: '16px', 
@@ -55,9 +66,13 @@ const useStyles = makeStyles({
   detailsContainer: { 
     paddingLeft: '24px', 
     borderLeft: `1px solid ${tokens.colorNeutralBackground3}`,
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
     '@media (max-width: 900px)': {
       paddingLeft: '0',
-      borderLeft: 'none'
+      borderLeft: 'none',
+      marginTop: '12px',
     }
   },
   formPanel: { 
@@ -65,9 +80,17 @@ const useStyles = makeStyles({
     flexDirection: 'column', 
     gap: '20px', 
     padding: '24px', 
+    minWidth: 0,
+    maxWidth: '100%',
+    boxSizing: 'border-box',
     backgroundColor: tokens.colorNeutralBackground2, 
     ...shorthands.borderRadius('20px'), 
-    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3) 
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    '@media (max-width: 600px)': {
+      padding: '16px 12px',
+      gap: '14px',
+      ...shorthands.borderRadius('14px'),
+    }
   },
   courseHeader: {
     display: 'flex',
@@ -272,18 +295,23 @@ const AcademyTab = ({
   return (
     <div className={styles.grid}>
       <div className={styles.sidebar}>
-        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px'}}>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px'}}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <HatGraduation24Regular color={tokens.colorBrandForeground1} />
             <MEHTypography variant="h3">{t("programs")}</MEHTypography>
           </div>
-          <Tooltip content={t("admin_new_course")} relationship="label">
-            <Button icon={<Add24Regular />} appearance="primary" size="small" shape="circular" onClick={() => {
+          <MEHButton 
+            icon={<Add24Regular />} 
+            appearance="primary" 
+            size="small" 
+            onClick={() => {
               setIsAddingCurso(true);
               setIsEditingCurso(false);
               setNewCurso({ nombre_curso: '', descripcion: '', horas_academicas: 10, imagen_url: '' });
-            }} />
-          </Tooltip>
+            }}
+          >
+            {t("admin_new_course") || "Nuevo Curso"}
+          </MEHButton>
         </div>
         <Divider style={{marginBottom: '12px'}} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '70vh', overflowY: 'auto', paddingRight: '4px' }}>

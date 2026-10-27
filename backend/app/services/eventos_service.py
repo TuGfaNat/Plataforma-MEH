@@ -193,18 +193,28 @@ def create_evento(
     return db_evento
 
 def list_eventos(db: Session, skip: int = 0, limit: int = 100) -> List[models.Evento]:
-    """Lista eventos públicos con paginación y actualiza estados de eventos pasados."""
+    """Lista eventos públicos con paginación y actualiza estados de eventos en curso."""
     now = datetime.utcnow()
-    # Traer todos los eventos programados o en curso que ya hayan iniciado
-    eventos_pasados = db.query(models.Evento).filter(
-        models.Evento.estado.in_(["PROGRAMADO", "EN_CURSO"]),
-        models.Evento.fecha_inicio < now
+    # 1. Eventos que ya llegaron a su fecha/hora de inicio pasan a EN_CURSO (abiertos para inscripción durante el evento)
+    eventos_iniciados = db.query(models.Evento).filter(
+        models.Evento.estado == "PROGRAMADO",
+        models.Evento.fecha_inicio <= now
     ).all()
 
     modificado = False
-    for ev in eventos_pasados:
-        # Si tiene fecha de fin y ya pasó, o si no tiene y han transcurrido más de 24 horas del inicio
-        if (ev.fecha_fin and ev.fecha_fin < now) or (not ev.fecha_fin and (now - ev.fecha_inicio).total_seconds() > 86400):
+    for ev in eventos_iniciados:
+        ev.estado = "EN_CURSO"
+        modificado = True
+
+    # 2. Auto-finalizar SOLO tras una ventana de gracia amplia (7 días) para permitir que los organizadores
+    # cierren manualmente el evento o sigan inscribiendo a participantes que llegaron tarde.
+    limite_gracia_segundos = 7 * 86400
+    eventos_viejos = db.query(models.Evento).filter(
+        models.Evento.estado == "EN_CURSO"
+    ).all()
+    for ev in eventos_viejos:
+        ref_date = ev.fecha_fin or ev.fecha_inicio
+        if ref_date and (now - ref_date).total_seconds() > limite_gracia_segundos:
             ev.estado = "FINALIZADO"
             modificado = True
 

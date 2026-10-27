@@ -519,7 +519,7 @@ const AdminPanel = () => {
         </TabList>
       </div>
 
-      <MEHCard style={{ minWidth: 0, maxWidth: '100%', boxSizing: 'border-box' }}>
+      <MEHCard style={{ minWidth: 0, maxWidth: '100%', boxSizing: 'border-box', padding: 'clamp(14px, 2.5vw, 24px)' }}>
         {selectedTab === 'usuarios' && (
           <UsersTab 
             loading={loading} data={data} searchTerm={searchTerm} setSearchBox={setSearchBox} 

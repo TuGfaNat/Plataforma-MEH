@@ -71,12 +71,23 @@ const useStyles = makeStyles({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: "16px",
+    gap: "16px",
+    flexWrap: "wrap",
+    '@media (max-width: 680px)': {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+      gap: '12px',
+    }
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-    gap: "28px",
+    gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 320px), 1fr))",
+    gap: "24px",
     marginTop: "20px",
+    '@media (max-width: 600px)': {
+      gridTemplateColumns: "1fr",
+      gap: "16px",
+    }
   },
   card: {
     backgroundColor: tokens.colorNeutralBackground1,
@@ -415,14 +426,17 @@ const EcosystemDirectory = () => {
         </MEHButton>
       </div>
 
-      <TabList
-        selectedValue={selectedTab}
-        onTabSelect={(e, d) => setSelectedTab(d.value)}
-      >
-        <Tab value="speakers" icon={<Mic24Regular />}>{t("speakers")}</Tab>
-        <Tab value="auspiciadores" icon={<Reward24Regular />}>{t("sponsors")}</Tab>
-        <Tab value="comunidades" icon={<PeopleCommunity24Regular />}>{t("allied_communities")}</Tab>
-      </TabList>
+      <div style={{ overflowX: 'auto', maxWidth: '100%', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', paddingBottom: '4px' }}>
+        <TabList
+          selectedValue={selectedTab}
+          onTabSelect={(e, d) => setSelectedTab(d.value)}
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          <Tab value="speakers" icon={<Mic24Regular />}>{t("speakers")}</Tab>
+          <Tab value="auspiciadores" icon={<Reward24Regular />}>{t("sponsors")}</Tab>
+          <Tab value="comunidades" icon={<PeopleCommunity24Regular />}>{t("allied_communities")}</Tab>
+        </TabList>
+      </div>
 
       {loading ? (
         <div style={{ display: "flex", justifyContent: "center", padding: "100px" }}>

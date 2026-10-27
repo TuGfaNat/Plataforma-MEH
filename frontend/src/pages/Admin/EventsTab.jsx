@@ -172,10 +172,13 @@ const useStyles = makeStyles({
 
 const EventoItemBadge = ({ ev }) => {
   if (ev.estado === 'CANCELADO') {
-    return <Badge color="danger" appearance="tint">Cancelado</Badge>;
+    return <Badge color="danger" appearance="filled">Cancelado</Badge>;
   }
   if (ev.estado === 'FINALIZADO') {
     return <Badge color="neutral" appearance="tint">Finalizado</Badge>;
+  }
+  if (ev.estado === 'EN_CURSO') {
+    return <Badge color="danger" appearance="filled">🔴 En Vivo</Badge>;
   }
   if (ev.id_estado === 1) {
     return <Badge color="warning" appearance="tint">Inactivo</Badge>;
@@ -791,19 +794,40 @@ const EventsTab = ({
                   </Badge>
                 </div>
 
-                <Switch 
-                  label={currentEvent.id_estado === 1 ? "Activar Evento" : "Desactivar Evento"} 
-                  checked={currentEvent.id_estado !== 1} 
-                  onChange={async (e, d) => {
-                    try {
-                      const newStatus = d.checked ? 2 : 1;
-                      await api.put(`/eventos/${selectedEventoId}`, { id_estado: newStatus });
-                      void fetchData();
-                    } catch (err) {
-                      console.error("Error al cambiar estado del evento", err);
-                    }
-                  }} 
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  {currentEvent.estado !== 'CANCELADO' && (
+                    <MEHButton
+                      size="small"
+                      appearance={currentEvent.estado === 'FINALIZADO' ? "primary" : "outline"}
+                      style={currentEvent.estado === 'FINALIZADO' ? {} : { color: tokens.colorPaletteDarkOrangeForeground1 }}
+                      onClick={async () => {
+                        try {
+                          const nuevoEstado = currentEvent.estado === 'FINALIZADO' ? 'EN_CURSO' : 'FINALIZADO';
+                          await api.put(`/eventos/${selectedEventoId}`, { estado: nuevoEstado });
+                          notify("Éxito", nuevoEstado === 'FINALIZADO' ? "Evento finalizado / inscripciones cerradas" : "Inscripciones reabiertas para el evento", "success");
+                          void fetchData();
+                        } catch (err) {
+                          notify("Error", "No se pudo actualizar el estado del evento", "error");
+                        }
+                      }}
+                    >
+                      {currentEvent.estado === 'FINALIZADO' ? "🔓 Reabrir Inscripciones" : "🔒 Cerrar Evento / Inscripciones"}
+                    </MEHButton>
+                  )}
+                  <Switch 
+                    label={currentEvent.id_estado === 1 ? "Activar Evento" : "Desactivar Evento"} 
+                    checked={currentEvent.id_estado !== 1} 
+                    onChange={async (e, d) => {
+                      try {
+                        const newStatus = d.checked ? 2 : 1;
+                        await api.put(`/eventos/${selectedEventoId}`, { id_estado: newStatus });
+                        void fetchData();
+                      } catch (err) {
+                        console.error("Error al cambiar estado del evento", err);
+                      }
+                    }} 
+                  />
+                </div>
               </div>
 
               {/* Fila 2: Título principal */}

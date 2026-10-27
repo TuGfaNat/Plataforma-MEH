@@ -858,6 +858,14 @@ const EventoPublico = () => {
                     <MEHTypography variant="h2" style={{ marginTop: '4px', fontSize: '1.6rem' }}>
                       {packages.length > 0 ? "Evento con Aporte / Paquete" : "Acceso Gratuito"}
                     </MEHTypography>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                      {evento.estado === 'EN_CURSO' && (
+                        <Badge appearance="filled" color="danger">🔴 Evento En Vivo / En Curso</Badge>
+                      )}
+                      {evento.estado === 'FINALIZADO' && (
+                        <Badge appearance="filled" color="neutral">Inscripciones Cerradas</Badge>
+                      )}
+                    </div>
                   </div>
 
                   {/* Estado de Cupos */}
@@ -929,8 +937,11 @@ const EventoPublico = () => {
                         size="large" 
                         style={{ height: '52px', fontWeight: tokens.fontWeightBold }}
                         onClick={() => navigate(`/login?returnTo=/evento/${id}`)}
+                        disabled={evento.estado === 'FINALIZADO' || evento.estado === 'CANCELADO'}
                       >
-                        {isSoldOut ? t("join_waitlist") : t("join_event")}
+                        {evento.estado === 'FINALIZADO' 
+                          ? "Inscripciones Cerradas" 
+                          : (isSoldOut ? t("join_waitlist") : (evento.estado === 'EN_CURSO' ? "Inscribirme al Evento en Vivo" : t("join_event")))}
                       </MEHButton>
 
                       <div style={{ textAlign: 'center' }}>
@@ -1048,10 +1059,12 @@ const EventoPublico = () => {
                         size="large" 
                         type="submit"
                         loading={submitting}
-                        disabled={submitting}
+                        disabled={submitting || evento.estado === 'FINALIZADO' || evento.estado === 'CANCELADO'}
                         style={{ height: '50px', marginTop: '8px', fontWeight: tokens.fontWeightBold }}
                       >
-                        {isSoldOut ? t("join_waitlist") : t("confirm_spot")}
+                        {evento.estado === 'FINALIZADO' 
+                          ? "Inscripciones Cerradas" 
+                          : (isSoldOut ? t("join_waitlist") : (evento.estado === 'EN_CURSO' ? "Confirmar Registro al Evento en Vivo" : t("confirm_spot")))}
                       </MEHButton>
                     </form>
                   )}

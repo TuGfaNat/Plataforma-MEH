@@ -328,7 +328,7 @@ const Landing = () => {
           cursoService.getCursos(),
         ]);
         setEventos(
-          eventosData.filter((e) => e.estado === "PROGRAMADO").slice(0, 3),
+          eventosData.filter((e) => e.estado === "PROGRAMADO" || e.estado === "EN_CURSO").slice(0, 6),
         );
         setCursos(cursosData.filter((c) => c.estado === "ACTIVO").slice(0, 3));
       } catch (err) {

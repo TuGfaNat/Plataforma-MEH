@@ -15,16 +15,38 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: '24px',
     maxWidth: '800px',
-    margin: '0 auto'
+    width: '100%',
+    boxSizing: 'border-box',
+    margin: '0 auto',
+    minWidth: 0,
   },
   formRow: {
     display: 'flex',
     gap: '16px',
     alignItems: 'center',
-    width: '100%'
+    width: '100%',
+    minWidth: 0,
+    '@media (max-width: 600px)': {
+      flexDirection: 'column',
+      alignItems: 'stretch',
+      gap: '12px',
+    }
+  },
+  sigGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '12px',
+    marginBottom: '16px',
+    minWidth: 0,
+    '@media (max-width: 600px)': {
+      gridTemplateColumns: '1fr',
+    }
   },
   fileInput: {
-    marginBottom: '16px'
+    marginBottom: '16px',
+    maxWidth: '100%',
+    width: '100%',
+    boxSizing: 'border-box',
   }
 });
 
@@ -184,7 +206,7 @@ const GeneradorCertificados = () => {
           </Field>
 
           <Text weight="semibold">{t("admin_signatures_help")}</Text>
-          <div className={styles.formRow}>
+          <div className={styles.sigGrid}>
             <input 
               id="cert-sign1-file"
               type="file" 
@@ -203,8 +225,6 @@ const GeneradorCertificados = () => {
               className={styles.fileInput} 
               title={`${t("admin_signature")} 2`} 
             />
-          </div>
-          <div className={styles.formRow}>
             <input 
               id="cert-sign3-file"
               type="file" 
