@@ -12,7 +12,7 @@ import {
   QrCode24Regular, PeopleTeam24Regular, Mic24Regular, Link24Regular,
   Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled, ArrowDownload24Regular,
   Megaphone24Regular, DismissCircle24Regular, Share24Regular, Copy24Regular, DocumentTable24Regular,
-  Image24Regular
+  Image24Regular, PersonAdd24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
@@ -1003,6 +1003,21 @@ const EventsTab = ({
                           }}
                         >
                           {t("admin_attendance_list")}
+                        </MEHButton>
+                        <MEHButton 
+                          appearance="outline"
+                          icon={<PersonAdd24Regular />}
+                          onClick={() => {
+                            const btn = document.getElementById('btn-inscribir-participante');
+                            if (btn) {
+                              btn.click();
+                            } else {
+                              const el = document.getElementById('panel-acreditacion');
+                              if (el) el.scrollIntoView({ behavior: 'smooth' });
+                            }
+                          }}
+                        >
+                          + Inscribir Miembro
                         </MEHButton>
                     </div>
                 </div>

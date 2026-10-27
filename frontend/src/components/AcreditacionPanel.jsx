@@ -500,6 +500,7 @@ const AcreditacionPanel = ({
             size="small" 
             appearance="primary"
             icon={<PersonAdd24Regular />} 
+            id="btn-inscribir-participante"
             onClick={() => setShowInscribirModal(true)}
           >
             + Inscribir Participante

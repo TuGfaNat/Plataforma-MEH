@@ -12,6 +12,7 @@ import {
   Spinner,
   Badge,
   Avatar,
+  Checkbox,
   tokens,
   makeStyles
 } from '@fluentui/react-components';
@@ -19,7 +20,8 @@ import {
   PersonAdd24Regular,
   Search24Regular,
   CheckmarkCircle24Filled,
-  CalendarLtr24Regular
+  CalendarLtr24Regular,
+  Dismiss24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from './ui';
 import authService from '../services/authService';
@@ -64,6 +66,15 @@ const useStyles = makeStyles({
     ':hover': {
       backgroundColor: tokens.colorNeutralBackground3,
     }
+  },
+  quickCreateBox: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    padding: '14px',
+    backgroundColor: tokens.colorNeutralBackground3,
+    borderRadius: '12px',
+    border: `1px dashed ${tokens.colorBrandStroke1}`,
   }
 });
 
@@ -76,7 +87,15 @@ const InscribirManualModal = ({ open, onClose, eventoId, eventoTitulo = '', onSu
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [estadoInscripcion, setEstadoInscripcion] = useState('CONFIRMADA');
+  const [marcarPresente, setMarcarPresente] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Creación rápida de usuario
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [quickNombres, setQuickNombres] = useState('');
+  const [quickApellidos, setQuickApellidos] = useState('');
+  const [quickCorreo, setQuickCorreo] = useState('');
+  const [creatingUser, setCreatingUser] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -84,6 +103,11 @@ const InscribirManualModal = ({ open, onClose, eventoId, eventoTitulo = '', onSu
       setUsers([]);
       setSelectedUser(null);
       setEstadoInscripcion('CONFIRMADA');
+      setMarcarPresente(false);
+      setShowQuickCreate(false);
+      setQuickNombres('');
+      setQuickApellidos('');
+      setQuickCorreo('');
     }
   }, [open]);
 
@@ -104,6 +128,33 @@ const InscribirManualModal = ({ open, onClose, eventoId, eventoTitulo = '', onSu
     }
   };
 
+  const handleQuickCreateUser = async () => {
+    if (!quickNombres.trim() || !quickApellidos.trim() || !quickCorreo.trim()) {
+      notify('Campos obligatorios', 'Ingresa nombres, apellidos y correo.', 'warning');
+      return;
+    }
+    setCreatingUser(true);
+    try {
+      const newUser = await authService.adminCreateUser({
+        nombres: quickNombres.trim(),
+        apellidos: quickApellidos.trim(),
+        correo: quickCorreo.trim(),
+        rol: 'MIEMBRO'
+      });
+      notify('Usuario Creado', `${newUser.nombres} ${newUser.apellidos} fue registrado(a) y seleccionado(a).`, 'success');
+      setSelectedUser(newUser);
+      setShowQuickCreate(false);
+      setQuickNombres('');
+      setQuickApellidos('');
+      setQuickCorreo('');
+    } catch (err) {
+      console.error(err);
+      notify('Error al crear usuario', err.response?.data?.detail || 'No se pudo crear el usuario.', 'error');
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
   const handleInscribir = async () => {
     if (!selectedUser || !eventoId) {
       notify('Atención', 'Debes seleccionar un miembro para inscribir.', 'warning');
@@ -112,12 +163,36 @@ const InscribirManualModal = ({ open, onClose, eventoId, eventoTitulo = '', onSu
 
     setSubmitting(true);
     try {
-      await eventoService.inscribirManual(eventoId, selectedUser.id_usuario, estadoInscripcion);
-      notify(
-        'Inscripción Exitosa',
-        `${selectedUser.nombres} ${selectedUser.apellidos} ha sido inscrito(a) al evento con estado ${estadoInscripcion}.`,
-        'success'
-      );
+      const resInsc = await eventoService.inscribirManual(eventoId, selectedUser.id_usuario, estadoInscripcion);
+
+      // Si se activó la opción de acreditar de inmediato:
+      if (marcarPresente && resInsc?.id_inscripcion) {
+        try {
+          await eventoService.acreditarParticipante(eventoId, {
+            id_inscripcion: resInsc.id_inscripcion,
+            codigo_qr: resInsc.codigo_qr
+          });
+          notify(
+            '¡Inscrito y Acreditado!',
+            `${selectedUser.nombres} ${selectedUser.apellidos} ha sido inscrito(a) y acreditado(a) como PRESENTE exitosamente.`,
+            'success'
+          );
+        } catch (acredErr) {
+          console.warn("Inscrito pero error al auto-acreditar:", acredErr);
+          notify(
+            'Inscrito (Sin Acreditar)',
+            `${selectedUser.nombres} fue inscrito(a), pero deberás marcar la asistencia desde la lista.`,
+            'warning'
+          );
+        }
+      } else {
+        notify(
+          'Inscripción Exitosa',
+          `${selectedUser.nombres} ${selectedUser.apellidos} ha sido inscrito(a) al evento con estado ${estadoInscripcion}.`,
+          'success'
+        );
+      }
+
       if (onSuccess) onSuccess();
       onClose();
     } catch (err) {
@@ -152,18 +227,66 @@ const InscribirManualModal = ({ open, onClose, eventoId, eventoTitulo = '', onSu
 
             {/* Buscar y Seleccionar Usuario */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <MEHTypography variant="body"><b>Seleccionar Miembro Registrado:</b></MEHTypography>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <MEHTypography variant="body"><b>Seleccionar Miembro Registrado:</b></MEHTypography>
+                {!selectedUser && (
+                  <MEHButton 
+                    size="small" 
+                    appearance="subtle" 
+                    onClick={() => setShowQuickCreate(!showQuickCreate)}
+                  >
+                    {showQuickCreate ? "Volver a buscar" : "+ ¿No existe en la BD? Crear rápido"}
+                  </MEHButton>
+                )}
+              </div>
+
               {selectedUser ? (
                 <div className={styles.selectedUserCard}>
                   <Avatar name={`${selectedUser.nombres} ${selectedUser.apellidos}`} size={40} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 'bold' }}>{selectedUser.nombres} {selectedUser.apellidos}</div>
                     <div style={{ fontSize: '12px', opacity: 0.7 }}>{selectedUser.correo}</div>
-                    <Badge appearance="outline" size="tiny" style={{ marginTop: '2px' }}>{selectedUser.rol}</Badge>
+                    <Badge appearance="outline" size="tiny" style={{ marginTop: '2px' }}>{selectedUser.rol || 'MIEMBRO'}</Badge>
                   </div>
                   <MEHButton size="small" appearance="subtle" onClick={() => setSelectedUser(null)}>
                     Cambiar
                   </MEHButton>
+                </div>
+              ) : showQuickCreate ? (
+                <div className={styles.quickCreateBox}>
+                  <MEHTypography variant="caption" style={{ fontWeight: 'bold', color: tokens.colorBrandForeground1 }}>
+                    Registrar nuevo miembro en la Base de Datos:
+                  </MEHTypography>
+                  <Input
+                    placeholder="Nombres *"
+                    value={quickNombres}
+                    onChange={(e, d) => setQuickNombres(d.value)}
+                  />
+                  <Input
+                    placeholder="Apellidos *"
+                    value={quickApellidos}
+                    onChange={(e, d) => setQuickApellidos(d.value)}
+                  />
+                  <Input
+                    type="email"
+                    placeholder="Correo electrónico *"
+                    value={quickCorreo}
+                    onChange={(e, d) => setQuickCorreo(d.value)}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                    <MEHButton size="small" appearance="secondary" onClick={() => setShowQuickCreate(false)}>
+                      Cancelar
+                    </MEHButton>
+                    <MEHButton
+                      size="small"
+                      appearance="primary"
+                      onClick={handleQuickCreateUser}
+                      disabled={creatingUser}
+                      icon={creatingUser ? <Spinner size="tiny" /> : <PersonAdd24Regular />}
+                    >
+                      {creatingUser ? "Creando..." : "Crear y Seleccionar"}
+                    </MEHButton>
+                  </div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -197,11 +320,35 @@ const InscribirManualModal = ({ open, onClose, eventoId, eventoTitulo = '', onSu
 
             {/* Estado de la inscripción */}
             <Field label="Estado de Inscripción en el Evento:">
-              <Select value={estadoInscripcion} onChange={(e, d) => setEstadoInscripcion(d.value)}>
+              <Select 
+                value={estadoInscripcion} 
+                onChange={(e, d) => setEstadoInscripcion(d.value)}
+                disabled={marcarPresente}
+              >
                 <option value="CONFIRMADA">CONFIRMADA (Cupo asegurado + QR emitido)</option>
                 <option value="PENDIENTE">PENDIENTE (A espera de pago o verificación)</option>
               </Select>
             </Field>
+
+            {/* Opción de Acreditar Directamente */}
+            <div style={{ 
+              padding: '12px 14px', 
+              backgroundColor: tokens.colorNeutralBackground3, 
+              borderRadius: '12px',
+              border: `1px solid ${marcarPresente ? tokens.colorPaletteGreenBorder2 : tokens.colorNeutralStroke2}`
+            }}>
+              <Checkbox
+                checked={marcarPresente}
+                onChange={(e, data) => {
+                  setMarcarPresente(data.checked);
+                  if (data.checked) setEstadoInscripcion('CONFIRMADA');
+                }}
+                label="Acreditar inmediatamente (Marcar como PRESENTE ahora mismo)"
+              />
+              <div style={{ fontSize: '11px', opacity: 0.75, marginTop: '4px', marginLeft: '26px' }}>
+                Si activas esto, el participante quedará inscrito con cupo asegurado y se registrará su asistencia presencial de inmediato. Si no lo activas, quedará inscrito y podrás marcar su asistencia cuando ingrese.
+              </div>
+            </div>
 
             <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
               Nota: La inscripción manual asignará inmediatamente al miembro a este evento y generará su código QR único de acceso para el escáner de acreditación.
@@ -218,7 +365,9 @@ const InscribirManualModal = ({ open, onClose, eventoId, eventoTitulo = '', onSu
               onClick={handleInscribir}
               disabled={submitting || !selectedUser}
             >
-              {submitting ? 'Inscribiendo...' : 'Inscribir al Evento'}
+              {submitting 
+                ? (marcarPresente ? 'Inscribiendo y Acreditando...' : 'Inscribiendo...') 
+                : (marcarPresente ? 'Inscribir y Acreditar (Presente)' : 'Inscribir al Evento')}
             </MEHButton>
           </DialogActions>
         </DialogBody>
