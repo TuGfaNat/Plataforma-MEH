@@ -122,8 +122,36 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
   const [suspendModal, setSuspendModal] = useState({ open: false, user: null, motivo: '', loading: false });
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [purging, setPurging] = useState(false);
 
-  const filteredUsers = [...(data || [])]
+  const handlePurgeSeeds = async () => {
+    if (!window.confirm("¿Deseas purgar y eliminar definitivamente de la base de datos todas las cuentas semilla y de prueba?")) {
+      return;
+    }
+    setPurging(true);
+    try {
+      const res = await authService.purgeSeedData();
+      notify('Limpieza Completada', res.message || 'Cuentas semilla eliminadas permanentemente.', 'success');
+      if (fetchData) fetchData();
+    } catch (err) {
+      notify('Error', err.response?.data?.detail || 'No se pudo purgar los datos.', 'error');
+    } finally {
+      setPurging(false);
+    }
+  };
+
+  const isSeedUser = (u) => {
+    const email = (u?.correo || '').toLowerCase().trim();
+    const alias = (u?.alias || '').toLowerCase().trim();
+    if (email === 'admin@meh.com' || email === 'natalygemio@gmail.com') return false;
+    if (email.includes('@test.com') || email.includes('@example.com') || (email.startsWith('user') && email.endsWith('@test.com'))) return true;
+    if (alias.startsWith('dev_')) return true;
+    return false;
+  };
+
+  const realUsers = (data || []).filter(u => !isSeedUser(u));
+
+  const filteredUsers = [...realUsers]
     .sort((a, b) => (b.id_usuario || 0) - (a.id_usuario || 0))
     .filter(u => {
       if (roleFilter !== 'ALL' && u.rol !== roleFilter) return false;
@@ -250,7 +278,7 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
             style={{ minWidth: '170px', height: '42px' }}
             aria-label="Filtrar por rol"
           >
-            <option value="ALL">Todos los roles ({(data || []).length})</option>
+            <option value="ALL">Todos los roles ({realUsers.length})</option>
             <option value="ADMIN">ADMIN</option>
             <option value="ORGANIZADOR">ORGANIZADOR</option>
             <option value="MODERADOR">MODERADOR</option>
@@ -259,7 +287,7 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
             <option value="MIEMBRO">MIEMBRO</option>
           </Select>
           <Badge appearance="tint" color="brand" size="large">
-            {filteredUsers.length} de {(data || []).length} miembro(s)
+            {filteredUsers.length} de {realUsers.length} miembro(s)
           </Badge>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -268,6 +296,15 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
           </MEHButton>
           <MEHButton size="small" icon={<ArrowDownload24Regular />} appearance="outline" onClick={handleExportCSV}>
             {t("admin_export_excel")}
+          </MEHButton>
+          <MEHButton 
+            size="small" 
+            appearance="subtle" 
+            style={{ color: tokens.colorPaletteRedForeground1, border: `1px solid ${tokens.colorPaletteRedBorderActive}` }} 
+            disabled={purging} 
+            onClick={handlePurgeSeeds}
+          >
+            {purging ? 'Limpiando...' : '🧹 Purgar Semillas BD'}
           </MEHButton>
         </div>
       </div>

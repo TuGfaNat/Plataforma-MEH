@@ -124,6 +124,11 @@ const authService = {
     return response.data;
   },
 
+  purgeSeedData: async () => {
+    const response = await api.post('/auth/admin/purge-seed-data');
+    return response.data;
+  },
+
   logout: () => {
     localStorage.removeItem('token');
   }

@@ -326,6 +326,60 @@ def list_users(
     
     query = db.query(models.Usuario).execution_options(include_deleted=True)
     
+    # Excluir cuentas semilla y de prueba
+    query = query.filter(
+        ~models.Usuario.correo.ilike("user%@test.com"),
+        ~models.Usuario.alias.ilike("dev_%"),
+        ~models.Usuario.correo.ilike("%@test.com"),
+        ~models.Usuario.correo.ilike("%@example.com"),
+        ~models.Usuario.correo.ilike("%@realdomain.org"),
+        ~models.Usuario.correo.ilike("%_e2e_%"),
+        ~models.Usuario.correo.ilike("test_%@meh.com"),
+        ~models.Usuario.correo.ilike("admin_test_%"),
+        ~models.Usuario.correo.ilike("admin_http_%"),
+        ~models.Usuario.correo.ilike("staff_http_%"),
+        ~models.Usuario.correo.ilike("alumno_http_%"),
+        ~models.Usuario.correo.ilike("admin_undo_%"),
+        ~models.Usuario.correo.ilike("staff_undo_%"),
+        ~models.Usuario.correo.ilike("admin_hist_%"),
+        ~models.Usuario.correo.ilike("staff_hist_%"),
+        ~models.Usuario.correo.ilike("admin_acred_%"),
+        ~models.Usuario.correo.ilike("org_acred_%"),
+        ~models.Usuario.correo.ilike("miembro_%@meh.com"),
+        ~models.Usuario.correo.ilike("carlos_%@meh.com"),
+        ~models.Usuario.correo.ilike("alice_%@meh.com"),
+        ~models.Usuario.correo.ilike("bob_%@meh.com"),
+        ~models.Usuario.correo.ilike("org_%@meh.com"),
+        ~models.Usuario.correo.ilike("op_%@meh.com"),
+        ~models.Usuario.correo.ilike("staff_scan_%"),
+        ~models.Usuario.correo.ilike("admin_em_%"),
+        ~models.Usuario.correo.ilike("admin_cad_%"),
+        ~models.Usuario.correo.ilike("org_em_%"),
+        ~models.Usuario.correo.ilike("emb_cad_%"),
+        ~models.Usuario.correo.ilike("miembro_em_%"),
+        ~models.Usuario.correo.ilike("miembro_cad_%"),
+        ~models.Usuario.correo.ilike("user_life_%"),
+        ~models.Usuario.correo.ilike("admin_017_%"),
+        ~models.Usuario.correo.ilike("admin_019_%"),
+        ~models.Usuario.correo.ilike("ana_019_%"),
+        ~models.Usuario.correo.ilike("beatriz_017_%"),
+        ~models.Usuario.correo.ilike("diego_017_%"),
+        ~models.Usuario.correo.ilike("lucas_offline_%"),
+        ~models.Usuario.correo.ilike("maria_gomez_%"),
+        ~models.Usuario.correo.ilike("admin_life_%"),
+        ~models.Usuario.correo.ilike("ana_v_%"),
+        ~models.Usuario.correo.ilike("maria_stud_%"),
+        ~models.Usuario.correo.ilike("juan_choque_%"),
+        ~models.Usuario.correo.ilike("alumno_%"),
+        ~models.Usuario.correo.ilike("otro_staff_%"),
+        ~models.Usuario.correo.ilike("inscrito_%"),
+        ~models.Usuario.correo.ilike("noinsc_%"),
+        ~models.Usuario.correo.ilike("lucia_real_%"),
+        models.Usuario.correo != "audit_test@meh.com",
+        models.Usuario.correo != "carlos@gmail.com",
+        models.Usuario.correo != "ana@outlook.com"
+    )
+    
     if search:
         search_filter = f"%{search}%"
         query = query.filter(

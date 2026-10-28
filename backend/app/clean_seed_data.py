@@ -40,8 +40,14 @@ SEED_COURSE_NAMES = [
     "Introduccion a Rust"
 ]
 
-def clean_database():
-    db = SessionLocal()
+def clean_database(db_session=None):
+    should_close = False
+    if db_session is not None:
+        db = db_session
+    else:
+        db = SessionLocal()
+        should_close = True
+    deleted_count = 0
     try:
         logger.info("======================================================")
         logger.info("🧹 INICIANDO LIMPIEZA TOTAL DE DATOS SEMILLA Y TEST")
@@ -487,12 +493,20 @@ def clean_database():
             logger.info(f"   👤 [REAL] ID {u.id_usuario} | {u.nombres} {u.apellidos} ({u.correo}) - Rol: {u.rol}")
         logger.info("======================================================")
 
+        return {
+            "status": "success",
+            "message": f"Se eliminaron {len(seed_user_ids)} cuentas semilla.",
+            "deleted_count": len(seed_user_ids),
+            "remaining_count": len(remaining)
+        }
+
     except Exception as e:
         db.rollback()
         logger.error(f"❌ Error durante la limpieza de datos semilla: {e}", exc_info=True)
         raise e
     finally:
-        db.close()
+        if should_close:
+            db.close()
 
 if __name__ == "__main__":
     clean_database()

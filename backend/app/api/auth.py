@@ -311,3 +311,16 @@ def admin_create_user_endpoint(
     ensure_roles(current_user.rol, [ROLE_ADMIN, ROLE_ORGANIZADOR], "Solo Administradores y Organizadores pueden crear cuentas directamente.")
     ip_address = request.client.host if request.client else None
     return auth_service.admin_create_user(db, current_user, payload, ip_address)
+
+
+@router.post("/admin/purge-seed-data", status_code=status.HTTP_200_OK)
+def admin_purge_seed_data_endpoint(
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Endpoint para que el SuperAdmin/Admin purgue físicamente todos los datos y cuentas semilla en producción."""
+    from ..core.permissions import ensure_roles, ROLE_ADMIN
+    ensure_roles(current_user.rol, [ROLE_ADMIN], "Solo Administradores pueden purgar los datos semilla.")
+    from ..clean_seed_data import clean_database
+    res = clean_database(db_session=db)
+    return res

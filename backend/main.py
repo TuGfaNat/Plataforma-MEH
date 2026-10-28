@@ -41,6 +41,12 @@ def startup_db_migrations():
                 logger.info("Migración automática exitosa: columna id_evento agregada a pedidos.")
     except Exception as e:
         logger.warning(f"Aviso en verificación de id_evento en pedidos: {e}")
+    # Limpieza automatica de datos residuales semilla en arranque
+    try:
+        from app.clean_seed_data import clean_database
+        clean_database()
+    except Exception as e:
+        logger.warning(f"Aviso en limpieza automatica de base de datos: {e}")
 
 # --- CONFIGURACIÓN DE CORS ---
 app.add_middleware(

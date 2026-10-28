@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 20  
-**Total de endpoints expuestos:** 163
+**Total de endpoints expuestos:** 164
 
 ---
 
@@ -82,6 +82,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`DELETE`** | `/api/auth/usuarios/{id_usuario}` | Suspende lógicamente un usuario sin borrado físico (Solo Administradores). | `id_usuario: int` | `204 No Content` | Requiere Auth (JWT) |
 | **`GET`** | `/api/auth/directorio` | Directorio de miembros con métricas y nivel (Solo ADMIN/ORGANIZADOR). | `skip: int`, `limit: int` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/auth/admin/users` | Endpoint para que Administradores y Organizadores creen cuentas de usuario directamente. | `payload: dict` | `201 Created` | Requiere Auth (JWT), Staff / Organizador |
+| **`POST`** | `/api/auth/admin/purge-seed-data` | Endpoint para que el SuperAdmin/Admin purgue físicamente todos los datos y cuentas semilla en producción. | - | `HTTP_200_OK` | Requiere Auth (JWT), Staff / Organizador |
 
 ## Módulo `badges` (Prefix: `/insignias`)
 
