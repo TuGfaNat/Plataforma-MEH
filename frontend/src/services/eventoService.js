@@ -55,10 +55,11 @@ const eventoService = {
     return response.data;
   },
 
-  inscribirManual: async (idEvento, idUsuario, estadoInscripcion = 'CONFIRMADA') => {
+  inscribirManual: async (idEvento, idUsuario, estadoInscripcion = 'CONFIRMADA', marcarAsistio = false) => {
     const response = await api.post(`/inscripciones/eventos/${idEvento}/manual`, {
       id_usuario: idUsuario,
-      estado_inscripcion: estadoInscripcion
+      estado_inscripcion: estadoInscripcion,
+      marcar_asistio: marcarAsistio
     });
     return response.data;
   },

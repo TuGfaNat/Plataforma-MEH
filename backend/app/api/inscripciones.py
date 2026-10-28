@@ -145,6 +145,7 @@ def actualizar_progreso_curso(
 class InscribirManualBody(inscripcion_schema.BaseModel):
     id_usuario: int
     estado_inscripcion: Optional[str] = "CONFIRMADA"
+    marcar_asistio: Optional[bool] = False
 
 @router.post("/eventos/{id_evento}/manual", response_model=inscripcion_schema.InscripcionEventoResponse, status_code=status.HTTP_201_CREATED)
 def inscribir_evento_manual(
@@ -164,5 +165,6 @@ def inscribir_evento_manual(
         id_evento,
         data.id_usuario,
         data.estado_inscripcion or "CONFIRMADA",
+        bool(data.marcar_asistio),
         ip_address
     )

@@ -354,9 +354,10 @@ def inscribir_participante_manual(
     id_evento: int,
     id_usuario: int,
     estado_inscripcion: str = "CONFIRMADA",
+    marcar_asistio: bool = False,
     ip_address: Optional[str] = None
 ) -> models.InscripcionEvento:
-    """Permite a un Administrador u Organizador inscribir directamente a un miembro en un evento."""
+    """Permite a un Administrador u Organizador inscribir directamente a un miembro en un evento, con soporte para confirmar y marcar asistencia inmediata."""
     evento = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
     if not evento:
         raise EventoNoEncontradoError()
@@ -364,6 +365,9 @@ def inscribir_participante_manual(
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
     if not usuario:
         raise ValidacionNegocioError("El usuario no existe.")
+
+    asistio_inmediato = (estado_inscripcion == "CONFIRMADA_ASISTIO") or bool(marcar_asistio)
+    estado_final = "CONFIRMADA" if (asistio_inmediato or estado_inscripcion == "CONFIRMADA") else estado_inscripcion
 
     inscripcion_existente = db.query(models.InscripcionEvento).filter(
         models.InscripcionEvento.id_usuario == id_usuario,
@@ -376,24 +380,49 @@ def inscribir_participante_manual(
     if inscripcion_existente:
         inscripcion_existente.id_estado = 2
         inscripcion_existente.fecha_inscripcion = ahora
-        inscripcion_existente.estado_inscripcion = estado_inscripcion
+        inscripcion_existente.estado_inscripcion = estado_final
         if not inscripcion_existente.codigo_qr:
             inscripcion_existente.codigo_qr = token_qr
-        if estado_inscripcion == "CONFIRMADA":
+        if estado_final == "CONFIRMADA":
             inscripcion_existente.fecha_validacion = ahora
+        if asistio_inmediato:
+            inscripcion_existente.asistio = True
         db_inscripcion = inscripcion_existente
     else:
         db_inscripcion = models.InscripcionEvento(
             id_usuario=id_usuario,
             id_evento=id_evento,
             fecha_inscripcion=ahora,
-            estado_inscripcion=estado_inscripcion,
+            estado_inscripcion=estado_final,
             codigo_qr=token_qr,
-            asistio=False,
-            fecha_validacion=ahora if estado_inscripcion == "CONFIRMADA" else None,
+            asistio=asistio_inmediato,
+            fecha_validacion=ahora if estado_final == "CONFIRMADA" else None,
             id_estado=2
         )
         db.add(db_inscripcion)
+
+    db.flush()
+
+    if asistio_inmediato:
+        try:
+            from .eventos_service import _obtener_o_crear_checkpoint_acreditacion
+            cp_default = _obtener_o_crear_checkpoint_acreditacion(db, id_evento)
+            asistencia_existente = db.query(models.AsistenciaDetalle).filter(
+                models.AsistenciaDetalle.id_inscripcion == db_inscripcion.id_inscripcion,
+                models.AsistenciaDetalle.id_checkpoint == cp_default.id_checkpoint
+            ).first()
+            if not asistencia_existente:
+                nueva_asistencia = models.AsistenciaDetalle(
+                    id_inscripcion=db_inscripcion.id_inscripcion,
+                    id_checkpoint=cp_default.id_checkpoint,
+                    fecha_escaneo=ahora,
+                    escaneado_por=admin_user.id_usuario,
+                    id_estado=2
+                )
+                db.add(nueva_asistencia)
+                db.flush()
+        except Exception:
+            pass
 
     db.commit()
     db.refresh(db_inscripcion)
@@ -408,7 +437,8 @@ def inscribir_participante_manual(
             "id_evento": id_evento,
             "id_usuario": id_usuario,
             "usuario_correo": usuario.correo,
-            "estado": estado_inscripcion
+            "estado": estado_final,
+            "asistio": asistio_inmediato
         },
         ip_direccion=ip_address
     )

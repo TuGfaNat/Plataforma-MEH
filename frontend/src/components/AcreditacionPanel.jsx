@@ -716,6 +716,7 @@ const AcreditacionPanel = ({
         onClose={() => setShowInscribirModal(false)}
         eventoId={eventoId}
         eventoTitulo={eventoTitulo}
+        participantes={participantes}
         onSuccess={fetchParticipantes}
       />
 
