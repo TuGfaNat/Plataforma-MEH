@@ -22,6 +22,26 @@ Instrumentator().instrument(app).expose(app)
 app.add_exception_handler(BaseDomainError, domain_exception_handler)
 app.add_exception_handler(Exception, global_exception_handler)
 
+@app.on_event("startup")
+def startup_db_migrations():
+    try:
+        from app.database import engine
+        from sqlalchemy import inspect, text
+        inspector = inspect(engine)
+        if inspector.has_table("pedidos"):
+            columns = [c["name"] for c in inspector.get_columns("pedidos")]
+            if "id_evento" not in columns:
+                with engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE pedidos ADD COLUMN id_evento INTEGER REFERENCES eventos(id_evento);"))
+                    try:
+                        conn.execute(text("CREATE INDEX ix_pedidos_id_evento ON pedidos (id_evento);"))
+                    except Exception:
+                        pass
+                    conn.commit()
+                logger.info("Migración automática exitosa: columna id_evento agregada a pedidos.")
+    except Exception as e:
+        logger.warning(f"Aviso en verificación de id_evento en pedidos: {e}")
+
 # --- CONFIGURACIÓN DE CORS ---
 app.add_middleware(
     CORSMiddleware,

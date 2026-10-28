@@ -342,11 +342,18 @@ def list_users(
         
     users = query.order_by(models.Usuario.id_usuario.desc(), models.Usuario.fecha_registro.desc()).all()
     
-    # Inyectar métricas de fidelidad
+    # Inyectar métricas de fidelidad de manera resiliente
     for u in users:
-        u.badge_count = len(u.badges)
-        u.souvenir_count = len(u.pedidos)
-        u.total_invertido = sum([p.total for p in u.pedidos if p.estado == "COMPLETADO"])
+        try:
+            u.badge_count = len(u.badges) if hasattr(u, "badges") and u.badges is not None else 0
+        except Exception:
+            u.badge_count = 0
+        try:
+            u.souvenir_count = len(u.pedidos) if hasattr(u, "pedidos") and u.pedidos is not None else 0
+            u.total_invertido = sum([p.total for p in u.pedidos if p and p.estado == "COMPLETADO"]) if hasattr(u, "pedidos") and u.pedidos else 0
+        except Exception:
+            u.souvenir_count = 0
+            u.total_invertido = 0
         
     return users
 

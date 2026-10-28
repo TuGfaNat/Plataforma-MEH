@@ -3,6 +3,10 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 import os
 from dotenv import load_dotenv
 
+# Cargar variables de entorno desde backend/.env y local
+backend_env = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+if os.path.exists(backend_env):
+    load_dotenv(backend_env)
 load_dotenv()
 
 # Obtener la URL de la base de datos de la variable de entorno
@@ -10,7 +14,7 @@ SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Si no hay variable (local), usamos el default
 if not SQLALCHEMY_DATABASE_URL:
-    SQLALCHEMY_DATABASE_URL = "postgresql://postgres:postgres@localhost/plataforma_meh"
+    SQLALCHEMY_DATABASE_URL = "postgresql://postgres:postgres@localhost/MEH"
 elif SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
