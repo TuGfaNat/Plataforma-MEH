@@ -742,6 +742,7 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
       <CreateUserModal
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        currentUser={currentUser}
         onSuccess={() => { if (fetchData) fetchData(); }}
       />
     </div>

@@ -51,7 +51,7 @@ const useStyles = makeStyles({
   }
 });
 
-const CreateUserModal = ({ open, onClose, onSuccess }) => {
+const CreateUserModal = ({ open, onClose, currentUser = null, onSuccess }) => {
   const styles = useStyles();
   const { notify } = useNotify();
 
@@ -185,13 +185,21 @@ const CreateUserModal = ({ open, onClose, onSuccess }) => {
 
                 <div className={styles.twoCols}>
                   <Field label="Rol en la Plataforma:">
-                    <Select value={formData.rol} onChange={(e, d) => setFormData({ ...formData, rol: d.value })}>
+                    <Select 
+                      value={formData.rol} 
+                      onChange={(e, d) => setFormData({ ...formData, rol: d.value })}
+                      disabled={currentUser && currentUser.rol !== 'ADMIN'}
+                    >
                       <option value="MIEMBRO">MIEMBRO</option>
-                      <option value="ORGANIZADOR">ORGANIZADOR</option>
-                      <option value="MODERADOR">MODERADOR</option>
-                      <option value="SOPORTE">SOPORTE</option>
-                      <option value="EMBAJADOR">EMBAJADOR</option>
-                      <option value="ADMIN">ADMIN</option>
+                      {(!currentUser || currentUser.rol === 'ADMIN') && (
+                        <>
+                          <option value="ORGANIZADOR">ORGANIZADOR</option>
+                          <option value="MODERADOR">MODERADOR</option>
+                          <option value="SOPORTE">SOPORTE</option>
+                          <option value="EMBAJADOR">EMBAJADOR</option>
+                          <option value="ADMIN">ADMIN</option>
+                        </>
+                      )}
                     </Select>
                   </Field>
                   <Field label="Institución / Universidad:">

@@ -918,7 +918,9 @@ def admin_create_user(
         raw_password = secrets.token_urlsafe(8)
 
     rol = user_data.get("rol", ROLE_MIEMBRO)
-    if rol not in ALL_DB_ROLES:
+    if admin_user.rol != ROLE_ADMIN:
+        rol = ROLE_MIEMBRO
+    elif rol not in ALL_DB_ROLES:
         rol = ROLE_MIEMBRO
 
     new_user = models.Usuario(

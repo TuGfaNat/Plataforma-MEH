@@ -306,8 +306,8 @@ def admin_create_user_endpoint(
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    """Endpoint para que Administradores creen cuentas de usuario directamente."""
-    from ..core.permissions import ensure_admin
-    ensure_admin(current_user.rol, "Solo Administradores pueden crear cuentas directamente.")
+    """Endpoint para que Administradores y Organizadores creen cuentas de usuario directamente."""
+    from ..core.permissions import ensure_roles, ROLE_ADMIN, ROLE_ORGANIZADOR
+    ensure_roles(current_user.rol, [ROLE_ADMIN, ROLE_ORGANIZADOR], "Solo Administradores y Organizadores pueden crear cuentas directamente.")
     ip_address = request.client.host if request.client else None
     return auth_service.admin_create_user(db, current_user, payload, ip_address)

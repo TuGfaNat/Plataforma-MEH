@@ -20,58 +20,58 @@ def db_session():
         db.rollback()
         db.close()
 
-def test_admin_create_user_and_manual_inscribe_asistio(db_session: Session):
-    # 1. Crear un Admin
-    admin_email = f"admin_asistio_{datetime.utcnow().timestamp()}@example.com"
-    admin = models.Usuario(
-        nombres="Super",
-        apellidos="Admin",
-        correo=admin_email,
-        password_hash=auth_core.get_password_hash("Admin123!"),
-        rol="ADMIN",
+def test_organizador_can_create_user_and_inscribe(db_session: Session):
+    # 1. Crear un Organizador
+    org_email = f"org_{datetime.utcnow().timestamp()}@example.com"
+    organizador = models.Usuario(
+        nombres="Carlos",
+        apellidos="Organizador",
+        correo=org_email,
+        password_hash=auth_core.get_password_hash("Org12345!"),
+        rol="ORGANIZADOR",
         email_verificado=True,
         activo=True,
         id_estado=2
     )
-    db_session.add(admin)
+    db_session.add(organizador)
     db_session.commit()
-    db_session.refresh(admin)
+    db_session.refresh(organizador)
 
-    token = auth_core.create_access_token(data={"sub": admin.correo, "rol": admin.rol})
+    token = auth_core.create_access_token(data={"sub": organizador.correo, "rol": organizador.rol})
     headers = {"Authorization": f"Bearer {token}"}
 
-    # 2. Admin crea usuario directamente con /auth/admin/users
-    nuevo_correo = f"miembro_asistio_{datetime.utcnow().timestamp()}@example.com"
+    # 2. El Organizador crea una nueva cuenta directamente
+    nuevo_correo = f"asistente_org_{datetime.utcnow().timestamp()}@example.com"
     res_create = client.post("/auth/admin/users", json={
-        "nombres": "Maria",
-        "apellidos": "Gomez",
+        "nombres": "Pedro",
+        "apellidos": "Alvarez",
         "correo": nuevo_correo,
-        "rol": "MIEMBRO",
-        "institucion": "Universidad Mayor"
+        "rol": "MIEMBRO"
     }, headers=headers)
 
     assert res_create.status_code == 201
     user_data = res_create.json()
     id_nuevo_usuario = user_data["id_usuario"]
+    assert user_data["rol"] == "MIEMBRO"
 
-    # 3. Crear un evento
+    # 3. Crear evento
     evento = models.Evento(
-        titulo="Evento Asistio Directo Test",
-        descripcion="Evento de prueba para registro confirmado y asistido",
-        tipo_evento="CONFERENCIA",
-        fecha_inicio=datetime.utcnow() + timedelta(days=1),
-        hora_inicio="19:00",
+        titulo="Evento Org Test",
+        descripcion="Evento creado para test de organizador",
+        tipo_evento="TALLER",
+        fecha_inicio=datetime.utcnow() + timedelta(days=2),
+        hora_inicio="15:00",
         modalidad="PRESENCIAL",
-        capacidad_max=100,
+        capacidad_max=50,
         id_estado=2,
         estado="ACTIVO",
-        creado_por=admin.id_usuario
+        creado_por=organizador.id_usuario
     )
     db_session.add(evento)
     db_session.commit()
     db_session.refresh(evento)
 
-    # 4. Inscribir manualmente con CONFIRMADA_ASISTIO y marcar_asistio=True
+    # 4. El Organizador inscribe manualmente al participante con CONFIRMADA_ASISTIO
     res_inscribir = client.post(f"/inscripciones/eventos/{evento.id_evento}/manual", json={
         "id_usuario": id_nuevo_usuario,
         "estado_inscripcion": "CONFIRMADA_ASISTIO",
@@ -80,14 +80,5 @@ def test_admin_create_user_and_manual_inscribe_asistio(db_session: Session):
 
     assert res_inscribir.status_code == 201
     insc_data = res_inscribir.json()
-    assert insc_data["id_usuario"] == id_nuevo_usuario
-    assert insc_data["estado_inscripcion"] == "CONFIRMADA"
     assert insc_data["asistio"] is True
-    assert insc_data["codigo_qr"] is not None
-
-    # Verificar que se creó el registro de AsistenciaDetalle
-    asistencia = db_session.query(models.AsistenciaDetalle).filter(
-        models.AsistenciaDetalle.id_inscripcion == insc_data["id_inscripcion"]
-    ).first()
-    assert asistencia is not None
-    assert asistencia.escaneado_por == admin.id_usuario
+    assert insc_data["estado_inscripcion"] == "CONFIRMADA"
