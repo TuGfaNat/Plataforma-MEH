@@ -237,6 +237,7 @@ erDiagram
 | `id_pedido` | `INTEGER` | **PK** | SÍ | index, PK (autoincrement) |
 | `id_usuario` | `INTEGER` | **FK** | SÍ | index, FK -> usuarios.id_usuario |
 | `id_pago` | `INTEGER` | **FK** | SÍ | index, FK -> pagos.id_pago |
+| `id_evento` | `INTEGER` | **FK** | SÍ | index, FK -> eventos.id_evento |
 | `estado` | `STRING` | **-** | SÍ | default=PENDIENTE |
 | `fecha_pedido` | `DATETIME` | **-** | SÍ | default=utcnow |
 | `total` | `VARCHAR` | **-** | SÍ | default=0 |

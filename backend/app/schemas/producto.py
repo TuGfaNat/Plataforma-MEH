@@ -42,11 +42,28 @@ class VentaRequest(BaseModel):
     id_usuario: int
     items: List[VentaItem]
     metodo_pago: str = "EFECTIVO" # EFECTIVO, QR, TRANSFERENCIA
+    id_evento: Optional[int] = None
+    notas: Optional[str] = None
+
+class PedidoDetalleResponse(BaseModel):
+    id_detalle: int
+    id_producto: int
+    cantidad: int
+    precio_unitario: Decimal
+    producto_nombre: Optional[str] = None
+    producto_imagen: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
 
 class PedidoResponse(BaseModel):
     id_pedido: int
     id_usuario: int
+    usuario_nombre: Optional[str] = None
+    usuario_correo: Optional[str] = None
+    id_evento: Optional[int] = None
+    evento_titulo: Optional[str] = None
+    metodo_pago: Optional[str] = None
     total: Decimal
     estado: str
     fecha_pedido: datetime
+    detalles: Optional[List[PedidoDetalleResponse]] = None
     model_config = ConfigDict(from_attributes=True)

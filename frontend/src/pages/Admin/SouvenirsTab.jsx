@@ -6,11 +6,13 @@ import {
 import { useTranslation } from 'react-i18next';
 import { 
   Add24Regular, ArrowUpload24Regular, Edit20Regular, Delete20Regular, 
-  Box24Filled, Money20Regular, Info20Regular, Search24Regular, Link20Regular, Open20Regular 
+  Box24Filled, Money20Regular, Info20Regular, Search24Regular, Link20Regular, Open20Regular,
+  Receipt24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import adminService from '../../services/adminService';
 import VentaSouvenirModal from '../../components/VentaSouvenirModal';
+import HistorialVentasSouvenirsModal from '../../components/HistorialVentasSouvenirsModal';
 import { useNotify } from '../../App';
 
 const useStyles = makeStyles({
@@ -135,6 +137,7 @@ const SouvenirsTab = ({
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = React.useState('');
   const [isVentaModalOpen, setIsVentaModalOpen] = React.useState(false);
+  const [isHistorialModalOpen, setIsHistorialModalOpen] = React.useState(false);
   const { notify } = useNotify();
 
   const filteredData = React.useMemo(() => {
@@ -331,6 +334,14 @@ const SouvenirsTab = ({
               onClick={() => window.open('/souvenirs', '_blank')}
             >
               Ver Catálogo Público
+            </MEHButton>
+            <MEHButton
+              size="small"
+              appearance="secondary"
+              icon={<Receipt24Regular />}
+              onClick={() => setIsHistorialModalOpen(true)}
+            >
+              Historial de Ventas
             </MEHButton>
           </div>
           <div style={{ maxWidth: '240px', width: '100%' }}>
@@ -558,6 +569,10 @@ const SouvenirsTab = ({
         open={isVentaModalOpen}
         onClose={() => setIsVentaModalOpen(false)}
         onSuccess={() => { if (fetchData) fetchData(); }}
+      />
+      <HistorialVentasSouvenirsModal
+        open={isHistorialModalOpen}
+        onClose={() => setIsHistorialModalOpen(false)}
       />
     </div>
   );

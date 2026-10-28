@@ -36,15 +36,25 @@ def register_venta(
 ):
     ensure_permission(current_user.rol, PERMISSION_EVENTS_MANAGE, "Acceso denegado")
     ip = request.client.host if request.client else None
-    return souvenirs_service.create_pedido(db, data.id_usuario, [item.model_dump() for item in data.items], current_user.id_usuario, data.metodo_pago, ip)
+    return souvenirs_service.create_pedido(
+        db=db,
+        id_usuario=data.id_usuario,
+        items=[item.model_dump() for item in data.items],
+        admin_id=current_user.id_usuario,
+        metodo_pago=data.metodo_pago,
+        ip=ip,
+        id_evento=data.id_evento,
+        notas=data.notas
+    )
 
 @router.get("/ventas", response_model=List[schema.PedidoResponse])
 def get_ventas(
+    id_evento: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
     ensure_permission(current_user.rol, PERMISSION_EVENTS_MANAGE, "Acceso denegado")
-    return souvenirs_service.list_pedidos(db)
+    return souvenirs_service.list_pedidos(db, id_evento=id_evento)
 
 # RUTAS DINÁMICAS POR ID AL FINAL
 @router.get("/{id_producto}", response_model=schema.ProductoResponse)

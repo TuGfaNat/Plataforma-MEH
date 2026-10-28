@@ -45,16 +45,19 @@ const adminService = {
     const response = await api.delete(`/souvenirs/${id}`);
     return response.data;
   },
-  registrarVentaSouvenir: async (idUsuario, items, metodoPago = 'EFECTIVO') => {
+  registrarVentaSouvenir: async (idUsuario, items, metodoPago = 'EFECTIVO', idEvento = null, notas = null) => {
     const response = await api.post('/souvenirs/ventas', {
       id_usuario: idUsuario,
       items,
-      metodo_pago: metodoPago
+      metodo_pago: metodoPago,
+      id_evento: idEvento ? Number(idEvento) : null,
+      notas: notas || null
     });
     return response.data;
   },
-  getVentasSouvenirs: async () => {
-    const response = await api.get('/souvenirs/ventas');
+  getVentasSouvenirs: async (idEvento = null) => {
+    const params = idEvento ? { id_evento: idEvento } : {};
+    const response = await api.get('/souvenirs/ventas', { params });
     return response.data;
   }
 };

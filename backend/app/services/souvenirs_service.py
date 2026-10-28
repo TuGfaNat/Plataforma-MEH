@@ -76,13 +76,74 @@ def delete_producto(db: Session, id_producto: int, user_id: int):
     )
     return {"message": "Producto eliminado"}
 
-def create_pedido(db: Session, id_usuario: int, items: List[dict], admin_id: int, metodo_pago: str = "EFECTIVO", ip: str = None):
+def format_pedido_response(pedido: models.Pedido):
+    detalles_res = []
+    for d in (pedido.detalles or []):
+        detalles_res.append({
+            "id_detalle": d.id_detalle,
+            "id_producto": d.id_producto,
+            "cantidad": d.cantidad,
+            "precio_unitario": d.precio_unitario,
+            "producto_nombre": d.producto.nombre if d.producto else None,
+            "producto_imagen": d.producto.imagen_url if d.producto else None
+        })
+    
+    usuario_nombre = None
+    usuario_correo = None
+    if pedido.usuario:
+        usuario_nombre = f"{pedido.usuario.nombres} {pedido.usuario.apellidos}".strip()
+        usuario_correo = pedido.usuario.correo
+
+    evento_titulo = None
+    if pedido.evento:
+        evento_titulo = pedido.evento.titulo
+
+    metodo_pago = pedido.pago.metodo_pago if pedido.pago else "EFECTIVO"
+
+    return {
+        "id_pedido": pedido.id_pedido,
+        "id_usuario": pedido.id_usuario,
+        "usuario_nombre": usuario_nombre,
+        "usuario_correo": usuario_correo,
+        "id_evento": pedido.id_evento,
+        "evento_titulo": evento_titulo,
+        "metodo_pago": metodo_pago,
+        "total": pedido.total,
+        "estado": pedido.estado,
+        "fecha_pedido": pedido.fecha_pedido,
+        "detalles": detalles_res
+    }
+
+def create_pedido(
+    db: Session, 
+    id_usuario: int, 
+    items: List[dict], 
+    admin_id: int, 
+    metodo_pago: str = "EFECTIVO", 
+    ip: str = None,
+    id_evento: Optional[int] = None,
+    notas: Optional[str] = None
+):
     """
-    items: list of {"id_producto": int, "cantidad": int}
+    Registra la venta o asignación manual de souvenirs por Admin u Organizador.
+    Deduce el stock de cada producto en la base de datos, crea el Pago pagado (COMPLETADO),
+    el Pedido vinculado opcionalmente al Evento, y sus detalles.
     """
     total = 0
     detalles_db = []
     log_items = []
+
+    # Validar evento si fue enviado
+    evento_obj = None
+    if id_evento:
+        evento_obj = db.query(models.Evento).filter(models.Evento.id_evento == id_evento).first()
+        if not evento_obj:
+            raise HTTPException(status_code=404, detail="Evento no encontrado")
+            
+    # Validar usuario comprador
+    comprador = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
+    if not comprador:
+        raise HTTPException(status_code=404, detail="Usuario comprador no encontrado")
     
     # 1. Validar Stock y calcular total
     for item in items:
@@ -91,9 +152,9 @@ def create_pedido(db: Session, id_usuario: int, items: List[dict], admin_id: int
             raise HTTPException(status_code=404, detail=f"Producto {item['id_producto']} no encontrado")
         
         if prod.stock < item["cantidad"]:
-            raise HTTPException(status_code=400, detail=f"Stock insuficiente para {prod.nombre}")
+            raise HTTPException(status_code=400, detail=f"Stock insuficiente para {prod.nombre} (disponible: {prod.stock})")
         
-        # Descontar stock automáticamente
+        # Descontar stock automáticamente en base de datos
         prod.stock -= item["cantidad"]
         
         precio_unitario = prod.precio
@@ -105,29 +166,33 @@ def create_pedido(db: Session, id_usuario: int, items: List[dict], admin_id: int
             cantidad=item["cantidad"],
             precio_unitario=precio_unitario
         ))
-        log_items.append({"nombre": prod.nombre, "cantidad": item["cantidad"], "subtotal": float(subtotal)})
+        log_items.append({"id_producto": prod.id_producto, "nombre": prod.nombre, "cantidad": item["cantidad"], "subtotal": float(subtotal)})
 
-    # 2. Crear el registro de PAGO asociado
+    # 2. Crear el registro de PAGO asociado (COMPLETADO)
     db_pago = models.Pago(
         id_usuario=id_usuario,
         monto=total,
         metodo_pago=metodo_pago,
-        estado_pago="COMPLETADO", # Como es venta directa por admin, asumimos pagado
-        id_referencia=0, # Venta manual
+        estado_pago="COMPLETADO", # Como es venta presencial directa por admin u organizador, se marca pagado
+        id_referencia=id_evento if id_evento else 0, # Evento donde se vendió o 0
         tipo_referencia="SOUVENIR",
         validado_por=admin_id,
-        fecha_validacion=datetime.utcnow()
+        fecha_validacion=datetime.utcnow(),
+        notas_admin=notas or (f"Venta en evento: {evento_obj.titulo}" if evento_obj else "Venta presencial de souvenirs"),
+        creado_por=admin_id
     )
     db.add(db_pago)
     db.flush()
 
-    # 3. Crear Pedido vinculado al Pago
+    # 3. Crear Pedido vinculado al Pago y al Evento
     db_pedido = models.Pedido(
         id_usuario=id_usuario,
         id_pago=db_pago.id_pago,
+        id_evento=id_evento,
         total=total,
         estado="COMPLETADO",
-        fecha_pedido=datetime.utcnow()
+        fecha_pedido=datetime.utcnow(),
+        creado_por=admin_id
     )
     db.add(db_pedido)
     db.flush() 
@@ -149,14 +214,21 @@ def create_pedido(db: Session, id_usuario: int, items: List[dict], admin_id: int
         id_registro_afectado=db_pedido.id_pedido,
         valor_nuevo={
             "comprador_id": id_usuario,
+            "comprador": f"{comprador.nombres} {comprador.apellidos}",
             "metodo_pago": metodo_pago,
+            "id_evento": id_evento,
+            "evento": evento_obj.titulo if evento_obj else None,
             "total": float(total),
             "items": log_items
         },
         ip_direccion=ip
     )
     
-    return db_pedido
+    return format_pedido_response(db_pedido)
 
-def list_pedidos(db: Session):
-    return db.query(models.Pedido).order_by(models.Pedido.fecha_pedido.desc()).all()
+def list_pedidos(db: Session, id_evento: Optional[int] = None):
+    query = db.query(models.Pedido)
+    if id_evento:
+        query = query.filter(models.Pedido.id_evento == id_evento)
+    pedidos = query.order_by(models.Pedido.fecha_pedido.desc()).all()
+    return [format_pedido_response(p) for p in pedidos]

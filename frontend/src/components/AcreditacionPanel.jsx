@@ -29,10 +29,12 @@ import {
   Print24Regular,
   DataTrending24Regular,
   PersonAdd24Regular,
-  Box24Filled
+  Box24Filled,
+  Receipt24Regular
 } from '@fluentui/react-icons';
 import InscribirManualModal from './InscribirManualModal';
 import VentaSouvenirModal from './VentaSouvenirModal';
+import HistorialVentasSouvenirsModal from './HistorialVentasSouvenirsModal';
 import { QRCodeSVG } from 'qrcode.react';
 import { MEHButton, MEHTypography } from './ui';
 import { useAuth, useNotify } from '../App';
@@ -179,6 +181,7 @@ const AcreditacionPanel = ({
   const [showLlegadasChart, setShowLlegadasChart] = useState(false);
   const [showInscribirModal, setShowInscribirModal] = useState(false);
   const [souvenirModalState, setSouvenirModalState] = useState({ open: false, user: null });
+  const [showVentasEventoModal, setShowVentasEventoModal] = useState(false);
 
   const fetchParticipantes = async () => {
     if (!eventoId) return;
@@ -515,6 +518,14 @@ const AcreditacionPanel = ({
           </MEHButton>
           <MEHButton 
             size="small" 
+            appearance="subtle"
+            icon={<Receipt24Regular />} 
+            onClick={() => setShowVentasEventoModal(true)}
+          >
+            Ventas Souvenirs
+          </MEHButton>
+          <MEHButton 
+            size="small" 
             appearance={showLlegadasChart ? "primary" : "secondary"}
             icon={<DataTrending24Regular />} 
             onClick={() => setShowLlegadasChart(!showLlegadasChart)}
@@ -724,7 +735,16 @@ const AcreditacionPanel = ({
         open={souvenirModalState.open}
         onClose={() => setSouvenirModalState({ open: false, user: null })}
         initialUser={souvenirModalState.user}
+        eventoId={eventoId}
+        eventoTitulo={eventoTitulo}
         onSuccess={fetchParticipantes}
+      />
+
+      <HistorialVentasSouvenirsModal
+        open={showVentasEventoModal}
+        onClose={() => setShowVentasEventoModal(false)}
+        eventoId={eventoId}
+        eventoTitulo={eventoTitulo}
       />
     </div>
   );

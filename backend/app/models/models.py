@@ -193,11 +193,14 @@ class Pedido(Base, AuditMixin, EstadoLifecycleMixin):
     id_pedido = Column(Integer, primary_key=True, index=True)
     id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario"), index=True)
     id_pago = Column(Integer, ForeignKey("pagos.id_pago"), nullable=True, index=True)
+    id_evento = Column(Integer, ForeignKey("eventos.id_evento"), nullable=True, index=True)
     estado = Column(String, default="PENDIENTE")
     fecha_pedido = Column(DateTime, default=datetime.utcnow)
     total = Column(Numeric(10, 2), default=0)
 
     usuario = relationship("Usuario", back_populates="pedidos", foreign_keys=[id_usuario])
+    pago = relationship("Pago", foreign_keys=[id_pago])
+    evento = relationship("Evento", foreign_keys=[id_evento])
     detalles = relationship("PedidoDetalle", back_populates="pedido")
 
     __table_args__ = (

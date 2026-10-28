@@ -21,11 +21,13 @@ import {
   Search24Regular,
   CheckmarkCircle24Filled,
   Dismiss24Regular,
-  PersonAdd24Regular
+  PersonAdd24Regular,
+  Calendar24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from './ui';
 import adminService from '../services/adminService';
 import authService from '../services/authService';
+import eventoService from '../services/eventoService';
 import { useNotify } from '../App';
 
 const useStyles = makeStyles({
@@ -61,10 +63,26 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground3,
     borderRadius: '12px',
     border: `1px dashed ${tokens.colorBrandStroke1}`,
+  },
+  eventBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '10px 14px',
+    borderRadius: '10px',
+    backgroundColor: tokens.colorBrandBackground2,
+    border: `1px solid ${tokens.colorBrandStroke2}`,
   }
 });
 
-const VentaSouvenirModal = ({ open, onClose, initialUser = null, onSuccess }) => {
+const VentaSouvenirModal = ({ 
+  open, 
+  onClose, 
+  initialUser = null, 
+  eventoId = null, 
+  eventoTitulo = null, 
+  onSuccess 
+}) => {
   const styles = useStyles();
   const { notify } = useNotify();
 
@@ -85,6 +103,11 @@ const VentaSouvenirModal = ({ open, onClose, initialUser = null, onSuccess }) =>
   const [quickCorreo, setQuickCorreo] = useState('');
   const [creatingUser, setCreatingUser] = useState(false);
 
+  // Manejo del evento (si no viene prefijado)
+  const [eventosList, setEventosList] = useState([]);
+  const [selectedEventoId, setSelectedEventoId] = useState(eventoId ? String(eventoId) : '');
+  const [notas, setNotas] = useState('');
+
   // Datos de la venta
   const [selectedProductoId, setSelectedProductoId] = useState('');
   const [cantidad, setCantidad] = useState(1);
@@ -103,9 +126,16 @@ const VentaSouvenirModal = ({ open, onClose, initialUser = null, onSuccess }) =>
       setQuickNombres('');
       setQuickApellidos('');
       setQuickCorreo('');
+      setNotas('');
+      setSelectedEventoId(eventoId ? String(eventoId) : '');
+
       void fetchProductos();
+
+      if (!eventoId) {
+        void fetchEventos();
+      }
     }
-  }, [open, initialUser]);
+  }, [open, initialUser, eventoId]);
 
   const fetchProductos = async () => {
     setLoadingProductos(true);
@@ -121,6 +151,16 @@ const VentaSouvenirModal = ({ open, onClose, initialUser = null, onSuccess }) =>
       notify('Error', 'No se pudieron cargar los souvenirs.', 'error');
     } finally {
       setLoadingProductos(false);
+    }
+  };
+
+  const fetchEventos = async () => {
+    try {
+      const res = await eventoService.getEventos();
+      const evs = res.items || res || [];
+      setEventosList(Array.isArray(evs) ? evs : []);
+    } catch (err) {
+      console.error('Error al cargar lista de eventos para asociar souvenir:', err);
     }
   };
 
@@ -195,16 +235,20 @@ const VentaSouvenirModal = ({ open, onClose, initialUser = null, onSuccess }) =>
     }
 
     setSubmitting(true);
+    const finalEventoId = eventoId ? Number(eventoId) : (selectedEventoId ? Number(selectedEventoId) : null);
+
     try {
       await adminService.registrarVentaSouvenir(
         userId,
         [{ id_producto: selectedProd.id_producto, cantidad: Number(cantidad) }],
-        metodoPago
+        metodoPago,
+        finalEventoId,
+        notas.trim() || null
       );
 
       notify(
-        'Venta Registrada',
-        `Se asignó ${cantidad}x ${selectedProd.nombre} a ${selectedUser.nombres || selectedUser.nombre} por Bs. ${total} (${metodoPago}).`,
+        'Venta Registrada Exitosamente',
+        `Se descontaron ${cantidad} unidad(es) de "${selectedProd.nombre}" del inventario. Comprador: ${selectedUser.nombres || selectedUser.nombre} ${selectedUser.apellidos || ''}. Total: Bs. ${total} (${metodoPago}).`,
         'success'
       );
       if (onSuccess) onSuccess();
@@ -219,7 +263,7 @@ const VentaSouvenirModal = ({ open, onClose, initialUser = null, onSuccess }) =>
 
   return (
     <Dialog open={open} onOpenChange={(e, d) => { if (!d.open && !submitting) onClose(); }}>
-      <DialogSurface style={{ borderRadius: '20px', maxWidth: '540px', width: '100%' }}>
+      <DialogSurface style={{ borderRadius: '20px', maxWidth: '560px', width: '100%' }}>
         <DialogBody>
           <DialogTitle>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -228,6 +272,36 @@ const VentaSouvenirModal = ({ open, onClose, initialUser = null, onSuccess }) =>
             </div>
           </DialogTitle>
           <DialogContent className={styles.container}>
+            {/* Banner o selector de evento */}
+            {eventoId ? (
+              <div className={styles.eventBanner}>
+                <Calendar24Regular style={{ color: tokens.colorBrandForeground1 }} />
+                <div style={{ flex: 1 }}>
+                  <MEHTypography variant="caption" style={{ fontWeight: 'bold' }}>
+                    Evento de la Venta:
+                  </MEHTypography>
+                  <div style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                    {eventoTitulo || `Evento #${eventoId}`}
+                  </div>
+                </div>
+                <Badge appearance="filled" color="brand">En Vivo</Badge>
+              </div>
+            ) : (
+              <Field label="Venta asignada a un Evento (Opcional):">
+                <Select
+                  value={selectedEventoId}
+                  onChange={(e, d) => setSelectedEventoId(d.value)}
+                >
+                  <option value="">(Sin evento específico / Venta general)</option>
+                  {eventosList.map(ev => (
+                    <option key={`ev-sel-${ev.id_evento}`} value={ev.id_evento}>
+                      {ev.titulo} ({new Date(ev.fecha_inicio).toLocaleDateString()})
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
+
             {/* 1. Selección de Usuario */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -248,13 +322,16 @@ const VentaSouvenirModal = ({ open, onClose, initialUser = null, onSuccess }) =>
                   <Person24Regular fontSize={24} style={{ color: tokens.colorBrandForeground1 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 'bold' }}>{selectedUser.nombres || selectedUser.nombre} {selectedUser.apellidos || selectedUser.apellido || ''}</div>
-                    <div style={{ fontSize: '12px', opacity: 0.7 }}>{selectedUser.correo || selectedUser.email}</div>
+                    <div style={{ fontSize: '12px', opacity: 0.75 }}>{selectedUser.correo}</div>
                   </div>
-                  {!initialUser && (
-                    <MEHButton size="small" appearance="subtle" onClick={() => setSelectedUser(null)}>
-                      Cambiar
-                    </MEHButton>
-                  )}
+                  <Badge appearance="filled" color="brand">{selectedUser.rol || 'MIEMBRO'}</Badge>
+                  <MEHButton 
+                    size="small" 
+                    appearance="subtle" 
+                    icon={<Dismiss24Regular />} 
+                    onClick={() => setSelectedUser(null)} 
+                    aria-label="Cambiar usuario"
+                  />
                 </div>
               ) : showQuickCreate ? (
                 <div className={styles.quickCreateBox}>
@@ -325,7 +402,7 @@ const VentaSouvenirModal = ({ open, onClose, initialUser = null, onSuccess }) =>
             {/* 2. Selección de Producto */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
-                <MEHTypography variant="body"><b>2. Selecciona el Souvenir:</b></MEHTypography>
+                <MEHTypography variant="body"><b>2. Selecciona el Souvenir del Stock:</b></MEHTypography>
                 <div style={{ display: 'flex', gap: '4px' }}>
                   <MEHButton
                     size="small"
@@ -339,7 +416,7 @@ const VentaSouvenirModal = ({ open, onClose, initialUser = null, onSuccess }) =>
                     appearance={filtroTipo === 'EVENTO' ? 'primary' : 'subtle'}
                     onClick={() => setFiltroTipo('EVENTO')}
                   >
-                    🎁 Del Evento
+                    🎁 Kits de Evento
                   </MEHButton>
                   <MEHButton
                     size="small"
@@ -368,7 +445,7 @@ const VentaSouvenirModal = ({ open, onClose, initialUser = null, onSuccess }) =>
                   {productosFiltrados.map(p => (
                     <option key={p.id_producto} value={p.id_producto} disabled={p.stock <= 0}>
                       {p.es_kit_evento ? '🎁 [Evento] ' : '🛍️ [General] '}
-                      {p.nombre} — Bs. {Number(p.precio).toFixed(2)} (Stock: {p.stock} unid.){p.stock <= 0 ? ' [AGOTADO]' : ''}
+                      {p.nombre} — Bs. {Number(p.precio).toFixed(2)} (Stock disponible: {p.stock} unid.){p.stock <= 0 ? ' [AGOTADO]' : ''}
                     </option>
                   ))}
                 </Select>
@@ -377,7 +454,7 @@ const VentaSouvenirModal = ({ open, onClose, initialUser = null, onSuccess }) =>
 
             {/* 3. Cantidad y Método de Pago */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <Field label="Cantidad:" required>
+              <Field label="Cantidad a Comprar:" required>
                 <Input
                   type="number"
                   min={1}
@@ -394,22 +471,31 @@ const VentaSouvenirModal = ({ open, onClose, initialUser = null, onSuccess }) =>
               <Field label="Método de Pago:" required>
                 <Select value={metodoPago} onChange={(e, d) => setMetodoPago(d.value)}>
                   <option value="EFECTIVO">Efectivo / Presencial</option>
-                  <option value="QR">Código QR</option>
+                  <option value="QR">Código QR Simple</option>
                   <option value="TRANSFERENCIA">Transferencia Bancaria</option>
                 </Select>
               </Field>
             </div>
 
-            {/* 4. Total a Cobrar */}
+            {/* 4. Notas opcionales */}
+            <Field label="Observación / Nota (Opcional):">
+              <Input
+                placeholder="Ej. Entregado en mano en mesa de acreditación"
+                value={notas}
+                onChange={(e, d) => setNotas(d.value)}
+              />
+            </Field>
+
+            {/* 5. Total a Cobrar y Stock */}
             <div className={styles.totalBox}>
               <div>
-                <MEHTypography variant="caption" style={{ opacity: 0.7 }}>TOTAL A COBRAR ({metodoPago}):</MEHTypography>
+                <MEHTypography variant="caption" style={{ opacity: 0.7 }}>TOTAL COBRADO Y REGISTRADO ({metodoPago}):</MEHTypography>
                 <MEHTypography variant="h2" style={{ color: tokens.colorBrandForeground1 }}>
                   Bs. {total}
                 </MEHTypography>
               </div>
               <Badge appearance="tint" color={maxStock > 0 ? "success" : "danger"} size="large">
-                {maxStock > 0 ? `Stock disponible: ${maxStock}` : 'Sin stock'}
+                {maxStock > 0 ? `Stock actual en BD: ${maxStock}` : 'Sin stock'}
               </Badge>
             </div>
           </DialogContent>
@@ -424,7 +510,7 @@ const VentaSouvenirModal = ({ open, onClose, initialUser = null, onSuccess }) =>
               onClick={handleSubmit}
               disabled={submitting || !selectedUser || !selectedProd || maxStock <= 0}
             >
-              {submitting ? 'Registrando...' : 'Confirmar Venta y Entrega'}
+              {submitting ? 'Registrando en Base de Datos...' : 'Confirmar Venta y Descontar Stock'}
             </MEHButton>
           </DialogActions>
         </DialogBody>
