@@ -107,6 +107,13 @@ def sanitize():
             """, f"Asegurar foreign key de 'id_estado' en tabla {tabla}")
 
         logger.info("🚀 Saneamiento y migración de estados completada con éxito.")
+
+        # 9. Ejecutar limpieza automática de datos semilla residuales
+        try:
+            from app.clean_seed_data import clean_database
+            clean_database()
+        except Exception as e_clean:
+            logger.warning(f"Aviso en limpieza automática de datos semilla: {e_clean}")
     except Exception as e:
         logger.error(f"❌ Error durante el saneamiento: {e}")
     finally:

@@ -56,6 +56,9 @@ BADGES_DATA = [
 ]
 
 def generate_super_seed():
+    if os.getenv("ALLOW_SUPER_SEED", "false").lower() != "true":
+        print("[SKIP] Super seed desactivado para proteger los datos de producción y evitar crear usuarios semilla ficticios.")
+        return
     db = SessionLocal()
     print("[START] INICIANDO SUPER SEMILLA - PLATAFORMA MEH")
     
