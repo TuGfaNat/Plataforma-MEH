@@ -46,6 +46,8 @@ import {
   ShieldCheckmark24Filled,
   ArrowSync24Regular,
   ArrowSync24Filled,
+  ShoppingBag24Regular,
+  ShoppingBag24Filled,
 } from "@fluentui/react-icons";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -360,6 +362,12 @@ const Sidebar = ({ onClose }) => {
           icon={People24Regular}
           activeIcon={People24Filled}
           label={t("community") || "Comunidad"}
+        />
+        <NavItem
+          to="/souvenirs"
+          icon={ShoppingBag24Regular}
+          activeIcon={ShoppingBag24Filled}
+          label={"Swags & Tienda"}
         />
         <NavItem
           to="/finanzas"

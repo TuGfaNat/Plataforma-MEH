@@ -30,7 +30,8 @@ import {
   QrCode24Regular,
   MegaphoneLoud24Filled,
   ArrowDownload24Regular,
-  Share24Regular
+  Share24Regular,
+  ShoppingBag24Regular
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -406,6 +407,7 @@ const Dashboard = () => {
           </div>
           <div style={{ marginTop: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <MEHButton size="large" icon={<Reward24Filled />} onClick={() => navigate('/insignias')}>Ver mis logros</MEHButton>
+            <MEHButton appearance="subtle" size="large" icon={<ShoppingBag24Regular />} onClick={() => navigate('/souvenirs')}>Tienda de Swags</MEHButton>
             <MEHButton appearance="outline" size="large" onClick={() => navigate('/configuracion')}>Ajustar Perfil</MEHButton>
           </div>
         </div>
