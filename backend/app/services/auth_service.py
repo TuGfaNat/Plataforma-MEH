@@ -329,7 +329,7 @@ def list_users(
     # Excluir cuentas semilla y de prueba
     query = query.filter(
         ~models.Usuario.correo.ilike("user%@test.com"),
-        ~models.Usuario.alias.ilike("dev_%"),
+        or_(models.Usuario.alias.is_(None), ~models.Usuario.alias.ilike("dev_%")),
         ~models.Usuario.correo.ilike("%@test.com"),
         ~models.Usuario.correo.ilike("%@example.com"),
         ~models.Usuario.correo.ilike("%@realdomain.org"),
