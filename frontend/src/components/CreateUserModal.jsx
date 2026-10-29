@@ -8,18 +8,24 @@ import {
   DialogActions,
   Field,
   Input,
+  Textarea,
   Select,
   Spinner,
   Checkbox,
   tokens,
-  makeStyles
+  makeStyles,
+  shorthands
 } from '@fluentui/react-components';
 import {
   PersonAdd24Regular,
   Key24Regular,
   Mail24Regular,
   CheckmarkCircle24Filled,
-  Copy24Regular
+  Copy24Regular,
+  ChevronDown20Regular,
+  ChevronUp20Regular,
+  Globe20Regular,
+  Tag20Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from './ui';
 import authService from '../services/authService';
@@ -40,6 +46,23 @@ const useStyles = makeStyles({
       gridTemplateColumns: '1fr',
     }
   },
+  sectionBox: {
+    padding: '12px 14px',
+    backgroundColor: tokens.colorNeutralBackground2,
+    ...shorthands.borderRadius('12px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  sectionToggle: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    cursor: 'pointer',
+    userSelect: 'none',
+    padding: '4px 0',
+  },
   successCard: {
     padding: '16px',
     backgroundColor: tokens.colorNeutralBackground2,
@@ -51,6 +74,19 @@ const useStyles = makeStyles({
   }
 });
 
+const DEPARTAMENTOS_BOLIVIA = [
+  'La Paz',
+  'Cochabamba',
+  'Santa Cruz',
+  'Oruro',
+  'Potosí',
+  'Chuquisaca',
+  'Tarija',
+  'Beni',
+  'Pando',
+  'Exterior'
+];
+
 const CreateUserModal = ({ open, onClose, currentUser = null, onSuccess }) => {
   const styles = useStyles();
   const { notify } = useNotify();
@@ -61,8 +97,17 @@ const CreateUserModal = ({ open, onClose, currentUser = null, onSuccess }) => {
     correo: '',
     password: '',
     rol: 'MIEMBRO',
-    institucion: ''
+    alias: '',
+    institucion: '',
+    tipo_entidad: 'Estudiante',
+    departamento: 'La Paz',
+    pais: 'Bolivia',
+    bio: '',
+    linkedin_url: '',
+    github_url: ''
   });
+
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [autoGenPassword, setAutoGenPassword] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [createdResult, setCreatedResult] = useState(null);
@@ -74,8 +119,16 @@ const CreateUserModal = ({ open, onClose, currentUser = null, onSuccess }) => {
       correo: '',
       password: '',
       rol: 'MIEMBRO',
-      institucion: ''
+      alias: '',
+      institucion: '',
+      tipo_entidad: 'Estudiante',
+      departamento: 'La Paz',
+      pais: 'Bolivia',
+      bio: '',
+      linkedin_url: '',
+      github_url: ''
     });
+    setShowAdvanced(false);
     setAutoGenPassword(true);
     setCreatedResult(null);
   };
@@ -88,7 +141,7 @@ const CreateUserModal = ({ open, onClose, currentUser = null, onSuccess }) => {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!formData.nombres.trim() || !formData.apellidos.trim() || !formData.correo.trim()) {
-      notify('Campos requeridos', 'Por favor completa nombres, apellidos y correo.', 'warning');
+      notify('Campos requeridos', 'Por favor completa nombres, apellidos y correo electrónico.', 'warning');
       return;
     }
 
@@ -99,7 +152,14 @@ const CreateUserModal = ({ open, onClose, currentUser = null, onSuccess }) => {
         apellidos: formData.apellidos.trim(),
         correo: formData.correo.trim().toLowerCase(),
         rol: formData.rol,
-        institucion: formData.institucion.trim() || null,
+        alias: formData.alias.trim() ? formData.alias.trim().replace(/^@/, '') : undefined,
+        institucion: formData.institucion.trim() || undefined,
+        tipo_entidad: formData.tipo_entidad || 'Estudiante',
+        departamento: formData.departamento || undefined,
+        pais: formData.pais.trim() || 'Bolivia',
+        bio: formData.bio.trim() || undefined,
+        linkedin_url: formData.linkedin_url.trim() || undefined,
+        github_url: formData.github_url.trim() || undefined,
         password: autoGenPassword ? undefined : formData.password
       };
 
@@ -124,12 +184,12 @@ const CreateUserModal = ({ open, onClose, currentUser = null, onSuccess }) => {
 
   return (
     <Dialog open={open} onOpenChange={(e, d) => { if (!d.open && !submitting) handleClose(); }}>
-      <DialogSurface style={{ borderRadius: '20px', maxWidth: '520px', width: '100%' }}>
+      <DialogSurface style={{ borderRadius: '20px', maxWidth: '580px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
         <DialogBody>
           <DialogTitle>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <PersonAdd24Regular style={{ color: tokens.colorBrandForeground1 }} />
-              <span>{createdResult ? 'Cuenta Creada Exitosamente' : 'Crear Nueva Cuenta / Miembro'}</span>
+              <span>{createdResult ? 'Cuenta Creada Exitosamente' : 'Habilitar Nueva Cuenta / Miembro'}</span>
             </div>
           </DialogTitle>
           <DialogContent className={styles.container}>
@@ -140,11 +200,12 @@ const CreateUserModal = ({ open, onClose, currentUser = null, onSuccess }) => {
                   <b>Usuario registrado y activado inmediatamente</b>
                 </div>
                 <MEHTypography variant="body">
-                  La cuenta ha sido creada con <b>Email Verificado (sin esperas de código)</b>.
+                  La cuenta ha sido creada con <b>Email Verificado (sin esperas de código ni bloqueos)</b>.
                 </MEHTypography>
                 <div style={{ padding: '12px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '8px', border: `1px solid ${tokens.colorNeutralStroke1}` }}>
                   <div><b>Nombre:</b> {createdResult.nombres} {createdResult.apellidos}</div>
                   <div><b>Correo:</b> {createdResult.correo}</div>
+                  {createdResult.alias && <div><b>Alias:</b> @{createdResult.alias}</div>}
                   <div><b>Rol:</b> {createdResult.rol}</div>
                   <div style={{ marginTop: '6px', color: tokens.colorBrandForeground1, fontWeight: 'bold' }}>
                     <b>Contraseña:</b> {createdResult.temporary_password}
@@ -156,6 +217,7 @@ const CreateUserModal = ({ open, onClose, currentUser = null, onSuccess }) => {
               </div>
             ) : (
               <>
+                {/* 1. Datos Esenciales (Requeridos para habilitación rápida) */}
                 <div className={styles.twoCols}>
                   <Field label="Nombres:" required>
                     <Input
@@ -173,17 +235,16 @@ const CreateUserModal = ({ open, onClose, currentUser = null, onSuccess }) => {
                   </Field>
                 </div>
 
-                <Field label="Correo Electrónico:" required>
-                  <Input
-                    type="email"
-                    contentBefore={<Mail24Regular />}
-                    value={formData.correo}
-                    onChange={(e, d) => setFormData({ ...formData, correo: d.value })}
-                    placeholder="usuario@ejemplo.com"
-                  />
-                </Field>
-
                 <div className={styles.twoCols}>
+                  <Field label="Correo Electrónico:" required>
+                    <Input
+                      type="email"
+                      contentBefore={<Mail24Regular />}
+                      value={formData.correo}
+                      onChange={(e, d) => setFormData({ ...formData, correo: d.value })}
+                      placeholder="usuario@ejemplo.com"
+                    />
+                  </Field>
                   <Field label="Rol en la Plataforma:">
                     <Select 
                       value={formData.rol} 
@@ -202,20 +263,111 @@ const CreateUserModal = ({ open, onClose, currentUser = null, onSuccess }) => {
                       )}
                     </Select>
                   </Field>
-                  <Field label="Institución / Universidad:">
+                </div>
+
+                <div className={styles.twoCols}>
+                  <Field label="Institución / Universidad / Empresa (Opcional):">
                     <Input
                       value={formData.institucion}
                       onChange={(e, d) => setFormData({ ...formData, institucion: d.value })}
-                      placeholder="Ej: UMSA, UCB, etc."
+                      placeholder="Ej: UMSA, UCB, Microsoft"
+                    />
+                  </Field>
+                  <Field label="Alias / Username público (Opcional):">
+                    <Input
+                      contentBefore={<Tag20Regular />}
+                      value={formData.alias}
+                      onChange={(e, d) => setFormData({ ...formData, alias: d.value })}
+                      placeholder="Ej: carlos_dev"
                     />
                   </Field>
                 </div>
 
-                <div>
+                {/* 2. Sección desplegable de perfil completo (Opcional) */}
+                <div className={styles.sectionBox}>
+                  <div 
+                    className={styles.sectionToggle}
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Globe20Regular style={{ color: tokens.colorBrandForeground1 }} />
+                      <span style={{ fontWeight: '600', fontSize: '13px' }}>
+                        {showAdvanced ? 'Ocultar campos adicionales de perfil' : 'Completar perfil extendido (Ubicación, redes, biografía) - Opcional'}
+                      </span>
+                    </div>
+                    {showAdvanced ? <ChevronUp20Regular /> : <ChevronDown20Regular />}
+                  </div>
+
+                  {showAdvanced && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '6px' }}>
+                      <div className={styles.twoCols}>
+                        <Field label="Tipo de Miembro:">
+                          <Select
+                            value={formData.tipo_entidad}
+                            onChange={(e, d) => setFormData({ ...formData, tipo_entidad: d.value })}
+                          >
+                            <option value="Estudiante">Estudiante</option>
+                            <option value="Profesional">Profesional</option>
+                            <option value="Docente">Docente</option>
+                            <option value="Emprendedor">Emprendedor</option>
+                            <option value="Otro">Otro</option>
+                          </Select>
+                        </Field>
+                        <Field label="Departamento / Ciudad:">
+                          <Select
+                            value={formData.departamento}
+                            onChange={(e, d) => setFormData({ ...formData, departamento: d.value })}
+                          >
+                            {DEPARTAMENTOS_BOLIVIA.map(dep => (
+                              <option key={dep} value={dep}>{dep}</option>
+                            ))}
+                          </Select>
+                        </Field>
+                      </div>
+
+                      <div className={styles.twoCols}>
+                        <Field label="País:">
+                          <Input
+                            value={formData.pais}
+                            onChange={(e, d) => setFormData({ ...formData, pais: d.value })}
+                            placeholder="Bolivia"
+                          />
+                        </Field>
+                        <Field label="LinkedIn (URL):">
+                          <Input
+                            value={formData.linkedin_url}
+                            onChange={(e, d) => setFormData({ ...formData, linkedin_url: d.value })}
+                            placeholder="https://linkedin.com/in/..."
+                          />
+                        </Field>
+                      </div>
+
+                      <Field label="GitHub (URL):">
+                        <Input
+                          value={formData.github_url}
+                          onChange={(e, d) => setFormData({ ...formData, github_url: d.value })}
+                          placeholder="https://github.com/..."
+                        />
+                      </Field>
+
+                      <Field label="Biografía breve:">
+                        <Textarea
+                          rows={2}
+                          value={formData.bio}
+                          onChange={(e, d) => setFormData({ ...formData, bio: d.value })}
+                          placeholder="Intereses, tecnologías favoritas, rol comunitario..."
+                        />
+                      </Field>
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Contraseña */}
+                <div style={{ marginTop: '2px' }}>
                   <Checkbox
                     checked={autoGenPassword}
                     onChange={(e, d) => setAutoGenPassword(d.checked === true)}
-                    label="Generar contraseña segura automáticamente"
+                    label="Generar contraseña segura automáticamente (Recomendado para habilitación rápida)"
                   />
                   {!autoGenPassword && (
                     <Field label="Contraseña personalizada (mínimo 6 caracteres):" style={{ marginTop: '8px' }}>
@@ -231,7 +383,7 @@ const CreateUserModal = ({ open, onClose, currentUser = null, onSuccess }) => {
                 </div>
 
                 <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
-                  Al crear la cuenta desde este panel, el correo queda verificado automáticamente y el usuario podrá iniciar sesión sin pasos adicionales.
+                  ⚡ <b>Habilitación rápida:</b> Solo Nombres, Apellidos y Correo son obligatorios. El usuario queda activado y con email verificado de inmediato.
                 </MEHTypography>
               </>
             )}
@@ -253,7 +405,7 @@ const CreateUserModal = ({ open, onClose, currentUser = null, onSuccess }) => {
                   onClick={handleSubmit}
                   disabled={submitting || !formData.nombres || !formData.apellidos || !formData.correo}
                 >
-                  {submitting ? 'Creando...' : 'Crear Cuenta Inmediata'}
+                  {submitting ? 'Creando...' : 'Habilitar Cuenta Inmediata'}
                 </MEHButton>
               </>
             )}

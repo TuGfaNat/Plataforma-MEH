@@ -984,17 +984,35 @@ def admin_create_user(
     elif rol not in ALL_DB_ROLES:
         rol = ROLE_MIEMBRO
 
+    alias_val = user_data.get("alias")
+    if alias_val and str(alias_val).strip():
+        alias_val = str(alias_val).strip().lstrip("@")
+    else:
+        alias_val = None
+
+    institucion_val = (user_data.get("institucion") or "").strip() or None
+    bio_val = (user_data.get("bio") or "").strip() or None
+    linkedin_val = (user_data.get("linkedin_url") or "").strip() or None
+    github_val = (user_data.get("github_url") or "").strip() or None
+    departamento_val = (user_data.get("departamento") or "").strip() or None
+    pais_val = (user_data.get("pais") or "Bolivia").strip() or "Bolivia"
+    tipo_entidad_val = user_data.get("tipo_entidad", "Estudiante") or "Estudiante"
+
     new_user = models.Usuario(
         nombres=user_data.get("nombres", "").strip(),
         apellidos=user_data.get("apellidos", "").strip(),
         correo=correo,
         password_hash=auth_core.get_password_hash(raw_password),
         rol=rol,
-        institucion=user_data.get("institucion"),
-        estudia_en=user_data.get("institucion"),
-        tipo_entidad=user_data.get("tipo_entidad", "Estudiante"),
-        pais=user_data.get("pais", "Bolivia"),
-        departamento=user_data.get("departamento"),
+        alias=alias_val,
+        institucion=institucion_val,
+        estudia_en=institucion_val,
+        tipo_entidad=tipo_entidad_val,
+        pais=pais_val,
+        departamento=departamento_val,
+        bio=bio_val,
+        linkedin_url=linkedin_val,
+        github_url=github_val,
         fecha_registro=datetime.utcnow(),
         es_nuevo=False,
         email_verificado=True,
@@ -1002,7 +1020,8 @@ def admin_create_user(
         codigo_verificacion_exp=None,
         creado_por=admin_user.id_usuario,
         id_estado=2,
-        activo=True
+        activo=True,
+        perfil_publico=True
     )
     db.add(new_user)
     db.commit()
