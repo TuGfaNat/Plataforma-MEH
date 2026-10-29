@@ -83,8 +83,11 @@ const useStyles = makeStyles({
   avatarStack: { 
     display: 'flex', 
     alignItems: 'center', 
-    gap: '14px', 
-    paddingLeft: '8px' 
+    gap: '12px', 
+    paddingLeft: '4px',
+    minWidth: 0,
+    maxWidth: '100%',
+    overflow: 'hidden'
   },
   actionButtons: {
     display: 'flex',
@@ -327,15 +330,15 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
         {loading ? (
           <div style={{ padding: '60px', textAlign: 'center' }}><Spinner label={t("loading")} /></div>
         ) : (
-          <Table size="extra-small" style={{ minWidth: "760px" }}>
+          <Table size="extra-small" style={{ minWidth: "960px", tableLayout: 'fixed' }}>
             <TableHeader>
               <TableRow>
-                <TableHeaderCell>{t("admin_member_col") || "Miembro"}</TableHeaderCell>
-                <TableHeaderCell>Estado</TableHeaderCell>
-                <TableHeaderCell>Email Verif.</TableHeaderCell>
-                <TableHeaderCell>{t("admin_join_col") || "Registro"}</TableHeaderCell>
-                <TableHeaderCell>{t("admin_role_col") || "Rol"}</TableHeaderCell>
-                <TableHeaderCell>{t("admin_action_col") || "Acciones"}</TableHeaderCell>
+                <TableHeaderCell style={{ width: '300px' }}>{t("admin_member_col") || "Miembro"}</TableHeaderCell>
+                <TableHeaderCell style={{ width: '110px' }}>Estado</TableHeaderCell>
+                <TableHeaderCell style={{ width: '150px' }}>Email Verif.</TableHeaderCell>
+                <TableHeaderCell style={{ width: '110px' }}>{t("admin_join_col") || "Registro"}</TableHeaderCell>
+                <TableHeaderCell style={{ width: '120px' }}>{t("admin_role_col") || "Rol"}</TableHeaderCell>
+                <TableHeaderCell style={{ width: '170px', textAlign: 'right' }}>{t("admin_action_col") || "Acciones"}</TableHeaderCell>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -364,18 +367,47 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
 
                 return (
                   <TableRow key={`u-${u.id_usuario}`} className={styles.userRow} style={isSuspended ? { opacity: 0.65, backgroundColor: 'rgba(255, 0, 0, 0.03)' } : {}}>
-                    <TableCell>
+                    <TableCell style={{ maxWidth: '300px', overflow: 'hidden' }}>
                       <div 
                         className={styles.avatarStack}
                         style={{ cursor: 'pointer' }}
                         title="Clic para ver expediente completo"
                         onClick={() => setExpedienteModal({ open: true, userId: u.id_usuario, user: u })}
                       >
-                        <Avatar size={44} name={u.nombres} image={{ src: resolveApiFileUrl(u.foto_url) }} />
-                        <div>
-                          <b style={{ color: tokens.colorBrandForeground1 }}>{u.nombres} {u.apellidos}</b><br/>
-                          <span style={{ fontSize: '11px', opacity: 0.7 }}>{u.correo}</span>
-                          {u.alias && <Badge appearance="outline" size="small" style={{ marginLeft: '6px' }}>@{u.alias}</Badge>}
+                        <Avatar size={40} name={u.nombres} image={{ src: resolveApiFileUrl(u.foto_url) }} style={{ flexShrink: 0 }} />
+                        <div style={{ minWidth: 0, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                          <span 
+                            style={{ 
+                              color: tokens.colorBrandForeground1, 
+                              fontWeight: 600, 
+                              whiteSpace: 'nowrap', 
+                              overflow: 'hidden', 
+                              textOverflow: 'ellipsis',
+                              display: 'block'
+                            }}
+                            title={`${u.nombres} ${u.apellidos}`}
+                          >
+                            {u.nombres} {u.apellidos}
+                          </span>
+                          <span 
+                            style={{ 
+                              fontSize: '11px', 
+                              opacity: 0.75, 
+                              whiteSpace: 'nowrap', 
+                              overflow: 'hidden', 
+                              textOverflow: 'ellipsis', 
+                              display: 'block',
+                              maxWidth: '220px'
+                            }} 
+                            title={u.correo}
+                          >
+                            {u.correo}
+                          </span>
+                          {u.alias && (
+                            <Badge appearance="outline" size="small" style={{ alignSelf: 'flex-start', marginTop: '2px' }}>
+                              @{u.alias}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </TableCell>

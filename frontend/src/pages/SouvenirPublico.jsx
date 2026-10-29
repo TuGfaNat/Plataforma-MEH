@@ -80,9 +80,9 @@ const useStyles = makeStyles({
     position: 'sticky',
     top: 0,
     zIndex: 100,
-    backgroundColor: 'rgba(10, 10, 15, 0.78)',
+    backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground1} 90%, transparent)`,
     backdropFilter: 'blur(20px)',
-    ...shorthands.borderBottom('1px', 'solid', 'rgba(255, 255, 255, 0.08)'),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke2),
     '@media (max-width: 600px)': {
       padding: '12px 16px',
     }
@@ -140,7 +140,7 @@ const useStyles = makeStyles({
   imageCard: {
     backgroundColor: tokens.colorNeutralBackground1,
     ...shorthands.borderRadius('20px'),
-    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     overflow: 'hidden',
     boxShadow: tokens.shadow8,
     position: 'relative',
@@ -149,7 +149,6 @@ const useStyles = makeStyles({
     justifyContent: 'center',
     minHeight: '260px',
     maxHeight: '460px',
-    background: 'radial-gradient(circle, rgba(127, 19, 236, 0.05) 0%, rgba(0,0,0,0.2) 100%)',
     '@media (max-width: 600px)': {
       minHeight: '200px',
       maxHeight: '280px',
@@ -172,7 +171,7 @@ const useStyles = makeStyles({
   stickyCard: {
     backgroundColor: tokens.colorNeutralBackground1,
     ...shorthands.borderRadius('20px'),
-    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     padding: '24px',
     boxShadow: tokens.shadow8,
     display: 'flex',
@@ -191,7 +190,7 @@ const useStyles = makeStyles({
   infoCard: {
     backgroundColor: tokens.colorNeutralBackground1,
     ...shorthands.borderRadius('20px'),
-    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     padding: '24px',
     boxShadow: tokens.shadow4,
     display: 'flex',
@@ -224,13 +223,13 @@ const useStyles = makeStyles({
     fontSize: '16px'
   },
   uploadArea: {
-    ...shorthands.border('2px', 'dashed', 'rgba(127, 19, 236, 0.35)'),
+    ...shorthands.border('2px', 'dashed', tokens.colorBrandStroke1),
     ...shorthands.borderRadius('14px'),
     padding: '20px',
     textAlign: 'center',
     cursor: 'pointer',
     position: 'relative',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    backgroundColor: tokens.colorNeutralBackground2,
     transition: 'all 0.2s ease',
     ':hover': {
       backgroundColor: 'rgba(127, 19, 236, 0.05)',
@@ -253,7 +252,7 @@ const SouvenirPublico = () => {
   const navigate = useNavigate();
   const styles = useStyles();
   const { t, i18n } = useTranslation();
-  const { theme, toggleTheme } = useTheme();
+  const { currentTheme, theme, toggleTheme } = useTheme();
   const { user, isAuthenticated } = useAuth();
   const { notify } = useNotify();
 
@@ -419,7 +418,7 @@ const SouvenirPublico = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Tooltip content="Cambiar tema" relationship="label">
             <MEHButton appearance="subtle" size="small" onClick={toggleTheme}>
-              {theme === 'dark' ? <WeatherSunny24Regular /> : <WeatherMoon24Regular />}
+              {(currentTheme === 'light' ? <WeatherMoon24Regular /> : <WeatherSunny24Regular />)}
             </MEHButton>
           </Tooltip>
 
@@ -543,7 +542,7 @@ const SouvenirPublico = () => {
             )}
 
             {/* Resumen de Monto */}
-            <div style={{ padding: '16px', backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ padding: '16px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '14px', border: `1px solid ${tokens.colorNeutralStroke2}`, display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', opacity: 0.8 }}>
                 <span>Precio unitario:</span>
                 <span>Bs. {producto.precio}</span>
@@ -578,7 +577,7 @@ const SouvenirPublico = () => {
             )}
 
             {/* Sección Compartir Enlace */}
-            <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ borderTop: `1px solid ${tokens.colorNeutralStroke2}`, paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <span style={{ fontSize: '12px', opacity: 0.8, fontWeight: '600' }}>Compartir con amigos:</span>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <MEHButton
@@ -613,7 +612,7 @@ const SouvenirPublico = () => {
 
       {/* Modal de Pago / Checkout Bancario */}
       <Dialog open={isCheckoutOpen} onOpenChange={(e, d) => setIsCheckoutOpen(d.open)}>
-        <DialogSurface style={{ backgroundColor: '#17171C', border: '1px solid rgba(127, 19, 236, 0.3)', borderRadius: '20px', maxWidth: '480px', width: '100%', padding: '16px' }}>
+        <DialogSurface style={{ backgroundColor: tokens.colorNeutralBackground1, border: `1px solid ${tokens.colorNeutralStroke2}`, borderRadius: '20px', maxWidth: '480px', width: '100%', padding: '16px' }}>
           <DialogBody>
             <DialogTitle>
               {purchaseCompleted ? "¡Compra Registrada con Éxito!" : "Adquirir Souvenir Oficial"}
@@ -635,7 +634,7 @@ const SouvenirPublico = () => {
                 </div>
               ) : (
                 <>
-                  <div style={{ padding: '12px 16px', backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ padding: '12px 16px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '12px', border: `1px solid ${tokens.colorNeutralStroke2}` }}>
                     <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{producto.nombre}</div>
                     <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '2px' }}>
                       Cantidad: <b>{cantidad}</b> • Total: <b style={{ color: tokens.colorBrandForeground1 }}>Bs. {subtotal}</b>
@@ -643,7 +642,7 @@ const SouvenirPublico = () => {
                   </div>
 
                   {/* QR Bancario Oficial */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '16px', backgroundColor: 'rgba(255, 255, 255, 0.02)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '16px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '16px', border: `1px solid ${tokens.colorNeutralStroke2}` }}>
                     <span style={{ fontSize: '13px', opacity: 0.9, fontWeight: 'bold', textAlign: 'center' }}>
                       1. Transfiere exactamente <b style={{ color: tokens.colorBrandForeground1 }}>Bs. {subtotal}</b> escaneando el QR oficial:
                     </span>

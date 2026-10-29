@@ -372,7 +372,7 @@ const EventsMaster = () => {
 
       {/* Modal de detalles de Evento */}
       <Dialog open={!!selectedEventForDetails} onOpenChange={(e, data) => { if (!data.open) setSelectedEventForDetails(null); }}>
-        <DialogSurface style={{ backgroundColor: '#1A1A1A', border: `1px solid ${tokens.colorBrandForeground1}`, maxWidth: '600px', width: '90%' }}>
+        <DialogSurface style={{ backgroundColor: tokens.colorNeutralBackground1, border: `1px solid ${tokens.colorBrandForeground1}`, maxWidth: '600px', width: '90%' }}>
           <DialogBody>
             <DialogTitle>{selectedEventForDetails?.titulo}</DialogTitle>
             <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px 0' }}>

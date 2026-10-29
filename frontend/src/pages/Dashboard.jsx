@@ -553,7 +553,7 @@ const Dashboard = () => {
                             <DialogTrigger disableButtonEnhancement>
                               <MEHButton appearance="primary" size="small" icon={<QrCode24Regular />}>Mi QR</MEHButton>
                             </DialogTrigger>
-                            <DialogSurface style={{ backgroundColor: '#1A1A1A', border: `1px solid ${tokens.colorBrandForeground1}`, maxWidth: '420px', width: '90%' }}>
+                            <DialogSurface style={{ backgroundColor: tokens.colorNeutralBackground1, border: `1px solid ${tokens.colorBrandForeground1}`, maxWidth: '420px', width: '90%' }}>
                               <DialogBody>
                                 <DialogTitle>Ticket de Entrada y Logística</DialogTitle>
                                 <DialogContent style={{ textAlign: 'center', padding: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
@@ -778,7 +778,7 @@ const Dashboard = () => {
 
         {/* Modal de información para ser Embajador */}
         <Dialog open={showAmbassadorModal} onOpenChange={(e, data) => setShowAmbassadorModal(data.open)}>
-          <DialogSurface style={{ backgroundColor: '#1A1A1A', border: `1px solid ${tokens.colorBrandForeground1}` }}>
+          <DialogSurface style={{ backgroundColor: tokens.colorNeutralBackground1, border: `1px solid ${tokens.colorBrandForeground1}` }}>
             <DialogBody>
               <DialogTitle>¿Cómo ser Embajador MEH? 🌟</DialogTitle>
               <DialogContent style={{ padding: '16px 0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -803,7 +803,7 @@ const Dashboard = () => {
 
         {/* Modal para ver detalles de un Anuncio */}
         <Dialog open={!!selectedAnnouncement} onOpenChange={(e, data) => { if (!data.open) setSelectedAnnouncement(null); }}>
-          <DialogSurface style={{ backgroundColor: '#1A1A1A', border: `1px solid ${tokens.colorBrandForeground1}` }}>
+          <DialogSurface style={{ backgroundColor: tokens.colorNeutralBackground1, border: `1px solid ${tokens.colorBrandForeground1}` }}>
             <DialogBody>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '8px' }}>
                 <Badge appearance="tint" color={selectedAnnouncement?.tipo === 'ALERTA' ? 'danger' : 'brand'} size="small">

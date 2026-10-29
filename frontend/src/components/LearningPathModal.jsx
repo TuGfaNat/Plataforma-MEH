@@ -21,10 +21,10 @@ import { MEHButton, MEHTypography } from './ui';
 const useStyles = makeStyles({
   surface: {
     maxWidth: '500px',
-    backgroundColor: 'rgba(26, 26, 26, 0.95)',
+    backgroundColor: tokens.colorNeutralBackground1,
     backdropFilter: 'blur(20px)',
-    ...shorthands.border('1px', 'solid', 'rgba(255, 255, 255, 0.1)'),
-    color: '#ffffff',
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
+    color: tokens.colorNeutralForeground1,
   },
   content: {
     display: 'flex',

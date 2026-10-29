@@ -62,9 +62,9 @@ const useStyles = makeStyles({
     position: 'sticky',
     top: 0,
     zIndex: 100,
-    backgroundColor: 'rgba(10, 10, 15, 0.8)',
+    backgroundColor: `color-mix(in srgb, ${tokens.colorNeutralBackground1} 90%, transparent)`,
     backdropFilter: 'blur(20px)',
-    ...shorthands.borderBottom('1px', 'solid', 'rgba(255, 255, 255, 0.08)'),
+    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke2),
     '@media (max-width: 600px)': {
       padding: '12px 16px',
     }
@@ -113,7 +113,7 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
     padding: '16px 20px',
     ...shorthands.borderRadius('16px'),
-    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     boxShadow: tokens.shadow4,
   },
   grid: {
@@ -124,7 +124,7 @@ const useStyles = makeStyles({
   card: {
     backgroundColor: tokens.colorNeutralBackground1,
     ...shorthands.borderRadius('20px'),
-    ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     overflow: 'hidden',
     boxShadow: tokens.shadow4,
     display: 'flex',
@@ -140,7 +140,7 @@ const useStyles = makeStyles({
     width: '100%',
     height: '220px',
     overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    backgroundColor: tokens.colorNeutralBackground2,
     position: 'relative',
     display: 'flex',
     alignItems: 'center',
@@ -168,7 +168,7 @@ const useStyles = makeStyles({
 const SouvenirsCatalogoPublico = () => {
   const styles = useStyles();
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
+  const { currentTheme, theme, toggleTheme } = useTheme();
   const { user, isAuthenticated } = useAuth();
   const { notify } = useNotify();
 
@@ -230,7 +230,7 @@ const SouvenirsCatalogoPublico = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Tooltip content="Cambiar tema" relationship="label">
             <MEHButton appearance="subtle" size="small" onClick={toggleTheme}>
-              {theme === 'dark' ? <WeatherSunny24Regular /> : <WeatherMoon24Regular />}
+              {(currentTheme === 'light' ? <WeatherMoon24Regular /> : <WeatherSunny24Regular />)}
             </MEHButton>
           </Tooltip>
 

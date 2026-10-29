@@ -199,7 +199,7 @@ export default function App() {
 
   return (
     <AuthContext.Provider value={{ user, setUser, checkAuth, loading, isAuthenticated: !!user }}>
-      <ThemeContext.Provider value={{ currentTheme, toggleTheme, setCurrentTheme }}>
+      <ThemeContext.Provider value={{ currentTheme, theme: currentTheme, toggleTheme, setCurrentTheme }}>
         <NotificationContext.Provider value={{ notify }}>
             <FluentProvider theme={themes[currentTheme] || themes.dark}>
             <Toaster toasterId={toasterId} />
