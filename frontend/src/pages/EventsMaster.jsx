@@ -148,20 +148,59 @@ const EventsMaster = () => {
     }
   };
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const isEventActive = (event) => {
+    if (!event) return false;
+    // Si explícitamente se cerró o canceló:
+    if (event.estado === 'FINALIZADO' || event.estado === 'CANCELADO') return false;
 
-  const upcomingEvents = events.filter(event => {
-    const eventDate = new Date(event.fecha_inicio);
-    eventDate.setHours(0, 0, 0, 0);
-    return eventDate >= today;
-  }).sort((a, b) => (b.id_evento || 0) - (a.id_evento || 0));
+    // Si está en curso (en vivo), SIEMPRE está activo para inscripción y visualización
+    if (event.estado === 'EN_CURSO') return true;
 
-  const archivedEvents = events.filter(event => {
-    const eventDate = new Date(event.fecha_inicio);
-    eventDate.setHours(0, 0, 0, 0);
-    return eventDate < today;
-  }).sort((a, b) => (b.id_evento || 0) - (a.id_evento || 0));
+    // Si está programado para el futuro:
+    if (event.estado === 'PROGRAMADO') return true;
+
+    // Comparación flexible por fechas considerando el día completo hasta las 23:59:59
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (event.fecha_fin) {
+      const endDate = new Date(event.fecha_fin);
+      endDate.setHours(23, 59, 59, 999);
+      if (endDate >= today) return true;
+    }
+
+    if (event.fecha_inicio) {
+      const startDate = new Date(event.fecha_inicio);
+      startDate.setHours(23, 59, 59, 999);
+      if (startDate >= today) return true;
+    }
+
+    return false;
+  };
+
+  const upcomingEvents = events
+    .filter(isEventActive)
+    .sort((a, b) => {
+      // 1. Eventos en vivo (EN_CURSO) al principio
+      const aLive = a.estado === 'EN_CURSO' ? 1 : 0;
+      const bLive = b.estado === 'EN_CURSO' ? 1 : 0;
+      if (aLive !== bLive) return bLive - aLive;
+
+      // 2. Orden cronológico por fecha más próxima
+      const aTime = a.fecha_inicio ? new Date(a.fecha_inicio).getTime() : 0;
+      const bTime = b.fecha_inicio ? new Date(b.fecha_inicio).getTime() : 0;
+      if (aTime && bTime && aTime !== bTime) return aTime - bTime;
+      return (b.id_evento || 0) - (a.id_evento || 0);
+    });
+
+  const archivedEvents = events
+    .filter(event => !isEventActive(event))
+    .sort((a, b) => {
+      const aTime = a.fecha_inicio ? new Date(a.fecha_inicio).getTime() : 0;
+      const bTime = b.fecha_inicio ? new Date(b.fecha_inicio).getTime() : 0;
+      if (aTime && bTime && aTime !== bTime) return bTime - aTime;
+      return (b.id_evento || 0) - (a.id_evento || 0);
+    });
 
   const displayedEvents = activeTab === 'upcoming' ? upcomingEvents : archivedEvents;
 
@@ -204,7 +243,7 @@ const EventsMaster = () => {
             style={{ marginBottom: '24px' }}
           >
             <Tab value="upcoming">
-              Próximos Eventos ({upcomingEvents.length})
+              {events.some(e => e.estado === 'EN_CURSO') ? `Próximos y En Vivo (${upcomingEvents.length})` : `Próximos Eventos (${upcomingEvents.length})`}
             </Tab>
             <Tab value="archived">
               Pasados ({archivedEvents.length})
@@ -229,24 +268,41 @@ const EventsMaster = () => {
             <div className={styles.eventsList}>
               {displayedEvents.map(event => {
                 const isInscribed = inscripciones.find(i => i.id_evento === event.id_evento);
+                const active = isEventActive(event);
                 
                 return (
                   <MEHCard 
                     key={event.id_evento} 
                     className={styles.eventCard}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', position: 'relative' }}
                     onClick={() => setSelectedEventForDetails(event)}
                   >
-                    <img 
-                      src={getEventoCoverByContext(event, '16:9')} 
-                      className={styles.cardBanner} 
-                      style={{ aspectRatio: '16 / 9' }}
-                      alt={`Portada 16:9 de ${event.titulo}`} 
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <img 
+                        src={getEventoCoverByContext(event, '16:9')} 
+                        className={styles.cardBanner} 
+                        style={{ aspectRatio: '16 / 9' }}
+                        alt={`Portada 16:9 de ${event.titulo}`} 
+                      />
+                      {event.estado === 'EN_CURSO' && (
+                        <div style={{ position: 'absolute', top: '10px', left: '10px' }}>
+                          <Badge appearance="filled" color="danger" style={{ fontWeight: 'bold', boxShadow: '0 2px 10px rgba(255,0,0,0.4)' }}>
+                            🔴 EN VIVO
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
                     <div className={styles.eventContent}>
-                      <div className={styles.eventDate}>
-                        <CalendarStar24Filled style={{ fontSize: '16px' }} />
-                        {formatDate(event.fecha_inicio)}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <div className={styles.eventDate}>
+                          <CalendarStar24Filled style={{ fontSize: '16px' }} />
+                          {formatDate(event.fecha_inicio)}
+                        </div>
+                        {event.estado === 'EN_CURSO' && (
+                          <Badge appearance="tint" color="danger" size="small">
+                            En curso
+                          </Badge>
+                        )}
                       </div>
                       <MEHTypography className={styles.eventTitle}>
                         {event.titulo}
@@ -271,7 +327,7 @@ const EventsMaster = () => {
                               title="Copiar link público del evento"
                             />
                           </div>
-                          {activeTab === 'upcoming' && (
+                          {active ? (
                               isInscribed ? (
                                   <Badge 
                                     appearance={isInscribed.estado_inscripcion === 'CONFIRMADA' ? "filled" : "tint"} 
@@ -280,8 +336,16 @@ const EventsMaster = () => {
                                     {isInscribed.estado_inscripcion === 'CONFIRMADA' ? 'Inscrito' : isInscribed.estado_inscripcion === 'PENDIENTE_APROBACION' ? 'En espera' : 'Pendiente pago'}
                                   </Badge>
                               ) : (
-                                  <InscripcionEventoModal evento={event} onInscribed={fetchData} />
+                                  <InscripcionEventoModal 
+                                    evento={event} 
+                                    buttonText={event.estado === 'EN_CURSO' ? "🔴 Inscribirme en Vivo" : undefined}
+                                    onInscribed={fetchData} 
+                                  />
                               )
+                          ) : (
+                              <Badge appearance="tint" color={event.estado === 'CANCELADO' ? "danger" : "neutral"}>
+                                {event.estado === 'CANCELADO' ? 'Cancelado' : 'Finalizado'}
+                              </Badge>
                           )}
                       </div>
                     </div>
@@ -333,6 +397,15 @@ const EventsMaster = () => {
               })()}
               
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                {selectedEventForDetails?.estado === 'EN_CURSO' && (
+                  <Badge color="danger" appearance="filled" style={{ fontWeight: 'bold' }}>🔴 Evento En Vivo / En Curso</Badge>
+                )}
+                {selectedEventForDetails?.estado === 'FINALIZADO' && (
+                  <Badge color="neutral" appearance="tint">🏁 Finalizado</Badge>
+                )}
+                {selectedEventForDetails?.estado === 'CANCELADO' && (
+                  <Badge color="danger" appearance="tint">❌ Cancelado</Badge>
+                )}
                 <Badge color="brand" appearance="filled">📍 {selectedEventForDetails?.modalidad}</Badge>
                 <Badge color="informative" appearance="tint">📅 {selectedEventForDetails && formatDate(selectedEventForDetails.fecha_inicio)}</Badge>
                 {selectedEventForDetails?.hora_inicio && (
@@ -394,7 +467,7 @@ const EventsMaster = () => {
               )}
             </DialogContent>
             <DialogActions style={{ gap: '12px' }}>
-              {selectedEventForDetails && new Date(selectedEventForDetails.fecha_inicio) >= new Date() && (
+              {selectedEventForDetails && isEventActive(selectedEventForDetails) ? (
                 (() => {
                   const isInscribed = inscripciones.find(i => i.id_evento === selectedEventForDetails.id_evento);
                   if (isInscribed) {
@@ -411,6 +484,8 @@ const EventsMaster = () => {
                   return (
                     <InscripcionEventoModal 
                       evento={selectedEventForDetails} 
+                      buttonText={selectedEventForDetails.estado === 'EN_CURSO' ? "🔴 Inscribirme al Evento en Vivo" : "Inscribirme al Evento"}
+                      buttonAppearance="primary"
                       onInscribed={() => {
                         void fetchData();
                         setSelectedEventForDetails(null);
@@ -418,6 +493,14 @@ const EventsMaster = () => {
                     />
                   );
                 })()
+              ) : (
+                <Badge 
+                  appearance="tint" 
+                  color={selectedEventForDetails?.estado === 'CANCELADO' ? 'danger' : 'neutral'} 
+                  style={{ padding: '6px 12px' }}
+                >
+                  {selectedEventForDetails?.estado === 'CANCELADO' ? 'Evento Cancelado' : 'Evento Finalizado / Inscripciones Cerradas'}
+                </Badge>
               )}
               {selectedEventForDetails && (
                 <MEHButton 

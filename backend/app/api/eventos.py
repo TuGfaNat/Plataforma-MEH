@@ -485,3 +485,12 @@ def delete_evento_imagen(
         current_user=current_user,
         ip_address=ip_address,
     )
+
+@router.put("/inscripciones/{id_inscripcion}/toggle-asistencia")
+def toggle_asistencia_inscripcion(
+    id_inscripcion: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Permite al Staff alternar o corregir la asistencia de una inscripción (para corregir errores manuales)."""
+    return eventos_service.toggle_asistencia_manual(db, current_user, id_inscripcion)

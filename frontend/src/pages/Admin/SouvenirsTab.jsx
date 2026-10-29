@@ -465,14 +465,24 @@ const SouvenirsTab = ({
             <MEHTypography variant="bold">{t("admin_souvenirs_inventory")}</MEHTypography>
             <Badge appearance="filled" color="brand">{filteredData.length}</Badge>
           </div>
-          <MEHButton
-            size="small"
-            appearance="subtle"
-            icon={<Open20Regular />}
-            onClick={() => window.open('/souvenirs', '_blank')}
-          >
-            Tienda
-          </MEHButton>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <MEHButton
+              size="small"
+              appearance="subtle"
+              icon={<Receipt24Regular />}
+              onClick={() => setIsHistorialModalOpen(true)}
+            >
+              Ventas
+            </MEHButton>
+            <MEHButton
+              size="small"
+              appearance="subtle"
+              icon={<Open20Regular />}
+              onClick={() => window.open('/souvenirs', '_blank')}
+            >
+              Tienda
+            </MEHButton>
+          </div>
         </div>
 
         {filteredData.length === 0 ? (

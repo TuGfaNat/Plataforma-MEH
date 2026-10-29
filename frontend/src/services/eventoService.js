@@ -165,6 +165,11 @@ const eventoService = {
   getInscritosConfirmados: async (idEvento) => {
     const response = await api.get(`/eventos/${idEvento}/inscritos-confirmados`);
     return response.data;
+  },
+
+  toggleAsistenciaInscripcion: async (idInscripcion) => {
+    const response = await api.put(`/eventos/inscripciones/${idInscripcion}/toggle-asistencia`);
+    return response.data;
   }
 };
 

@@ -18,9 +18,12 @@ import {
   Warning24Filled,
   ShieldCheckmark24Regular,
   PersonProhibited24Regular,
-  PersonAdd24Regular
+  PersonAdd24Regular,
+  Eye24Regular,
+  ArrowSync24Regular
 } from '@fluentui/react-icons';
 import CreateUserModal from '../../components/CreateUserModal';
+import UserExpedienteModal from '../../components/UserExpedienteModal';
 import { MEHButton, MEHTypography, MEHInput } from '../../components/ui';
 import authService from '../../services/authService';
 import { resolveApiFileUrl } from '../../services/api';
@@ -123,6 +126,7 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [purging, setPurging] = useState(false);
+  const [expedienteModal, setExpedienteModal] = useState({ open: false, userId: null, user: null });
 
   const handlePurgeSeeds = async () => {
     if (!window.confirm("¿Deseas purgar y eliminar definitivamente de la base de datos todas las cuentas semilla y de prueba?")) {
@@ -291,6 +295,16 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
           </Badge>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <MEHButton 
+            size="small" 
+            icon={<ArrowSync24Regular />} 
+            appearance="subtle" 
+            disabled={loading}
+            onClick={() => { if (fetchData) fetchData(); }}
+            title="Sincronizar y recargar miembros desde la base de datos"
+          >
+            {loading ? 'Cargando...' : 'Actualizar'}
+          </MEHButton>
           <MEHButton size="small" icon={<PersonAdd24Regular />} appearance="primary" onClick={() => setIsCreateModalOpen(true)}>
             + Nuevo Miembro
           </MEHButton>
@@ -325,17 +339,41 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.map(u => {
+              {filteredUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} style={{ textAlign: 'center', padding: '40px 20px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ opacity: 0.7, fontSize: '14px' }}>
+                        No se encontraron miembros con el criterio de búsqueda actual.
+                      </span>
+                      <MEHButton 
+                        size="small" 
+                        icon={<ArrowSync24Regular />} 
+                        appearance="outline" 
+                        onClick={() => { if (fetchData) fetchData(); }}
+                      >
+                        Sincronizar / Refrescar desde el servidor
+                      </MEHButton>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredUsers.map(u => {
                 const isSuspended = u.activo === false || u.id_estado === 0;
                 const isVerified = u.email_verificado !== false;
 
                 return (
                   <TableRow key={`u-${u.id_usuario}`} className={styles.userRow} style={isSuspended ? { opacity: 0.65, backgroundColor: 'rgba(255, 0, 0, 0.03)' } : {}}>
                     <TableCell>
-                      <div className={styles.avatarStack}>
+                      <div 
+                        className={styles.avatarStack}
+                        style={{ cursor: 'pointer' }}
+                        title="Clic para ver expediente completo"
+                        onClick={() => setExpedienteModal({ open: true, userId: u.id_usuario, user: u })}
+                      >
                         <Avatar size={44} name={u.nombres} image={{ src: resolveApiFileUrl(u.foto_url) }} />
                         <div>
-                          <b>{u.nombres} {u.apellidos}</b><br/>
+                          <b style={{ color: tokens.colorBrandForeground1 }}>{u.nombres} {u.apellidos}</b><br/>
                           <span style={{ fontSize: '11px', opacity: 0.7 }}>{u.correo}</span>
                           {u.alias && <Badge appearance="outline" size="small" style={{ marginLeft: '6px' }}>@{u.alias}</Badge>}
                         </div>
@@ -403,6 +441,16 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
 
                     <TableCell>
                       <div className={styles.actionButtons}>
+                        {/* Ver Expediente Completo */}
+                        <Tooltip content="Ver expediente y perfil completo (eventos, compras, asistencia)" relationship="label">
+                          <MEHButton 
+                            size="small" 
+                            appearance="subtle"
+                            icon={<Eye24Regular style={{ color: tokens.colorBrandForeground1 }} />} 
+                            onClick={() => setExpedienteModal({ open: true, userId: u.id_usuario, user: u })} 
+                          />
+                        </Tooltip>
+
                         {/* Editar Usuario */}
                         <Tooltip content="Editar datos del usuario" relationship="label">
                           <MEHButton 
@@ -451,7 +499,7 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
                     </TableCell>
                   </TableRow>
                 );
-              })}
+              }))}
             </TableBody>
           </Table>
         )}
@@ -478,7 +526,10 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
                   style={isSuspended ? { opacity: 0.75, borderLeft: `4px solid ${tokens.colorPaletteRedBackground3}` } : { borderLeft: `4px solid ${tokens.colorBrandBackground}` }}
                 >
                   {/* Fila 1: Avatar + Nombre + Correo + Alias */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div 
+                    style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+                    onClick={() => setExpedienteModal({ open: true, userId: u.id_usuario, user: u })}
+                  >
                     <Avatar size={44} name={u.nombres} image={{ src: resolveApiFileUrl(u.foto_url) }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 'bold', fontSize: '15px', color: tokens.colorNeutralForeground1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -542,6 +593,15 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
 
                   {/* Fila 3: Botones de Acción */}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: `1px solid ${tokens.colorNeutralBackground3}`, paddingTop: '10px', marginTop: '2px' }}>
+                    <MEHButton 
+                      size="small" 
+                      appearance="subtle"
+                      icon={<Eye24Regular style={{ color: tokens.colorBrandForeground1 }} />} 
+                      onClick={() => setExpedienteModal({ open: true, userId: u.id_usuario, user: u })} 
+                    >
+                      Perfil
+                    </MEHButton>
+
                     <MEHButton 
                       size="small" 
                       appearance="subtle"
@@ -781,6 +841,13 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
         onClose={() => setIsCreateModalOpen(false)}
         currentUser={currentUser}
         onSuccess={() => { if (fetchData) fetchData(); }}
+      />
+
+      <UserExpedienteModal
+        open={expedienteModal.open}
+        onClose={() => setExpedienteModal({ open: false, userId: null, user: null })}
+        userId={expedienteModal.userId}
+        initialUser={expedienteModal.user}
       />
     </div>
   );

@@ -324,3 +324,22 @@ def admin_purge_seed_data_endpoint(
     from ..clean_seed_data import clean_database
     res = clean_database(db_session=db)
     return res
+
+
+@router_usuarios.get("/{id_usuario}/expediente")
+def get_usuario_expediente_usuarios_endpoint(
+    id_usuario: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Consulta el expediente completo de un usuario (eventos, compras, asistencia, badges, etc.)."""
+    return auth_service.get_usuario_expediente(db, current_user, id_usuario)
+
+@router.get("/usuarios/{id_usuario}/expediente")
+def get_usuario_expediente_auth_endpoint(
+    id_usuario: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Consulta el expediente completo de un usuario (eventos, compras, asistencia, badges, etc.)."""
+    return auth_service.get_usuario_expediente(db, current_user, id_usuario)

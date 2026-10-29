@@ -168,3 +168,15 @@ def inscribir_evento_manual(
         bool(data.marcar_asistio),
         ip_address
     )
+
+@router.put("/eventos/{id_inscripcion}/toggle-asistencia")
+def toggle_asistencia_inscripcion_ins(
+    id_inscripcion: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Permite al Staff alternar o corregir la asistencia de una inscripción."""
+    from ..core.permissions import ensure_roles, ROLE_ADMIN, ROLE_ORGANIZADOR
+    from ..services import eventos_service
+    ensure_roles(current_user.rol, [ROLE_ADMIN, ROLE_ORGANIZADOR], "Acceso restringido al Staff")
+    return eventos_service.toggle_asistencia_manual(db, current_user, id_inscripcion)

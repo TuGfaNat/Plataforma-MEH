@@ -278,8 +278,11 @@ const Dashboard = () => {
       
       const misIds = new Set((inscripcionesData || []).map(i => i.id_evento));
       const proximos = eventosData
-        .filter(e => e.estado === 'PROGRAMADO' || misIds.has(e.id_evento))
+        .filter(e => (e.estado === 'PROGRAMADO' || e.estado === 'EN_CURSO' || misIds.has(e.id_evento)) && e.estado !== 'CANCELADO')
         .sort((a, b) => {
+          const aLive = a.estado === 'EN_CURSO' ? 1 : 0;
+          const bLive = b.estado === 'EN_CURSO' ? 1 : 0;
+          if (aLive !== bLive) return bLive - aLive;
           const aInsc = misIds.has(a.id_evento) ? 0 : 1;
           const bInsc = misIds.has(b.id_evento) ? 0 : 1;
           if (aInsc !== bInsc) return aInsc - bInsc;
@@ -520,7 +523,12 @@ const Dashboard = () => {
                           <MEHTypography variant="h3" style={{ fontSize: '16px' }}>{day}</MEHTypography>
                         </div>
                         <div style={{ flexGrow: 1, minWidth: 0 }}>
-                          <MEHTypography variant="body" style={{ fontWeight: 'bold', fontSize: '14px', display: 'block', lineHeight: '1.35', wordBreak: 'break-word' }}>{evento.titulo}</MEHTypography>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <MEHTypography variant="body" style={{ fontWeight: 'bold', fontSize: '14px', lineHeight: '1.35', wordBreak: 'break-word' }}>{evento.titulo}</MEHTypography>
+                            {evento.estado === 'EN_CURSO' && (
+                              <Badge appearance="filled" color="danger" size="small">🔴 EN VIVO</Badge>
+                            )}
+                          </div>
                           <MEHTypography variant="caption" style={{ opacity: 0.6, display: 'block', fontSize: '12px', marginTop: '2px' }}>{evento.modalidad}</MEHTypography>
                         </div>
                       </div>
@@ -610,6 +618,7 @@ const Dashboard = () => {
                       ) : (
                           <InscripcionEventoModal 
                             evento={evento} 
+                            buttonText={evento.estado === 'EN_CURSO' ? "🔴 Inscribirme" : undefined}
                             onInscribed={fetchData} 
                             buttonSize="small" 
                           />

@@ -206,6 +206,15 @@ def list_eventos(db: Session, skip: int = 0, limit: int = 100) -> List[models.Ev
         ev.estado = "EN_CURSO"
         modificado = True
 
+    # Si un evento estaba EN_CURSO pero fue reprogramado al futuro, vuelve a PROGRAMADO
+    eventos_futuros = db.query(models.Evento).filter(
+        models.Evento.estado == "EN_CURSO",
+        models.Evento.fecha_inicio > now
+    ).all()
+    for ev in eventos_futuros:
+        ev.estado = "PROGRAMADO"
+        modificado = True
+
     # 2. Auto-finalizar SOLO tras una ventana de gracia amplia (7 días) para permitir que los organizadores
     # cierren manualmente el evento o sigan inscribiendo a participantes que llegaron tarde.
     limite_gracia_segundos = 7 * 86400
@@ -298,6 +307,18 @@ def update_evento(
     elif "hora_inicio" in update_data and update_data["hora_inicio"] is not None:
         if hora_inicio_ant != update_data["hora_inicio"]:
             fecha_reprogramada = True
+
+    # Si se reprogramó la fecha y el usuario no forzó un estado manual, sincronizar estado con la nueva fecha
+    if fecha_reprogramada and "estado" not in update_data:
+        now_dt = datetime.utcnow()
+        if db_evento.fecha_inicio and db_evento.fecha_inicio > now_dt:
+            if db_evento.estado in ("EN_CURSO", "FINALIZADO"):
+                db_evento.estado = "PROGRAMADO"
+                db.commit()
+        elif db_evento.fecha_inicio and db_evento.fecha_inicio <= now_dt:
+            if db_evento.estado == "PROGRAMADO":
+                db_evento.estado = "EN_CURSO"
+                db.commit()
 
     if fecha_reprogramada:
         nueva_fecha_str = db_evento.fecha_inicio.strftime("%d/%m/%Y") if db_evento.fecha_inicio else ""
@@ -2163,3 +2184,57 @@ def upload_plantilla_badge(
     db.commit()
     db.refresh(evento)
     return url_relativa
+
+def toggle_asistencia_manual(
+    db: Session,
+    staff_user: models.Usuario,
+    id_inscripcion: int
+) -> dict:
+    """Alterna o corrige el estado de asistencia de una inscripción (Solo Staff autorizado)."""
+    if staff_user.rol not in ADMIN_OR_ORGANIZER_ROLES:
+        raise PermisoDenegadoError("Solo administradores y organizadores pueden realizar esta acción")
+
+    ins = db.query(models.InscripcionEvento).filter(
+        models.InscripcionEvento.id_inscripcion == id_inscripcion,
+        models.InscripcionEvento.id_estado != 0
+    ).first()
+    if not ins:
+        raise EventoNoEncontradoError("Inscripción no encontrada")
+
+    nuevo_estado = not bool(ins.asistio)
+    ins.asistio = nuevo_estado
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    if nuevo_estado:
+        ins.fecha_validacion = now_utc
+        if ins.estado_inscripcion != "CONFIRMADA":
+            ins.estado_inscripcion = "CONFIRMADA"
+        cp = _obtener_o_crear_checkpoint_acreditacion(db, ins.id_evento)
+        asist_exist = db.query(models.AsistenciaDetalle).filter(
+            models.AsistenciaDetalle.id_inscripcion == ins.id_inscripcion,
+            models.AsistenciaDetalle.id_checkpoint == cp.id_checkpoint
+        ).first()
+        if not asist_exist:
+            det = models.AsistenciaDetalle(
+                id_inscripcion=ins.id_inscripcion,
+                id_checkpoint=cp.id_checkpoint,
+                fecha_escaneo=now_utc,
+                escaneado_por=staff_user.id_usuario,
+                id_estado=2
+            )
+            db.add(det)
+    else:
+        detalles = db.query(models.AsistenciaDetalle).filter(
+            models.AsistenciaDetalle.id_inscripcion == ins.id_inscripcion
+        ).all()
+        for d in detalles:
+            db.delete(d)
+        ins.fecha_validacion = None
+
+    db.commit()
+    db.refresh(ins)
+    return {
+        "id_inscripcion": ins.id_inscripcion,
+        "asistio": ins.asistio,
+        "mensaje": f"Asistencia {'marcada como presente' if ins.asistio else 'desmarcada'} correctamente"
+    }

@@ -151,11 +151,11 @@ def create_pedido(
         if not prod:
             raise HTTPException(status_code=404, detail=f"Producto {item['id_producto']} no encontrado")
         
-        if prod.stock < item["cantidad"]:
+        if prod.stock < item["cantidad"] and metodo_pago not in ("CORTESIA", "CORRECCION", "AJUSTE"):
             raise HTTPException(status_code=400, detail=f"Stock insuficiente para {prod.nombre} (disponible: {prod.stock})")
         
-        # Descontar stock automáticamente en base de datos
-        prod.stock -= item["cantidad"]
+        # Descontar stock automáticamente en base de datos (sin dejarlo negativo si es cortesía/ajuste)
+        prod.stock = max(0, prod.stock - item["cantidad"])
         
         precio_unitario = prod.precio
         subtotal = precio_unitario * item["cantidad"]

@@ -1027,3 +1027,236 @@ def admin_create_user(
         "email_verificado": True,
         "temporary_password": raw_password
     }
+
+
+def get_usuario_expediente(db: Session, current_user: models.Usuario, id_usuario: int) -> dict:
+    """Obtiene el expediente integral del usuario: datos personales, eventos inscritos/asistidos,
+    compras de souvenirs, pagos, badges, certificados y cursos para el panel de gestión."""
+    from ..core.permissions import ensure_roles, ROLE_ADMIN, ROLE_ORGANIZADOR, ROLE_SOPORTE
+    from sqlalchemy.orm import joinedload
+
+    ensure_roles(
+        current_user.rol,
+        [ROLE_ADMIN, ROLE_ORGANIZADOR, ROLE_SOPORTE],
+        "Solo el personal administrativo puede consultar expedientes de usuarios."
+    )
+
+    usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == id_usuario).first()
+    if not usuario:
+        raise UsuarioNoEncontradoError("Usuario no encontrado")
+
+    # 1. Eventos e Inscripciones
+    inscripciones = (
+        db.query(models.InscripcionEvento)
+        .options(joinedload(models.InscripcionEvento.evento))
+        .filter(models.InscripcionEvento.id_usuario == id_usuario)
+        .order_by(models.InscripcionEvento.fecha_inscripcion.desc())
+        .all()
+    )
+    eventos_list = []
+    asistencias_count = 0
+    for insc in inscripciones:
+        ev = insc.evento
+        asistio = bool(insc.asistio)
+        if asistio:
+            asistencias_count += 1
+        eventos_list.append({
+            "id_inscripcion": insc.id_inscripcion,
+            "id_evento": insc.id_evento,
+            "titulo": ev.titulo if ev else f"Evento #{insc.id_evento}",
+            "tipo_evento": ev.tipo_evento if ev else "CONFERENCIA",
+            "fecha_inicio": ev.fecha_inicio.isoformat() if ev and ev.fecha_inicio else None,
+            "fecha_fin": ev.fecha_fin.isoformat() if ev and ev.fecha_fin else None,
+            "hora_inicio": ev.hora_inicio if ev else None,
+            "modalidad": ev.modalidad if ev else "PRESENCIAL",
+            "ubicacion": ev.ubicacion if ev else None,
+            "estado_evento": ev.estado if ev else "PROGRAMADO",
+            "imagen_url": ev.imagen_url if ev else None,
+            "fecha_inscripcion": insc.fecha_inscripcion.isoformat() if insc.fecha_inscripcion else None,
+            "estado_inscripcion": insc.estado_inscripcion,
+            "asistio": asistio,
+            "fecha_validacion": insc.fecha_validacion.isoformat() if insc.fecha_validacion else None,
+            "codigo_qr": insc.codigo_qr,
+        })
+
+    # 2. Compras de Souvenirs (Pedidos)
+    pedidos = (
+        db.query(models.Pedido)
+        .options(
+            joinedload(models.Pedido.detalles).joinedload(models.PedidoDetalle.producto),
+            joinedload(models.Pedido.evento),
+            joinedload(models.Pedido.pago)
+        )
+        .filter(models.Pedido.id_usuario == id_usuario)
+        .order_by(models.Pedido.fecha_pedido.desc())
+        .all()
+    )
+    pedidos_list = []
+    total_gastado_souvenirs = 0.0
+    for ped in pedidos:
+        detalles_list = []
+        for det in (ped.detalles or []):
+            prod = det.producto
+            detalles_list.append({
+                "id_detalle": det.id_detalle,
+                "id_producto": det.id_producto,
+                "producto_nombre": prod.nombre if prod else f"Producto #{det.id_producto}",
+                "cantidad": det.cantidad,
+                "precio_unitario": float(det.precio_unitario) if det.precio_unitario is not None else 0.0,
+                "subtotal": float(det.cantidad * (det.precio_unitario or 0)),
+                "imagen_url": prod.imagen_url if prod else None,
+            })
+        total_p = float(ped.total or 0.0)
+        total_gastado_souvenirs += total_p
+
+        metodo = "EFECTIVO"
+        if ped.pago and ped.pago.metodo_pago:
+            metodo = ped.pago.metodo_pago
+
+        pedidos_list.append({
+            "id_pedido": ped.id_pedido,
+            "id_pago": ped.id_pago,
+            "fecha_pedido": ped.fecha_pedido.isoformat() if ped.fecha_pedido else None,
+            "total": total_p,
+            "estado": ped.estado,
+            "metodo_pago": metodo,
+            "id_evento": ped.id_evento,
+            "evento_titulo": ped.evento.titulo if ped.evento else None,
+            "detalles": detalles_list,
+        })
+
+    # 3. Badges / Insignias
+    user_badges = (
+        db.query(models.UsuarioBadge)
+        .options(joinedload(models.UsuarioBadge.badge))
+        .filter(models.UsuarioBadge.id_usuario == id_usuario)
+        .order_by(models.UsuarioBadge.fecha_obtencion.desc())
+        .all()
+    )
+    badges_list = []
+    for ub in user_badges:
+        b = ub.badge
+        badges_list.append({
+            "id_usuario_badge": ub.id_usuario_badge,
+            "id_badge": ub.id_badge,
+            "nombre_badge": b.nombre_badge if b else f"Badge #{ub.id_badge}",
+            "descripcion": b.descripcion if b else None,
+            "imagen_url": b.imagen_url if b else None,
+            "puntos": getattr(b, "puntos", 10),
+            "fecha_obtencion": ub.fecha_obtencion.isoformat() if ub.fecha_obtencion else None
+        })
+
+    # 4. Certificados
+    certificados = (
+        db.query(models.Certificado)
+        .filter(models.Certificado.id_usuario == id_usuario)
+        .order_by(models.Certificado.fecha_emision.desc())
+        .all()
+    )
+    certificados_list = []
+    for cert in certificados:
+        titulo_ref = cert.titulo_evento_curso if hasattr(cert, "titulo_evento_curso") else None
+        if not titulo_ref:
+            if cert.id_evento:
+                ev_ref = db.query(models.Evento).filter(models.Evento.id_evento == cert.id_evento).first()
+                if ev_ref:
+                    titulo_ref = ev_ref.titulo
+            elif cert.id_curso:
+                cu_ref = db.query(models.Curso).filter(models.Curso.id_curso == cert.id_curso).first()
+                if cu_ref:
+                    titulo_ref = cu_ref.titulo
+        certificados_list.append({
+            "id_certificado": cert.id_certificado,
+            "codigo_verificacion": cert.codigo_verificacion,
+            "tipo_certificado": getattr(cert, "tipo_certificado", "PARTICIPACION"),
+            "titulo_evento_curso": titulo_ref or "Certificado Oficial MEH",
+            "fecha_emision": cert.fecha_emision.isoformat() if cert.fecha_emision else None,
+            "url_pdf": getattr(cert, "url_pdf", None)
+        })
+
+    # 5. Cursos LMS
+    cursos = (
+        db.query(models.InscripcionCurso)
+        .options(joinedload(models.InscripcionCurso.curso))
+        .filter(models.InscripcionCurso.id_usuario == id_usuario)
+        .order_by(models.InscripcionCurso.fecha_inscripcion.desc())
+        .all()
+    )
+    cursos_list = []
+    for c in cursos:
+        curso_obj = c.curso
+        cursos_list.append({
+            "id_inscripcion_curso": c.id_inscripcion_curso,
+            "id_curso": c.id_curso,
+            "titulo": curso_obj.titulo if curso_obj else f"Curso #{c.id_curso}",
+            "progreso": getattr(c, "progreso", 0),
+            "finalizado": getattr(c, "finalizado", False),
+            "nota_final": float(c.nota_final) if getattr(c, "nota_final", None) is not None else None,
+            "fecha_inscripcion": c.fecha_inscripcion.isoformat() if c.fecha_inscripcion else None
+        })
+
+    # 6. Pagos Generales
+    pagos = (
+        db.query(models.Pago)
+        .filter(models.Pago.id_usuario == id_usuario)
+        .order_by(models.Pago.fecha_pago.desc())
+        .all()
+    )
+    pagos_list = []
+    for pg in pagos:
+        pagos_list.append({
+            "id_pago": pg.id_pago,
+            "monto": float(pg.monto or 0),
+            "metodo_pago": pg.metodo_pago,
+            "estado_pago": pg.estado_pago,
+            "tipo_referencia": pg.tipo_referencia,
+            "id_referencia": pg.id_referencia,
+            "fecha_pago": pg.fecha_pago.isoformat() if pg.fecha_pago else None,
+            "comprobante_url": getattr(pg, "comprobante_url", None)
+        })
+
+    return {
+        "usuario": {
+            "id_usuario": usuario.id_usuario,
+            "nombres": usuario.nombres,
+            "apellidos": usuario.apellidos,
+            "correo": usuario.correo,
+            "alias": usuario.alias,
+            "foto_url": usuario.foto_url,
+            "rol": usuario.rol,
+            "activo": usuario.activo,
+            "id_estado": usuario.id_estado,
+            "email_verificado": usuario.email_verificado,
+            "codigo_verificacion": usuario.codigo_verificacion,
+            "motivo_suspension": usuario.motivo_suspension,
+            "fecha_registro": usuario.fecha_registro.isoformat() if usuario.fecha_registro else None,
+            "bio": usuario.bio,
+            "institucion": usuario.institucion,
+            "estudia_en": usuario.estudia_en,
+            "tipo_entidad": usuario.tipo_entidad,
+            "pais": usuario.pais,
+            "departamento": usuario.departamento,
+            "linkedin_url": usuario.linkedin_url,
+            "github_url": usuario.github_url,
+            "facebook_url": usuario.facebook_url,
+            "instagram_url": usuario.instagram_url,
+            "tiktok_url": usuario.tiktok_url,
+            "learning_path_url": usuario.learning_path_url,
+            "perfil_publico": usuario.perfil_publico
+        },
+        "resumen": {
+            "total_eventos_inscritos": len(eventos_list),
+            "total_eventos_asistidos": asistencias_count,
+            "total_compras": len(pedidos_list),
+            "total_gastado": round(total_gastado_souvenirs, 2),
+            "total_badges": len(badges_list),
+            "total_certificados": len(certificados_list),
+            "total_cursos": len(cursos_list)
+        },
+        "eventos": eventos_list,
+        "compras": pedidos_list,
+        "badges": badges_list,
+        "certificados": certificados_list,
+        "cursos": cursos_list,
+        "pagos": pagos_list
+    }

@@ -129,6 +129,11 @@ const authService = {
     return response.data;
   },
 
+  getUsuarioExpediente: async (idUsuario) => {
+    const response = await api.get(`/auth/usuarios/${idUsuario}/expediente`);
+    return response.data;
+  },
+
   logout: () => {
     localStorage.removeItem('token');
   }

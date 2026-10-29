@@ -24,6 +24,11 @@ const insigniasService = {
   deleteInsignia: async (idBadge) => {
     const response = await api.delete(`/insignias/${idBadge}`);
     return response.data;
+  },
+
+  asignarInsignia: async (idUsuario, idBadge) => {
+    const response = await api.post(`/insignias/asignar?id_usuario=${idUsuario}&id_badge=${idBadge}`);
+    return response.data;
   }
 };
 
