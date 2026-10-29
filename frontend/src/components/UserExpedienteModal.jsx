@@ -431,7 +431,8 @@ const UserExpedienteModal = ({ open, onClose, userId, initialUser = null }) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(e, d) => { if (!d.open) onClose(); }}>
+    <>
+      <Dialog open={open} onOpenChange={(e, d) => { if (!d.open) onClose(); }}>
       <DialogSurface className={styles.surface}>
         <DialogBody>
           <DialogTitle>
@@ -1052,6 +1053,7 @@ const UserExpedienteModal = ({ open, onClose, userId, initialUser = null }) => {
           </DialogActions>
         </DialogBody>
       </DialogSurface>
+    </Dialog>
 
       {/* --- DIALOG MODAL: ASIGNAR EVENTO & ASISTENCIA MANUAL --- */}
       <Dialog open={isAsignarEventoOpen} onOpenChange={(e, d) => { if (!d.open && !savingEvento) setIsAsignarEventoOpen(false); }}>
@@ -1239,7 +1241,7 @@ const UserExpedienteModal = ({ open, onClose, userId, initialUser = null }) => {
           </DialogBody>
         </DialogSurface>
       </Dialog>
-    </Dialog>
+    </>
   );
 };
 

@@ -843,12 +843,14 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
         onSuccess={() => { if (fetchData) fetchData(); }}
       />
 
-      <UserExpedienteModal
-        open={expedienteModal.open}
-        onClose={() => setExpedienteModal({ open: false, userId: null, user: null })}
-        userId={expedienteModal.userId}
-        initialUser={expedienteModal.user}
-      />
+      {expedienteModal.open && (
+        <UserExpedienteModal
+          open={expedienteModal.open}
+          onClose={() => setExpedienteModal({ open: false, userId: null, user: null })}
+          userId={expedienteModal.userId}
+          initialUser={expedienteModal.user}
+        />
+      )}
     </div>
   );
 };
