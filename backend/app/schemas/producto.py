@@ -13,6 +13,8 @@ class ProductoBase(BaseModel):
     imagen_url: Optional[str] = None
     qr_url: Optional[str] = None
     categoria: str = "SOUVENIR"
+    id_estado: Optional[int] = 2
+    activo: Optional[bool] = True
 
 class ProductoCreate(ProductoBase):
     pass
@@ -27,10 +29,13 @@ class ProductoUpdate(BaseModel):
     qr_url: Optional[str] = None
     categoria: Optional[str] = None
     id_estado: Optional[int] = None
+    activo: Optional[bool] = None
 
 class ProductoResponse(ProductoBase):
     id_producto: int
     creado_por: Optional[int] = None
+    id_estado: Optional[int] = 2
+    activo: Optional[bool] = True
     model_config = ConfigDict(from_attributes=True)
 
 # --- VENTAS (POS) ---

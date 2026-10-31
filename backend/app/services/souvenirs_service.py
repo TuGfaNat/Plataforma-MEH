@@ -12,13 +12,20 @@ def get_producto(db: Session, id_producto: int):
     return prod
 
 def list_productos(db: Session, categoria: Optional[str] = None):
-    query = db.query(models.Producto)
+    query = db.query(models.Producto).filter(models.Producto.id_estado != 0)
     if categoria:
         query = query.filter(models.Producto.categoria == categoria)
     return query.order_by(models.Producto.id_producto.desc()).all()
 
 def create_producto(db: Session, data: dict, user_id: int):
-    db_obj = models.Producto(**data)
+    # Sincronizar id_estado y activo
+    if 'id_estado' in data and data['id_estado'] is not None:
+        data['activo'] = (data['id_estado'] == 2)
+    elif 'activo' in data and data['activo'] is not None:
+        data['id_estado'] = 2 if data['activo'] else 1
+
+    clean_data = {k: v for k, v in data.items() if hasattr(models.Producto, k)}
+    db_obj = models.Producto(**clean_data)
     db.add(db_obj)
     db.commit()
     db.refresh(db_obj)
@@ -29,7 +36,7 @@ def create_producto(db: Session, data: dict, user_id: int):
         accion="CREAR_PRODUCTO_SOUVENIR",
         tabla_afectada="productos",
         id_registro_afectado=db_obj.id_producto,
-        valor_nuevo=data
+        valor_nuevo=clean_data
     )
     return db_obj
 
@@ -38,10 +45,17 @@ def update_producto(db: Session, id_producto: int, data: dict, user_id: int):
     if not db_obj:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
+    # Sincronizar id_estado y activo bidireccionalmente
+    if 'id_estado' in data and data['id_estado'] is not None:
+        data['activo'] = (data['id_estado'] == 2)
+    elif 'activo' in data and data['activo'] is not None:
+        data['id_estado'] = 2 if data['activo'] else 1
+
     valor_anterior = {k: getattr(db_obj, k) for k in data.keys() if hasattr(db_obj, k)}
     
     for key, value in data.items():
-        setattr(db_obj, key, value)
+        if hasattr(db_obj, key):
+            setattr(db_obj, key, value)
     
     db.commit()
     db.refresh(db_obj)

@@ -141,7 +141,7 @@ const VentaSouvenirModal = ({
     setLoadingProductos(true);
     try {
       const data = await adminService.getSouvenirs();
-      const activos = (data || []).filter(p => p.id_estado !== 0);
+      const activos = (data || []).filter(p => p.id_estado !== 0 && p.id_estado !== 1 && p.activo !== false);
       setProductos(activos);
       if (activos.length > 0) {
         setSelectedProductoId(String(activos[0].id_producto));

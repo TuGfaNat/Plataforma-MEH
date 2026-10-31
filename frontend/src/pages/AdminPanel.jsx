@@ -463,19 +463,24 @@ const AdminPanel = () => {
   // --- HANDLERS SOUVENIRS ---
   const handleSaveSouvenir = async () => {
       try {
+          const payload = {
+              ...newSouvenir,
+              activo: newSouvenir.id_estado !== 1
+          };
           if (isEditingSouvenir) {
-              await adminService.updateSouvenir(currentSouvenirId, newSouvenir);
+              await adminService.updateSouvenir(currentSouvenirId, payload);
               notify("Éxito", "Producto actualizado", "success");
           } else {
-              await adminService.createSouvenir(newSouvenir);
+              await adminService.createSouvenir(payload);
               notify("Éxito", "Producto agregado", "success");
           }
-          setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', qr_url: '', categoria: 'SOUVENIR', id_estado: 2 });
+          setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', qr_url: '', categoria: 'SOUVENIR', id_estado: 2, activo: true });
           setIsEditingSouvenir(false); void fetchData();
       } catch (e) { notify("Error", "Fallo al guardar producto", "error"); }
   };
 
   const handleEditSouvenir = (s) => {
+    const isActivo = s.id_estado !== 1 && s.activo !== false;
     setNewSouvenir({ 
         nombre: s.nombre, 
         descripcion: s.descripcion || '', 
@@ -484,7 +489,8 @@ const AdminPanel = () => {
         imagen_url: s.imagen_url || '', 
         qr_url: s.qr_url || '',
         categoria: s.categoria || 'SOUVENIR',
-        id_estado: s.id_estado ?? 2
+        id_estado: isActivo ? 2 : 1,
+        activo: isActivo
     });
     setCurrentSouvenirId(s.id_producto);
     setIsEditingSouvenir(true);

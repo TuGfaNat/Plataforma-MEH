@@ -139,6 +139,29 @@ const SouvenirsTab = ({
   const [isVentaModalOpen, setIsVentaModalOpen] = React.useState(false);
   const [isHistorialModalOpen, setIsHistorialModalOpen] = React.useState(false);
   const { notify } = useNotify();
+  const [updatingId, setUpdatingId] = React.useState(null);
+
+  const handleToggleStatus = async (item, checked) => {
+    const newStatus = checked ? 2 : 1;
+    setUpdatingId(item.id_producto);
+    try {
+      await adminService.updateSouvenir(item.id_producto, { 
+        id_estado: newStatus,
+        activo: checked
+      });
+      notify(
+        checked ? "Souvenir Activado" : "Souvenir Desactivado",
+        `"${item.nombre}" ahora está ${checked ? 'ACTIVO (visible en catálogo)' : 'INACTIVO (oculto del catálogo)'}.`,
+        "success"
+      );
+      if (fetchData) await fetchData();
+    } catch (err) {
+      console.error("Error al actualizar estado del souvenir:", err);
+      notify("Error", "No se pudo cambiar el estado del souvenir.", "error");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const filteredData = React.useMemo(() => {
     if (!searchTerm.trim()) return data;
@@ -286,7 +309,7 @@ const SouvenirsTab = ({
           <Switch 
             label={newSouvenir.id_estado === 1 ? "Inactivo (Oculto en catálogo)" : "Activo (Visible en catálogo)"} 
             checked={newSouvenir.id_estado !== 1} 
-            onChange={(e, d) => setNewSouvenir({...newSouvenir, id_estado: d.checked ? 2 : 1})} 
+            onChange={(e, d) => setNewSouvenir({...newSouvenir, id_estado: d.checked ? 2 : 1, activo: d.checked})} 
           />
         </div>
 
@@ -378,8 +401,8 @@ const SouvenirsTab = ({
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <MEHTypography variant="bold">{i.nombre}</MEHTypography>
-                          <Badge color={i.id_estado === 1 ? 'warning' : 'success'} appearance="filled">
-                            {i.id_estado === 1 ? 'INACTIVO' : 'ACTIVO'}
+                          <Badge color={(i.id_estado === 1 || i.activo === false) ? 'warning' : 'success'} appearance="filled">
+                            {(i.id_estado === 1 || i.activo === false) ? 'INACTIVO' : 'ACTIVO'}
                           </Badge>
                         </div>
                         <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
@@ -400,18 +423,11 @@ const SouvenirsTab = ({
                   </TableCell>
                   <TableCell>
                     <div className={styles.actionsCell}>
-                      <Tooltip content={i.id_estado === 1 ? "Activar" : "Desactivar"} relationship="label">
+                      <Tooltip content={(i.id_estado === 1 || i.activo === false) ? "Activar (mostrar en catálogo)" : "Desactivar (ocultar del catálogo)"} relationship="label">
                         <Switch 
-                          checked={i.id_estado !== 1} 
-                          onChange={async (e, d) => {
-                            try {
-                              const newStatus = d.checked ? 2 : 1;
-                              await adminService.updateSouvenir(i.id_producto, { ...i, id_estado: newStatus });
-                              if (fetchData) fetchData();
-                            } catch (err) {
-                              console.error("Error al actualizar estado del souvenir:", err);
-                            }
-                          }} 
+                          checked={i.id_estado !== 1 && i.activo !== false} 
+                          disabled={updatingId === i.id_producto}
+                          onChange={(e, d) => handleToggleStatus(i, d.checked)} 
                         />
                       </Tooltip>
                       <Tooltip content="Copiar Enlace Público (tipo Luma)" relationship="label">
@@ -503,8 +519,8 @@ const SouvenirsTab = ({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 'bold', fontSize: '15px' }}>{i.nombre}</span>
-                    <Badge color={i.id_estado === 1 ? 'warning' : 'success'} appearance="filled" size="small">
-                      {i.id_estado === 1 ? 'INACTIVO' : 'ACTIVO'}
+                    <Badge color={(i.id_estado === 1 || i.activo === false) ? 'warning' : 'success'} appearance="filled" size="small">
+                      {(i.id_estado === 1 || i.activo === false) ? 'INACTIVO' : 'ACTIVO'}
                     </Badge>
                   </div>
                   <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -524,18 +540,11 @@ const SouvenirsTab = ({
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Tooltip content={i.id_estado === 1 ? "Activar" : "Desactivar"} relationship="label">
+                  <Tooltip content={(i.id_estado === 1 || i.activo === false) ? "Activar (mostrar en catálogo)" : "Desactivar (ocultar del catálogo)"} relationship="label">
                     <Switch 
-                      checked={i.id_estado !== 1} 
-                      onChange={async (e, d) => {
-                        try {
-                          const newStatus = d.checked ? 2 : 1;
-                          await adminService.updateSouvenir(i.id_producto, { ...i, id_estado: newStatus });
-                          if (fetchData) fetchData();
-                        } catch (err) {
-                          console.error("Error al actualizar estado del souvenir:", err);
-                        }
-                      }} 
+                      checked={i.id_estado !== 1 && i.activo !== false} 
+                      disabled={updatingId === i.id_producto}
+                      onChange={(e, d) => handleToggleStatus(i, d.checked)} 
                     />
                   </Tooltip>
                   <Tooltip content="Copiar link" relationship="label">

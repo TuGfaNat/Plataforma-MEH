@@ -182,7 +182,7 @@ const SouvenirsCatalogoPublico = () => {
       try {
         const data = await adminService.getSouvenirs();
         // Filtrar productos eliminados (id_estado = 0) o inactivos (id_estado = 1) si se desea
-        const activeOnly = (Array.isArray(data) ? data : []).filter(p => p.id_estado !== 0 && p.id_estado !== 1);
+        const activeOnly = (Array.isArray(data) ? data : []).filter(p => p.id_estado !== 0 && p.id_estado !== 1 && p.activo !== false);
         setSouvenirs(activeOnly);
       } catch (err) {
         console.error("Error al cargar catálogo:", err);

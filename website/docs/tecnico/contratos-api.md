@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 20  
-**Total de endpoints expuestos:** 164
+**Total de endpoints expuestos:** 167
 
 ---
 
@@ -83,6 +83,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`GET`** | `/api/auth/directorio` | Directorio de miembros con métricas y nivel (Solo ADMIN/ORGANIZADOR). | `skip: int`, `limit: int` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/auth/admin/users` | Endpoint para que Administradores y Organizadores creen cuentas de usuario directamente. | `payload: dict` | `201 Created` | Requiere Auth (JWT), Staff / Organizador |
 | **`POST`** | `/api/auth/admin/purge-seed-data` | Endpoint para que el SuperAdmin/Admin purgue físicamente todos los datos y cuentas semilla en producción. | - | `HTTP_200_OK` | Requiere Auth (JWT), Staff / Organizador |
+| **`GET`** | `/api/auth/usuarios/{id_usuario}/expediente` | Consulta el expediente completo de un usuario (eventos, compras, asistencia, badges, etc.). | `id_usuario: int` | `200 OK` | Requiere Auth (JWT) |
 
 ## Módulo `badges` (Prefix: `/insignias`)
 
@@ -193,6 +194,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`POST`** | `/api/eventos/imagen` | Valida y procesa una imagen de portada generando original y variantes 16:9 y 1:1 antes de guardar el evento (Solo Staff). | `file: UploadFile` | `200 OK` | Requiere Auth (JWT), Staff / Organizador |
 | **`POST`** | `/api/eventos/{id_evento}/imagen` | Sube o reemplaza la imagen de portada de un evento existente generando sus variantes 16:9 y 1:1 (Solo Staff). | `id_evento: int`, `file: UploadFile` | `200 OK` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/eventos/{id_evento}/imagen` | Elimina la imagen de portada de un evento y limpia sus variantes en disco (Solo Staff). | `id_evento: int` | `200 OK` | Requiere Auth (JWT) |
+| **`PUT`** | `/api/eventos/inscripciones/{id_inscripcion}/toggle-asistencia` | Permite al Staff alternar o corregir la asistencia de una inscripción (para corregir errores manuales). | `id_inscripcion: int` | `200 OK` | Requiere Auth (JWT) |
 
 ## Módulo `files` (Prefix: `/files`)
 
@@ -215,6 +217,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`GET`** | `/api/inscripciones/cursos/mis-inscripciones` | Obtiene las inscripciones a cursos del usuario actual. | - | `200 OK` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/inscripciones/cursos/{id_curso}/progreso` | Actualiza el progreso de un usuario en un curso. | `id_curso: int`, `progreso: int` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/inscripciones/eventos/{id_evento}/manual` | Inscripcion manual de un miembro a un evento por parte del Staff (Admin u Organizador). | `id_evento: int`, `data: InscribirManualBody` | `201 Created` | Requiere Auth (JWT), Staff / Organizador |
+| **`PUT`** | `/api/inscripciones/eventos/{id_inscripcion}/toggle-asistencia` | Permite al Staff alternar o corregir la asistencia de una inscripción. | `id_inscripcion: int` | `200 OK` | Requiere Auth (JWT), Staff / Organizador |
 
 ## Módulo `learning_path` (Prefix: `/ms-learning`)
 

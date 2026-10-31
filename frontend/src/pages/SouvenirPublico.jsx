@@ -275,8 +275,12 @@ const SouvenirPublico = () => {
       setError(null);
       try {
         const prod = await adminService.getSouvenirById(id);
-        setProducto(prod);
-        setCantidad(1);
+        if (prod.id_estado === 1 || prod.activo === false) {
+          setError("Este souvenir se encuentra temporalmente inactivo y no está disponible para su compra.");
+        } else {
+          setProducto(prod);
+          setCantidad(1);
+        }
       } catch (err) {
         console.error("Error al cargar el souvenir:", err);
         setError("El producto no existe o ya no se encuentra disponible en catálogo.");
