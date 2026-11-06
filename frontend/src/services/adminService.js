@@ -95,6 +95,10 @@ const adminService = {
     const params = idEvento ? { id_evento: idEvento } : {};
     const response = await api.get('/souvenirs/ventas', { params });
     return response.data;
+  },
+  getMisPedidos: async () => {
+    const response = await api.get('/souvenirs/mis-pedidos');
+    return response.data;
   }
 };
 

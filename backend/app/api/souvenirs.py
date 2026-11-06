@@ -56,6 +56,14 @@ def get_ventas(
     ensure_permission(current_user.rol, PERMISSION_EVENTS_MANAGE, "Acceso denegado")
     return souvenirs_service.list_pedidos(db, id_evento=id_evento)
 
+@router.get("/mis-pedidos", response_model=List[schema.PedidoResponse])
+def get_mis_pedidos(
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Consulta todas las compras y souvenirs adquiridos por el usuario actual."""
+    return souvenirs_service.list_pedidos_usuario(db, current_user.id_usuario)
+
 # RUTAS DINÁMICAS POR ID AL FINAL
 @router.get("/{id_producto}", response_model=schema.ProductoResponse)
 def get_producto(id_producto: int, db: Session = Depends(get_db)):

@@ -45,6 +45,7 @@ import DashboardAnalytics from '../components/DashboardAnalytics';
 import eventoService from '../services/eventoService';
 import dashboardService from '../services/dashboardService';
 import comunidadService from '../services/comunidadService';
+import adminService from '../services/adminService';
 import { QRCodeSVG } from 'qrcode.react';
 import BadgeDetailModal from '../components/BadgeDetailModal';
 import InscripcionEventoModal from '../components/InscripcionEventoModal';
@@ -277,6 +278,7 @@ const Dashboard = () => {
   const [eventos, setEventos] = useState([]);
   const [inscripciones, setInscripciones] = useState([]);
   const [anuncios, setAnuncios] = useState([]);
+  const [misSouvenirs, setMisSouvenirs] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submittingInscripcion, setSubmittingInscripcion] = useState(null);
@@ -308,11 +310,12 @@ const Dashboard = () => {
   const fetchData = async () => {
     if (!user) return;
     try {
-      const [eventosData, statsData, inscripcionesData, anunciosData] = await Promise.all([
+      const [eventosData, statsData, inscripcionesData, anunciosData, souvenirsData] = await Promise.all([
         eventoService.getEventos(),
         dashboardService.getStats(user.rol),
         eventoService.getMisInscripciones(),
-        comunidadService.getAnuncios()
+        comunidadService.getAnuncios(),
+        adminService.getMisPedidos().catch(() => [])
       ]);
       
       const misIds = new Set((inscripcionesData || []).map(i => i.id_evento));
@@ -333,6 +336,7 @@ const Dashboard = () => {
       setStats(statsData);
       setInscripciones(inscripcionesData);
       setAnuncios(anunciosData.slice(0, 3));
+      setMisSouvenirs(souvenirsData || []);
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
     } finally {
@@ -810,6 +814,68 @@ const Dashboard = () => {
                 <MEHTypography variant="caption" style={{ textAlign: 'center', opacity: 0.5, padding: '20px' }}>No hay avisos nuevos.</MEHTypography>
                )}
               <MEHButton appearance="subtle" size="small" onClick={() => navigate('/comunidad')}>Ir a la Comunidad</MEHButton>
+            </MEHCard>
+          </section>
+
+          {/* 5. Mis Souvenirs & Merch Oficial */}
+          <section>
+            <div className={styles.sectionTitle}>
+              <ShoppingBag24Regular style={{ color: tokens.colorBrandForeground1 }} />
+              <MEHTypography variant="h3">Mis Souvenirs y Merchandising</MEHTypography>
+            </div>
+            <MEHCard style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {misSouvenirs.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {misSouvenirs.map(pedido => (
+                    <div key={pedido.id_pedido} style={{
+                      padding: '12px 14px',
+                      backgroundColor: 'rgba(255,255,255,0.03)',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <Badge appearance="filled" color="success" size="small">✓ Adquirido</Badge>
+                          {pedido.evento_titulo && (
+                            <Badge appearance="tint" color="brand" size="small">{pedido.evento_titulo}</Badge>
+                          )}
+                          <span style={{ fontSize: '11px', opacity: 0.6 }}>
+                            {new Date(pedido.fecha_pedido).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <span style={{ fontWeight: 'bold', color: tokens.colorBrandForeground1, fontSize: '14px' }}>
+                          Bs. {pedido.total}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        {(pedido.detalles || []).map((det, dIdx) => (
+                          <div key={dIdx} style={{ fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>• {det.cantidad}x {det.producto_nombre || `Souvenir #${det.id_producto}`}</span>
+                            <span style={{ opacity: 0.7 }}>Bs. {det.precio_unitario * det.cantidad}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div style={{ fontSize: '10px', opacity: 0.8, color: tokens.colorBrandForeground2, marginTop: '2px' }}>
+                        🏷️ Retira tus ítems en la mesa de acreditación mostrando tu QR de participante.
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '16px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                  <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
+                    Aún no tienes souvenirs oficiales registrados. ¡Apoya a la comunidad y viste tu swag!
+                  </MEHTypography>
+                </div>
+              )}
+              <MEHButton appearance="subtle" size="small" icon={<ShoppingBag24Regular />} onClick={() => navigate('/souvenirs')}>
+                Explorar Catálogo de Swags
+              </MEHButton>
             </MEHCard>
           </section>
         </div>

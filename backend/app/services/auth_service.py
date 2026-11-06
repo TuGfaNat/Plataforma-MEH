@@ -450,6 +450,11 @@ def update_user_role(
     db.commit()
     db.refresh(usuario)
     
+    # Sincronizar automáticamente en paneles de speakers y mentores si aplica
+    from .ecosistema_service import sync_users_to_speakers, sync_users_to_mentores
+    sync_users_to_speakers(db)
+    sync_users_to_mentores(db)
+
     registrar_log(
         db=db,
         id_admin=admin_user.id_usuario,
@@ -632,6 +637,11 @@ def admin_update_user(
 
     db.commit()
     db.refresh(usuario)
+
+    # Sincronizar automáticamente en paneles de speakers y mentores si aplica
+    from .ecosistema_service import sync_users_to_speakers, sync_users_to_mentores
+    sync_users_to_speakers(db)
+    sync_users_to_mentores(db)
 
     registrar_log(
         db=db,

@@ -12,7 +12,7 @@ import {
   QrCode24Regular, PeopleTeam24Regular, Mic24Regular, Link24Regular,
   Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled, ArrowDownload24Regular,
   Megaphone24Regular, DismissCircle24Regular, Share24Regular, Copy24Regular, DocumentTable24Regular,
-  Image24Regular, PersonAdd24Regular
+  Image24Regular, PersonAdd24Regular, ShoppingBag24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
@@ -23,6 +23,8 @@ import BadgeSocialModal from '../../components/BadgeSocialModal';
 import CheckpointPermisosPanel from '../../components/CheckpointPermisosPanel';
 import EventoPortadaUploader from '../../components/EventoPortadaUploader';
 import EmailDryRunModal from '../../components/EmailDryRunModal';
+import VentaSouvenirModal from '../../components/VentaSouvenirModal';
+import HistorialVentasSouvenirsModal from '../../components/HistorialVentasSouvenirsModal';
 
 const useStyles = makeStyles({
   grid: { 
@@ -241,6 +243,10 @@ const EventsTab = ({
   const [avisando, setAvisando] = useState(false);
   const [dryRunLoading, setDryRunLoading] = useState(false);
   const [dryRunResult, setDryRunResult] = useState(null);
+
+  // Estados para Souvenirs del Evento
+  const [isSouvenirVentasOpen, setIsSouvenirVentasOpen] = useState(false);
+  const [isSouvenirVentaModalOpen, setIsSouvenirVentaModalOpen] = useState(false);
 
   useEffect(() => {
     if (selectedEventoId) {
@@ -959,6 +965,24 @@ const EventsTab = ({
                   >
                     Exportar CSV
                   </MEHButton>
+                  <MEHButton 
+                    size="small" 
+                    icon={<ShoppingBag24Regular />} 
+                    appearance="outline" 
+                    onClick={() => setIsSouvenirVentasOpen(true)}
+                    title="Ver ventas de souvenirs registradas en este evento"
+                  >
+                    Ventas Souvenirs
+                  </MEHButton>
+                  <MEHButton 
+                    size="small" 
+                    icon={<Add24Regular />} 
+                    appearance="outline" 
+                    onClick={() => setIsSouvenirVentaModalOpen(true)}
+                    title="Registrar venta o entrega de souvenir para este evento"
+                  >
+                    + Vender Souvenir
+                  </MEHButton>
                 </div>
 
                 <div className={styles.actionGroup}>
@@ -1570,6 +1594,29 @@ const EventsTab = ({
         eventoId={selectedEventoId} 
         eventoTitulo={currentEvent?.titulo} 
       />
+
+      {/* Modales de Gestión de Souvenirs del Evento */}
+      {currentEvent && (
+        <>
+          <HistorialVentasSouvenirsModal
+            open={isSouvenirVentasOpen}
+            onClose={() => setIsSouvenirVentasOpen(false)}
+            eventoId={currentEvent.id_evento}
+            eventoTitulo={currentEvent.titulo}
+          />
+          <VentaSouvenirModal
+            open={isSouvenirVentaModalOpen}
+            onClose={() => setIsSouvenirVentaModalOpen(false)}
+            initialUser={null}
+            eventoId={currentEvent.id_evento}
+            eventoTitulo={currentEvent.titulo}
+            onSuccess={() => {
+              setIsSouvenirVentaModalOpen(false);
+              if (notify) notify("Venta Registrada", "Venta de souvenir guardada exitosamente para este evento", "success");
+            }}
+          />
+        </>
+      )}
     </div>
   );
 };

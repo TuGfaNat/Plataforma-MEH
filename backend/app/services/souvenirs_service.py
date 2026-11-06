@@ -246,3 +246,10 @@ def list_pedidos(db: Session, id_evento: Optional[int] = None):
         query = query.filter(models.Pedido.id_evento == id_evento)
     pedidos = query.order_by(models.Pedido.fecha_pedido.desc()).all()
     return [format_pedido_response(p) for p in pedidos]
+
+def list_pedidos_usuario(db: Session, id_usuario: int):
+    """Lista todos los pedidos y compras de souvenirs realizadas por un usuario específico."""
+    pedidos = db.query(models.Pedido).filter(
+        models.Pedido.id_usuario == id_usuario
+    ).order_by(models.Pedido.fecha_pedido.desc()).all()
+    return [format_pedido_response(p) for p in pedidos]

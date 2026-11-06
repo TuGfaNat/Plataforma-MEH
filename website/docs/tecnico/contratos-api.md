@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 20  
-**Total de endpoints expuestos:** 175
+**Total de endpoints expuestos:** 176
 
 ---
 
@@ -287,6 +287,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`POST`** | `/api/souvenirs` | Operación create_producto | `data: ProductoCreate` | `201 Created` | Requiere Auth (JWT), Permiso events_manage |
 | **`POST`** | `/api/souvenirs/ventas` | Operación register_venta | `data: VentaRequest` | `200 OK` | Requiere Auth (JWT), Permiso events_manage |
 | **`GET`** | `/api/souvenirs/ventas` | Operación get_ventas | - | `200 OK` | Requiere Auth (JWT), Permiso events_manage |
+| **`GET`** | `/api/souvenirs/mis-pedidos` | Consulta todas las compras y souvenirs adquiridos por el usuario actual. | - | `200 OK` | Requiere Auth (JWT) |
 | **`GET`** | `/api/souvenirs/{id_producto}` | Operación get_producto | `id_producto: int` | `200 OK` | Público / Abierto |
 | **`PUT`** | `/api/souvenirs/{id_producto}` | Operación update_producto | `id_producto: int`, `data: ProductoUpdate` | `200 OK` | Requiere Auth (JWT), Permiso events_manage |
 | **`DELETE`** | `/api/souvenirs/{id_producto}` | Operación delete_producto | `id_producto: int` | `204 No Content` | Requiere Auth (JWT), Permiso events_manage |

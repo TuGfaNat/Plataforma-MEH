@@ -82,8 +82,22 @@ def _hydrate_pago_details(db: Session, p: models.Pago) -> None:
             curso = db.query(models.Curso).filter(models.Curso.id_curso == p.id_referencia).first()
             p.detalles_referencia = curso.nombre_curso if curso else f"Curso/Inscripción #{p.id_referencia}"
     elif p.tipo_referencia == "SOUVENIR":
-        producto = db.query(models.Producto).filter(models.Producto.id_producto == p.id_referencia).first()
-        p.detalles_referencia = f"Souvenir: {producto.nombre}" if producto else f"Souvenir #{p.id_referencia}"
+        # Buscar el pedido vinculado a este pago
+        pedido = db.query(models.Pedido).filter(models.Pedido.id_pago == p.id_pago).first()
+        if pedido and pedido.detalles:
+            nombres_prod = [d.producto.nombre for d in pedido.detalles if d.producto]
+            ev_str = f" ({pedido.evento.titulo})" if pedido.evento else ""
+            p.detalles_referencia = f"Souvenirs{ev_str}: {', '.join(nombres_prod)}" if nombres_prod else "Compra de Souvenirs"
+        else:
+            producto = db.query(models.Producto).filter(models.Producto.id_producto == p.id_referencia).first()
+            if producto:
+                p.detalles_referencia = f"Souvenir: {producto.nombre}"
+            else:
+                evento = db.query(models.Evento).filter(models.Evento.id_evento == p.id_referencia).first()
+                if evento:
+                    p.detalles_referencia = f"Souvenirs en {evento.titulo}"
+                else:
+                    p.detalles_referencia = p.notas_admin or f"Souvenirs #{p.id_referencia}"
     else:
         p.detalles_referencia = f"{p.tipo_referencia} #{p.id_referencia}"
 

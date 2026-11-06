@@ -91,6 +91,7 @@ const GestionPagos = () => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [pagos, setPagos] = useState([]);
+  const [tipoFilter, setTipoFilter] = useState('TODOS');
   const [loading, setLoading] = useState(true);
   const [matches, setMatches] = useState(null);
   const [uploadingExtracto, setUploadingExtracto] = useState(false);
@@ -272,9 +273,25 @@ const GestionPagos = () => {
       )}
 
       <MEHCard>
-        <MEHTypography variant="h3" style={{ marginBottom: '16px' }}>
-          Todos los pagos
-        </MEHTypography>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+          <MEHTypography variant="h3">
+            Todos los pagos ({pagos.filter(p => tipoFilter === 'TODOS' || p.tipo_referencia === tipoFilter).length})
+          </MEHTypography>
+          <div style={{ display: 'flex', gap: '8px', padding: '4px', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: '12px', flexWrap: 'wrap' }}>
+            <MEHButton size="small" appearance={tipoFilter === 'TODOS' ? 'primary' : 'subtle'} onClick={() => setTipoFilter('TODOS')}>
+              Todos ({pagos.length})
+            </MEHButton>
+            <MEHButton size="small" appearance={tipoFilter === 'EVENTO' ? 'primary' : 'subtle'} onClick={() => setTipoFilter('EVENTO')}>
+              📅 Eventos ({pagos.filter(p => p.tipo_referencia === 'EVENTO').length})
+            </MEHButton>
+            <MEHButton size="small" appearance={tipoFilter === 'SOUVENIR' ? 'primary' : 'subtle'} onClick={() => setTipoFilter('SOUVENIR')}>
+              🛍️ Souvenirs ({pagos.filter(p => p.tipo_referencia === 'SOUVENIR').length})
+            </MEHButton>
+            <MEHButton size="small" appearance={tipoFilter === 'CURSO' ? 'primary' : 'subtle'} onClick={() => setTipoFilter('CURSO')}>
+              🎓 Cursos ({pagos.filter(p => p.tipo_referencia === 'CURSO').length})
+            </MEHButton>
+          </div>
+        </div>
         {loading ? (
           <Spinner label="Cargando todos los pagos..." />
         ) : pagos.length > 0 ? (
@@ -292,7 +309,7 @@ const GestionPagos = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pagos.map((pago) => (
+                {pagos.filter(p => tipoFilter === 'TODOS' || p.tipo_referencia === tipoFilter).map((pago) => (
                   <TableRow key={pago.id_pago}>
                     <TableCell>
                       <div>
@@ -301,9 +318,24 @@ const GestionPagos = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <MEHTypography style={{ fontWeight: '500' }}>{pago.detalles_referencia || `${pago.tipo_referencia} #${pago.id_referencia}`}</MEHTypography>
-                        <MEHTypography variant="caption" style={{ opacity: 0.6, display: 'block' }}>{pago.tipo_referencia} (Ref: #{pago.id_referencia})</MEHTypography>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <Badge 
+                            appearance="filled" 
+                            color={pago.tipo_referencia === 'SOUVENIR' ? 'informative' : pago.tipo_referencia === 'EVENTO' ? 'brand' : 'success'} 
+                            size="small"
+                          >
+                            {pago.tipo_referencia === 'SOUVENIR' ? '🛍️ Souvenir' : pago.tipo_referencia === 'EVENTO' ? '📅 Evento' : '🎓 Curso'}
+                          </Badge>
+                          <MEHTypography style={{ fontWeight: '500' }}>
+                            {pago.detalles_referencia || `${pago.tipo_referencia} #${pago.id_referencia}`}
+                          </MEHTypography>
+                        </div>
+                        {pago.notas_admin && (
+                          <div style={{ fontSize: '11px', opacity: 0.75 }}>
+                            {pago.notas_admin}
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell><b>Bs. {pago.monto}</b></TableCell>

@@ -26,7 +26,65 @@ def _sync_user_secondary_role(usuario: models.Usuario, new_role: str):
             usuario.roles_secundarios = ",".join(secundarios)
 
 # --- SERVICIOS DE SPEAKERS ---
+def sync_users_to_speakers(db: Session):
+    """Sincroniza cualquier usuario que tenga rol SPEAKER (principal o secundario) en la tabla speakers."""
+    spk_users = db.query(models.Usuario).filter(
+        (models.Usuario.rol == "SPEAKER") | (models.Usuario.roles_secundarios.like("%SPEAKER%")),
+        models.Usuario.id_estado != 0
+    ).all()
+    changed = False
+    for u in spk_users:
+        spk = db.query(models.Speaker).filter(models.Speaker.id_usuario == u.id_usuario).first()
+        if not spk:
+            nombre = f"{u.nombres or ''} {u.apellidos or ''}".strip() or u.alias or u.correo
+            new_s = models.Speaker(
+                id_usuario=u.id_usuario,
+                nombre=nombre,
+                bio=u.bio or "Speaker oficial de la comunidad MEH",
+                foto_url=u.foto_url,
+                trabajo_actual=u.institucion or u.estudia_en or "Comunidad MEH",
+                correo_contacto=u.correo,
+                id_estado=1
+            )
+            db.add(new_s)
+            changed = True
+        elif spk.id_estado == 0:
+            spk.id_estado = 1
+            changed = True
+    if changed:
+        db.commit()
+
+def sync_users_to_mentores(db: Session):
+    """Sincroniza cualquier usuario que tenga rol MENTOR (principal o secundario) en la tabla mentores."""
+    mnt_users = db.query(models.Usuario).filter(
+        (models.Usuario.rol == "MENTOR") | (models.Usuario.roles_secundarios.like("%MENTOR%")),
+        models.Usuario.id_estado != 0
+    ).all()
+    changed = False
+    for u in mnt_users:
+        mnt = db.query(models.Mentor).filter(models.Mentor.id_usuario == u.id_usuario).first()
+        if not mnt:
+            nombre = f"{u.nombres or ''} {u.apellidos or ''}".strip() or u.alias or u.correo
+            new_m = models.Mentor(
+                id_usuario=u.id_usuario,
+                nombre=nombre,
+                bio=u.bio or "Mentor oficial de la comunidad MEH",
+                foto_url=u.foto_url,
+                trabajo_actual=u.institucion or u.estudia_en or "Comunidad MEH",
+                area_mentoria=getattr(u, 'especialidad', None) or "Mentoría Técnica",
+                correo_contacto=u.correo,
+                id_estado=1
+            )
+            db.add(new_m)
+            changed = True
+        elif mnt.id_estado == 0:
+            mnt.id_estado = 1
+            changed = True
+    if changed:
+        db.commit()
+
 def list_speakers(db: Session) -> List[models.Speaker]:
+    sync_users_to_speakers(db)
     return db.query(models.Speaker).filter(models.Speaker.id_estado != 0).order_by(models.Speaker.id_speaker.desc()).all()
 
 def create_speaker(db: Session, admin_user: models.Usuario, data: schema.SpeakerCreate, ip: str = None) -> models.Speaker:
@@ -82,6 +140,7 @@ def delete_speaker(db: Session, id_obj: int, admin_user: models.Usuario) -> None
 
 # --- SERVICIOS DE MENTORES ---
 def list_mentores(db: Session) -> List[models.Mentor]:
+    sync_users_to_mentores(db)
     return db.query(models.Mentor).filter(models.Mentor.id_estado != 0).order_by(models.Mentor.id_mentor.desc()).all()
 
 def create_mentor(db: Session, admin_user: models.Usuario, data: schema.MentorCreate, ip: str = None) -> models.Mentor:
