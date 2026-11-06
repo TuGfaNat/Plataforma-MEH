@@ -137,8 +137,8 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`GET`** | `/api/comunidad/anuncios/all` | Lista todos los anuncios (incluyendo inactivos) para gestión (Solo Staff). | - | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/comunidad/anuncios/procesar-programados` | Procesa y despacha inmediatamente cualquier anuncio programado pendiente de correo (Solo Staff). | - | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/comunidad/anuncios/dry-run` | Simula el envío por correo de un anuncio con los filtros configurados sin enviar correos reales ni persistir en BD. | `anuncio: AnuncioCreate` | `200 OK` | Requiere Auth (JWT) |
-| **`POST`** | `/api/comunidad/anuncios` | Crea y publica un nuevo anuncio (o ejecuta dry-run si dry_run=True). | `anuncio: AnuncioCreate` | `201 Created` | Requiere Auth (JWT) |
-| **`PUT`** | `/api/comunidad/anuncios/{id_anuncio}` | Actualiza un anuncio existente. | `id_anuncio: int`, `anuncio: AnuncioUpdate` | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/comunidad/anuncios` | Crea y publica un nuevo anuncio (o ejecuta dry-run si dry_run=True). | `anuncio: AnuncioCreate`, `background_tasks: BackgroundTasks` | `201 Created` | Requiere Auth (JWT) |
+| **`PUT`** | `/api/comunidad/anuncios/{id_anuncio}` | Actualiza un anuncio existente. | `id_anuncio: int`, `anuncio: AnuncioUpdate`, `background_tasks: BackgroundTasks` | `200 OK` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/comunidad/anuncios/{id_anuncio}` | Elimina permanentemente un anuncio. | `id_anuncio: int` | `204 No Content` | Requiere Auth (JWT) |
 
 ## Módulo `cursos` (Prefix: `/cursos`)

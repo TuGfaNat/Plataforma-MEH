@@ -4,11 +4,14 @@ import json
 import csv
 import io
 import codecs
+import logging
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
+
+logger = logging.getLogger(__name__)
 
 from ..models import models
 from ..schemas import evento as evento_schema
@@ -579,15 +582,24 @@ def avisar_inscritos_evento(
     emails_enviados = 0
     if payload.enviar_email:
         from . import email_service
+        seen_emails = set()
+        clean_inscripciones = []
         for ins in inscripciones_filtradas:
             if ins.usuario and ins.usuario.correo:
+                c = ins.usuario.correo.strip().lower()
+                if c and c not in seen_emails and "@" in c:
+                    seen_emails.add(c)
+                    clean_inscripciones.append(ins)
+
+        with email_service.open_smtp_session() as smtp_session:
+            for ins in clean_inscripciones:
                 try:
                     email_service.call_notify_with_event_context(
                         email_service.notify_aviso_evento,
                         db_evento,
                         {
-                            "email": ins.usuario.correo,
-                            "nombre": f"{ins.usuario.nombres} {ins.usuario.apellidos}".strip(),
+                            "email": ins.usuario.correo.strip(),
+                            "nombre": f"{ins.usuario.nombres or ''} {ins.usuario.apellidos or ''}".strip() or "Participante",
                             "titulo_evento": db_evento.titulo,
                             "titulo_aviso": titulo_limpio,
                             "mensaje": mensaje_limpio,
@@ -596,11 +608,12 @@ def avisar_inscritos_evento(
                             "fecha_evento": db_evento.fecha_inicio,
                             "imagen_url": db_evento.imagen_url,
                             "evento": db_evento,
+                            "smtp_server": smtp_session,
                         },
                     )
                     emails_enviados += 1
-                except Exception:
-                    pass
+                except Exception as ex_aviso:
+                    logger.warning(f"Error al enviar aviso por email a {ins.usuario.correo}: {ex_aviso}")
 
     registrar_log(
         db=db,

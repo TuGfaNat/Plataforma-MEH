@@ -183,6 +183,7 @@ const AnnouncementsTab = () => {
   const [eventosDisponibles, setEventosDisponibles] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [dryRunLoading, setDryRunLoading] = useState(false);
   const [dryRunResult, setDryRunResult] = useState(null);
 
@@ -359,7 +360,9 @@ const AnnouncementsTab = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
     if (!formData.titulo.trim() || isContentEmpty(formData.contenido)) {
       notify("Validación", "Completa el título y contenido del anuncio.", "warning");
       return;
@@ -382,6 +385,7 @@ const AnnouncementsTab = () => {
       fechaPubPayload = new Date().toISOString();
     }
 
+    setSubmitting(true);
     try {
       const payload = {
         ...formData,
@@ -402,13 +406,18 @@ const AnnouncementsTab = () => {
           ? (formData.enviar_email 
               ? "Anuncio programado con envío automático de correo al salir." 
               : "Anuncio programado exitosamente.")
-          : t("announcement_created_success");
+          : (formData.enviar_email
+              ? "Anuncio publicado exitosamente. Los correos se están despachando en segundo plano."
+              : t("announcement_created_success"));
         notify(formData.programar_publicacion ? t("admin_scheduled_badge") : t("published"), successMsg, "success");
       }
       resetForm();
       fetchAnnouncements();
     } catch (err) {
-      notify("Error", t("announcement_process_error"), "error");
+      const detail = err.response?.data?.detail;
+      notify("Error", typeof detail === 'string' ? detail : t("announcement_process_error"), "error");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -662,10 +671,18 @@ const AnnouncementsTab = () => {
             >
               {dryRunLoading ? "Simulando..." : "Simular Correo (Dry-Run)"}
             </MEHButton>
-            <MEHButton type="submit" appearance="primary" style={{ flexGrow: 1 }} icon={isEditing ? <Save24Regular /> : <Send24Regular />}>
-              {isEditing ? t("admin_save_changes") : (formData.programar_publicacion ? t("admin_schedule_announcement") : t("admin_publish_now"))}
+            <MEHButton
+              type="submit"
+              appearance="primary"
+              style={{ flexGrow: 1 }}
+              icon={isEditing ? <Save24Regular /> : <Send24Regular />}
+              disabled={submitting || dryRunLoading || !formData.titulo.trim() || isContentEmpty(formData.contenido)}
+            >
+              {submitting
+                ? (isEditing ? "Guardando..." : "Publicando...")
+                : (isEditing ? t("admin_save_changes") : (formData.programar_publicacion ? t("admin_schedule_announcement") : t("admin_publish_now")))}
             </MEHButton>
-            <MEHButton appearance="subtle" icon={<Dismiss24Regular />} onClick={resetForm}>{t("cancel")}</MEHButton>
+            <MEHButton appearance="subtle" icon={<Dismiss24Regular />} disabled={submitting} onClick={resetForm}>{t("cancel")}</MEHButton>
           </div>
         </form>
       </div>
@@ -674,6 +691,11 @@ const AnnouncementsTab = () => {
         open={Boolean(dryRunResult)}
         onClose={() => setDryRunResult(null)}
         dryRunResult={dryRunResult}
+        onConfirmRealSend={() => {
+          setDryRunResult(null);
+          void handleSubmit();
+        }}
+        sendingReal={submitting}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..database import get_db
@@ -72,6 +72,7 @@ def preview_anuncio_dry_run(
 def create_anuncio(
     request: Request,
     anuncio: anuncio_schema.AnuncioCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
@@ -79,7 +80,7 @@ def create_anuncio(
     if anuncio.dry_run:
         return comunidad_service.simulate_anuncio_dry_run(db, current_user, anuncio)
     ip_address = request.client.host if request.client else None
-    created = comunidad_service.create_anuncio(db, current_user, anuncio, ip_address)
+    created = comunidad_service.create_anuncio(db, current_user, anuncio, ip_address, background_tasks=background_tasks)
     return anuncio_schema.AnuncioResponse.model_validate(created)
 
 @router.put("/anuncios/{id_anuncio}", response_model=anuncio_schema.AnuncioResponse)
@@ -87,12 +88,13 @@ def update_anuncio(
     id_anuncio: int,
     request: Request,
     anuncio: anuncio_schema.AnuncioUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
     """Actualiza un anuncio existente."""
     ip_address = request.client.host if request.client else None
-    return comunidad_service.update_anuncio(db, id_anuncio, anuncio, current_user, ip_address)
+    return comunidad_service.update_anuncio(db, id_anuncio, anuncio, current_user, ip_address, background_tasks=background_tasks)
 
 @router.delete("/anuncios/{id_anuncio}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_anuncio(

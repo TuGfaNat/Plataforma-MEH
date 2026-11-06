@@ -299,6 +299,57 @@ def registrar_log_fallo_email(
             active_db.close()
 
 
+def build_mime_message(
+    to_email: str,
+    subject: str,
+    html_content: str,
+    images: Optional[Dict[str, Tuple[bytes, str]]] = None,
+) -> MIMEMultipart:
+    """Construye un mensaje MIME estructurado (compatible con HTML y partes inline)."""
+    if images:
+        message = MIMEMultipart("related")
+        alt_part = MIMEMultipart("alternative")
+        alt_part.attach(MIMEText(html_content, "html", "utf-8"))
+        message.attach(alt_part)
+        for cid, (img_bytes, subtype) in images.items():
+            mime_img = MIMEImage(img_bytes, _subtype=subtype)
+            mime_img.add_header("Content-ID", f"<{cid}>")
+            mime_img.add_header("Content-Disposition", "inline", filename=f"{cid}.{subtype}")
+            message.attach(mime_img)
+    else:
+        message = MIMEMultipart("alternative")
+        part = MIMEText(html_content, "html", "utf-8")
+        message.attach(part)
+
+    message["Subject"] = subject
+    message["From"] = f"{EMAIL_FROM_NAME} <{SMTP_USER}>"
+    message["To"] = to_email
+    return message
+
+
+@contextmanager
+def open_smtp_session():
+    """Abre y mantiene una conexión SMTP compartida para envíos en lote, evitando múltiples handshakes TLS."""
+    if not is_smtp_configured():
+        yield None
+        return
+    server = None
+    try:
+        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=12)
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASSWORD)
+        yield server
+    except Exception as e:
+        logger.warning(f"No se pudo inicializar sesión SMTP compartida: {e}")
+        yield None
+    finally:
+        if server:
+            try:
+                server.quit()
+            except Exception:
+                pass
+
+
 def send_email(
     to_email: str, 
     subject: str, 
@@ -306,10 +357,11 @@ def send_email(
     retry_count: int = 1,
     images: Optional[Dict[str, Tuple[bytes, str]]] = None,
     db: Optional[Session] = None,
-    id_admin: Optional[int] = None
+    id_admin: Optional[int] = None,
+    smtp_server: Optional[Any] = None,
 ) -> bool:
     """
-    Función base para envío de correos vía SMTP
+    Función base para envío de correos vía SMTP. Soporta sesión SMTP compartida/reutilizada.
     """
     if not is_smtp_configured():
         msg = f"SMTP no configurado (servidor={SMTP_HOST})"
@@ -324,29 +376,21 @@ def send_email(
         return False
     
     try:
-        if images:
-            message = MIMEMultipart("related")
-            alt_part = MIMEMultipart("alternative")
-            alt_part.attach(MIMEText(html_content, "html", "utf-8"))
-            message.attach(alt_part)
-            for cid, (img_bytes, subtype) in images.items():
-                mime_img = MIMEImage(img_bytes, _subtype=subtype)
-                mime_img.add_header("Content-ID", f"<{cid}>")
-                mime_img.add_header("Content-Disposition", "inline", filename=f"{cid}.{subtype}")
-                message.attach(mime_img)
-        else:
-            message = MIMEMultipart("alternative")
-            part = MIMEText(html_content, "html", "utf-8")
-            message.attach(part)
+        message = build_mime_message(to_email, subject, html_content, images)
 
-        message["Subject"] = subject
-        message["From"] = f"{EMAIL_FROM_NAME} <{SMTP_USER}>"
-        message["To"] = to_email
+        # Si se proveyó una conexión SMTP activa reutilizable, intentar enviar de inmediato
+        if smtp_server is not None:
+            try:
+                smtp_server.sendmail(SMTP_USER, to_email, message.as_string())
+                logger.info(f"✅ Correo enviado exitosamente (reutilizando sesión SMTP) a {to_email}: {subject}")
+                return True
+            except Exception as e_reuse:
+                logger.warning(f"⚠️ Sesión SMTP reutilizada no pudo enviar a {to_email} ({e_reuse}), recurriendo a conexión dedicada...")
         
         attempt = 0
         while attempt < retry_count:
             try:
-                with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=6) as server:
+                with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
                     server.starttls()
                     server.login(SMTP_USER, SMTP_PASSWORD)
                     server.sendmail(SMTP_USER, to_email, message.as_string())
@@ -578,6 +622,7 @@ def notify_nuevo_anuncio(
     titulo_evento: Optional[str] = None,
     fecha_evento: Optional[Any] = None,
     imagen_url: Optional[str] = None,
+    smtp_server: Optional[Any] = None,
 ) -> bool:
     """Notifica un nuevo anuncio importante a la comunidad (con cabecera del evento si está vinculado)."""
     subject, html, inline_images, _ = render_nuevo_anuncio_email(
@@ -590,7 +635,7 @@ def notify_nuevo_anuncio(
         imagen_url=imagen_url,
         for_preview=False,
     )
-    return send_email(email, subject, html, images=inline_images or None)
+    return send_email(email, subject, html, images=inline_images or None, smtp_server=smtp_server)
 
 
 def notify_reset_password(email: str, nombre: str, token: str) -> bool:
@@ -892,6 +937,7 @@ def notify_aviso_evento(
     fecha_evento: Optional[Any] = None,
     imagen_url: Optional[str] = None,
     evento: Optional[Any] = None,
+    smtp_server: Optional[Any] = None,
 ) -> bool:
     """Envía un aviso oficial de los organizadores a los inscritos de un evento."""
     subject, html, inline_images, _ = render_aviso_evento_email(
@@ -904,4 +950,4 @@ def notify_aviso_evento(
         evento=evento,
         for_preview=False,
     )
-    return send_email(email, subject, html, images=inline_images or None)
+    return send_email(email, subject, html, images=inline_images or None, smtp_server=smtp_server)

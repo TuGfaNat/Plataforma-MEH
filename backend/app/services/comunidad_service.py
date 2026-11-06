@@ -1,6 +1,7 @@
 import logging
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Union, Any
 from datetime import datetime, timezone
 
 from ..models import models
@@ -118,9 +119,17 @@ def _get_segmented_miembros_for_anuncio(
 
     if roles_destino and roles_destino.strip().upper() != "TODOS":
         target_roles = [r.strip().upper() for r in roles_destino.split(",") if r.strip()]
-        query_miembros = query_miembros.filter(models.Usuario.rol.in_(target_roles))
+        conditions = [models.Usuario.rol.in_(target_roles)]
+        for tr in target_roles:
+            conditions.append(models.Usuario.roles_secundarios.ilike(f"%{tr}%"))
+        query_miembros = query_miembros.filter(or_(*conditions))
     elif exclusivo_embajadores:
-        query_miembros = query_miembros.filter(models.Usuario.rol.in_(['EMBAJADOR', 'ORGANIZADOR', 'ADMIN']))
+        query_miembros = query_miembros.filter(
+            or_(
+                models.Usuario.rol.in_(['EMBAJADOR', 'ORGANIZADOR', 'ADMIN']),
+                models.Usuario.roles_secundarios.ilike("%EMBAJADOR%")
+            )
+        )
 
     if id_evento and solo_inscritos_evento:
         inscritos_ids = db.query(models.InscripcionEvento.id_usuario).filter(
@@ -208,6 +217,10 @@ def list_all_anuncios(db: Session, role: str) -> List[models.Anuncio]:
 
 def enviar_notificaciones_email_anuncio(db: Session, db_anuncio: models.Anuncio) -> int:
     """Envía la notificación por correo a la audiencia segmentada y marca el anuncio como notificado."""
+    if getattr(db_anuncio, "email_enviado", False):
+        logger.info(f"Anuncio {db_anuncio.id_anuncio} ya fue marcado como enviado previamente. Omitiendo despacho.")
+        return 0
+
     try:
         from . import email_service
         evento_vinculado = db_anuncio.evento
@@ -224,28 +237,39 @@ def enviar_notificaciones_email_anuncio(db: Session, db_anuncio: models.Anuncio)
             solo_inscritos_evento=bool(db_anuncio.solo_inscritos_evento),
         )
 
+        # Sanitizar y deduplicar lista de correos
+        seen_emails = set()
+        clean_miembros = []
+        for m in miembros:
+            c = (m.correo or "").strip().lower()
+            if c and c not in seen_emails and "@" in c:
+                seen_emails.add(c)
+                clean_miembros.append(m)
+
         sent_count = 0
-        for miembro in miembros:
-            try:
-                email_service.call_notify_with_event_context(
-                    email_service.notify_nuevo_anuncio,
-                    evento_vinculado,
-                    {
-                        "email": miembro.correo,
-                        "nombre": f"{miembro.nombres} {miembro.apellidos}",
-                        "titulo_anuncio": db_anuncio.titulo,
-                        "contenido_anuncio": db_anuncio.contenido,
-                    },
-                    {
-                        "evento": evento_vinculado,
-                        "titulo_evento": evento_vinculado.titulo if evento_vinculado else None,
-                        "fecha_evento": evento_vinculado.fecha_inicio if evento_vinculado else None,
-                        "imagen_url": evento_vinculado.imagen_url if evento_vinculado else None,
-                    } if evento_vinculado else None,
-                )
-                sent_count += 1
-            except Exception:
-                pass
+        with email_service.open_smtp_session() as smtp_session:
+            for miembro in clean_miembros:
+                try:
+                    email_service.call_notify_with_event_context(
+                        email_service.notify_nuevo_anuncio,
+                        evento_vinculado,
+                        {
+                            "email": miembro.correo.strip(),
+                            "nombre": f"{miembro.nombres or ''} {miembro.apellidos or ''}".strip() or "Miembro",
+                            "titulo_anuncio": db_anuncio.titulo,
+                            "contenido_anuncio": db_anuncio.contenido,
+                        },
+                        {
+                            "evento": evento_vinculado,
+                            "titulo_evento": evento_vinculado.titulo if evento_vinculado else None,
+                            "fecha_evento": evento_vinculado.fecha_inicio if evento_vinculado else None,
+                            "imagen_url": evento_vinculado.imagen_url if evento_vinculado else None,
+                            "smtp_server": smtp_session,
+                        },
+                    )
+                    sent_count += 1
+                except Exception as ex_m:
+                    logger.warning(f"Error despachando email a {miembro.correo}: {ex_m}")
 
         db_anuncio.email_enviado = True
         db_anuncio.fecha_envio_email = datetime.utcnow()
@@ -254,6 +278,20 @@ def enviar_notificaciones_email_anuncio(db: Session, db_anuncio: models.Anuncio)
     except Exception as e:
         logger.error(f"Error despachando emails para anuncio {db_anuncio.id_anuncio}: {e}")
         return 0
+
+
+def dispatch_anuncio_email_background(id_anuncio: int):
+    """Ejecuta el envío de correos en background con sesión de BD propia e independiente."""
+    from ..database import SessionLocal
+    bg_db = SessionLocal()
+    try:
+        an = bg_db.query(models.Anuncio).filter(models.Anuncio.id_anuncio == id_anuncio).first()
+        if an and not an.email_enviado and an.notificar_email:
+            enviar_notificaciones_email_anuncio(bg_db, an)
+    except Exception as e:
+        logger.error(f"Error en tarea background de envío de emails para anuncio {id_anuncio}: {e}")
+    finally:
+        bg_db.close()
 
 
 def procesar_anuncios_programados_pendientes(db: Session) -> int:
@@ -310,7 +348,8 @@ def create_anuncio(
     db: Session,
     current_user: models.Usuario,
     anuncio: anuncio_schema.AnuncioCreate,
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
+    background_tasks: Optional[Any] = None,
 ) -> models.Anuncio:
     """Crea un nuevo anuncio y opcionalmente notifica por email a la audiencia segmentada (Solo Staff)."""
     if not has_permission(current_user.rol, PERMISSION_ANNOUNCEMENTS_MANAGE):
@@ -354,10 +393,13 @@ def create_anuncio(
         ip_direccion=ip_address
     )
 
-    # Si se solicitó notificar por email y la publicación ya está activa (inmediata), despachar ahora mismo
+    # Si se solicitó notificar por email y la publicación ya está activa (inmediata), despachar
     es_programado = db_anuncio.fecha_publicacion and db_anuncio.fecha_publicacion > datetime.utcnow()
     if db_anuncio.notificar_email and not es_programado:
-        enviar_notificaciones_email_anuncio(db, db_anuncio)
+        if background_tasks is not None:
+            background_tasks.add_task(dispatch_anuncio_email_background, db_anuncio.id_anuncio)
+        else:
+            enviar_notificaciones_email_anuncio(db, db_anuncio)
 
     return db_anuncio
 
@@ -366,7 +408,8 @@ def update_anuncio(
     id_anuncio: int,
     anuncio_update: anuncio_schema.AnuncioUpdate,
     admin_user: models.Usuario,
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
+    background_tasks: Optional[Any] = None,
 ) -> models.Anuncio:
     """Actualiza un anuncio existente (Solo Staff)."""
     if not has_permission(admin_user.rol, PERMISSION_ANNOUNCEMENTS_MANAGE):
@@ -406,7 +449,10 @@ def update_anuncio(
     if (db_anuncio.notificar_email and not db_anuncio.email_enviado 
         and db_anuncio.fecha_publicacion <= datetime.utcnow() 
         and db_anuncio.activo and db_anuncio.id_estado != 0):
-        enviar_notificaciones_email_anuncio(db, db_anuncio)
+        if background_tasks is not None:
+            background_tasks.add_task(dispatch_anuncio_email_background, db_anuncio.id_anuncio)
+        else:
+            enviar_notificaciones_email_anuncio(db, db_anuncio)
 
     registrar_log(
         db=db,
