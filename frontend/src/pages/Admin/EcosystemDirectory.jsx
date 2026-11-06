@@ -54,6 +54,7 @@ import api, { resolveApiFileUrl } from "../../services/api";
 import { useAuth, useNotify } from "../../App";
 import { getValidationError } from "../../utils/validators";
 import { designTokens } from "../../theme/theme";
+import { uploadFile } from "../../utils/fileUpload";
 
 const useStyles = makeStyles({
   container: {
@@ -346,20 +347,23 @@ const EcosystemDirectory = () => {
   };
 
   const handleFileUpload = async (e, field) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
-      const uploadData = new FormData();
-      uploadData.append("file", file);
-      const res = await api.post("/files/upload", uploadData);
-      setFormData((prev) => ({ ...prev, [field]: res.data.url }));
-      setPreviewUrl(`${resolveApiFileUrl(res.data.url)}?t=${new Date().getTime()}`);
+      const res = await uploadFile(file);
+      setFormData((prev) => ({ ...prev, [field]: res.url }));
+      setPreviewUrl(`${resolveApiFileUrl(res.url)}?t=${new Date().getTime()}`);
       notify(t("success"), t("image_uploaded_success"), "success");
     } catch (err) {
-      notify("Error", t("image_upload_error"), "error");
+      console.error("Error al subir archivo:", err);
+      const msg = err.status === 413 || err.response?.status === 413
+        ? "La imagen es demasiado pesada para el servidor (HTTP 413). Por favor sube una imagen menor a 1MB o comprímela."
+        : (err.response?.data?.detail || err.message || t("image_upload_error"));
+      notify("Error", msg, "error");
     } finally {
       setUploading(false);
+      if (e.target) e.target.value = '';
     }
   };
 

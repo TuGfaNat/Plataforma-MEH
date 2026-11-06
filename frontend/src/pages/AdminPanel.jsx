@@ -18,6 +18,7 @@ import recursoService from '../services/recursoService';
 import adminService from '../services/adminService';
 import api from '../services/api';
 import { useAuth, useNotify } from '../App';
+import { uploadFile } from '../utils/fileUpload';
 
 // Importar sub-componentes refactorizados
 import UsersTab from './Admin/UsersTab';
@@ -311,17 +312,24 @@ const AdminPanel = () => {
 
   // --- HANDLERS COMUNES ---
   const handleFileUpload = async (e, targetSetter, stateObj, fieldName) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await api.post('/files/upload', formData);
-        targetSetter({ ...stateObj, [fieldName]: res.data.url });
+        const res = await uploadFile(file);
+        targetSetter({ ...stateObj, [fieldName]: res.url });
         notify("Éxito", "Imagen cargada", "success");
-    } catch (err) { notify("Error", "Fallo al subir", "error"); }
-    finally { setUploading(false); }
+    } catch (err) {
+        console.error("Error al subir archivo:", err);
+        const msg = err.status === 413 || err.response?.status === 413
+          ? "La imagen es demasiado pesada para el servidor (HTTP 413). Por favor sube una imagen menor a 1MB o comprímela."
+          : (err.response?.data?.detail || err.message || "Fallo al subir");
+        notify("Error", msg, "error");
+    }
+    finally {
+        setUploading(false);
+        if (e.target) e.target.value = '';
+    }
   };
 
   const handleExportCSV = () => {

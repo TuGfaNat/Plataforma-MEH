@@ -36,6 +36,7 @@ import { useAuth, useNotify, useTheme } from "../App";
 import { useNavigate } from "react-router-dom";
 import authService from "../services/authService";
 import api, { resolveApiFileUrl } from "../services/api";
+import { uploadFile } from "../utils/fileUpload";
 import { getValidationError, hasErrors } from "../utils/validators";
 import { TIPOS_ENTIDAD } from "../utils/constants";
 
@@ -320,16 +321,13 @@ const Configuracion = () => {
   };
 
   const handlePhotoUpload = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
     try {
-      const uploadData = new FormData();
-      uploadData.append('file', file);
-      
-      const res = await api.post('/files/upload', uploadData);
-      const backendUrl = res.data.url;
+      const res = await uploadFile(file);
+      const backendUrl = res.url;
       
       const absoluteUrl = resolveApiFileUrl(backendUrl);
       const cacheBustedUrl = `${absoluteUrl}?t=${new Date().getTime()}`;
@@ -340,9 +338,14 @@ const Configuracion = () => {
       notify("Éxito", "Foto cargada. Recuerda guardar los cambios.", "success");
       
     } catch (err) {
-      notify("Error", "No se pudo subir la foto", "error");
+      console.error("Error al subir foto:", err);
+      const msg = err.status === 413 || err.response?.status === 413
+        ? "La foto es demasiado pesada para el servidor (HTTP 413). Por favor sube una imagen menor a 1MB o comprímela."
+        : (err.response?.data?.detail || err.message || "No se pudo subir la foto");
+      notify("Error", msg, "error");
     } finally {
       setUploading(false);
+      if (e.target) e.target.value = '';
     }
   };
 

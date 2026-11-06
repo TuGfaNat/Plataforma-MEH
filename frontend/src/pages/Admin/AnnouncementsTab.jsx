@@ -33,6 +33,7 @@ import api from '../../services/api';
 import comunidadService from '../../services/comunidadService';
 import EmailDryRunModal from '../../components/EmailDryRunModal';
 import { useNotify } from '../../App';
+import { uploadFile } from '../../utils/fileUpload';
 
 const useStyles = makeStyles({
 // ... (rest of styles same)
@@ -213,19 +214,22 @@ const AnnouncementsTab = () => {
   };
 
   const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append('file', file);
-      const res = await api.post('/files/upload', form);
-      setFormData(prev => ({ ...prev, url_imagen: res.data.url }));
+      const res = await uploadFile(file);
+      setFormData(prev => ({ ...prev, url_imagen: res.url }));
       notify(t("success"), t("image_uploaded_success"), "success");
     } catch (err) {
-      notify("Error", t("image_upload_error"), "error");
+      console.error("Error al subir archivo:", err);
+      const msg = err.status === 413 || err.response?.status === 413
+        ? "La imagen es demasiado pesada para el servidor (HTTP 413). Por favor sube una imagen menor a 1MB o comprímela."
+        : (err.response?.data?.detail || err.message || t("image_upload_error"));
+      notify("Error", msg, "error");
     } finally {
       setUploading(false);
+      if (e.target) e.target.value = '';
     }
   };
 

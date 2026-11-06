@@ -17,6 +17,7 @@ import { useAuth, useNotify } from '../App';
 import { hasPermission, PERMISSION_BADGES_MANAGE } from '../auth/rbac';
 import insigniasService from '../services/insigniasService';
 import api from '../services/api';
+import { uploadFile } from '../utils/fileUpload';
 
 const useStyles = makeStyles({
   formContainer: {
@@ -82,20 +83,23 @@ const BadgeForm = ({ onSuccess, editingBadge, onCancel }) => {
   }, [editingBadge]);
 
   const handleFileUpload = async (e) => {
-      const file = e.target.files[0];
+      const file = e.target.files?.[0];
       if (!file) return;
 
       setUploading(true);
       try {
-          const uploadData = new FormData();
-          uploadData.append('file', file);
-          const res = await api.post('/files/upload', uploadData);
-          setFormData(prev => ({ ...prev, imagen_url: res.data.url }));
+          const res = await uploadFile(file);
+          setFormData(prev => ({ ...prev, imagen_url: res.url }));
           notify("Éxito", "Imagen cargada correctamente", "success");
       } catch (err) {
-          notify("Error", "No se pudo subir la imagen", "error");
+          console.error("Error al subir archivo:", err);
+          const msg = err.status === 413 || err.response?.status === 413
+            ? "La imagen es demasiado pesada para el servidor (HTTP 413). Por favor sube una imagen menor a 1MB o comprímela."
+            : (err.response?.data?.detail || err.message || "No se pudo subir la imagen");
+          notify("Error", msg, "error");
       } finally {
           setUploading(false);
+          if (e.target) e.target.value = '';
       }
   };
 
