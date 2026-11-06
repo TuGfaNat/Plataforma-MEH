@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 20  
-**Total de endpoints expuestos:** 168
+**Total de endpoints expuestos:** 172
 
 ---
 
@@ -42,6 +42,10 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`POST`** | `/api/admin-directories/speakers` | Operación create_speaker | `data: SpeakerCreate` | `201 Created` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/admin-directories/speakers/{id_speaker}` | Operación update_speaker | `id_speaker: int`, `data: SpeakerUpdate` | `200 OK` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/admin-directories/speakers/{id_speaker}` | Operación delete_speaker | `id_speaker: int` | `204 No Content` | Requiere Auth (JWT) |
+| **`GET`** | `/api/admin-directories/mentores` | Operación get_mentores | - | `200 OK` | Público / Abierto |
+| **`POST`** | `/api/admin-directories/mentores` | Operación create_mentor | `data: MentorCreate` | `201 Created` | Requiere Auth (JWT) |
+| **`PUT`** | `/api/admin-directories/mentores/{id_mentor}` | Operación update_mentor | `id_mentor: int`, `data: MentorUpdate` | `200 OK` | Requiere Auth (JWT) |
+| **`DELETE`** | `/api/admin-directories/mentores/{id_mentor}` | Operación delete_mentor | `id_mentor: int` | `204 No Content` | Requiere Auth (JWT) |
 | **`GET`** | `/api/admin-directories/auspiciadores` | Operación get_auspiciadores | - | `200 OK` | Público / Abierto |
 | **`POST`** | `/api/admin-directories/auspiciadores` | Operación create_auspiciador | `data: AuspiciadorCreate` | `201 Created` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/admin-directories/auspiciadores/{id_auspiciador}` | Operación update_auspiciador | `id_auspiciador: int`, `data: AuspiciadorUpdate` | `200 OK` | Requiere Auth (JWT) |

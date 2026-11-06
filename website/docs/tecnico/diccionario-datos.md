@@ -11,7 +11,7 @@ Este diccionario se genera automáticamente analizando los modelos SQLAlchemy en
 Se respeta estrictamente el estándar arquitectónico **INTEGER SERIAL** (ADR-002), sin uso de UUIDs como claves foráneas.
 :::
 
-**Total de tablas relacionales catalogadas:** 28
+**Total de tablas relacionales catalogadas:** 29
 
 ## Resumen Entidad-Relación (Mermaid ERD)
 
@@ -43,10 +43,10 @@ erDiagram
     ESTADOS_REGISTRO ||--o{ INSCRIPCIONES_EVENTOS : "id_estado"
     ESTADOS_REGISTRO ||--o{ LECCIONES : "id_estado"
     ESTADOS_REGISTRO ||--o{ LOGS_SISTEMA : "id_estado"
+    ESTADOS_REGISTRO ||--o{ MENTORES : "id_estado"
     ESTADOS_REGISTRO ||--o{ PAGOS : "id_estado"
     ESTADOS_REGISTRO ||--o{ PEDIDOS : "id_estado"
     ESTADOS_REGISTRO ||--o{ PEDIDO_DETALLES : "id_estado"
-    ESTADOS_REGISTRO ||--o{ POSTS_FORO : "id_estado"
 ```
 
 ---
@@ -106,11 +106,37 @@ erDiagram
 | Nombre de Columna | Tipo de Dato | Clave | Nullable | Restricciones / Notas |
 |---|---|---|---|---|
 | `id_speaker` | `INTEGER` | **PK** | SÍ | index, PK (autoincrement) |
+| `id_usuario` | `INTEGER` | **FK** | SÍ | FK -> usuarios.id_usuario |
 | `nombre` | `STRING` | **-** | SÍ | - |
 | `bio` | `TEXT` | **-** | SÍ | - |
 | `trayectoria` | `TEXT` | **-** | SÍ | - |
 | `foto_url` | `STRING` | **-** | SÍ | - |
 | `trabajo_actual` | `STRING` | **-** | SÍ | - |
+| `linkedin_url` | `STRING` | **-** | SÍ | - |
+| `twitter_url` | `STRING` | **-** | SÍ | - |
+| `facebook_url` | `STRING` | **-** | SÍ | - |
+| `instagram_url` | `STRING` | **-** | SÍ | - |
+| `correo_contacto` | `STRING` | **-** | SÍ | - |
+| `whatsapp_contacto` | `STRING` | **-** | SÍ | - |
+| `creado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |
+| `fecha_creacion` | `DATETIME` | **-** | SÍ | AuditMixin default=utcnow |
+| `modificado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |
+| `fecha_modificacion` | `DATETIME` | **-** | SÍ | AuditMixin |
+| `id_estado` | `INTEGER` | **FK** | **NO** | Lifecycle default=2 |
+| `fecha_modificacion_estado` | `DATETIME` | **-** | SÍ | Lifecycle |
+
+### Tabla `mentores` (Modelo: `Mentor`) `AuditMixin` `EstadoLifecycle`
+
+| Nombre de Columna | Tipo de Dato | Clave | Nullable | Restricciones / Notas |
+|---|---|---|---|---|
+| `id_mentor` | `INTEGER` | **PK** | SÍ | index, PK (autoincrement) |
+| `id_usuario` | `INTEGER` | **FK** | SÍ | FK -> usuarios.id_usuario |
+| `nombre` | `STRING` | **-** | SÍ | - |
+| `bio` | `TEXT` | **-** | SÍ | - |
+| `trayectoria` | `TEXT` | **-** | SÍ | - |
+| `foto_url` | `STRING` | **-** | SÍ | - |
+| `trabajo_actual` | `STRING` | **-** | SÍ | - |
+| `area_mentoria` | `STRING` | **-** | SÍ | - |
 | `linkedin_url` | `STRING` | **-** | SÍ | - |
 | `twitter_url` | `STRING` | **-** | SÍ | - |
 | `facebook_url` | `STRING` | **-** | SÍ | - |

@@ -14,7 +14,8 @@ import {
   DialogContent, 
   DialogActions,
   Tooltip,
-  Button
+  Button,
+  Select
 } from '@fluentui/react-components';
 import { 
   Search24Regular, 
@@ -166,6 +167,7 @@ const AcreditacionPanel = ({
   const [participantes, setParticipantes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('ALL');
   
   // Estado para el modal de QR expandible
   const [expandedQr, setExpandedQr] = useState(null);
@@ -214,16 +216,24 @@ const AcreditacionPanel = ({
     }
   }, [eventoId]);
 
-  // Filtrado reactivo inteligente por nombre(s), apellido(s), email o código QR (tolerante a tildes y orden)
+  // Filtrado reactivo inteligente por rol y por nombre(s), apellido(s), email o código QR
   const filteredParticipantes = useMemo(() => {
-    if (!searchTerm.trim()) return participantes;
     return participantes.filter(p => {
+      const pRol = (p.rol || p.usuario?.rol || 'MIEMBRO').toUpperCase();
+      if (roleFilter !== 'ALL') {
+        if (roleFilter === 'VOLUNTARIOS' && !(pRol === 'EMBAJADOR' || pRol === 'SOPORTE')) return false;
+        if (roleFilter === 'ORGANIZADORES' && !(pRol === 'ORGANIZADOR' || pRol === 'ADMIN')) return false;
+        if (roleFilter === 'SPEAKERS_MENTORES' && !(pRol === 'SPEAKER' || pRol === 'MENTOR')) return false;
+        if (roleFilter === 'MIEMBRO' && pRol !== 'MIEMBRO') return false;
+      }
+
+      if (!searchTerm.trim()) return true;
       const nombre = p.nombre_completo || `${p.usuario?.nombres || ''} ${p.usuario?.apellidos || ''}`;
       const correo = p.correo || p.usuario?.email || p.usuario?.correo || '';
       const codigo = p.codigo_qr || '';
       return matchesSmartSearch([nombre, correo, codigo], searchTerm);
     });
-  }, [participantes, searchTerm]);
+  }, [participantes, searchTerm, roleFilter]);
 
   // Métricas
   const stats = useMemo(() => {
@@ -335,6 +345,7 @@ const AcreditacionPanel = ({
           const nombre = p.nombre_completo || `${p.usuario?.nombres || ''} ${p.usuario?.apellidos || ''}`.trim() || `Inscrito #${p.id_inscripcion}`;
           const correo = p.correo || p.usuario?.email || p.usuario?.correo || '';
           const codigoQr = p.codigo_qr;
+          const pRol = (p.rol || p.usuario?.rol || 'MIEMBRO').toUpperCase();
 
           return (
             <div key={p.id_inscripcion} className={styles.participantCard}>
@@ -363,9 +374,36 @@ const AcreditacionPanel = ({
                 )}
 
                 <div className={styles.participantInfo}>
-                  <MEHTypography variant="body" style={{ fontWeight: 600, fontSize: '13px', lineHeight: 1.2 }}>
-                    {nombre}
-                  </MEHTypography>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <MEHTypography variant="body" style={{ fontWeight: 600, fontSize: '13px', lineHeight: 1.2 }}>
+                      {nombre}
+                    </MEHTypography>
+                    {pRol === 'ORGANIZADOR' && (
+                      <Badge appearance="filled" size="small" style={{ backgroundColor: '#7c3aed', color: '#fff' }}>
+                        👔 Organizador
+                      </Badge>
+                    )}
+                    {pRol === 'ADMIN' && (
+                      <Badge appearance="filled" size="small" style={{ backgroundColor: '#581c87', color: '#fff' }}>
+                        👑 Admin
+                      </Badge>
+                    )}
+                    {(pRol === 'EMBAJADOR' || pRol === 'SOPORTE') && (
+                      <Badge appearance="filled" size="small" style={{ backgroundColor: '#0284c7', color: '#fff' }}>
+                        🤝 Voluntario
+                      </Badge>
+                    )}
+                    {pRol === 'SPEAKER' && (
+                      <Badge appearance="filled" size="small" style={{ backgroundColor: '#d97706', color: '#fff' }}>
+                        🎤 Speaker
+                      </Badge>
+                    )}
+                    {pRol === 'MENTOR' && (
+                      <Badge appearance="filled" size="small" style={{ backgroundColor: '#0891b2', color: '#fff' }}>
+                        💡 Mentor
+                      </Badge>
+                    )}
+                  </div>
                   <MEHTypography variant="caption" style={{ opacity: 0.7, fontSize: '11px' }}>
                     {correo || 'Sin correo registrado'}
                   </MEHTypography>
@@ -582,21 +620,36 @@ const AcreditacionPanel = ({
         <LlegadasEventoChart eventoId={eventoId} eventoTitulo={eventoTitulo} />
       )}
 
-      {/* BUSCADOR */}
-      <div className={styles.searchBar}>
-        <Input 
-          style={{ width: '100%' }}
-          placeholder="Buscar por nombre, correo electrónico o código QR..."
-          contentBefore={<Search24Regular />}
-          contentAfter={searchTerm ? (
-            <Dismiss24Regular 
-              style={{ cursor: 'pointer' }} 
-              onClick={() => setSearchTerm('')} 
-            />
-          ) : null}
-          value={searchTerm}
-          onChange={(e, d) => setSearchTerm(d.value)}
-        />
+      {/* BUSCADOR Y FILTRADO POR ROL */}
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+        <div style={{ flex: '1 1 260px' }} className={styles.searchBar}>
+          <Input 
+            style={{ width: '100%' }}
+            placeholder="Buscar por nombre, correo electrónico o código QR..."
+            contentBefore={<Search24Regular />}
+            contentAfter={searchTerm ? (
+              <Dismiss24Regular 
+                style={{ cursor: 'pointer' }} 
+                onClick={() => setSearchTerm('')} 
+              />
+            ) : null}
+            value={searchTerm}
+            onChange={(e, d) => setSearchTerm(d.value)}
+          />
+        </div>
+        <div style={{ minWidth: '170px' }}>
+          <Select 
+            value={roleFilter} 
+            onChange={(e, d) => setRoleFilter(d.value)}
+            aria-label="Filtrar inscritos por rol"
+          >
+            <option value="ALL">Todos los Roles</option>
+            <option value="VOLUNTARIOS">🤝 Voluntarios / Staff</option>
+            <option value="ORGANIZADORES">👔 Organizadores</option>
+            <option value="SPEAKERS_MENTORES">🎤 Speakers & Mentores</option>
+            <option value="MIEMBRO">🎟️ Asistentes Generales</option>
+          </Select>
+        </div>
       </div>
 
       {/* LISTA DE PARTICIPANTES */}

@@ -314,11 +314,31 @@ const AnnouncementsTab = () => {
     }
     setDryRunLoading(true);
     try {
-      const res = await comunidadService.dryRunAnuncio({
-        ...formData,
+      let fechaPubPayload = null;
+      if (formData.programar_publicacion && formData.fecha_publicacion) {
+        const parsedDate = new Date(formData.fecha_publicacion);
+        if (!isNaN(parsedDate.getTime())) {
+          fechaPubPayload = parsedDate.toISOString();
+        }
+      }
+
+      const payload = {
+        titulo: formData.titulo.trim(),
         contenido: cleanPastedHtml(formData.contenido),
+        url_imagen: formData.url_imagen?.trim() || null,
+        link_accion: formData.link_accion?.trim() || null,
+        tipo: formData.tipo,
+        activo: formData.activo,
+        exclusivo_embajadores: formData.exclusivo_embajadores,
+        roles_destino: formData.roles_destino,
+        categoria: formData.categoria || 'GENERAL',
         id_evento: formData.id_evento ? Number(formData.id_evento) : null,
-      });
+        solo_inscritos_evento: formData.solo_inscritos_evento,
+        enviar_email: Boolean(formData.enviar_email),
+        fecha_publicacion: fechaPubPayload,
+      };
+
+      const res = await comunidadService.dryRunAnuncio(payload);
       setDryRunResult(res);
     } catch (err) {
       notify("Error", "No se pudo simular el envío del anuncio.", "error");
@@ -545,6 +565,8 @@ const AnnouncementsTab = () => {
               >
                 <option value="TODOS">Todos los miembros</option>
                 <option value="MIEMBRO">Solo Miembros</option>
+                <option value="SPEAKER">Solo Speakers</option>
+                <option value="MENTOR">Solo Mentores</option>
                 <option value="EMBAJADOR">Solo Embajadores</option>
                 <option value="ORGANIZADOR">Solo Organizadores</option>
               </Select>

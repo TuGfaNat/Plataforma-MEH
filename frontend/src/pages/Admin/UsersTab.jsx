@@ -291,6 +291,8 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
             <option value="MODERADOR">MODERADOR</option>
             <option value="SOPORTE">SOPORTE</option>
             <option value="EMBAJADOR">EMBAJADOR</option>
+            <option value="SPEAKER">SPEAKER</option>
+            <option value="MENTOR">MENTOR</option>
             <option value="MIEMBRO">MIEMBRO</option>
           </Select>
           <Badge appearance="tint" color="brand" size="large">
@@ -727,6 +729,8 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
                     <option value="MODERADOR">MODERADOR</option>
                     <option value="SOPORTE">SOPORTE</option>
                     <option value="EMBAJADOR">EMBAJADOR</option>
+                    <option value="SPEAKER">SPEAKER</option>
+                    <option value="MENTOR">MENTOR</option>
                     <option value="MIEMBRO">MIEMBRO</option>
                   </Select>
                 </Field>

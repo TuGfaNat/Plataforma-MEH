@@ -96,7 +96,7 @@ class Usuario(Base, AuditMixin, EstadoLifecycleMixin):
 
     __table_args__ = (
         CheckConstraint(
-            "rol IN ('ADMIN', 'ORGANIZADOR', 'MODERADOR', 'SOPORTE', 'EMBAJADOR', 'MIEMBRO')",
+            "rol IN ('ADMIN', 'ORGANIZADOR', 'MODERADOR', 'SOPORTE', 'EMBAJADOR', 'MIEMBRO', 'SPEAKER', 'MENTOR')",
             name="usuarios_rol_check"
         ),
     )
@@ -104,6 +104,7 @@ class Usuario(Base, AuditMixin, EstadoLifecycleMixin):
 class Speaker(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "speakers"
     id_speaker = Column(Integer, primary_key=True, index=True)
+    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="SET NULL"), nullable=True)
     nombre = Column(String)
     bio = Column(TEXT, nullable=True)
     trayectoria = Column(TEXT, nullable=True)
@@ -116,7 +117,27 @@ class Speaker(Base, AuditMixin, EstadoLifecycleMixin):
     correo_contacto = Column(String, nullable=True)
     whatsapp_contacto = Column(String, nullable=True)
 
+    usuario = relationship("Usuario", foreign_keys=[id_usuario])
     eventos = relationship("Evento", secondary=eventos_speakers, back_populates="speakers")
+
+class Mentor(Base, AuditMixin, EstadoLifecycleMixin):
+    __tablename__ = "mentores"
+    id_mentor = Column(Integer, primary_key=True, index=True)
+    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="SET NULL"), nullable=True)
+    nombre = Column(String)
+    bio = Column(TEXT, nullable=True)
+    trayectoria = Column(TEXT, nullable=True)
+    foto_url = Column(String, nullable=True)
+    trabajo_actual = Column(String, nullable=True)
+    area_mentoria = Column(String, nullable=True)
+    linkedin_url = Column(String, nullable=True)
+    twitter_url = Column(String, nullable=True)
+    facebook_url = Column(String, nullable=True)
+    instagram_url = Column(String, nullable=True)
+    correo_contacto = Column(String, nullable=True)
+    whatsapp_contacto = Column(String, nullable=True)
+
+    usuario = relationship("Usuario", foreign_keys=[id_usuario])
 
 class Auspiciador(Base, AuditMixin, EstadoLifecycleMixin):
     __tablename__ = "auspiciadores"

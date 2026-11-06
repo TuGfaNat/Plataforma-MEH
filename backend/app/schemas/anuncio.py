@@ -1,4 +1,4 @@
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -16,6 +16,30 @@ class AnuncioBase(BaseModel):
     solo_inscritos_evento: bool = False
     fecha_publicacion: Optional[datetime] = None
     enviar_email: Optional[bool] = False
+
+    @field_validator("fecha_publicacion", mode="before")
+    @classmethod
+    def sanitize_fecha_publicacion(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
+
+    @field_validator("url_imagen", "link_accion", mode="before")
+    @classmethod
+    def sanitize_optional_strings(cls, v):
+        if v == "" or (isinstance(v, str) and not v.strip()):
+            return None
+        return v
+
+    @field_validator("id_evento", mode="before")
+    @classmethod
+    def sanitize_id_evento(cls, v):
+        if v == "" or v is None:
+            return None
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return None
 
 class AnuncioCreate(AnuncioBase):
     enviar_email: bool = False
@@ -36,6 +60,30 @@ class AnuncioUpdate(BaseModel):
     solo_inscritos_evento: Optional[bool] = None
     fecha_publicacion: Optional[datetime] = None
     enviar_email: Optional[bool] = None
+
+    @field_validator("fecha_publicacion", mode="before")
+    @classmethod
+    def sanitize_update_fecha_publicacion(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
+
+    @field_validator("url_imagen", "link_accion", mode="before")
+    @classmethod
+    def sanitize_update_optional_strings(cls, v):
+        if v == "" or (isinstance(v, str) and not v.strip()):
+            return None
+        return v
+
+    @field_validator("id_evento", mode="before")
+    @classmethod
+    def sanitize_update_id_evento(cls, v):
+        if v == "" or v is None:
+            return None
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return None
 
 class AnuncioResponse(AnuncioBase):
     id_anuncio: int

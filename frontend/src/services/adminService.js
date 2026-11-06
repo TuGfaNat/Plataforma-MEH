@@ -9,6 +9,30 @@ const adminService = {
     const response = await api.post('/admin-directories/speakers', data);
     return response.data;
   },
+  updateSpeaker: async (id, data) => {
+    const response = await api.put(`/admin-directories/speakers/${id}`, data);
+    return response.data;
+  },
+  deleteSpeaker: async (id) => {
+    const response = await api.delete(`/admin-directories/speakers/${id}`);
+    return response.data;
+  },
+  getMentores: async () => {
+    const response = await api.get('/admin-directories/mentores');
+    return response.data;
+  },
+  createMentor: async (data) => {
+    const response = await api.post('/admin-directories/mentores', data);
+    return response.data;
+  },
+  updateMentor: async (id, data) => {
+    const response = await api.put(`/admin-directories/mentores/${id}`, data);
+    return response.data;
+  },
+  deleteMentor: async (id) => {
+    const response = await api.delete(`/admin-directories/mentores/${id}`);
+    return response.data;
+  },
   getAuspiciadores: async () => {
     const response = await api.get('/admin-directories/auspiciadores');
     return response.data;

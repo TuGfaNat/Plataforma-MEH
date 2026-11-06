@@ -521,5 +521,55 @@ def test_anuncio_envio_correos_programados():
             db.close()
 
 
+def test_anuncio_dry_run_with_empty_strings():
+    """Valida que dry-run y creación toleran strings vacíos en campos opcionales sin arrojar 422."""
+    db = SessionLocal()
+    unique_id = uuid.uuid4().hex[:6]
+    admin = models.Usuario(
+        nombres="Admin", apellidos="DryRun", correo=f"adm_dry_{unique_id}@test.com",
+        password_hash="fake", rol="ADMIN"
+    )
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+
+    try:
+        token_admin = auth_core.create_access_token(data={"sub": admin.correo, "rol": admin.rol})
+        h_admin = {"Authorization": f"Bearer {token_admin}"}
+
+        # Payload con strings vacíos típicos de formularios web no diligenciados completamente
+        payload_with_empty = {
+            "titulo": f"Anuncio Dry-Run Empty Test {unique_id}",
+            "contenido": "<p>Contenido de prueba con campos vacíos</p>",
+            "url_imagen": "",
+            "link_accion": "",
+            "fecha_publicacion": "",
+            "id_evento": "",
+            "roles_destino": "TODOS",
+            "enviar_email": True,
+            "dry_run": True
+        }
+
+        # 1. Probar endpoint dedicado /comunidad/anuncios/dry-run
+        res_dry = client.post("/comunidad/anuncios/dry-run", json=payload_with_empty, headers=h_admin)
+        assert res_dry.status_code == 200, res_dry.text
+        data_dry = res_dry.json()
+        assert "destinatarios_preview" in data_dry or "total_destinatarios" in data_dry
+
+        # 2. Probar endpoint /comunidad/anuncios con dry_run=True y strings vacíos
+        res_create_dry = client.post("/comunidad/anuncios", json=payload_with_empty, headers=h_admin)
+        assert res_create_dry.status_code in (200, 201), res_create_dry.text
+    finally:
+        try:
+            db.query(models.Anuncio).filter(models.Anuncio.titulo.like(f"%{unique_id}%")).delete(synchronize_session=False)
+            db.query(models.Usuario).filter(models.Usuario.id_usuario == admin.id_usuario).delete(synchronize_session=False)
+            db.commit()
+        except Exception:
+            db.rollback()
+        finally:
+            db.close()
+
+
+
 
 

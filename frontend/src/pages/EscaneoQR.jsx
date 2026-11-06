@@ -922,6 +922,49 @@ const EscaneoQR = () => {
                   Punto: <b>{currentCpNombre}</b> • Registrado con éxito
                 </span>
 
+                {/* Rol del Asistente y Entregables Especiales (Staff, Voluntarios, Speakers, etc.) */}
+                {(() => {
+                  const role = lastScan.rol || lastScan.usuario?.rol || 'MIEMBRO';
+                  let badgeStyle = { backgroundColor: '#10b981', color: '#ffffff', fontWeight: 'bold' };
+                  let roleLabel = '🎟️ ASISTENTE GENERAL';
+                  let roleDeliverable = null;
+
+                  if (role === 'ORGANIZADOR') {
+                    badgeStyle = { backgroundColor: '#7c3aed', color: '#ffffff', fontWeight: 'bold' };
+                    roleLabel = '👔 EQUIPO ORGANIZADOR';
+                    roleDeliverable = '⭐ Credencial Oficial de Staff + Kit Organizador';
+                  } else if (role === 'ADMIN') {
+                    badgeStyle = { backgroundColor: '#581c87', color: '#ffffff', fontWeight: 'bold' };
+                    roleLabel = '👑 ADMINISTRADOR';
+                    roleDeliverable = '⭐ Credencial de Administrador + Acceso Total';
+                  } else if (role === 'EMBAJADOR' || role === 'SOPORTE') {
+                    badgeStyle = { backgroundColor: '#0284c7', color: '#ffffff', fontWeight: 'bold' };
+                    roleLabel = '🤝 VOLUNTARIO / STAFF DE APOYO';
+                    roleDeliverable = '👕 Polera Oficial de Voluntario + Credencial de Apoyo';
+                  } else if (role === 'SPEAKER') {
+                    badgeStyle = { backgroundColor: '#d97706', color: '#ffffff', fontWeight: 'bold' };
+                    roleLabel = '🎤 SPEAKER / PONENTE';
+                    roleDeliverable = '✨ Credencial VIP + Obsequio Speaker + Acceso Sala VIP';
+                  } else if (role === 'MENTOR') {
+                    badgeStyle = { backgroundColor: '#0891b2', color: '#ffffff', fontWeight: 'bold' };
+                    roleLabel = '💡 MENTOR MEH';
+                    roleDeliverable = '🚀 Credencial Oficial Mentor + Acceso a Salas Técnicas';
+                  }
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
+                      <Badge appearance="filled" size="large" style={badgeStyle}>
+                        {roleLabel}
+                      </Badge>
+                      {roleDeliverable && (
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#38bdf8', backgroundColor: 'rgba(2, 132, 199, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
+                          {roleDeliverable}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {/* Información de Paquete e Ítems a Entregar para el Acreditador */}
                 {lastScan.paquete && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>

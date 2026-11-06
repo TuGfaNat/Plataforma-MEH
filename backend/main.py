@@ -62,6 +62,66 @@ def startup_db_migrations():
     except Exception as e:
         logger.warning(f"Aviso en verificación de columnas de email en anuncios: {e}")
 
+    # Verificación de roles SPEAKER y MENTOR, speakers.id_usuario y tabla mentores
+    try:
+        from app.database import engine
+        from sqlalchemy import inspect, text
+        inspector = inspect(engine)
+        with engine.connect() as conn:
+            try:
+                conn.execute(text("ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_rol_check;"))
+                conn.execute(text(
+                    "ALTER TABLE usuarios ADD CONSTRAINT usuarios_rol_check "
+                    "CHECK (rol IN ('ADMIN', 'ORGANIZADOR', 'MODERADOR', 'SOPORTE', 'EMBAJADOR', 'MIEMBRO', 'SPEAKER', 'MENTOR'));"
+                ))
+            except Exception:
+                pass
+
+            if inspector.has_table("speakers"):
+                cols = [c["name"] for c in inspector.get_columns("speakers")]
+                if "id_usuario" not in cols:
+                    try:
+                        conn.execute(text("ALTER TABLE speakers ADD COLUMN id_usuario INTEGER REFERENCES usuarios(id_usuario) ON DELETE SET NULL;"))
+                        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_speakers_id_usuario ON speakers (id_usuario);"))
+                    except Exception:
+                        pass
+
+            if not inspector.has_table("mentores"):
+                try:
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS mentores (
+                            id_mentor SERIAL PRIMARY KEY,
+                            id_usuario INTEGER REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+                            nombre VARCHAR NOT NULL,
+                            bio TEXT,
+                            trayectoria TEXT,
+                            foto_url VARCHAR,
+                            trabajo_actual VARCHAR,
+                            area_mentoria VARCHAR,
+                            linkedin_url VARCHAR,
+                            twitter_url VARCHAR,
+                            facebook_url VARCHAR,
+                            instagram_url VARCHAR,
+                            correo_contacto VARCHAR,
+                            whatsapp_contacto VARCHAR,
+                            id_estado INTEGER DEFAULT 1,
+                            creado_por INTEGER REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+                            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            modificado_por INTEGER REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+                            fecha_modificacion TIMESTAMP,
+                            fecha_modificacion_estado TIMESTAMP,
+                            id_usuario_modificacion INTEGER
+                        );
+                        CREATE INDEX IF NOT EXISTS ix_mentores_id_usuario ON mentores(id_usuario);
+                    """))
+                except Exception:
+                    pass
+
+            conn.commit()
+        logger.info("Migración automática exitosa: roles SPEAKER/MENTOR, speakers.id_usuario y tabla mentores verificados.")
+    except Exception as e:
+        logger.warning(f"Aviso en verificación de speakers y mentores: {e}")
+
     # Limpieza automatica de datos residuales semilla en arranque
     try:
         from app.clean_seed_data import clean_database

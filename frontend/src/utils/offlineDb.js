@@ -104,6 +104,7 @@ export const guardarInscritos = async (idEvento, nombreEvento, registrados, chec
             id_evento: idEvento,
             nombre_completo: item.nombre_completo,
             correo: item.correo,
+            rol: item.rol || 'MIEMBRO',
             paquete: item.paquete,
             monto_pagado: item.monto_pagado,
             incluidos: item.incluidos || [],
@@ -188,7 +189,8 @@ export const validarQROffline = async (codigoQR, idCheckpoint, idEventoSeleccion
 
         resolve({
           success: true,
-          usuario: { nombre: inscrito.nombre_completo },
+          usuario: { nombre: inscrito.nombre_completo, rol: inscrito.rol || 'MIEMBRO' },
+          rol: inscrito.rol || 'MIEMBRO',
           paquete: inscrito.paquete,
           monto_pagado: inscrito.monto_pagado,
           incluidos: inscrito.incluidos || [],
@@ -227,7 +229,8 @@ export const validarQROffline = async (codigoQR, idCheckpoint, idEventoSeleccion
 
         resolve({
           success: true,
-          usuario: { nombre: inscrito.nombre_completo },
+          usuario: { nombre: inscrito.nombre_completo, rol: inscrito.rol || 'MIEMBRO' },
+          rol: inscrito.rol || 'MIEMBRO',
           message: 'Asistencia general registrada con éxito (Modo Offline)'
         });
       }

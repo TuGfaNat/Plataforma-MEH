@@ -790,8 +790,11 @@ def registrar_asistencia_qr(
         "usuario": {
             "nombre": f"{usuario.nombres} {usuario.apellidos}",
             "id_usuario": usuario.id_usuario,
-            "correo": getattr(usuario, "correo", "")
+            "correo": getattr(usuario, "correo", ""),
+            "rol": getattr(usuario, "rol", "MIEMBRO") or "MIEMBRO",
+            "institucion": getattr(usuario, "institucion", None),
         },
+        "rol": getattr(usuario, "rol", "MIEMBRO") or "MIEMBRO",
         "evento": {
             "titulo": ret_evento_titulo,
             "id_evento": evento.id_evento,
@@ -1323,6 +1326,7 @@ def get_inscritos_confirmados(db: Session, id_evento: int, staff_user: models.Us
             "asistio": ins.asistio,
             "nombre_completo": f"{ins.usuario.nombres} {ins.usuario.apellidos}",
             "correo": getattr(ins.usuario, "correo", "") or "",
+            "rol": getattr(ins.usuario, "rol", "MIEMBRO") or "MIEMBRO",
             "paquete": nombre_paquete,
             "monto_pagado": monto_pagado,
             "incluidos": parse_incluidos_list(evento.incluidos)
@@ -1614,12 +1618,14 @@ def get_evento_participantes(db: Session, id_evento: int, staff_user: models.Usu
             "fecha_acreditacion": fecha_acred,
             "fecha_inscripcion": ins.fecha_inscripcion.isoformat() if ins.fecha_inscripcion else None,
             "id_pago": ins.id_pago,
+            "rol": getattr(usuario, "rol", "MIEMBRO") if usuario else "MIEMBRO",
             "usuario": {
                 "id_usuario": usuario.id_usuario,
                 "nombres": usuario.nombres,
                 "apellidos": usuario.apellidos,
                 "email": usuario.correo,
-                "correo": usuario.correo
+                "correo": usuario.correo,
+                "rol": getattr(usuario, "rol", "MIEMBRO")
             } if usuario else None
         })
     return resultado

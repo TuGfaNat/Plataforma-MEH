@@ -13,18 +13,24 @@ from ..core.exceptions import (
 
 # --- SERVICIOS DE SPEAKERS ---
 def list_speakers(db: Session) -> List[models.Speaker]:
-    return db.query(models.Speaker).order_by(models.Speaker.id_speaker.desc()).all()
+    return db.query(models.Speaker).filter(models.Speaker.id_estado != 0).order_by(models.Speaker.id_speaker.desc()).all()
 
 def create_speaker(db: Session, admin_user: models.Usuario, data: schema.SpeakerCreate, ip: str = None) -> models.Speaker:
     if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
         raise PermisoDenegadoError()
     
-    obj = models.Speaker(**data.model_dump())
+    dump = data.model_dump()
+    if data.id_usuario:
+        linked_u = db.query(models.Usuario).filter(models.Usuario.id_usuario == data.id_usuario).first()
+        if linked_u and linked_u.rol == "MIEMBRO":
+            linked_u.rol = "SPEAKER"
+
+    obj = models.Speaker(**dump)
     db.add(obj)
     db.commit()
     db.refresh(obj)
     
-    registrar_log(db, admin_user.id_usuario, "CREAR_SPEAKER", "speakers", obj.id_speaker, valor_nuevo=data.model_dump(), ip_direccion=ip)
+    registrar_log(db, admin_user.id_usuario, "CREAR_SPEAKER", "speakers", obj.id_speaker, valor_nuevo=dump, ip_direccion=ip)
     return obj
 
 def update_speaker(db: Session, id_obj: int, admin_user: models.Usuario, data: schema.SpeakerUpdate, ip: str = None) -> models.Speaker:
@@ -34,14 +40,21 @@ def update_speaker(db: Session, id_obj: int, admin_user: models.Usuario, data: s
     obj = db.query(models.Speaker).filter(models.Speaker.id_speaker == id_obj).first()
     if not obj: raise RecursoNoEncontradoError()
 
-    old_data = {k: getattr(obj, k) for k in data.model_dump(exclude_unset=True).keys()}
-    for key, value in data.model_dump(exclude_unset=True).items():
+    dump = data.model_dump(exclude_unset=True)
+    old_data = {k: getattr(obj, k) for k in dump.keys()}
+
+    if "id_usuario" in dump and dump["id_usuario"]:
+        linked_u = db.query(models.Usuario).filter(models.Usuario.id_usuario == dump["id_usuario"]).first()
+        if linked_u and linked_u.rol == "MIEMBRO":
+            linked_u.rol = "SPEAKER"
+
+    for key, value in dump.items():
         setattr(obj, key, value)
     
     db.commit()
     db.refresh(obj)
     
-    registrar_log(db, admin_user.id_usuario, "ACTUALIZAR_SPEAKER", "speakers", id_obj, valor_anterior=old_data, valor_nuevo=data.model_dump(exclude_unset=True), ip_direccion=ip)
+    registrar_log(db, admin_user.id_usuario, "ACTUALIZAR_SPEAKER", "speakers", id_obj, valor_anterior=old_data, valor_nuevo=dump, ip_direccion=ip)
     return obj
 
 def delete_speaker(db: Session, id_obj: int, admin_user: models.Usuario) -> None:
@@ -52,6 +65,61 @@ def delete_speaker(db: Session, id_obj: int, admin_user: models.Usuario) -> None
     obj.id_estado = 0
     db.commit()
     registrar_log(db, admin_user.id_usuario, "BORRAR_SPEAKER", "speakers", id_obj)
+
+# --- SERVICIOS DE MENTORES ---
+def list_mentores(db: Session) -> List[models.Mentor]:
+    return db.query(models.Mentor).filter(models.Mentor.id_estado != 0).order_by(models.Mentor.id_mentor.desc()).all()
+
+def create_mentor(db: Session, admin_user: models.Usuario, data: schema.MentorCreate, ip: str = None) -> models.Mentor:
+    if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError()
+    
+    dump = data.model_dump()
+    if data.id_usuario:
+        linked_u = db.query(models.Usuario).filter(models.Usuario.id_usuario == data.id_usuario).first()
+        if linked_u and linked_u.rol == "MIEMBRO":
+            linked_u.rol = "MENTOR"
+
+    obj = models.Mentor(**dump)
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    
+    registrar_log(db, admin_user.id_usuario, "CREAR_MENTOR", "mentores", obj.id_mentor, valor_nuevo=dump, ip_direccion=ip)
+    return obj
+
+def update_mentor(db: Session, id_obj: int, admin_user: models.Usuario, data: schema.MentorUpdate, ip: str = None) -> models.Mentor:
+    if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError()
+    
+    obj = db.query(models.Mentor).filter(models.Mentor.id_mentor == id_obj).first()
+    if not obj: raise RecursoNoEncontradoError()
+
+    dump = data.model_dump(exclude_unset=True)
+    old_data = {k: getattr(obj, k) for k in dump.keys()}
+
+    if "id_usuario" in dump and dump["id_usuario"]:
+        linked_u = db.query(models.Usuario).filter(models.Usuario.id_usuario == dump["id_usuario"]).first()
+        if linked_u and linked_u.rol == "MIEMBRO":
+            linked_u.rol = "MENTOR"
+
+    for key, value in dump.items():
+        setattr(obj, key, value)
+    
+    db.commit()
+    db.refresh(obj)
+    
+    registrar_log(db, admin_user.id_usuario, "ACTUALIZAR_MENTOR", "mentores", id_obj, valor_anterior=old_data, valor_nuevo=dump, ip_direccion=ip)
+    return obj
+
+def delete_mentor(db: Session, id_obj: int, admin_user: models.Usuario) -> None:
+    if not has_permission(admin_user.rol, PERMISSION_EVENTS_MANAGE):
+        raise PermisoDenegadoError()
+    obj = db.query(models.Mentor).filter(models.Mentor.id_mentor == id_obj).first()
+    if not obj: raise RecursoNoEncontradoError()
+    obj.id_estado = 0
+    db.commit()
+    registrar_log(db, admin_user.id_usuario, "BORRAR_MENTOR", "mentores", id_obj)
 
 # --- SERVICIOS DE AUSPICIADORES ---
 def list_auspiciadores(db: Session) -> List[models.Auspiciador]:

@@ -407,10 +407,13 @@ const CheckpointPermisosPanel = ({ eventoId, eventoTitulo }) => {
               </Field>
               <Field label="Tipo de Checkpoint" required>
                 <Select value={newCpTipo} onChange={(e, d) => setNewCpTipo(d.value)}>
-                  <option value="ASISTENCIA">Asistencia General / Entrada</option>
-                  <option value="COMIDA">Comida / Refrigerio</option>
-                  <option value="ACCESO">Control de Acceso / Sala VIP</option>
-                  <option value="ENTREGA_KIT">Entrega de Kit / Souvenirs</option>
+                  <option value="ASISTENCIA">🎟️ Asistencia General / Entrada</option>
+                  <option value="COMIDA">🥪 Comida / Refrigerio Asistentes</option>
+                  <option value="ENTREGA_KIT">📦 Entrega de Kit General / Souvenirs</option>
+                  <option value="STAFF_VOLUNTARIOS">🤝 Kit / Refrigerio Voluntarios y Organizadores</option>
+                  <option value="VIP_SPEAKERS">🎤 Sala VIP / Catering Speakers y Mentores</option>
+                  <option value="ACCESO">🚪 Control de Acceso General</option>
+                  <option value="TALLER">💻 Control de Sala / Taller Práctico</option>
                 </Select>
               </Field>
             </DialogContent>

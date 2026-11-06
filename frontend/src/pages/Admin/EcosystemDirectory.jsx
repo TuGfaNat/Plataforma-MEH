@@ -33,6 +33,7 @@ import {
 } from "@fluentui/react-components";
 import {
   Mic24Regular,
+  PeopleStar24Regular,
   Reward24Regular,
   PeopleCommunity24Regular,
   PeopleCommunity24Filled,
@@ -255,6 +256,7 @@ const EcosystemDirectory = () => {
   const [selectedTab, setSelectedTab] = useState("speakers");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
+  const [registeredUsers, setRegisteredUsers] = useState([]);
 
   // Estados para el Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -265,14 +267,27 @@ const EcosystemDirectory = () => {
   const [previewUrl, setPreviewUrl] = useState(null);
 
   const [formData, setFormData] = useState({
+    id_usuario: null,
     nombre: "", bio: "", trayectoria: "", foto_url: "", logo_url: "",
-    trabajo_actual: "", linkedin_url: "", twitter_url: "", 
+    trabajo_actual: "", area_mentoria: "", linkedin_url: "", twitter_url: "", 
     facebook_url: "", instagram_url: "", sitio_web: "",
     tipo: "GENERAL", descripcion: "", link_contacto: "",
     correo_contacto: "", whatsapp_contacto: ""
   });
 
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const res = await api.get('/usuarios/?skip=0&limit=500');
+        setRegisteredUsers(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.warn('No se pudo cargar la lista de usuarios para vinculación:', err);
+      }
+    };
+    loadUsers();
+  }, []);
 
   const fetchData = async () => {
     setData([]);
@@ -293,8 +308,9 @@ const EcosystemDirectory = () => {
 
   const resetForm = () => {
     setFormData({
+      id_usuario: null,
       nombre: "", bio: "", trayectoria: "", foto_url: "", logo_url: "",
-      trabajo_actual: "", linkedin_url: "", twitter_url: "", 
+      trabajo_actual: "", area_mentoria: "", linkedin_url: "", twitter_url: "", 
       facebook_url: "", instagram_url: "", sitio_web: "",
       tipo: "GENERAL", descripcion: "", link_contacto: "",
       correo_contacto: "", whatsapp_contacto: ""
@@ -303,6 +319,31 @@ const EcosystemDirectory = () => {
     setErrors({});
     setIsEditing(false);
     setCurrentId(null);
+  };
+
+  const handleUserSelect = (userId) => {
+    if (!userId) {
+      setFormData(prev => ({ ...prev, id_usuario: null }));
+      return;
+    }
+    const numId = Number(userId);
+    const u = registeredUsers.find(x => x.id_usuario === numId);
+    if (u) {
+      const fullName = `${u.nombres || ''} ${u.apellidos || ''}`.trim() || u.alias || '';
+      setFormData(prev => ({
+        ...prev,
+        id_usuario: u.id_usuario,
+        nombre: fullName || prev.nombre,
+        correo_contacto: u.correo || prev.correo_contacto,
+        foto_url: u.foto_url || prev.foto_url,
+        bio: u.bio || prev.bio,
+        trabajo_actual: u.institucion || u.estudia_en || prev.trabajo_actual,
+        linkedin_url: u.linkedin_url || prev.linkedin_url,
+      }));
+      if (u.foto_url) {
+        setPreviewUrl(resolveApiFileUrl(u.foto_url));
+      }
+    }
   };
 
   const handleInputChange = (field, value) => {
@@ -327,11 +368,12 @@ const EcosystemDirectory = () => {
     Object.keys(formData).forEach(key => {
         normalizedItem[key] = item[key] ?? "";
     });
+    normalizedItem.id_usuario = item.id_usuario || null;
     setFormData(normalizedItem);
     setIsEditing(true);
     const photo = normalizedItem.foto_url || normalizedItem.logo_url;
     if (photo) setPreviewUrl(resolveApiFileUrl(photo));
-    setCurrentId(normalizedItem.id_speaker || normalizedItem.id_auspiciador || normalizedItem.id_comunidad);
+    setCurrentId(normalizedItem.id_speaker || normalizedItem.id_mentor || normalizedItem.id_auspiciador || normalizedItem.id_comunidad);
     setIsModalOpen(true);
   };
 
@@ -394,6 +436,7 @@ const EcosystemDirectory = () => {
   const getFriendlyName = () => {
     const names = {
         'speakers': t("speaker"),
+        'mentores': t("mentor") || "Mentor",
         'auspiciadores': t("sponsor"),
         'comunidades': t("allied_community")
     };
@@ -437,6 +480,7 @@ const EcosystemDirectory = () => {
           style={{ whiteSpace: 'nowrap' }}
         >
           <Tab value="speakers" icon={<Mic24Regular />}>{t("speakers")}</Tab>
+          <Tab value="mentores" icon={<PeopleStar24Regular />}>{t("mentors") || "Mentores"}</Tab>
           <Tab value="auspiciadores" icon={<Reward24Regular />}>{t("sponsors")}</Tab>
           <Tab value="comunidades" icon={<PeopleCommunity24Regular />}>{t("allied_communities")}</Tab>
         </TabList>
@@ -460,9 +504,12 @@ const EcosystemDirectory = () => {
                 />
                 
                 <div className={styles.cardBody}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '6px' }}>
                     <Subtitle1 style={{ fontWeight: "bold", fontSize: '18px' }}>{s.nombre}</Subtitle1>
-                    <Badge color="brand" appearance="tint">{t("speaker")}</Badge>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {s.id_usuario && <Badge color="informative" appearance="tint" size="small">Vinculado</Badge>}
+                      <Badge color="brand" appearance="tint">{t("speaker")}</Badge>
+                    </div>
                   </div>
                   
                   <Caption1 style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.8 }}>
@@ -503,6 +550,75 @@ const EcosystemDirectory = () => {
                         {s.linkedin_url && <MEHButton size="small" style={{minWidth: '32px'}} onClick={() => window.open(s.linkedin_url, "_blank")}>In</MEHButton>}
                         {s.facebook_url && <MEHButton size="small" style={{minWidth: '32px'}} onClick={() => window.open(s.facebook_url, "_blank")}>Fb</MEHButton>}
                         {s.instagram_url && <MEHButton size="small" style={{minWidth: '32px'}} onClick={() => window.open(s.instagram_url, "_blank")}>Ig</MEHButton>}
+                    </div>
+                </div>
+              </div>
+            ))}
+
+          {selectedTab === "mentores" &&
+            data.map((m, index) => (
+              <div key={`mentor-${m.id_mentor || index}`} className={styles.card}>
+                <div className="shine-effect" />
+                <img
+                  src={getImageUrl(m.foto_url)}
+                  alt={m.nombre}
+                  className={styles.speakerPhoto}
+                  onError={(e) => { e.target.src = 'https://via.placeholder.com/400x240?text=Sin+Foto'; }}
+                />
+                
+                <div className={styles.cardBody}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '6px' }}>
+                    <Subtitle1 style={{ fontWeight: "bold", fontSize: '18px' }}>{m.nombre}</Subtitle1>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {m.id_usuario && <Badge color="informative" appearance="tint" size="small">Vinculado</Badge>}
+                      <Badge color="success" appearance="tint">{t("mentor") || "Mentor"}</Badge>
+                    </div>
+                  </div>
+                  
+                  {m.area_mentoria && (
+                    <Badge color="informative" appearance="filled" size="small" style={{ alignSelf: 'flex-start' }}>
+                      🎓 {m.area_mentoria}
+                    </Badge>
+                  )}
+
+                  <Caption1 style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.8 }}>
+                    <Briefcase24Regular style={{ fontSize: "14px" }} /> {m.trabajo_actual || "Mentor de Comunidad"}
+                  </Caption1>
+
+                  <Body1 className={styles.bio}>{m.bio || t("admin_no_bio_available")}</Body1>
+                  
+                  <div className={styles.contactBadges}>
+                      {m.correo_contacto && (
+                          <Tooltip content={t("admin_send_email")} relationship="label">
+                            <div className={`${styles.actionChip} ${styles.emailChip}`} onClick={() => window.location.href=`mailto:${m.correo_contacto}`}>
+                                <Mail24Regular style={{fontSize: '16px'}} /> {t("email")}
+                            </div>
+                          </Tooltip>
+                      )}
+                      {m.whatsapp_contacto && (
+                          <Tooltip content={t("admin_direct_chat")} relationship="label">
+                            <div className={`${styles.actionChip} ${styles.whatsappChip}`} onClick={() => openWhatsApp(m.whatsapp_contacto)}>
+                                <Phone24Regular style={{fontSize: '16px'}} /> {t("whatsapp")}
+                            </div>
+                          </Tooltip>
+                      )}
+                  </div>
+
+                  <Divider style={{ marginTop: "4px" }} />
+                  <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
+                    <strong>{t("admin_career")}</strong> {m.trayectoria || t("not_specified")}
+                  </MEHTypography>
+                </div>
+
+                <div className={styles.footerActions}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <Button icon={<Edit24Regular />} appearance="subtle" size="small" onClick={() => handleEdit(m)}>{t("edit")}</Button>
+                        <Button icon={<Delete24Regular />} appearance="subtle" size="small" style={{ color: tokens.colorPaletteRedForeground1 }} onClick={() => handleDelete(m.id_mentor)} />
+                    </div>
+                    <div className={styles.socialButtons}>
+                        {m.linkedin_url && <MEHButton size="small" style={{minWidth: '32px'}} onClick={() => window.open(m.linkedin_url, "_blank")}>In</MEHButton>}
+                        {m.facebook_url && <MEHButton size="small" style={{minWidth: '32px'}} onClick={() => window.open(m.facebook_url, "_blank")}>Fb</MEHButton>}
+                        {m.instagram_url && <MEHButton size="small" style={{minWidth: '32px'}} onClick={() => window.open(m.instagram_url, "_blank")}>Ig</MEHButton>}
                     </div>
                 </div>
               </div>
@@ -602,9 +718,39 @@ const EcosystemDirectory = () => {
                 {isEditing ? t("admin_edit_entry", { name: getFriendlyName() }) : t("admin_new_entry", { name: getFriendlyName() })}
               </DialogTitle>
               <DialogContent className={styles.form}>
+                {(selectedTab === "speakers" || selectedTab === "mentores") && (
+                  <Field
+                    label="Vincular a Usuario Registrado en la Plataforma"
+                    hint="Selecciona una cuenta registrada para autocompletar nombre, correo, foto y vincular su perfil oficial"
+                  >
+                    <Select
+                      value={formData.id_usuario || ""}
+                      onChange={(e, d) => handleUserSelect(d.value)}
+                      style={{ width: "100%" }}
+                    >
+                      <option value="">-- Ingreso manual / Sin vincular --</option>
+                      {registeredUsers.map((u) => (
+                        <option key={u.id_usuario} value={u.id_usuario}>
+                          {u.nombres} {u.apellidos} ({u.correo}) — Rol: {u.rol}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                )}
+
                 <Field label={t("admin_name_business_name")} required>
                   <Input value={formData.nombre} onChange={(e, d) => handleInputChange("nombre", d.value)} required />
                 </Field>
+
+                {selectedTab === "mentores" && (
+                  <Field label={t("admin_mentorship_area") || "Área de Mentoría / Especialidad"}>
+                    <Input
+                      value={formData.area_mentoria}
+                      onChange={(e, d) => handleInputChange("area_mentoria", d.value)}
+                      placeholder="Ej: Cloud Azure, Inteligencia Artificial, Backend, Carrera Tech"
+                    />
+                  </Field>
+                )}
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                     <Field label={t("admin_contact_email")} validationState={errors.correo_contacto ? "error" : "none"} validationMessage={errors.correo_contacto}>
@@ -615,7 +761,7 @@ const EcosystemDirectory = () => {
                     </Field>
                 </div>
 
-                {selectedTab === "speakers" && (
+                {(selectedTab === "speakers" || selectedTab === "mentores") && (
                   <>
                     <Field label={t("admin_professional_bio")}>
                       <Textarea value={formData.bio} onChange={(e, d) => handleInputChange("bio", d.value)} rows={3} />
@@ -640,7 +786,7 @@ const EcosystemDirectory = () => {
                       </Field>
                     </div>
                       <div className={styles.fieldGroup}>
-                      <Label>{t("admin_speaker_photo")}</Label>
+                      <Label>{selectedTab === "mentores" ? "Foto del Mentor" : t("admin_speaker_photo")}</Label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginTop: '8px' }}>
                           <div 
                             className={styles.uploadAction} 
@@ -673,7 +819,7 @@ const EcosystemDirectory = () => {
                           </div>
                           {previewUrl && (
                             <div className={styles.previewContainer}>
-                              <img src={previewUrl} className={styles.previewImage} alt={`Vista previa de foto de ${formData.nombre || 'expositor'}`} />
+                              <img src={previewUrl} className={styles.previewImage} alt={`Vista previa de foto de ${formData.nombre || 'expositor/mentor'}`} />
                             </div>
                           )}
                       </div>

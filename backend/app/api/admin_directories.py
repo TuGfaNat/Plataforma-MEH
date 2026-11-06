@@ -47,6 +47,41 @@ def delete_speaker(
     ecosistema_service.delete_speaker(db, id_speaker, current_user)
     return None
 
+# --- MENTORES ---
+@router.get("/mentores", response_model=List[schema.MentorResponse])
+def get_mentores(db: Session = Depends(get_db)):
+    return ecosistema_service.list_mentores(db)
+
+@router.post("/mentores", response_model=schema.MentorResponse, status_code=status.HTTP_201_CREATED)
+def create_mentor(
+    request: Request,
+    data: schema.MentorCreate,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    ip = request.client.host if request.client else None
+    return ecosistema_service.create_mentor(db, current_user, data, ip)
+
+@router.put("/mentores/{id_mentor}", response_model=schema.MentorResponse)
+def update_mentor(
+    id_mentor: int,
+    request: Request,
+    data: schema.MentorUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    ip = request.client.host if request.client else None
+    return ecosistema_service.update_mentor(db, id_mentor, current_user, data, ip)
+
+@router.delete("/mentores/{id_mentor}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_mentor(
+    id_mentor: int,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    ecosistema_service.delete_mentor(db, id_mentor, current_user)
+    return None
+
 # --- AUSPICIADORES ---
 @router.get("/auspiciadores", response_model=List[schema.AuspiciadorResponse])
 def get_auspiciadores(db: Session = Depends(get_db)):

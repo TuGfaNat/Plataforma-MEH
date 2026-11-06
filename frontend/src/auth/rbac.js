@@ -3,6 +3,8 @@
 // ==========================================
 export const ROLE_VISITANTE = 'VISITANTE';     // Usuario no autenticado (público general)
 export const ROLE_MIEMBRO = 'MIEMBRO';         // Miembro o estudiante registrado base
+export const ROLE_SPEAKER = 'SPEAKER';         // Expositor / Ponente invitado
+export const ROLE_MENTOR = 'MENTOR';           // Mentor técnico o guía de comunidad
 export const ROLE_EMBAJADOR = 'EMBAJADOR';     // Representante de comunidad o miembro distinguido
 export const ROLE_MODERADOR = 'MODERADOR';     // Ponente / Conferencista y supervisor de contenido
 export const ROLE_SOPORTE = 'SOPORTE';         // Personal de soporte administrativo
@@ -30,6 +32,8 @@ export const PERMISSION_BADGES_MANAGE = 'badges.manage';             // Crear, e
 // ==========================================
 const roleInheritance = {
   [ROLE_MIEMBRO]: [],
+  [ROLE_SPEAKER]: [ROLE_MIEMBRO],                    // Speaker hereda permisos de Miembro base
+  [ROLE_MENTOR]: [ROLE_MIEMBRO],                     // Mentor hereda permisos de Miembro base
   [ROLE_EMBAJADOR]: [ROLE_MIEMBRO],                  // Embajador hereda todo lo de Miembro
   [ROLE_MODERADOR]: [ROLE_EMBAJADOR],                // Moderador hereda todo lo de Embajador
   [ROLE_SOPORTE]: [ROLE_MIEMBRO],                    // Soporte hereda todo lo de Miembro
@@ -42,6 +46,8 @@ const roleInheritance = {
 // ==========================================
 const directPermissions = {
   [ROLE_MIEMBRO]: [],
+  [ROLE_SPEAKER]: [PERMISSION_SPEAKER_ACCESS],
+  [ROLE_MENTOR]: [],
   [ROLE_EMBAJADOR]: [PERMISSION_VIP_ACCESS],
   [ROLE_MODERADOR]: [
     PERMISSION_SPEAKER_ACCESS,
