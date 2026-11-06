@@ -535,6 +535,15 @@ def render_nuevo_anuncio_email(
             for_preview=for_preview,
         )
 
+    # Formateo inteligente: respeta HTML rico o convierte saltos de línea de texto plano a <br>
+    has_html_tags = any(tag in (contenido_anuncio or "") for tag in ("<p>", "<br>", "<br/>", "<div>", "<ul>", "<ol>", "<li>", "<strong>", "<b>", "<em>", "<h1", "<h2", "<h3", "<h4", "<a>"))
+    if has_html_tags:
+        formatted_contenido = contenido_anuncio or ""
+    else:
+        import html as html_lib
+        escaped = html_lib.escape(contenido_anuncio or "")
+        formatted_contenido = escaped.replace("\r\n", "<br>").replace("\n", "<br>")
+
     html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
         <div style="text-align: center; margin-bottom: 20px;">
@@ -545,7 +554,7 @@ def render_nuevo_anuncio_email(
         <p>Se ha publicado un nuevo anuncio que podría interesarte:</p>
         <div style="background: #f9f9f9; border-left: 4px solid #7f13ec; padding: 15px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #7f13ec;">{titulo_anuncio}</h3>
-            <div style="color: #555; line-height: 1.6;">{contenido_anuncio}</div>
+            <div style="color: #444; line-height: 1.6; word-break: break-word;">{formatted_contenido}</div>
         </div>
         <div style="text-align: center; margin: 30px 0;">
             <a href="{FRONTEND_DASHBOARD}" style="display: inline-block; background: #7f13ec; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver en el Dashboard</a>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   makeStyles, 
   shorthands, 
@@ -28,6 +28,8 @@ import {
   Image24Regular,
   Send24Regular
 } from '@fluentui/react-icons';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import { MEHTypography, MEHButton, MEHCard } from '../../components/ui';
 import api from '../../services/api';
 import comunidadService from '../../services/comunidadService';
@@ -35,8 +37,16 @@ import EmailDryRunModal from '../../components/EmailDryRunModal';
 import { useNotify } from '../../App';
 import { uploadFile } from '../../utils/fileUpload';
 
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    ['link', 'clean'],
+  ],
+};
+
 const useStyles = makeStyles({
-// ... (rest of styles same)
   container: { display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0, maxWidth: '100%', boxSizing: 'border-box' },
   toolbar: { 
     display: 'flex', 
@@ -51,38 +61,84 @@ const useStyles = makeStyles({
   },
   grid: { 
     display: 'grid', 
-    gridTemplateColumns: '1.5fr 1fr', 
+    gridTemplateColumns: 'minmax(0, 1.15fr) minmax(360px, 1fr)', 
     gap: '24px', 
     marginTop: '16px',
     minWidth: 0,
     maxWidth: '100%',
-    '@media (max-width: 900px)': {
+    alignItems: 'start',
+    '@media (max-width: 1080px)': {
       gridTemplateColumns: '1fr',
-      gap: '16px',
+      gap: '24px',
     }
   },
   form: { 
     display: 'flex', 
     flexDirection: 'column', 
     gap: '16px', 
-    padding: '20px', 
+    padding: '24px', 
     minWidth: 0,
     maxWidth: '100%',
+    width: '100%',
     boxSizing: 'border-box',
     backgroundColor: tokens.colorNeutralBackground2, 
     ...shorthands.borderRadius('16px'), 
     ...shorthands.border('1px', 'solid', tokens.colorNeutralBackground3),
+    boxShadow: tokens.shadow2,
     '@media (max-width: 600px)': {
       padding: '16px 12px',
     }
   },
   formRow: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
     gap: '12px',
-    '@media (max-width: 600px)': {
-      gridTemplateColumns: '1fr',
-    }
+    width: '100%',
+  },
+  quillWrapper: { 
+    width: '100%',
+    boxSizing: 'border-box',
+    '& .ql-toolbar': { 
+      backgroundColor: tokens.colorNeutralBackground3, 
+      ...shorthands.borderColor(tokens.colorNeutralStroke1), 
+      ...shorthands.borderRadius('12px', '12px', '0', '0'),
+      '& .ql-stroke': {
+        stroke: tokens.colorNeutralForeground1,
+      },
+      '& .ql-fill': {
+        fill: tokens.colorNeutralForeground1,
+      },
+      '& .ql-picker': {
+        color: tokens.colorNeutralForeground1,
+      },
+      '& button:hover .ql-stroke, & .ql-picker:hover .ql-stroke': {
+        stroke: tokens.colorBrandForeground1,
+      },
+      '& button:hover .ql-fill, & .ql-picker:hover .ql-fill': {
+        fill: tokens.colorBrandForeground1,
+      },
+      '& button.ql-active .ql-stroke': {
+        stroke: tokens.colorBrandForeground1,
+      },
+      '& button.ql-active .ql-fill': {
+        fill: tokens.colorBrandForeground1,
+      }
+    }, 
+    '& .ql-container': { 
+      ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1), 
+      ...shorthands.borderRadius('0', '0', '12px', '12px'), 
+      minHeight: '170px', 
+      backgroundColor: tokens.colorNeutralBackground1,
+      color: tokens.colorNeutralForeground1,
+      fontSize: '14px',
+      fontFamily: 'inherit',
+      '& .ql-editor': {
+        minHeight: '140px',
+        color: tokens.colorNeutralForeground1,
+        lineHeight: '1.6',
+        fontSize: '14px',
+      }
+    } 
   },
   tableWrapper: { 
     ...shorthands.borderRadius('16px'), 
@@ -98,6 +154,7 @@ const useStyles = makeStyles({
 
 const AnnouncementsTab = () => {
   const styles = useStyles();
+  const formRef = useRef(null);
   const { notify } = useNotify();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -108,6 +165,12 @@ const AnnouncementsTab = () => {
   const [uploading, setUploading] = useState(false);
   const [dryRunLoading, setDryRunLoading] = useState(false);
   const [dryRunResult, setDryRunResult] = useState(null);
+
+  const isContentEmpty = (html) => {
+    if (!html) return true;
+    const clean = html.replace(/<[^>]*>?/gm, '').trim();
+    return clean.length === 0;
+  };
 
   const [formData, setFormData] = useState({
     titulo: '',
@@ -163,6 +226,9 @@ const AnnouncementsTab = () => {
     });
     setIsEditing(false);
     setCurrentId(null);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   };
 
   const handleEdit = (ann) => {
@@ -181,10 +247,13 @@ const AnnouncementsTab = () => {
     });
     setCurrentId(ann.id_anuncio);
     setIsEditing(true);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   };
 
   const handleDryRunAnuncio = async () => {
-    if (!formData.titulo.trim() || !formData.contenido.trim()) {
+    if (!formData.titulo.trim() || isContentEmpty(formData.contenido)) {
       notify("Validación", "Completa el título y contenido para simular el correo.", "warning");
       return;
     }
@@ -235,6 +304,10 @@ const AnnouncementsTab = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.titulo.trim() || isContentEmpty(formData.contenido)) {
+      notify("Validación", "Completa el título y contenido del anuncio.", "warning");
+      return;
+    }
     try {
       if (isEditing) {
         await api.put(`/comunidad/anuncios/${currentId}`, formData);
@@ -317,7 +390,7 @@ const AnnouncementsTab = () => {
           )}
         </div>
 
-        <form className={styles.form} onSubmit={handleSubmit}>
+        <form ref={formRef} className={styles.form} onSubmit={handleSubmit}>
           <MEHTypography variant="h3">{isEditing ? t("admin_edit_announcement") : t("admin_create_announcement")}</MEHTypography>
           
           <Field label={t("admin_announcement_title")} required>
@@ -325,12 +398,20 @@ const AnnouncementsTab = () => {
           </Field>
 
           <Field label={t("admin_announcement_content")} required>
-            <Textarea value={formData.contenido} onChange={(e, d) => handleInputChange('contenido', d.value)} placeholder={t("admin_announcement_content_placeholder")} rows={5} required />
+            <div className={styles.quillWrapper}>
+              <ReactQuill
+                theme="snow"
+                value={formData.contenido}
+                onChange={(val) => handleInputChange('contenido', val)}
+                modules={quillModules}
+                placeholder={t("admin_announcement_content_placeholder")}
+              />
+            </div>
           </Field>
 
           <div className={styles.formRow}>
             <Field label={t("admin_announcement_type")}>
-              <Select value={formData.tipo} onChange={(e, d) => handleInputChange('tipo', d.value)}>
+              <Select value={formData.tipo} onChange={(e, d) => handleInputChange('tipo', d.value)} style={{ width: '100%' }}>
                 <option value="INFO">{t("admin_info")}</option>
                 <option value="EVENTO">{t("admin_upcoming_event")}</option>
                 <option value="ALERTA">{t("admin_alert_critical")}</option>
@@ -345,6 +426,7 @@ const AnnouncementsTab = () => {
             <Field label="Vincular a Evento (Cabecera en Correo)">
               <Select
                 data-testid="anuncio-evento-select"
+                style={{ width: '100%' }}
                 value={formData.id_evento || ''}
                 onChange={(e, d) =>
                   handleInputChange('id_evento', d.value ? Number(d.value) : null)
@@ -360,6 +442,7 @@ const AnnouncementsTab = () => {
             </Field>
             <Field label="Roles Destino">
               <Select
+                style={{ width: '100%' }}
                 value={formData.roles_destino || 'TODOS'}
                 onChange={(e, d) => handleInputChange('roles_destino', d.value)}
               >
@@ -424,7 +507,7 @@ const AnnouncementsTab = () => {
                 type="button"
                 appearance="outline"
                 data-testid="anuncio-dry-run-btn"
-                disabled={dryRunLoading || !formData.titulo.trim() || !formData.contenido.trim()}
+                disabled={dryRunLoading || !formData.titulo.trim() || isContentEmpty(formData.contenido)}
                 onClick={() => {
                   void handleDryRunAnuncio();
                 }}
