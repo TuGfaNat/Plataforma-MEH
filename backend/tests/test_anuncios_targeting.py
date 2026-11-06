@@ -366,3 +366,76 @@ def test_cadena_completa_anuncios_roles_y_borrado_logico():
             db.close()
 
 
+def test_anuncio_programacion_fecha_futura():
+    """Valida que los anuncios programados para el futuro no sean visibles a miembros regulares hasta su fecha."""
+    from datetime import timedelta
+    db = SessionLocal()
+    unique_id = uuid.uuid4().hex[:8]
+
+    try:
+        admin = models.Usuario(
+            nombres="AdminProg", apellidos="Test", correo=f"admin_prog_{unique_id}@meh.com",
+            password_hash="fake", rol="ADMIN"
+        )
+        miembro = models.Usuario(
+            nombres="MiembroProg", apellidos="Test", correo=f"miembro_prog_{unique_id}@meh.com",
+            password_hash="fake", rol="MIEMBRO"
+        )
+        db.add_all([admin, miembro])
+        db.commit()
+        db.refresh(admin)
+        db.refresh(miembro)
+
+        token_admin = auth_core.create_access_token(data={"sub": admin.correo, "rol": admin.rol})
+        token_miembro = auth_core.create_access_token(data={"sub": miembro.correo, "rol": miembro.rol})
+        h_admin = {"Authorization": f"Bearer {token_admin}"}
+        h_miembro = {"Authorization": f"Bearer {token_miembro}"}
+
+        # 1. Crear anuncio con fecha futura (+2 días)
+        fecha_futura = (datetime.utcnow() + timedelta(days=2)).isoformat()
+        res_crear = client.post("/comunidad/anuncios", json={
+            "titulo": f"Aviso Futuro {unique_id}",
+            "contenido": "Este aviso saldrá en 2 días",
+            "tipo": "INFO",
+            "categoria": "GENERAL",
+            "fecha_publicacion": fecha_futura,
+            "activo": True
+        }, headers=h_admin)
+        assert res_crear.status_code == 201
+        anuncio_data = res_crear.json()
+        id_anuncio = anuncio_data["id_anuncio"]
+
+        # 2. Staff debe verlo en la gestión (/comunidad/anuncios/all)
+        res_all = client.get("/comunidad/anuncios/all", headers=h_admin)
+        assert res_all.status_code == 200
+        assert any(a["id_anuncio"] == id_anuncio for a in res_all.json())
+
+        # 3. Miembro regular NO debe verlo en el feed (/comunidad/anuncios)
+        res_feed_miembro = client.get("/comunidad/anuncios", headers=h_miembro)
+        assert res_feed_miembro.status_code == 200
+        assert not any(a["id_anuncio"] == id_anuncio for a in res_feed_miembro.json())
+
+        # 4. Modificar fecha a pasada (-5 minutos) para simular que ya llegó la hora de salida
+        fecha_pasada = (datetime.utcnow() - timedelta(minutes=5)).isoformat()
+        res_update = client.put(f"/comunidad/anuncios/{id_anuncio}", json={
+            "fecha_publicacion": fecha_pasada
+        }, headers=h_admin)
+        assert res_update.status_code == 200
+
+        # 5. Ahora el miembro regular SI debe verlo en el feed
+        res_feed_miembro_despues = client.get("/comunidad/anuncios", headers=h_miembro)
+        assert res_feed_miembro_despues.status_code == 200
+        assert any(a["id_anuncio"] == id_anuncio for a in res_feed_miembro_despues.json())
+
+    finally:
+        try:
+            db.query(models.Anuncio).filter(models.Anuncio.titulo.like(f"%{unique_id}%")).delete(synchronize_session=False)
+            db.query(models.Usuario).filter(models.Usuario.id_usuario.in_([admin.id_usuario, miembro.id_usuario])).delete(synchronize_session=False)
+            db.commit()
+        except Exception:
+            db.rollback()
+        finally:
+            db.close()
+
+
+

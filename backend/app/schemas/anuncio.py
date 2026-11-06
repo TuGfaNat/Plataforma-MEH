@@ -14,6 +14,7 @@ class AnuncioBase(BaseModel):
     categoria: Optional[str] = "GENERAL"   # GENERAL, EVENTO, ACADEMIA, COMUNIDAD, OPORTUNIDAD, URGENTE
     id_evento: Optional[int] = None
     solo_inscritos_evento: bool = False
+    fecha_publicacion: Optional[datetime] = None
 
 class AnuncioCreate(AnuncioBase):
     enviar_email: bool = False
@@ -32,6 +33,7 @@ class AnuncioUpdate(BaseModel):
     categoria: Optional[str] = None
     id_evento: Optional[int] = None
     solo_inscritos_evento: Optional[bool] = None
+    fecha_publicacion: Optional[datetime] = None
 
 class AnuncioResponse(AnuncioBase):
     id_anuncio: int

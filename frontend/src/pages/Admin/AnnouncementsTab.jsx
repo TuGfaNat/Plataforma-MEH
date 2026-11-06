@@ -160,6 +160,15 @@ const useStyles = makeStyles({
     WebkitOverflowScrolling: 'touch',
     minWidth: 0,
   },
+  scheduleBox: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    padding: '14px 16px',
+    backgroundColor: tokens.colorNeutralBackground1,
+    ...shorthands.borderRadius('12px'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
+  },
   uploadBox: { ...shorthands.border('2px', 'dashed', tokens.colorBrandStroke1), ...shorthands.padding('16px'), ...shorthands.borderRadius('12px'), textAlign: 'center', cursor: 'pointer', backgroundColor: tokens.colorNeutralBackground1, transition: 'all 0.2s ease', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', ':hover': { backgroundColor: tokens.colorBrandBackground2 } },
   previewImg: { width: '100%', maxHeight: '150px', objectFit: 'cover', ...shorthands.borderRadius('8px'), marginTop: '8px' }
 });
@@ -192,6 +201,20 @@ const AnnouncementsTab = () => {
       .replace(/style="\s*"/gi, '');
   };
 
+  const formatForDateTimeLocal = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const getDefaultScheduledDate = () => {
+    const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    d.setMinutes(0, 0, 0);
+    return formatForDateTimeLocal(d);
+  };
+
   const [formData, setFormData] = useState({
     titulo: '',
     contenido: '',
@@ -203,7 +226,9 @@ const AnnouncementsTab = () => {
     exclusivo_embajadores: false,
     roles_destino: 'TODOS',
     id_evento: null,
-    solo_inscritos_evento: false
+    solo_inscritos_evento: false,
+    programar_publicacion: false,
+    fecha_publicacion: ''
   });
 
   const fetchAnnouncements = async () => {
@@ -242,7 +267,9 @@ const AnnouncementsTab = () => {
       exclusivo_embajadores: false,
       roles_destino: 'TODOS',
       id_evento: null,
-      solo_inscritos_evento: false
+      solo_inscritos_evento: false,
+      programar_publicacion: false,
+      fecha_publicacion: ''
     });
     setIsEditing(false);
     setCurrentId(null);
@@ -252,6 +279,7 @@ const AnnouncementsTab = () => {
   };
 
   const handleEdit = (ann) => {
+    const isFuture = ann.fecha_publicacion && new Date(ann.fecha_publicacion) > new Date();
     setFormData({
       titulo: ann.titulo,
       contenido: ann.contenido,
@@ -263,7 +291,9 @@ const AnnouncementsTab = () => {
       exclusivo_embajadores: ann.exclusivo_embajadores || false,
       roles_destino: ann.roles_destino || 'TODOS',
       id_evento: ann.id_evento || null,
-      solo_inscritos_evento: Boolean(ann.solo_inscritos_evento)
+      solo_inscritos_evento: Boolean(ann.solo_inscritos_evento),
+      programar_publicacion: Boolean(isFuture),
+      fecha_publicacion: ann.fecha_publicacion ? formatForDateTimeLocal(ann.fecha_publicacion) : ''
     });
     setCurrentId(ann.id_anuncio);
     setIsEditing(true);
@@ -329,17 +359,42 @@ const AnnouncementsTab = () => {
       notify("Validación", "Completa el título y contenido del anuncio.", "warning");
       return;
     }
+
+    let fechaPubPayload = undefined;
+    if (formData.programar_publicacion) {
+      if (!formData.fecha_publicacion) {
+        notify("Validación", "Selecciona una fecha y hora para programar el anuncio.", "warning");
+        return;
+      }
+      const parsedDate = new Date(formData.fecha_publicacion);
+      if (isNaN(parsedDate.getTime())) {
+        notify("Validación", "La fecha de publicación no es válida.", "warning");
+        return;
+      }
+      fechaPubPayload = parsedDate.toISOString();
+    } else if (isEditing) {
+      // Si se desmarca programar, publicar de inmediato
+      fechaPubPayload = new Date().toISOString();
+    }
+
     try {
       const payload = {
         ...formData,
         contenido: cleanPastedHtml(formData.contenido),
+        enviar_email: formData.programar_publicacion ? false : formData.enviar_email,
+        fecha_publicacion: fechaPubPayload,
       };
+      delete payload.programar_publicacion;
+
       if (isEditing) {
         await api.put(`/comunidad/anuncios/${currentId}`, payload);
         notify(t("updated"), t("announcement_saved_success"), "success");
       } else {
         await api.post('/comunidad/anuncios', payload);
-        notify(t("published"), t("announcement_created_success"), "success");
+        const successMsg = formData.programar_publicacion 
+          ? "Anuncio programado exitosamente." 
+          : t("announcement_created_success");
+        notify(formData.programar_publicacion ? t("admin_scheduled_badge") : t("published"), successMsg, "success");
       }
       resetForm();
       fetchAnnouncements();
@@ -382,31 +437,52 @@ const AnnouncementsTab = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {announcements.map(ann => (
-                  <TableRow key={ann.id_anuncio}>
-                    <TableCell>
-                      <div style={{ display: 'flex', gap: '4px', flexDirection: 'column' }}>
-                        <Badge color={ann.activo ? "success" : "neutral"} appearance="tint">
-                          {ann.activo ? t("active") : t("hidden")}
-                        </Badge>
-                        {ann.exclusivo_embajadores && (
-                          <Badge color="warning" appearance="tint">VIP</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell style={{ fontWeight: 'bold' }}>{ann.titulo}</TableCell>
-                    <TableCell>
-                      <Badge color={getBadgeColor(ann.tipo)} appearance="filled">{ann.tipo}</Badge>
-                    </TableCell>
-                    <TableCell>{new Date(ann.fecha_publicacion).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <MEHButton size="small" appearance="subtle" icon={<Edit24Regular />} onClick={() => handleEdit(ann)} />
-                        <MEHButton size="small" appearance="subtle" icon={<Delete24Regular />} style={{ color: tokens.colorPaletteRedForeground1 }} onClick={() => handleDelete(ann.id_anuncio)} />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {announcements.map(ann => {
+                  const isProgramado = ann.activo && new Date(ann.fecha_publicacion) > new Date();
+                  const pubDate = new Date(ann.fecha_publicacion);
+                  return (
+                    <TableRow key={ann.id_anuncio}>
+                      <TableCell>
+                        <div style={{ display: 'flex', gap: '4px', flexDirection: 'column' }}>
+                          {isProgramado ? (
+                            <Badge color="informative" appearance="filled">
+                              {t("admin_scheduled_badge")}
+                            </Badge>
+                          ) : (
+                            <Badge color={ann.activo ? "success" : "neutral"} appearance="tint">
+                              {ann.activo ? t("active") : t("hidden")}
+                            </Badge>
+                          )}
+                          {ann.exclusivo_embajadores && (
+                            <Badge color="warning" appearance="tint">VIP</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell style={{ fontWeight: 'bold' }}>{ann.titulo}</TableCell>
+                      <TableCell>
+                        <Badge color={getBadgeColor(ann.tipo)} appearance="filled">{ann.tipo}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div style={{ fontWeight: isProgramado ? 600 : 400 }}>
+                            {pubDate.toLocaleDateString()} {pubDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                          {isProgramado && (
+                            <MEHTypography variant="caption" style={{ color: tokens.colorBrandForeground1, display: 'block', fontSize: '11px' }}>
+                              📅 Salida programada
+                            </MEHTypography>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <MEHButton size="small" appearance="subtle" icon={<Edit24Regular />} onClick={() => handleEdit(ann)} />
+                          <MEHButton size="small" appearance="subtle" icon={<Delete24Regular />} style={{ color: tokens.colorPaletteRedForeground1 }} onClick={() => handleDelete(ann.id_anuncio)} />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
                 {announcements.length === 0 && (
                    <TableRow><TableCell colSpan={5} style={{textAlign: 'center', padding: '20px'}}>{t("admin_no_announcements")}</TableCell></TableRow>
                 )}
@@ -479,6 +555,40 @@ const AnnouncementsTab = () => {
             </Field>
           </div>
 
+          <div className={styles.scheduleBox}>
+            <Switch 
+              label={isEditing ? t("admin_reschedule_publication") : t("admin_schedule_publication")}
+              checked={formData.programar_publicacion} 
+              onChange={(e, d) => {
+                handleInputChange('programar_publicacion', d.checked);
+                if (d.checked) {
+                  handleInputChange('enviar_email', false);
+                  if (!formData.fecha_publicacion) {
+                    handleInputChange('fecha_publicacion', getDefaultScheduledDate());
+                  }
+                }
+              }} 
+            />
+            {formData.programar_publicacion && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                <Field 
+                  label={t("admin_scheduled_datetime")} 
+                  hint={t("admin_scheduled_hint")}
+                >
+                  <Input 
+                    type="datetime-local" 
+                    value={formData.fecha_publicacion} 
+                    onChange={(e, d) => handleInputChange('fecha_publicacion', d.value)} 
+                    style={{ width: '100%', maxWidth: '280px' }}
+                  />
+                </Field>
+                <MEHTypography variant="caption" style={{ color: tokens.colorBrandForeground1 }}>
+                  ℹ️ {t("admin_scheduled_notice")}
+                </MEHTypography>
+              </div>
+            )}
+          </div>
+
           <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
             <Switch label={t("visible") || "Visible"} checked={formData.activo} onChange={(e, d) => handleInputChange('activo', d.checked)} />
             <Switch label="Exclusivo Embajadores" checked={formData.exclusivo_embajadores} onChange={(e, d) => handleInputChange('exclusivo_embajadores', d.checked)} />
@@ -490,8 +600,15 @@ const AnnouncementsTab = () => {
               />
             )}
             {!isEditing && (
-              <Field label={t("admin_notify_email") || "Notificar Email"}>
-                <Switch checked={formData.enviar_email} onChange={(e, d) => handleInputChange('enviar_email', d.checked)} />
+              <Field 
+                label={t("admin_notify_email") || "Notificar Email"}
+                hint={formData.programar_publicacion ? t("admin_scheduled_notice") : undefined}
+              >
+                <Switch 
+                  checked={formData.enviar_email} 
+                  disabled={formData.programar_publicacion}
+                  onChange={(e, d) => handleInputChange('enviar_email', d.checked)} 
+                />
               </Field>
             )}
           </div>
@@ -532,7 +649,7 @@ const AnnouncementsTab = () => {
                 type="button"
                 appearance="outline"
                 data-testid="anuncio-dry-run-btn"
-                disabled={dryRunLoading || !formData.titulo.trim() || isContentEmpty(formData.contenido)}
+                disabled={dryRunLoading || formData.programar_publicacion || !formData.titulo.trim() || isContentEmpty(formData.contenido)}
                 onClick={() => {
                   void handleDryRunAnuncio();
                 }}
@@ -541,7 +658,7 @@ const AnnouncementsTab = () => {
               </MEHButton>
             )}
             <MEHButton type="submit" appearance="primary" style={{ flexGrow: 1 }} icon={isEditing ? <Save24Regular /> : <Send24Regular />}>
-              {isEditing ? t("admin_save_changes") : t("admin_publish_now")}
+              {isEditing ? t("admin_save_changes") : (formData.programar_publicacion ? t("admin_schedule_announcement") : t("admin_publish_now"))}
             </MEHButton>
             <MEHButton appearance="subtle" icon={<Dismiss24Regular />} onClick={resetForm}>{t("cancel")}</MEHButton>
           </div>

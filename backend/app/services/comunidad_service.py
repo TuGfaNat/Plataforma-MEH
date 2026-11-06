@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from ..models import models
 from ..schemas import anuncio as anuncio_schema
@@ -37,6 +37,10 @@ def list_anuncios_activos(
         models.Anuncio.activo == True,
         models.Anuncio.id_estado != 0
     )
+
+    # Miembros regulares solo ven anuncios cuya fecha de publicación ya llegó
+    if not has_permission(current_user.rol, PERMISSION_ANNOUNCEMENTS_MANAGE):
+        query = query.filter(models.Anuncio.fecha_publicacion <= datetime.utcnow())
     
     if id_evento:
         query = query.filter(models.Anuncio.id_evento == id_evento)
@@ -213,6 +217,14 @@ def create_anuncio(
     enviar_email = anuncio_data.pop("enviar_email", False)
     anuncio_data.pop("dry_run", False)
 
+    fecha_pub = anuncio_data.get("fecha_publicacion")
+    if fecha_pub:
+        if hasattr(fecha_pub, "tzinfo") and fecha_pub.tzinfo is not None:
+            fecha_pub = fecha_pub.astimezone(timezone.utc).replace(tzinfo=None)
+        anuncio_data["fecha_publicacion"] = fecha_pub
+    else:
+        anuncio_data["fecha_publicacion"] = datetime.utcnow()
+
     db_anuncio = models.Anuncio(
         **anuncio_data, 
         id_autor=current_user.id_usuario
@@ -233,8 +245,9 @@ def create_anuncio(
         ip_direccion=ip_address
     )
 
-    # Notificaciones segmentadas por email
-    if enviar_email:
+    # Notificaciones segmentadas por email (solo si el anuncio ya está publicado y no programado para el futuro)
+    es_programado = db_anuncio.fecha_publicacion and db_anuncio.fecha_publicacion > datetime.utcnow()
+    if enviar_email and not es_programado:
         try:
             from . import email_service
             evento_vinculado = db_anuncio.evento
@@ -293,10 +306,17 @@ def update_anuncio(
     old_data = {
         "titulo": db_anuncio.titulo,
         "contenido": db_anuncio.contenido,
-        "activo": db_anuncio.activo
+        "activo": db_anuncio.activo,
+        "fecha_publicacion": db_anuncio.fecha_publicacion.isoformat() if db_anuncio.fecha_publicacion else None
     }
 
     update_data = anuncio_update.model_dump(exclude_unset=True)
+    if "fecha_publicacion" in update_data and update_data["fecha_publicacion"] is not None:
+        fp = update_data["fecha_publicacion"]
+        if hasattr(fp, "tzinfo") and fp.tzinfo is not None:
+            fp = fp.astimezone(timezone.utc).replace(tzinfo=None)
+        update_data["fecha_publicacion"] = fp
+
     for key, value in update_data.items():
         setattr(db_anuncio, key, value)
     
@@ -313,6 +333,7 @@ def update_anuncio(
         valor_nuevo=update_data,
         ip_direccion=ip_address
     )
+    _hydrate_anuncio_evento(db_anuncio)
     
     return db_anuncio
 
