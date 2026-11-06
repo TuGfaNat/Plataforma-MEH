@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 20  
-**Total de endpoints expuestos:** 167
+**Total de endpoints expuestos:** 168
 
 ---
 
@@ -128,6 +128,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`GET`** | `/api/comunidad/miembros/{id_usuario}` | Obtiene el detalle de un perfil público. | `id_usuario: int` | `200 OK` | Público / Abierto |
 | **`GET`** | `/api/comunidad/anuncios` | Muestra los anuncios activos para la comunidad. | - | `200 OK` | Requiere Auth (JWT) |
 | **`GET`** | `/api/comunidad/anuncios/all` | Lista todos los anuncios (incluyendo inactivos) para gestión (Solo Staff). | - | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/comunidad/anuncios/procesar-programados` | Procesa y despacha inmediatamente cualquier anuncio programado pendiente de correo (Solo Staff). | - | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/comunidad/anuncios/dry-run` | Simula el envío por correo de un anuncio con los filtros configurados sin enviar correos reales ni persistir en BD. | `anuncio: AnuncioCreate` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/comunidad/anuncios` | Crea y publica un nuevo anuncio (o ejecuta dry-run si dry_run=True). | `anuncio: AnuncioCreate` | `201 Created` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/comunidad/anuncios/{id_anuncio}` | Actualiza un anuncio existente. | `id_anuncio: int`, `anuncio: AnuncioUpdate` | `200 OK` | Requiere Auth (JWT) |

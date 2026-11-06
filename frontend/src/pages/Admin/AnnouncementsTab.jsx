@@ -222,7 +222,9 @@ const AnnouncementsTab = () => {
     link_accion: '',
     tipo: 'INFO',
     activo: true,
-    enviar_email: false,
+    enviar_email: true,
+    email_ya_enviado: false,
+    fecha_envio_email: null,
     exclusivo_embajadores: false,
     roles_destino: 'TODOS',
     id_evento: null,
@@ -263,7 +265,9 @@ const AnnouncementsTab = () => {
       link_accion: '',
       tipo: 'INFO',
       activo: true,
-      enviar_email: false,
+      enviar_email: true,
+      email_ya_enviado: false,
+      fecha_envio_email: null,
       exclusivo_embajadores: false,
       roles_destino: 'TODOS',
       id_evento: null,
@@ -287,7 +291,9 @@ const AnnouncementsTab = () => {
       link_accion: ann.link_accion || '',
       tipo: ann.tipo,
       activo: ann.activo,
-      enviar_email: false,
+      enviar_email: Boolean(ann.notificar_email && !ann.email_enviado),
+      email_ya_enviado: Boolean(ann.email_enviado),
+      fecha_envio_email: ann.fecha_envio_email || null,
       exclusivo_embajadores: ann.exclusivo_embajadores || false,
       roles_destino: ann.roles_destino || 'TODOS',
       id_evento: ann.id_evento || null,
@@ -381,10 +387,12 @@ const AnnouncementsTab = () => {
       const payload = {
         ...formData,
         contenido: cleanPastedHtml(formData.contenido),
-        enviar_email: formData.programar_publicacion ? false : formData.enviar_email,
+        enviar_email: Boolean(formData.enviar_email),
         fecha_publicacion: fechaPubPayload,
       };
       delete payload.programar_publicacion;
+      delete payload.email_ya_enviado;
+      delete payload.fecha_envio_email;
 
       if (isEditing) {
         await api.put(`/comunidad/anuncios/${currentId}`, payload);
@@ -392,7 +400,9 @@ const AnnouncementsTab = () => {
       } else {
         await api.post('/comunidad/anuncios', payload);
         const successMsg = formData.programar_publicacion 
-          ? "Anuncio programado exitosamente." 
+          ? (formData.enviar_email 
+              ? "Anuncio programado con envío automático de correo al salir." 
+              : "Anuncio programado exitosamente.")
           : t("announcement_created_success");
         notify(formData.programar_publicacion ? t("admin_scheduled_badge") : t("published"), successMsg, "success");
       }
@@ -452,6 +462,13 @@ const AnnouncementsTab = () => {
                             <Badge color={ann.activo ? "success" : "neutral"} appearance="tint">
                               {ann.activo ? t("active") : t("hidden")}
                             </Badge>
+                          )}
+                          {ann.notificar_email && (
+                            ann.email_enviado ? (
+                              <Badge color="success" appearance="tint" size="small">✉️ Enviado</Badge>
+                            ) : (
+                              <Badge color="informative" appearance="tint" size="small">✉️ Email auto</Badge>
+                            )
                           )}
                           {ann.exclusivo_embajadores && (
                             <Badge color="warning" appearance="tint">VIP</Badge>
@@ -561,16 +578,13 @@ const AnnouncementsTab = () => {
               checked={formData.programar_publicacion} 
               onChange={(e, d) => {
                 handleInputChange('programar_publicacion', d.checked);
-                if (d.checked) {
-                  handleInputChange('enviar_email', false);
-                  if (!formData.fecha_publicacion) {
-                    handleInputChange('fecha_publicacion', getDefaultScheduledDate());
-                  }
+                if (d.checked && !formData.fecha_publicacion) {
+                  handleInputChange('fecha_publicacion', getDefaultScheduledDate());
                 }
               }} 
             />
             {formData.programar_publicacion && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
                 <Field 
                   label={t("admin_scheduled_datetime")} 
                   hint={t("admin_scheduled_hint")}
@@ -582,9 +596,24 @@ const AnnouncementsTab = () => {
                     style={{ width: '100%', maxWidth: '280px' }}
                   />
                 </Field>
-                <MEHTypography variant="caption" style={{ color: tokens.colorBrandForeground1 }}>
-                  ℹ️ {t("admin_scheduled_notice")}
-                </MEHTypography>
+                {formData.email_ya_enviado ? (
+                  <Badge color="success" appearance="tint" style={{ alignSelf: 'flex-start' }}>
+                    ✅ Correo masivo ya enviado {formData.fecha_envio_email ? `el ${new Date(formData.fecha_envio_email).toLocaleString()}` : ''}
+                  </Badge>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <Switch
+                      label="Enviar correos en la fecha y hora de salida"
+                      checked={formData.enviar_email}
+                      onChange={(e, d) => handleInputChange('enviar_email', d.checked)}
+                    />
+                    <MEHTypography variant="caption" style={{ color: tokens.colorBrandForeground1 }}>
+                      {formData.enviar_email 
+                        ? "✉️ Los correos se enviarán automáticamente a los miembros seleccionados cuando llegue la fecha y hora programada."
+                        : "ℹ️ El aviso saldrá automáticamente en el muro de la comunidad sin enviar correos masivos."}
+                    </MEHTypography>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -599,17 +628,18 @@ const AnnouncementsTab = () => {
                 onChange={(e, d) => handleInputChange('solo_inscritos_evento', d.checked)}
               />
             )}
-            {!isEditing && (
-              <Field 
-                label={t("admin_notify_email") || "Notificar Email"}
-                hint={formData.programar_publicacion ? t("admin_scheduled_notice") : undefined}
-              >
+            {!formData.programar_publicacion && (
+              formData.email_ya_enviado ? (
+                <Badge color="success" appearance="tint">
+                  ✅ Correo ya enviado {formData.fecha_envio_email ? `el ${new Date(formData.fecha_envio_email).toLocaleString()}` : ''}
+                </Badge>
+              ) : (
                 <Switch 
+                  label={t("admin_notify_email") || "Notificar por Email de inmediato"}
                   checked={formData.enviar_email} 
-                  disabled={formData.programar_publicacion}
                   onChange={(e, d) => handleInputChange('enviar_email', d.checked)} 
                 />
-              </Field>
+              )
             )}
           </div>
 
@@ -644,19 +674,17 @@ const AnnouncementsTab = () => {
           {formData.url_imagen && <img src={formData.url_imagen} className={styles.previewImg} alt="Vista previa de la imagen del anuncio" />}
 
           <div style={{ display: 'flex', gap: '12px', marginTop: '12px', flexWrap: 'wrap' }}>
-            {!isEditing && (
-              <MEHButton
-                type="button"
-                appearance="outline"
-                data-testid="anuncio-dry-run-btn"
-                disabled={dryRunLoading || formData.programar_publicacion || !formData.titulo.trim() || isContentEmpty(formData.contenido)}
-                onClick={() => {
-                  void handleDryRunAnuncio();
-                }}
-              >
-                {dryRunLoading ? "Simulando..." : "Simular Correo (Dry-Run)"}
-              </MEHButton>
-            )}
+            <MEHButton
+              type="button"
+              appearance="outline"
+              data-testid="anuncio-dry-run-btn"
+              disabled={dryRunLoading || !formData.titulo.trim() || isContentEmpty(formData.contenido)}
+              onClick={() => {
+                void handleDryRunAnuncio();
+              }}
+            >
+              {dryRunLoading ? "Simulando..." : "Simular Correo (Dry-Run)"}
+            </MEHButton>
             <MEHButton type="submit" appearance="primary" style={{ flexGrow: 1 }} icon={isEditing ? <Save24Regular /> : <Send24Regular />}>
               {isEditing ? t("admin_save_changes") : (formData.programar_publicacion ? t("admin_schedule_announcement") : t("admin_publish_now"))}
             </MEHButton>

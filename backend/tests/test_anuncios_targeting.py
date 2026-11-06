@@ -438,4 +438,88 @@ def test_anuncio_programacion_fecha_futura():
             db.close()
 
 
+def test_anuncio_envio_correos_programados():
+    """Valida que los correos de un anuncio programado se despachen cuando llega su fecha/hora."""
+    from datetime import timedelta
+    from unittest.mock import patch
+    db = SessionLocal()
+    unique_id = uuid.uuid4().hex[:8]
+
+    try:
+        admin = models.Usuario(
+            nombres="AdminMail", apellidos="Test", correo=f"admin_mail_{unique_id}@meh.com",
+            password_hash="fake", rol="ADMIN"
+        )
+        miembro = models.Usuario(
+            nombres="MiembroMail", apellidos="Test", correo=f"miembro_mail_{unique_id}@meh.com",
+            password_hash="fake", rol="MIEMBRO"
+        )
+        db.add_all([admin, miembro])
+        db.commit()
+        db.refresh(admin)
+        db.refresh(miembro)
+
+        token_admin = auth_core.create_access_token(data={"sub": admin.correo, "rol": admin.rol})
+        h_admin = {"Authorization": f"Bearer {token_admin}"}
+
+        with patch("app.services.email_service.notify_nuevo_anuncio") as mock_notify:
+            # 0. Drenar anuncios residuales pendientes de tests previos
+            client.post("/comunidad/anuncios/procesar-programados", headers=h_admin)
+            mock_notify.reset_mock()
+
+            # 1. Crear anuncio programado para el futuro (+3 horas) con notificar email activo
+            fecha_futura = (datetime.utcnow() + timedelta(hours=3)).isoformat()
+            res_crear = client.post("/comunidad/anuncios", json={
+                "titulo": f"Aviso Con Email Programado {unique_id}",
+                "contenido": "Detalles del anuncio con salida programada",
+                "tipo": "INFO",
+                "categoria": "GENERAL",
+                "fecha_publicacion": fecha_futura,
+                "enviar_email": True,
+                "activo": True
+            }, headers=h_admin)
+            assert res_crear.status_code == 201
+            data = res_crear.json()
+            id_anuncio = data["id_anuncio"]
+            assert data["notificar_email"] is True
+            assert data["email_enviado"] is False
+            assert mock_notify.call_count == 0  # No debe enviar correos inmediatos
+
+            # 2. Ejecutar procesamiento de pendientes cuando la fecha aún es futura: no debe procesar nada
+            res_proc_futuro = client.post("/comunidad/anuncios/procesar-programados", headers=h_admin)
+            assert res_proc_futuro.status_code == 200
+            assert res_proc_futuro.json()["procesados"] == 0
+            assert mock_notify.call_count == 0
+
+            # 3. Simular que llegó la hora programada actualizando fecha_publicacion al pasado (-1 minuto)
+            fecha_pasada = (datetime.utcnow() - timedelta(minutes=1)).isoformat()
+            res_upd = client.put(f"/comunidad/anuncios/{id_anuncio}", json={
+                "fecha_publicacion": fecha_pasada
+            }, headers=h_admin)
+            assert res_upd.status_code == 200
+
+            # 4. Validar que al cumplirse la fecha, email_enviado cambia a True y fecha_envio_email está fijada
+            an_db = db.query(models.Anuncio).filter(models.Anuncio.id_anuncio == id_anuncio).first()
+            db.refresh(an_db)
+            assert an_db.email_enviado is True
+            assert an_db.fecha_envio_email is not None
+            assert mock_notify.call_count >= 1
+
+            # 5. Ejecutar de nuevo procesar-programados: ya no procesa nada (idempotente)
+            res_proc_again = client.post("/comunidad/anuncios/procesar-programados", headers=h_admin)
+            assert res_proc_again.status_code == 200
+            assert res_proc_again.json()["procesados"] == 0
+
+    finally:
+        try:
+            db.query(models.Anuncio).filter(models.Anuncio.titulo.like(f"%{unique_id}%")).delete(synchronize_session=False)
+            db.query(models.Usuario).filter(models.Usuario.id_usuario.in_([admin.id_usuario, miembro.id_usuario])).delete(synchronize_session=False)
+            db.commit()
+        except Exception:
+            db.rollback()
+        finally:
+            db.close()
+
+
+
 

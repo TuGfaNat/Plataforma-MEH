@@ -586,6 +586,9 @@ erDiagram
 | `categoria` | `STRING` | **-** | SÍ | default=GENERAL |
 | `id_evento` | `INTEGER` | **FK** | SÍ | FK -> eventos.id_evento |
 | `solo_inscritos_evento` | `BOOLEAN` | **-** | SÍ | default=False |
+| `notificar_email` | `BOOLEAN` | **-** | SÍ | default=False |
+| `email_enviado` | `BOOLEAN` | **-** | SÍ | default=False |
+| `fecha_envio_email` | `DATETIME` | **-** | SÍ | - |
 | `creado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |
 | `fecha_creacion` | `DATETIME` | **-** | SÍ | AuditMixin default=utcnow |
 | `modificado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |

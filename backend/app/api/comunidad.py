@@ -6,6 +6,8 @@ from ..models import models
 from ..schemas import anuncio as anuncio_schema
 from ..schemas import user as user_schema
 from ..services import comunidad_service
+from ..core.permissions import PERMISSION_ANNOUNCEMENTS_MANAGE, has_permission
+from ..core.exceptions import PermisoDenegadoError
 from .auth import get_current_user
 
 router = APIRouter(
@@ -45,6 +47,17 @@ def get_all_anuncios(
 ):
     """Lista todos los anuncios (incluyendo inactivos) para gestión (Solo Staff)."""
     return comunidad_service.list_all_anuncios(db, current_user.rol)
+
+@router.post("/anuncios/procesar-programados")
+def procesar_anuncios_programados(
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Procesa y despacha inmediatamente cualquier anuncio programado pendiente de correo (Solo Staff)."""
+    if not has_permission(current_user.rol, PERMISSION_ANNOUNCEMENTS_MANAGE):
+        raise PermisoDenegadoError()
+    total = comunidad_service.procesar_anuncios_programados_pendientes(db)
+    return {"status": "ok", "procesados": total}
 
 @router.post("/anuncios/dry-run")
 def preview_anuncio_dry_run(

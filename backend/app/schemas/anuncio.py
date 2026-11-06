@@ -15,6 +15,7 @@ class AnuncioBase(BaseModel):
     id_evento: Optional[int] = None
     solo_inscritos_evento: bool = False
     fecha_publicacion: Optional[datetime] = None
+    enviar_email: Optional[bool] = False
 
 class AnuncioCreate(AnuncioBase):
     enviar_email: bool = False
@@ -34,11 +35,15 @@ class AnuncioUpdate(BaseModel):
     id_evento: Optional[int] = None
     solo_inscritos_evento: Optional[bool] = None
     fecha_publicacion: Optional[datetime] = None
+    enviar_email: Optional[bool] = None
 
 class AnuncioResponse(AnuncioBase):
     id_anuncio: int
     fecha_publicacion: datetime
     id_autor: Optional[int] = None
+    notificar_email: bool = False
+    email_enviado: bool = False
+    fecha_envio_email: Optional[datetime] = None
     evento_titulo: Optional[str] = None
     evento_imagen_url: Optional[str] = None
     evento_imagen_16x9: Optional[str] = None

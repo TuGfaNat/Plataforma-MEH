@@ -1,3 +1,4 @@
+import logging
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -11,6 +12,8 @@ from ..core.exceptions import (
     PermisoDenegadoError,
     ValidacionNegocioError
 )
+
+logger = logging.getLogger(__name__)
 
 def list_miembros_publicos(db: Session) -> List[models.Usuario]:
     """Lista usuarios que tienen habilitado el perfil público."""
@@ -203,6 +206,106 @@ def list_all_anuncios(db: Session, role: str) -> List[models.Anuncio]:
         _hydrate_anuncio_evento(an)
     return rows
 
+def enviar_notificaciones_email_anuncio(db: Session, db_anuncio: models.Anuncio) -> int:
+    """Envía la notificación por correo a la audiencia segmentada y marca el anuncio como notificado."""
+    try:
+        from . import email_service
+        evento_vinculado = db_anuncio.evento
+        if evento_vinculado is None and db_anuncio.id_evento:
+            evento_vinculado = db.query(models.Evento).filter(
+                models.Evento.id_evento == db_anuncio.id_evento
+            ).first()
+
+        miembros = _get_segmented_miembros_for_anuncio(
+            db=db,
+            roles_destino=db_anuncio.roles_destino,
+            exclusivo_embajadores=bool(db_anuncio.exclusivo_embajadores),
+            id_evento=db_anuncio.id_evento,
+            solo_inscritos_evento=bool(db_anuncio.solo_inscritos_evento),
+        )
+
+        sent_count = 0
+        for miembro in miembros:
+            try:
+                email_service.call_notify_with_event_context(
+                    email_service.notify_nuevo_anuncio,
+                    evento_vinculado,
+                    {
+                        "email": miembro.correo,
+                        "nombre": f"{miembro.nombres} {miembro.apellidos}",
+                        "titulo_anuncio": db_anuncio.titulo,
+                        "contenido_anuncio": db_anuncio.contenido,
+                    },
+                    {
+                        "evento": evento_vinculado,
+                        "titulo_evento": evento_vinculado.titulo if evento_vinculado else None,
+                        "fecha_evento": evento_vinculado.fecha_inicio if evento_vinculado else None,
+                        "imagen_url": evento_vinculado.imagen_url if evento_vinculado else None,
+                    } if evento_vinculado else None,
+                )
+                sent_count += 1
+            except Exception:
+                pass
+
+        db_anuncio.email_enviado = True
+        db_anuncio.fecha_envio_email = datetime.utcnow()
+        db.commit()
+        return sent_count
+    except Exception as e:
+        logger.error(f"Error despachando emails para anuncio {db_anuncio.id_anuncio}: {e}")
+        return 0
+
+
+def procesar_anuncios_programados_pendientes(db: Session) -> int:
+    """
+    Busca anuncios cuya fecha de publicación ya llegó, que tengan notificar_email=True
+    y email_enviado=False, y despacha los correos masivos a sus destinatarios.
+    """
+    now = datetime.utcnow()
+    query = db.query(models.Anuncio).filter(
+        models.Anuncio.activo == True,
+        models.Anuncio.id_estado != 0,
+        models.Anuncio.notificar_email == True,
+        models.Anuncio.email_enviado == False,
+        models.Anuncio.fecha_publicacion <= now
+    )
+    if db.bind and db.bind.dialect.name == "postgresql":
+        query = query.with_for_update(skip_locked=True)
+
+    anuncios_pendientes = query.all()
+    if not anuncios_pendientes:
+        return 0
+
+    total_procesados = 0
+    for an in anuncios_pendientes:
+        try:
+            # Marcar de inmediato para evitar que otro worker tome el mismo registro
+            an.email_enviado = True
+            an.fecha_envio_email = datetime.utcnow()
+            db.commit()
+
+            enviar_notificaciones_email_anuncio(db, an)
+            total_procesados += 1
+
+            registrar_log(
+                db=db,
+                id_admin=an.id_autor or 1,
+                accion="ENVIO_EMAIL_ANUNCIO_PROGRAMADO",
+                tabla_afectada="anuncios",
+                id_registro_afectado=an.id_anuncio,
+                valor_nuevo={
+                    "id_anuncio": an.id_anuncio,
+                    "titulo": an.titulo,
+                    "fecha_publicacion": an.fecha_publicacion.isoformat() if an.fecha_publicacion else None,
+                    "fecha_envio_email": an.fecha_envio_email.isoformat() if an.fecha_envio_email else None
+                }
+            )
+        except Exception as err:
+            logger.error(f"Fallo al procesar emails programados para anuncio {an.id_anuncio}: {err}")
+
+    return total_procesados
+
+
 def create_anuncio(
     db: Session,
     current_user: models.Usuario,
@@ -227,7 +330,9 @@ def create_anuncio(
 
     db_anuncio = models.Anuncio(
         **anuncio_data, 
-        id_autor=current_user.id_usuario
+        id_autor=current_user.id_usuario,
+        notificar_email=bool(enviar_email),
+        email_enviado=False
     )
     db.add(db_anuncio)
     db.commit()
@@ -241,50 +346,18 @@ def create_anuncio(
         accion="CREAR_ANUNCIO",
         tabla_afectada="anuncios",
         id_registro_afectado=db_anuncio.id_anuncio,
-        valor_nuevo=anuncio_data,
+        valor_nuevo={
+            **anuncio_data,
+            "notificar_email": db_anuncio.notificar_email,
+            "fecha_publicacion": db_anuncio.fecha_publicacion.isoformat() if db_anuncio.fecha_publicacion else None
+        },
         ip_direccion=ip_address
     )
 
-    # Notificaciones segmentadas por email (solo si el anuncio ya está publicado y no programado para el futuro)
+    # Si se solicitó notificar por email y la publicación ya está activa (inmediata), despachar ahora mismo
     es_programado = db_anuncio.fecha_publicacion and db_anuncio.fecha_publicacion > datetime.utcnow()
-    if enviar_email and not es_programado:
-        try:
-            from . import email_service
-            evento_vinculado = db_anuncio.evento
-            if evento_vinculado is None and db_anuncio.id_evento:
-                evento_vinculado = db.query(models.Evento).filter(
-                    models.Evento.id_evento == db_anuncio.id_evento
-                ).first()
-
-            miembros = _get_segmented_miembros_for_anuncio(
-                db=db,
-                roles_destino=db_anuncio.roles_destino,
-                exclusivo_embajadores=bool(db_anuncio.exclusivo_embajadores),
-                id_evento=db_anuncio.id_evento,
-                solo_inscritos_evento=bool(db_anuncio.solo_inscritos_evento),
-            )
-            for miembro in miembros:
-                try:
-                    email_service.call_notify_with_event_context(
-                        email_service.notify_nuevo_anuncio,
-                        evento_vinculado,
-                        {
-                            "email": miembro.correo,
-                            "nombre": f"{miembro.nombres} {miembro.apellidos}",
-                            "titulo_anuncio": db_anuncio.titulo,
-                            "contenido_anuncio": db_anuncio.contenido,
-                        },
-                        {
-                            "evento": evento_vinculado,
-                            "titulo_evento": evento_vinculado.titulo if evento_vinculado else None,
-                            "fecha_evento": evento_vinculado.fecha_inicio if evento_vinculado else None,
-                            "imagen_url": evento_vinculado.imagen_url if evento_vinculado else None,
-                        } if evento_vinculado else None,
-                    )
-                except Exception:
-                    pass
-        except Exception:
-            pass
+    if db_anuncio.notificar_email and not es_programado:
+        enviar_notificaciones_email_anuncio(db, db_anuncio)
 
     return db_anuncio
 
@@ -307,10 +380,16 @@ def update_anuncio(
         "titulo": db_anuncio.titulo,
         "contenido": db_anuncio.contenido,
         "activo": db_anuncio.activo,
+        "notificar_email": db_anuncio.notificar_email,
+        "email_enviado": db_anuncio.email_enviado,
         "fecha_publicacion": db_anuncio.fecha_publicacion.isoformat() if db_anuncio.fecha_publicacion else None
     }
 
     update_data = anuncio_update.model_dump(exclude_unset=True)
+    enviar_email = update_data.pop("enviar_email", None)
+    if enviar_email is not None:
+        db_anuncio.notificar_email = bool(enviar_email)
+
     if "fecha_publicacion" in update_data and update_data["fecha_publicacion"] is not None:
         fp = update_data["fecha_publicacion"]
         if hasattr(fp, "tzinfo") and fp.tzinfo is not None:
@@ -322,6 +401,12 @@ def update_anuncio(
     
     db.commit()
     db.refresh(db_anuncio)
+
+    # Si se actualizó a fecha inmediata/pasada, tiene notificar_email=True y aún no se envió:
+    if (db_anuncio.notificar_email and not db_anuncio.email_enviado 
+        and db_anuncio.fecha_publicacion <= datetime.utcnow() 
+        and db_anuncio.activo and db_anuncio.id_estado != 0):
+        enviar_notificaciones_email_anuncio(db, db_anuncio)
 
     registrar_log(
         db=db,

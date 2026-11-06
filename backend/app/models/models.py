@@ -523,6 +523,11 @@ class Anuncio(Base, AuditMixin, EstadoLifecycleMixin):
     id_evento = Column(Integer, ForeignKey("eventos.id_evento", ondelete="SET NULL"), nullable=True)
     solo_inscritos_evento = Column(Boolean, default=False)
 
+    # Estado de envío de correos
+    notificar_email = Column(Boolean, default=False)
+    email_enviado = Column(Boolean, default=False)
+    fecha_envio_email = Column(DateTime, nullable=True)
+
     autor = relationship("Usuario", foreign_keys="[Anuncio.id_autor]")
     evento = relationship("Evento", foreign_keys=[id_evento])
 

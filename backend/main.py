@@ -1,6 +1,7 @@
 import os
 import logging
 import time
+import asyncio
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -41,12 +42,55 @@ def startup_db_migrations():
                 logger.info("Migración automática exitosa: columna id_evento agregada a pedidos.")
     except Exception as e:
         logger.warning(f"Aviso en verificación de id_evento en pedidos: {e}")
+
+    # Verificación de columnas de envío programado de emails en anuncios
+    try:
+        from app.database import engine
+        from sqlalchemy import inspect, text
+        inspector = inspect(engine)
+        if inspector.has_table("anuncios"):
+            columns = [c["name"] for c in inspector.get_columns("anuncios")]
+            with engine.connect() as conn:
+                if "notificar_email" not in columns:
+                    conn.execute(text("ALTER TABLE anuncios ADD COLUMN notificar_email BOOLEAN DEFAULT FALSE;"))
+                if "email_enviado" not in columns:
+                    conn.execute(text("ALTER TABLE anuncios ADD COLUMN email_enviado BOOLEAN DEFAULT FALSE;"))
+                if "fecha_envio_email" not in columns:
+                    conn.execute(text("ALTER TABLE anuncios ADD COLUMN fecha_envio_email TIMESTAMP NULL;"))
+                conn.commit()
+            logger.info("Migración automática exitosa: columnas de email programado verificadas en anuncios.")
+    except Exception as e:
+        logger.warning(f"Aviso en verificación de columnas de email en anuncios: {e}")
+
     # Limpieza automatica de datos residuales semilla en arranque
     try:
         from app.clean_seed_data import clean_database
         clean_database()
     except Exception as e:
         logger.warning(f"Aviso en limpieza automatica de base de datos: {e}")
+
+    # Iniciar background scheduler de anuncios programados
+    try:
+        asyncio.create_task(_anuncios_scheduler_loop())
+    except Exception as e:
+        logger.warning(f"No se pudo iniciar el scheduler de anuncios: {e}")
+
+
+async def _anuncios_scheduler_loop():
+    """Ciclo en segundo plano para despachar correos de anuncios programados al cumplirse la fecha/hora."""
+    logger.info("⏰ Scheduler de anuncios programados iniciado.")
+    while True:
+        try:
+            from app.database import SessionLocal
+            from app.services.comunidad_service import procesar_anuncios_programados_pendientes
+            db = SessionLocal()
+            try:
+                procesar_anuncios_programados_pendientes(db)
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning(f"Aviso en scheduler de anuncios: {e}")
+        await asyncio.sleep(30)
 
 # --- CONFIGURACIÓN DE CORS ---
 app.add_middleware(
