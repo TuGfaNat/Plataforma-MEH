@@ -169,7 +169,15 @@ const useStyles = makeStyles({
       fontSize: '14px',
       '& .ql-editor': {
         minHeight: '180px',
-        color: tokens.colorNeutralForeground1,
+        color: `${tokens.colorNeutralForeground1} !important`,
+      },
+      '& .ql-editor p, & .ql-editor span, & .ql-editor li, & .ql-editor strong, & .ql-editor em, & .ql-editor h1, & .ql-editor h2, & .ql-editor h3': {
+        color: 'inherit !important',
+        backgroundColor: 'transparent !important',
+      },
+      '& .ql-editor a, & .ql-editor a *': {
+        color: '#a78bfa !important',
+        textDecoration: 'underline',
       }
     } 
   },

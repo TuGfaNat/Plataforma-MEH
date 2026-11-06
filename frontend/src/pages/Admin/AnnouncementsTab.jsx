@@ -134,9 +134,21 @@ const useStyles = makeStyles({
       fontFamily: 'inherit',
       '& .ql-editor': {
         minHeight: '140px',
-        color: tokens.colorNeutralForeground1,
+        color: `${tokens.colorNeutralForeground1} !important`,
         lineHeight: '1.6',
         fontSize: '14px',
+      },
+      '& .ql-editor p, & .ql-editor span, & .ql-editor li, & .ql-editor strong, & .ql-editor em, & .ql-editor h1, & .ql-editor h2, & .ql-editor h3, & .ql-editor h4, & .ql-editor h5, & .ql-editor h6': {
+        color: 'inherit !important',
+        backgroundColor: 'transparent !important',
+      },
+      '& .ql-editor a, & .ql-editor a *': {
+        color: '#a78bfa !important',
+        textDecoration: 'underline',
+      },
+      '& .ql-editor.ql-blank::before': {
+        color: `${tokens.colorNeutralForeground4} !important`,
+        fontStyle: 'normal',
       }
     } 
   },
@@ -170,6 +182,14 @@ const AnnouncementsTab = () => {
     if (!html) return true;
     const clean = html.replace(/<[^>]*>?/gm, '').trim();
     return clean.length === 0;
+  };
+
+  const cleanPastedHtml = (html) => {
+    if (!html) return '';
+    return html
+      .replace(/color:\s*(rgb\(0,\s*0,\s*0\)|#000000|#000|black);?/gi, '')
+      .replace(/background-color:\s*[^;"']*;?/gi, '')
+      .replace(/style="\s*"/gi, '');
   };
 
   const [formData, setFormData] = useState({
@@ -261,6 +281,7 @@ const AnnouncementsTab = () => {
     try {
       const res = await comunidadService.dryRunAnuncio({
         ...formData,
+        contenido: cleanPastedHtml(formData.contenido),
         id_evento: formData.id_evento ? Number(formData.id_evento) : null,
       });
       setDryRunResult(res);
@@ -309,11 +330,15 @@ const AnnouncementsTab = () => {
       return;
     }
     try {
+      const payload = {
+        ...formData,
+        contenido: cleanPastedHtml(formData.contenido),
+      };
       if (isEditing) {
-        await api.put(`/comunidad/anuncios/${currentId}`, formData);
+        await api.put(`/comunidad/anuncios/${currentId}`, payload);
         notify(t("updated"), t("announcement_saved_success"), "success");
       } else {
-        await api.post('/comunidad/anuncios', formData);
+        await api.post('/comunidad/anuncios', payload);
         notify(t("published"), t("announcement_created_success"), "success");
       }
       resetForm();
