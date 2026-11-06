@@ -284,6 +284,47 @@ const Comunidad = () => {
     }
   };
 
+  const getAnuncioImageStyle = (imageUrl) => {
+    if (!imageUrl) return {};
+    const is1x1 = imageUrl.includes('_1x1');
+    const is16x9 = imageUrl.includes('_16x9');
+
+    if (is1x1) {
+      return {
+        width: '100%',
+        maxWidth: '240px',
+        aspectRatio: '1 / 1',
+        objectFit: 'cover',
+        borderRadius: '10px',
+        display: 'block',
+        margin: '8px 0',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+      };
+    }
+    if (is16x9) {
+      return {
+        width: '100%',
+        aspectRatio: '16 / 9',
+        maxHeight: '260px',
+        objectFit: 'cover',
+        borderRadius: '10px',
+        display: 'block',
+        margin: '8px 0',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+      };
+    }
+    return {
+      width: '100%',
+      maxHeight: '380px',
+      objectFit: 'contain',
+      borderRadius: '10px',
+      backgroundColor: 'rgba(0, 0, 0, 0.25)',
+      display: 'block',
+      margin: '8px 0',
+      border: '1px solid rgba(255, 255, 255, 0.08)',
+    };
+  };
+
   return (
     <div className={styles.container}>
       <div>
@@ -524,7 +565,7 @@ const Comunidad = () => {
                       <img
                         src={resolveApiFileUrl(anuncio.url_imagen)}
                         alt={anuncio.titulo}
-                        style={{ width: '100%', borderRadius: '8px', maxHeight: '180px', objectFit: 'cover' }}
+                        style={getAnuncioImageStyle(anuncio.url_imagen)}
                       />
                     )}
                     {anuncio.link_accion && (

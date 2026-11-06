@@ -4,8 +4,9 @@ const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
 
 // Si hay una URL configurada (incluyendo rutas relativas como "/api/"), usarla.
 // Si no, inferir: mismo origen en producción, localhost:8000 en desarrollo.
+const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const fallbackApiUrl =
-  !configuredApiUrl && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  !configuredApiUrl && isLocalhost
     ? 'http://localhost:8000'
     : '';
 

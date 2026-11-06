@@ -34,8 +34,8 @@ import { MEHTypography, MEHButton, MEHCard } from '../../components/ui';
 import api from '../../services/api';
 import comunidadService from '../../services/comunidadService';
 import EmailDryRunModal from '../../components/EmailDryRunModal';
+import AnuncioPortadaUploader from '../../components/AnuncioPortadaUploader';
 import { useNotify } from '../../App';
-import { uploadFile } from '../../utils/fileUpload';
 
 const quillModules = {
   toolbar: [
@@ -183,7 +183,6 @@ const AnnouncementsTab = () => {
   const [eventosDisponibles, setEventosDisponibles] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
-  const [uploading, setUploading] = useState(false);
   const [dryRunLoading, setDryRunLoading] = useState(false);
   const [dryRunResult, setDryRunResult] = useState(null);
 
@@ -336,26 +335,6 @@ const AnnouncementsTab = () => {
       fetchAnnouncements();
     } catch (err) {
       notify("Error", t("announcement_delete_error"), "error");
-    }
-  };
-
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const res = await uploadFile(file);
-      setFormData(prev => ({ ...prev, url_imagen: res.url }));
-      notify(t("success"), t("image_uploaded_success"), "success");
-    } catch (err) {
-      console.error("Error al subir archivo:", err);
-      const msg = err.status === 413 || err.response?.status === 413
-        ? "La imagen es demasiado pesada para el servidor (HTTP 413). Por favor sube una imagen menor a 1MB o comprímela."
-        : (err.response?.data?.detail || err.message || t("image_upload_error"));
-      notify("Error", msg, "error");
-    } finally {
-      setUploading(false);
-      if (e.target) e.target.value = '';
     }
   };
 
@@ -643,35 +622,11 @@ const AnnouncementsTab = () => {
             )}
           </div>
 
-          <div 
-            className={styles.uploadBox} 
-            role="button"
-            tabIndex={0}
-            aria-label={formData.url_imagen ? t("admin_change_image") : t("admin_upload_cover")}
-            onClick={() => document.getElementById('ann-file')?.click()}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                document.getElementById('ann-file')?.click();
-              }
-            }}
-          >
-             {uploading ? <Spinner size="tiny" /> : (
-               <>
-                <Image24Regular aria-hidden="true" />
-                <MEHTypography variant="caption">{formData.url_imagen ? t("admin_change_image") : t("admin_upload_cover")}</MEHTypography>
-                <input 
-                  id="ann-file" 
-                  type="file" 
-                  accept="image/*" 
-                  aria-label={formData.url_imagen ? t("admin_change_image") : t("admin_upload_cover")}
-                  style={{ display: 'none' }} 
-                  onChange={handleFileUpload} 
-                />
-               </>
-             )}
-          </div>
-          {formData.url_imagen && <img src={formData.url_imagen} className={styles.previewImg} alt="Vista previa de la imagen del anuncio" />}
+          <AnuncioPortadaUploader
+            value={formData.url_imagen}
+            onChange={(newUrl) => handleInputChange('url_imagen', newUrl)}
+            notify={notify}
+          />
 
           <div style={{ display: 'flex', gap: '12px', marginTop: '12px', flexWrap: 'wrap' }}>
             <MEHButton

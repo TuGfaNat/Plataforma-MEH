@@ -229,6 +229,44 @@ const useStyles = makeStyles({
   }
 });
 
+const getAnuncioModalImageStyle = (imageUrl) => {
+  if (!imageUrl) return {};
+  const is1x1 = imageUrl.includes('_1x1');
+  const is16x9 = imageUrl.includes('_16x9');
+  if (is1x1) {
+    return {
+      width: '100%',
+      maxWidth: '240px',
+      aspectRatio: '1 / 1',
+      objectFit: 'cover',
+      borderRadius: '8px',
+      margin: '0 auto',
+      display: 'block',
+      border: '1px solid rgba(255,255,255,0.1)',
+    };
+  }
+  if (is16x9) {
+    return {
+      width: '100%',
+      aspectRatio: '16 / 9',
+      maxHeight: '240px',
+      objectFit: 'cover',
+      borderRadius: '8px',
+      border: '1px solid rgba(255,255,255,0.1)',
+    };
+  }
+  return {
+    width: '100%',
+    maxHeight: '350px',
+    objectFit: 'contain',
+    borderRadius: '8px',
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    display: 'block',
+    margin: '0 auto',
+    border: '1px solid rgba(255,255,255,0.1)',
+  };
+};
+
 const Dashboard = () => {
   const styles = useStyles();
   const { t } = useTranslation();
@@ -826,7 +864,7 @@ const Dashboard = () => {
                   <img 
                     src={resolveApiFileUrl(selectedAnnouncement.url_imagen || selectedAnnouncement.evento_imagen_16x9)} 
                     alt={selectedAnnouncement.titulo} 
-                    style={{ width: '100%', aspectRatio: '16 / 9', maxHeight: '220px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} 
+                    style={getAnuncioModalImageStyle(selectedAnnouncement.url_imagen || selectedAnnouncement.evento_imagen_16x9)} 
                   />
                 )}
                 <div 
