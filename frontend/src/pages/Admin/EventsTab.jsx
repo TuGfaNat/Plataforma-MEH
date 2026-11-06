@@ -205,9 +205,21 @@ const EventsTab = ({
   const [loadingParticipantes, setLoadingParticipantes] = useState(false);
   const [nuevoNombrePaquete, setNuevoNombrePaquete] = useState('');
   const [nuevoMonto, setNuevoMonto] = useState('');
+  const [nuevoEsIndividual, setNuevoEsIndividual] = useState(false);
+  const [nuevaDescripcion, setNuevaDescripcion] = useState('');
+  const [filtroTipoQr, setFiltroTipoQr] = useState('ALL');
   const [qrFile, setQrFile] = useState(null);
   const [fileInputKey, setFileInputKey] = useState(0);
-  const [editQrDialog, setEditQrDialog] = useState({ open: false, idQr: null, nombre_paquete: '', monto: '', file: null, loading: false });
+  const [editQrDialog, setEditQrDialog] = useState({ 
+    open: false, 
+    idQr: null, 
+    nombre_paquete: '', 
+    monto: '', 
+    es_individual: false,
+    descripcion: '',
+    file: null, 
+    loading: false 
+  });
 
   // Estados para Badge Social
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
@@ -286,9 +298,13 @@ const EventsTab = ({
     }
 
     const formData = new FormData();
-    formData.append('nombre_paquete', nuevoNombrePaquete);
+    formData.append('nombre_paquete', nuevoNombrePaquete.trim());
     formData.append('monto', nuevoMonto);
     formData.append('file', qrFile);
+    formData.append('es_individual', nuevoEsIndividual);
+    if (nuevaDescripcion.trim()) {
+      formData.append('descripcion', nuevaDescripcion.trim());
+    }
 
     try {
       setLoadingQr(true);
@@ -299,6 +315,8 @@ const EventsTab = ({
       });
       setNuevoNombrePaquete('');
       setNuevoMonto('');
+      setNuevoEsIndividual(false);
+      setNuevaDescripcion('');
       setQrFile(null);
       setFileInputKey(prev => prev + 1);
       
@@ -318,6 +336,8 @@ const EventsTab = ({
       idQr: pkg.id_qr,
       nombre_paquete: pkg.nombre_paquete,
       monto: pkg.monto.toString(),
+      es_individual: Boolean(pkg.es_individual),
+      descripcion: pkg.descripcion || '',
       file: null,
       loading: false
     });
@@ -325,12 +345,14 @@ const EventsTab = ({
 
   const handleSaveEditPagoQr = async () => {
     if (!editQrDialog.nombre_paquete.trim() || !editQrDialog.monto) {
-      alert("Por favor indica el nombre del paquete y su precio.");
+      alert("Por favor indica el nombre del paquete o ítem y su precio.");
       return;
     }
     const formData = new FormData();
     formData.append('nombre_paquete', editQrDialog.nombre_paquete.trim());
     formData.append('monto', editQrDialog.monto);
+    formData.append('es_individual', Boolean(editQrDialog.es_individual));
+    formData.append('descripcion', editQrDialog.descripcion ? editQrDialog.descripcion.trim() : '');
     if (editQrDialog.file) {
       formData.append('file', editQrDialog.file);
     }
@@ -340,7 +362,7 @@ const EventsTab = ({
       await api.put(`/eventos/pagos-qr/${editQrDialog.idQr}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setEditQrDialog({ open: false, idQr: null, nombre_paquete: '', monto: '', file: null, loading: false });
+      setEditQrDialog({ open: false, idQr: null, nombre_paquete: '', monto: '', es_individual: false, descripcion: '', file: null, loading: false });
       await fetchPagosQr();
     } catch (err) {
       console.error("Error al actualizar pago QR:", err);
@@ -1023,24 +1045,74 @@ const EventsTab = ({
                 </div>
             </div>
 
-            {/* Gestión de Paquetes y QRs de Pago */}
+            {/* Gestión de Paquetes y QRs de Pago (Paquetes Completos e Ítems Individuales) */}
             <div className={styles.infoCard} style={{ backgroundColor: tokens.colorNeutralBackground2, marginBottom: '24px' }}>
-                <div>
-                  <MEHTypography variant="h3"><ReceiptMoney24Filled style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Paquetes de Inscripción y QRs de Pago</MEHTypography>
-                  <MEHTypography variant="caption" style={{ opacity: 0.7, marginTop: '4px' }}>Define los paquetes (ej. VIP, General) y sube su correspondiente código QR de pago para que los usuarios puedan escanearlo y pagar.</MEHTypography>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <MEHTypography variant="h3"><ReceiptMoney24Filled style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Paquetes de Inscripción y Opciones Individuales (QRs de Pago)</MEHTypography>
+                    <MEHTypography variant="caption" style={{ opacity: 0.7, marginTop: '4px' }}>
+                      Define paquetes completos (ej. VIP, General) o ítems individuales sueltos (ej. Solo Polera, Solo Credencial, Entrada Simple) con su código QR de pago y subida de comprobante.
+                    </MEHTypography>
+                  </div>
                 </div>
+
+                {pagosQr.length > 0 && (
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                    <Button 
+                      size="small" 
+                      appearance={filtroTipoQr === 'ALL' ? 'primary' : 'secondary'} 
+                      onClick={() => setFiltroTipoQr('ALL')}
+                    >
+                      Todos ({pagosQr.length})
+                    </Button>
+                    <Button 
+                      size="small" 
+                      appearance={filtroTipoQr === 'PAQUETES' ? 'primary' : 'secondary'} 
+                      onClick={() => setFiltroTipoQr('PAQUETES')}
+                    >
+                      📦 Paquetes ({pagosQr.filter(p => !p.es_individual).length})
+                    </Button>
+                    <Button 
+                      size="small" 
+                      appearance={filtroTipoQr === 'INDIVIDUALES' ? 'primary' : 'secondary'} 
+                      onClick={() => setFiltroTipoQr('INDIVIDUALES')}
+                    >
+                      🏷️ Individuales ({pagosQr.filter(p => p.es_individual).length})
+                    </Button>
+                  </div>
+                )}
                 
                 {loadingQr ? (
-                    <Spinner size="small" label="Cargando paquetes de pago..." />
+                    <Spinner size="small" label="Cargando opciones de pago..." />
                 ) : pagosQr.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '4px' }}>
-                        {pagosQr.map(pkg => (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
+                        {pagosQr
+                          .filter(pkg => {
+                            if (filtroTipoQr === 'PAQUETES') return !pkg.es_individual;
+                            if (filtroTipoQr === 'INDIVIDUALES') return Boolean(pkg.es_individual);
+                            return true;
+                          })
+                          .map(pkg => (
                             <div key={pkg.id_qr} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: '12px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '12px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                    <img src={resolveApiFileUrl(pkg.url_qr)} alt={pkg.nombre_paquete} style={{ width: '50px', height: '50px', objectFit: 'contain', backgroundColor: 'white', borderRadius: '4px', padding: '2px' }} />
+                                    <img src={resolveApiFileUrl(pkg.url_qr)} alt={pkg.nombre_paquete} style={{ width: '56px', height: '56px', objectFit: 'contain', backgroundColor: 'white', borderRadius: '6px', padding: '2px', border: '1px solid rgba(0,0,0,0.08)' }} />
                                     <div>
-                                        <MEHTypography variant="body"><b>{pkg.nombre_paquete}</b></MEHTypography>
-                                        <MEHTypography variant="caption" style={{ display: 'block', color: tokens.colorBrandForeground1, fontWeight: 'bold' }}>Bs. {pkg.monto}</MEHTypography>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                          <MEHTypography variant="body"><b>{pkg.nombre_paquete}</b></MEHTypography>
+                                          {pkg.es_individual ? (
+                                            <Badge color="informative" appearance="tint" size="small">🏷️ Ítem Individual</Badge>
+                                          ) : (
+                                            <Badge color="brand" appearance="tint" size="small">📦 Paquete Completo</Badge>
+                                          )}
+                                        </div>
+                                        {pkg.descripcion && (
+                                          <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.75, fontSize: '0.8rem', marginTop: '2px' }}>
+                                            {pkg.descripcion}
+                                          </MEHTypography>
+                                        )}
+                                        <MEHTypography variant="caption" style={{ display: 'block', color: tokens.colorBrandForeground1, fontWeight: 'bold', marginTop: '2px' }}>
+                                          Bs. {pkg.monto}
+                                        </MEHTypography>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -1052,27 +1124,53 @@ const EventsTab = ({
                     </div>
                 ) : (
                     <MEHTypography variant="caption" style={{ display: 'block', padding: '12px', textAlign: 'center', opacity: 0.5 }}>
-                        No hay paquetes de pago configurados. Se usará el fallback genérico.
+                        No hay paquetes ni ítems de pago configurados. Se usará el fallback genérico.
                     </MEHTypography>
                 )}
 
-                <Divider style={{ margin: '12px 0' }} />
+                <Divider style={{ margin: '14px 0' }} />
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <MEHTypography variant="h4">Agregar Nuevo Paquete de Pago</MEHTypography>
+                    <MEHTypography variant="h4">Agregar Nuevo Paquete o Ítem Individual</MEHTypography>
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', backgroundColor: tokens.colorNeutralBackground1, padding: '10px 14px', borderRadius: '8px' }}>
+                      <Switch 
+                        label={nuevoEsIndividual ? "🏷️ Tipo: Ítem Individual / Extra Suelto" : "📦 Tipo: Paquete de Inscripción"}
+                        checked={nuevoEsIndividual} 
+                        onChange={(e, d) => setNuevoEsIndividual(d.checked)} 
+                      />
+                      <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>
+                        {nuevoEsIndividual 
+                          ? "Para quienes solo quieren una cosa del paquete (ej. Solo Polera, Solo Credencial, Entrada Simple)" 
+                          : "Para un paquete con kit de inscripción completo"}
+                      </span>
+                    </div>
+
                     <div className={styles.formTwoCol}>
-                        <Field label="Nombre del Paquete" required>
-                            <Input value={nuevoNombrePaquete} onChange={(e, d) => setNuevoNombrePaquete(d.value)} placeholder="Ej: Pase VIP, Acceso General" />
+                        <Field label={nuevoEsIndividual ? "Nombre del Ítem Individual" : "Nombre del Paquete"} required>
+                            <Input 
+                              value={nuevoNombrePaquete} 
+                              onChange={(e, d) => setNuevoNombrePaquete(d.value)} 
+                              placeholder={nuevoEsIndividual ? "Ej: Solo Polera Oficial, Solo Credencial VIP" : "Ej: Pase VIP, Acceso General"} 
+                            />
                         </Field>
                         <Field label="Precio (Bs.)" required>
                             <Input type="number" value={nuevoMonto} onChange={(e, d) => setNuevoMonto(d.value)} placeholder="0.00" />
                         </Field>
                     </div>
+
+                    <Field label="Descripción o Qué Incluye (opcional)">
+                        <Input 
+                          value={nuevaDescripcion} 
+                          onChange={(e, d) => setNuevaDescripcion(d.value)} 
+                          placeholder={nuevoEsIndividual ? "Ej: Solo la polera oficial del evento sin kit extra" : "Ej: Incluye entrada, credencial y polera"} 
+                        />
+                    </Field>
+
                     <Field label="Imagen Código QR de Pago" required>
                         <Input type="file" key={fileInputKey} id="qr-file-input" onChange={(e) => setQrFile(e.target.files[0])} accept="image/*,application/pdf" />
                     </Field>
                     <MEHButton appearance="primary" onClick={handleAddPagoQr} disabled={loadingQr || !nuevoNombrePaquete || !nuevoMonto || !qrFile} style={{ marginTop: '4px' }}>
-                        Guardar Paquete y QR
+                        {nuevoEsIndividual ? "Guardar Ítem Individual y QR" : "Guardar Paquete y QR"}
                     </MEHButton>
                 </div>
             </div>
@@ -1400,22 +1498,30 @@ const EventsTab = ({
         }}
       />
 
-      {/* Modal Editar Paquete de Pago y QR */}
+      {/* Modal Editar Paquete de Pago o Ítem Individual */}
       <Dialog open={editQrDialog.open} onOpenChange={(e, d) => setEditQrDialog(prev => ({ ...prev, open: d.open }))}>
         <DialogSurface style={{ borderRadius: '16px', maxWidth: '480px', width: '90%' }}>
           <DialogBody>
             <DialogTitle>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Edit24Regular style={{ color: tokens.colorBrandForeground1 }} />
-                <span>Editar Paquete de Pago #{editQrDialog.idQr}</span>
+                <span>Editar Opción de Pago #{editQrDialog.idQr}</span>
               </div>
             </DialogTitle>
             <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
-              <Field label="Nombre del Paquete" required>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', backgroundColor: tokens.colorNeutralBackground2, padding: '8px 12px', borderRadius: '8px' }}>
+                <Switch 
+                  label={editQrDialog.es_individual ? "🏷️ Tipo: Ítem Individual / Extra Suelto" : "📦 Tipo: Paquete Completo"}
+                  checked={editQrDialog.es_individual}
+                  onChange={(e, d) => setEditQrDialog(prev => ({ ...prev, es_individual: d.checked }))}
+                />
+              </div>
+
+              <Field label={editQrDialog.es_individual ? "Nombre del Ítem Individual" : "Nombre del Paquete"} required>
                 <Input
                   value={editQrDialog.nombre_paquete}
                   onChange={(e, d) => setEditQrDialog(prev => ({ ...prev, nombre_paquete: d.value }))}
-                  placeholder="Ej: Pase General, VIP"
+                  placeholder={editQrDialog.es_individual ? "Ej: Solo Polera Oficial" : "Ej: Pase General, VIP"}
                 />
               </Field>
               <Field label="Precio (Bs.)" required>
@@ -1424,6 +1530,13 @@ const EventsTab = ({
                   value={editQrDialog.monto}
                   onChange={(e, d) => setEditQrDialog(prev => ({ ...prev, monto: d.value }))}
                   placeholder="0.00"
+                />
+              </Field>
+              <Field label="Descripción o Qué Incluye (opcional)">
+                <Input
+                  value={editQrDialog.descripcion}
+                  onChange={(e, d) => setEditQrDialog(prev => ({ ...prev, descripcion: d.value }))}
+                  placeholder="Ej: Detalle de qué incluye o exclusividad"
                 />
               </Field>
               <Field label="Nueva Imagen QR (opcional)">

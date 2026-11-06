@@ -565,6 +565,8 @@ class EventoPagoQR(Base, AuditMixin, EstadoLifecycleMixin):
     nombre_paquete = Column(String(100), nullable=False)
     monto = Column(Numeric(10, 2), nullable=False)
     url_qr = Column(String(255), nullable=False)
+    es_individual = Column(Boolean, default=False, nullable=False)
+    descripcion = Column(TEXT, nullable=True)
 
     evento = relationship("Evento", back_populates="pagos_qr")
 

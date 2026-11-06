@@ -632,6 +632,8 @@ erDiagram
 | `nombre_paquete` | `VARCHAR` | **-** | **NO** | - |
 | `monto` | `VARCHAR` | **-** | **NO** | - |
 | `url_qr` | `VARCHAR` | **-** | **NO** | - |
+| `es_individual` | `BOOLEAN` | **-** | **NO** | default=False |
+| `descripcion` | `TEXT` | **-** | SÍ | - |
 | `creado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |
 | `fecha_creacion` | `DATETIME` | **-** | SÍ | AuditMixin default=utcnow |
 | `modificado_por` | `INTEGER` | **FK** | SÍ | AuditMixin FK |

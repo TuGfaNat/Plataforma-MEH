@@ -122,6 +122,19 @@ def startup_db_migrations():
                 except Exception:
                     pass
 
+            if inspector.has_table("eventos_pagos_qr"):
+                cols_qr = [c["name"] for c in inspector.get_columns("eventos_pagos_qr")]
+                if "es_individual" not in cols_qr:
+                    try:
+                        conn.execute(text("ALTER TABLE eventos_pagos_qr ADD COLUMN es_individual BOOLEAN DEFAULT FALSE NOT NULL;"))
+                    except Exception:
+                        pass
+                if "descripcion" not in cols_qr:
+                    try:
+                        conn.execute(text("ALTER TABLE eventos_pagos_qr ADD COLUMN descripcion TEXT NULL;"))
+                    except Exception:
+                        pass
+
             conn.commit()
         logger.info("Migración automática exitosa: roles SPEAKER/MENTOR, speakers.id_usuario y tabla mentores verificados.")
     except Exception as e:

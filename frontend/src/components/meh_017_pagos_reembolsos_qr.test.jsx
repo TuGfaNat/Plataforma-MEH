@@ -6,6 +6,7 @@ import { FluentProvider, webDarkTheme } from '@fluentui/react-components';
 import PagoHistorialModal from './PagoHistorialModal';
 import Finanzas from '../pages/Finanzas';
 import GestionPagos from '../pages/GestionPagos';
+import InscripcionEventoModal from './InscripcionEventoModal';
 import pagoService from '../services/pagoService';
 import eventoService from '../services/eventoService';
 import api from '../services/api';
@@ -28,7 +29,8 @@ vi.mock('../services/pagoService', () => ({
 
 vi.mock('../services/eventoService', () => ({
   default: {
-    getMisInscripciones: vi.fn()
+    getMisInscripciones: vi.fn(),
+    inscribirse: vi.fn()
   }
 }));
 
@@ -287,6 +289,94 @@ describe('MEH-017: Reembolsos, Historial, Reintentos y QR de Pago', () => {
       await waitFor(() => {
         expect(pagoService.getHistorialPagos).toHaveBeenCalledWith(15);
       });
+    });
+  });
+
+  describe('InscripcionEventoModal - Paquetes e Ítems Individuales', () => {
+    it('muestra filtros de Paquetes e Ítems Individuales y envía notas_admin correctas al inscribirse', async () => {
+      const mockEvento = {
+        id_evento: 99,
+        titulo: 'Congreso Tech 2026',
+        capacidad_max: 100,
+        cupos_ocupados: 10,
+        cupos_disponibles: 90
+      };
+
+      pagoService.getEventPaymentPackages.mockResolvedValue([
+        {
+          id_qr: 101,
+          id_evento: 99,
+          nombre_paquete: 'Full Pass VIP',
+          monto: 150,
+          url_qr: '/qrs/qr_vip.png',
+          es_individual: false,
+          descripcion: 'Acceso total y cena'
+        },
+        {
+          id_qr: 102,
+          id_evento: 99,
+          nombre_paquete: 'Solo Polera Conmemorativa',
+          monto: 45,
+          url_qr: '/qrs/qr_polera.png',
+          es_individual: true,
+          descripcion: 'Polera oficial edición limitada'
+        }
+      ]);
+
+      eventoService.inscribirse.mockResolvedValue({ id_inscripcion: 888 });
+      pagoService.uploadComprobanteOcr.mockResolvedValue({ success: true });
+
+      renderWithProvider(
+        <InscripcionEventoModal evento={mockEvento} buttonText="Comprar o Inscribirme" />
+      );
+
+      // Abrir modal
+      const btnOpen = screen.getByRole('button', { name: /Comprar o Inscribirme/i });
+      fireEvent.click(btnOpen);
+
+      await waitFor(() => {
+        expect(screen.getByText('Full Pass VIP')).toBeInTheDocument();
+        expect(screen.getByText('Solo Polera Conmemorativa')).toBeInTheDocument();
+      });
+
+      // Validar badges y descripciones
+      expect(screen.getByText('📦 Paquetes (1)')).toBeInTheDocument();
+      expect(screen.getByText('🏷️ Ítems Individuales (1)')).toBeInTheDocument();
+      expect(screen.getByText('Acceso total y cena')).toBeInTheDocument();
+      expect(screen.getByText('Polera oficial edición limitada')).toBeInTheDocument();
+
+      // Filtrar por ítems individuales
+      const btnFilterInd = screen.getByText('🏷️ Ítems Individuales (1)');
+      fireEvent.click(btnFilterInd);
+
+      // Full Pass VIP debe ocultarse del listado filtrado
+      expect(screen.queryByText('Full Pass VIP')).not.toBeInTheDocument();
+      expect(screen.getByText('Solo Polera Conmemorativa')).toBeInTheDocument();
+
+      // Seleccionar el ítem individual
+      const cardItem = screen.getByText('Solo Polera Conmemorativa');
+      fireEvent.click(cardItem);
+
+      // Debe mostrar el monto y QR del ítem
+      expect(screen.getByText(/Solo Polera Conmemorativa — Monto: Bs. 45/i)).toBeInTheDocument();
+
+      // Subir archivo simulado
+      const fileInput = document.querySelector('input[type="file"]');
+      const fakeFile = new File(['fake receipt'], 'recibo_polera.png', { type: 'image/png' });
+      fireEvent.change(fileInput, { target: { files: [fakeFile] } });
+
+      // Confirmar compra
+      const btnConfirmar = screen.getByRole('button', { name: /Subir y Confirmar/i });
+      fireEvent.click(btnConfirmar);
+
+      await waitFor(() => {
+        expect(eventoService.inscribirse).toHaveBeenCalledWith(99);
+        expect(pagoService.uploadComprobanteOcr).toHaveBeenCalledWith(expect.any(FormData));
+      });
+
+      const calledFormData = pagoService.uploadComprobanteOcr.mock.calls[0][0];
+      expect(calledFormData.get('notas_admin')).toBe('Ítem Individual: Solo Polera Conmemorativa');
+      expect(calledFormData.get('monto')).toBe('45');
     });
   });
 });

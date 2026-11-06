@@ -138,6 +138,7 @@ const InscripcionEventoModal = ({
   const [checkingPackages, setCheckingPackages] = useState(false);
   const [packages, setPackages] = useState([]);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [tipoOpcion, setTipoOpcion] = useState('TODOS');
   const [file, setFile] = useState(null);
   const [isQrZoomed, setIsQrZoomed] = useState(false);
   const { notify } = useNotify();
@@ -174,6 +175,13 @@ const InscripcionEventoModal = ({
   };
 
   const incluidosList = parseIncluidos();
+  const paquetes = packages.filter(p => !p.es_individual);
+  const individuales = packages.filter(p => p.es_individual);
+  const displayedPackages = packages.filter(p => {
+    if (tipoOpcion === 'PAQUETES') return !p.es_individual;
+    if (tipoOpcion === 'INDIVIDUALES') return p.es_individual;
+    return true;
+  });
 
   const handleDownloadQr = async () => {
     if (!selectedPackage?.url_qr) return;
@@ -184,7 +192,7 @@ const InscripcionEventoModal = ({
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = `QR_${evento.titulo.replace(/\s+/g, '_')}_${selectedPackage.nombre_paquete.replace(/\s+/g, '_')}.png`;
+      link.download = `QR_${evento.titulo.replace(/\s+/g, '_')}_${(selectedPackage.es_individual ? 'Item_' : 'Paquete_')}${selectedPackage.nombre_paquete.replace(/\s+/g, '_')}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -201,9 +209,19 @@ const InscripcionEventoModal = ({
         setCheckingPackages(true);
         try {
           const res = await pagoService.getEventPaymentPackages(evento.id_evento);
-          setPackages(res || []);
+          const pkgs = res || [];
+          setPackages(pkgs);
           setSelectedPackage(null);
           setFile(null);
+          const paqs = pkgs.filter(p => !p.es_individual);
+          const inds = pkgs.filter(p => p.es_individual);
+          if (paqs.length > 0 && inds.length === 0) {
+            setTipoOpcion('PAQUETES');
+          } else if (inds.length > 0 && paqs.length === 0) {
+            setTipoOpcion('INDIVIDUALES');
+          } else {
+            setTipoOpcion('TODOS');
+          }
         } catch (err) {
           console.error("Error fetching packages:", err);
           setPackages([]);
@@ -266,7 +284,8 @@ const InscripcionEventoModal = ({
     formData.append('tipo_referencia', 'EVENTO');
     formData.append('monto', selectedPackage.monto);
     formData.append('metodo_pago', 'TRANSFERENCIA');
-    formData.append('notas_admin', `Paquete: ${selectedPackage.nombre_paquete}`);
+    const descTipo = selectedPackage.es_individual ? 'Ítem Individual' : 'Paquete';
+    formData.append('notas_admin', `${descTipo}: ${selectedPackage.nombre_paquete}`);
     formData.append('file', file);
 
     await pagoService.uploadComprobanteOcr(formData);
@@ -448,24 +467,51 @@ const InscripcionEventoModal = ({
                   // --- EVENTO DE PAGO ---
                   <div className={styles.paidContainer}>
                     <MEHTypography variant="body" style={{ opacity: 0.8, fontSize: '13px' }}>
-                      Este evento requiere inscripción de pago. Selecciona un paquete y transfiere al código QR bancario oficial:
+                      Este evento cuenta con opciones de aporte. Puedes elegir un paquete completo o adquirir un ítem individual suelto:
                     </MEHTypography>
                     
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                         <Label required htmlFor="paquete-select" style={{ fontWeight: 'bold', fontSize: '14px' }}>
-                          Selecciona tu Paquete de Inscripción:
+                          Selecciona tu Paquete o Ítem Individual:
                         </Label>
                         {selectedPackage && (
-                          <Badge appearance="tint" color="brand">
-                            Seleccionado: {selectedPackage.nombre_paquete}
+                          <Badge appearance="tint" color={selectedPackage.es_individual ? 'informative' : 'brand'}>
+                            {selectedPackage.es_individual ? '🏷️ Ítem' : '📦 Paquete'}: {selectedPackage.nombre_paquete}
                           </Badge>
                         )}
                       </div>
 
-                      {/* Tarjetas interactivas de paquetes para compra clara */}
+                      {/* Filtro por pestañas si existen tanto paquetes como individuales */}
+                      {paquetes.length > 0 && individuales.length > 0 && (
+                        <div style={{ display: 'flex', gap: '8px', padding: '4px', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: '12px', width: 'fit-content' }}>
+                          <MEHButton
+                            size="small"
+                            appearance={tipoOpcion === 'TODOS' ? 'primary' : 'subtle'}
+                            onClick={() => setTipoOpcion('TODOS')}
+                          >
+                            Todos ({packages.length})
+                          </MEHButton>
+                          <MEHButton
+                            size="small"
+                            appearance={tipoOpcion === 'PAQUETES' ? 'primary' : 'subtle'}
+                            onClick={() => setTipoOpcion('PAQUETES')}
+                          >
+                            📦 Paquetes ({paquetes.length})
+                          </MEHButton>
+                          <MEHButton
+                            size="small"
+                            appearance={tipoOpcion === 'INDIVIDUALES' ? 'primary' : 'subtle'}
+                            onClick={() => setTipoOpcion('INDIVIDUALES')}
+                          >
+                            🏷️ Ítems Individuales ({individuales.length})
+                          </MEHButton>
+                        </div>
+                      )}
+
+                      {/* Tarjetas interactivas de paquetes e ítems para compra clara */}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                        {packages.map(pkg => {
+                        {displayedPackages.map(pkg => {
                           const isSelected = selectedPackage?.id_qr === pkg.id_qr;
                           return (
                             <div
@@ -485,16 +531,28 @@ const InscripcionEventoModal = ({
                               }}
                             >
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
-                                <span style={{ fontWeight: 'bold', fontSize: '14px', lineHeight: '1.2' }}>
-                                  {pkg.nombre_paquete}
-                                </span>
+                                <Badge
+                                  appearance="filled"
+                                  color={pkg.es_individual ? 'informative' : 'brand'}
+                                  size="small"
+                                >
+                                  {pkg.es_individual ? '🏷️ Ítem Suelto' : '📦 Paquete'}
+                                </Badge>
                                 {isSelected ? (
                                   <Badge color="brand" appearance="filled" size="small">✓ Elegido</Badge>
                                 ) : (
                                   <Badge appearance="outline" size="small">Elegir</Badge>
                                 )}
                               </div>
-                              <div style={{ fontSize: '20px', fontWeight: 'bold', color: tokens.colorBrandForeground1 }}>
+                              <div style={{ fontWeight: 'bold', fontSize: '14px', lineHeight: '1.2' }}>
+                                {pkg.nombre_paquete}
+                              </div>
+                              {pkg.descripcion && (
+                                <div style={{ fontSize: '12px', opacity: 0.75, lineHeight: 1.3 }}>
+                                  {pkg.descripcion}
+                                </div>
+                              )}
+                              <div style={{ fontSize: '20px', fontWeight: 'bold', color: tokens.colorBrandForeground1, marginTop: 'auto' }}>
                                 Bs. {pkg.monto}
                               </div>
                             </div>
@@ -505,7 +563,7 @@ const InscripcionEventoModal = ({
                       {/* Dropdown oculto para compatibilidad con selectores accesibles y tests */}
                       <Dropdown
                         id="paquete-select"
-                        placeholder="Selecciona un paquete de inscripción"
+                        placeholder="Selecciona un paquete o ítem de inscripción"
                         style={{ display: 'none' }}
                         value={selectedPackage ? `${selectedPackage.nombre_paquete} — Bs. ${selectedPackage.monto}` : ''}
                         onOptionSelect={(e, data) => {
@@ -515,7 +573,7 @@ const InscripcionEventoModal = ({
                       >
                         {packages.map(pkg => (
                           <Option key={pkg.id_qr} value={pkg.id_qr.toString()}>
-                            {pkg.nombre_paquete} — Bs. {pkg.monto}
+                            {pkg.es_individual ? '🏷️ ' : '📦 '}{pkg.nombre_paquete} — Bs. {pkg.monto}
                           </Option>
                         ))}
                       </Dropdown>
@@ -523,9 +581,20 @@ const InscripcionEventoModal = ({
 
                     {selectedPackage && (
                       <div className={styles.qrSection}>
-                        <MEHTypography variant="body" style={{ fontWeight: 'bold', color: tokens.colorBrandForeground1, fontSize: '15px' }}>
-                          Monto a transferir: Bs. {selectedPackage.monto}
-                        </MEHTypography>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                          <Badge appearance="filled" color={selectedPackage.es_individual ? 'informative' : 'brand'}>
+                            {selectedPackage.es_individual ? '🏷️ Ítem Individual' : '📦 Paquete'}
+                          </Badge>
+                          <MEHTypography variant="body" style={{ fontWeight: 'bold', color: tokens.colorBrandForeground1, fontSize: '15px' }}>
+                            {selectedPackage.nombre_paquete} — Monto: Bs. {selectedPackage.monto}
+                          </MEHTypography>
+                        </div>
+
+                        {selectedPackage.descripcion && (
+                          <MEHTypography variant="caption" style={{ opacity: 0.85, textAlign: 'center', maxWidth: '420px' }}>
+                            {selectedPackage.descripcion}
+                          </MEHTypography>
+                        )}
                         
                         {selectedPackage.url_qr ? (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', width: '100%' }}>
@@ -543,7 +612,7 @@ const InscripcionEventoModal = ({
                         ) : (
                           <MessageBar intent="warning" layout="multiline" style={{ borderRadius: '10px', width: '100%' }}>
                             <MessageBarBody>
-                              No se cargó imagen de QR para este paquete.
+                              No se cargó imagen de QR para esta opción.
                             </MessageBarBody>
                           </MessageBar>
                         )}
@@ -611,7 +680,7 @@ const InscripcionEventoModal = ({
                   style={{ color: tokens.colorNeutralForeground1, fontWeight: 'bold' }}
                   action={<MEHButton appearance="subtle" icon={<Dismiss24Regular />} onClick={() => setIsQrZoomed(false)} />}
                 >
-                  Código QR Bancario: {selectedPackage?.nombre_paquete}
+                  Código QR Bancario: {selectedPackage?.es_individual ? '🏷️ Ítem ' : '📦 Paquete '}{selectedPackage?.nombre_paquete}
                 </DialogTitle>
                 <DialogContent style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '16px 0' }}>
                   <img 
@@ -632,7 +701,7 @@ const InscripcionEventoModal = ({
                     }} 
                   />
                   <MEHTypography variant="body" style={{ opacity: 0.9, textAlign: 'center' }}>
-                    Escanea este código con tu aplicación bancaria para transferir <b>Bs. {selectedPackage?.monto}</b>.
+                    Escanea este código con tu aplicación bancaria para transferir <b>Bs. {selectedPackage?.monto}</b> por el {selectedPackage?.es_individual ? 'ítem individual' : 'paquete'} <b>"{selectedPackage?.nombre_paquete}"</b>.
                   </MEHTypography>
                 </DialogContent>
                 <DialogActions style={{ justifyContent: 'center', gap: '12px', marginTop: '8px' }}>

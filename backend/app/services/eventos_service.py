@@ -1416,19 +1416,21 @@ def create_pago_qr(
     monto: float,
     file_content: bytes,
     ip_address: Optional[str] = None,
-    file_extension: Optional[str] = None
+    file_extension: Optional[str] = None,
+    es_individual: bool = False,
+    descripcion: Optional[str] = None
 ) -> models.EventoPagoQR:
-    """Crea un paquete de pago y QR asociado a un evento con validación y anti-duplicado."""
+    """Crea un paquete de pago o ítem individual y QR asociado a un evento con validación y anti-duplicado."""
     if admin_user.rol not in ["ADMIN", "ORGANIZADOR", "MODERADOR"]:
         raise PermisoDenegadoError("No tienes permisos para gestionar QRs de pago de eventos")
 
     nombre_limpio = (nombre_paquete or "").strip()
     if not nombre_limpio:
-        raise ValidacionNegocioError("El nombre del paquete no puede estar vacío")
+        raise ValidacionNegocioError("El nombre del paquete o ítem no puede estar vacío")
     if monto is None or monto <= 0:
-        raise ValidacionNegocioError("El monto del paquete debe ser mayor a 0")
+        raise ValidacionNegocioError("El monto debe ser mayor a 0")
 
-    # Anti-duplicado: verificar si ya existe un paquete con ese nombre en el evento
+    # Anti-duplicado: verificar si ya existe un paquete/ítem con ese nombre en el evento
     duplicado = db.query(models.EventoPagoQR).filter(
         models.EventoPagoQR.id_evento == id_evento,
         models.EventoPagoQR.id_estado != 0,
@@ -1444,6 +1446,8 @@ def create_pago_qr(
         nombre_paquete=nombre_limpio,
         monto=monto,
         url_qr=rel_url,
+        es_individual=bool(es_individual),
+        descripcion=descripcion.strip() if descripcion else None,
         id_estado=2
     )
     db.add(nuevo_qr)
@@ -1456,7 +1460,13 @@ def create_pago_qr(
         accion="CREAR_PAQUETE_PAGO_QR",
         tabla_afectada="eventos_pagos_qr",
         id_registro_afectado=nuevo_qr.id_qr,
-        valor_nuevo={"id_evento": id_evento, "nombre_paquete": nombre_limpio, "monto": str(monto)},
+        valor_nuevo={
+            "id_evento": id_evento, 
+            "nombre_paquete": nombre_limpio, 
+            "monto": str(monto),
+            "es_individual": bool(es_individual),
+            "descripcion": nuevo_qr.descripcion
+        },
         ip_direccion=ip_address
     )
     return nuevo_qr
@@ -1469,9 +1479,11 @@ def update_pago_qr(
     nombre_paquete: Optional[str] = None,
     monto: Optional[float] = None,
     file_content: Optional[bytes] = None,
-    ip_address: Optional[str] = None
+    ip_address: Optional[str] = None,
+    es_individual: Optional[bool] = None,
+    descripcion: Optional[str] = None
 ) -> models.EventoPagoQR:
-    """Actualiza datos y/o imagen de un paquete de pago y QR con anti-duplicado (ADMIN, ORGANIZADOR, MODERADOR)."""
+    """Actualiza datos y/o imagen de un paquete o ítem individual con anti-duplicado (ADMIN, ORGANIZADOR, MODERADOR)."""
     if admin_user.rol not in ["ADMIN", "ORGANIZADOR", "MODERADOR"]:
         raise PermisoDenegadoError("No tienes permisos para gestionar QRs de pago de eventos")
 
@@ -1480,12 +1492,12 @@ def update_pago_qr(
         models.EventoPagoQR.id_estado != 0
     ).first()
     if not db_qr:
-        raise ValidacionNegocioError("Paquete de pago QR no encontrado")
+        raise ValidacionNegocioError("Opción de pago QR no encontrada")
 
     if nombre_paquete is not None:
         nombre_limpio = nombre_paquete.strip()
         if not nombre_limpio:
-            raise ValidacionNegocioError("El nombre del paquete no puede estar vacío")
+            raise ValidacionNegocioError("El nombre no puede estar vacío")
         # Anti-duplicado excluyendo el actual
         duplicado = db.query(models.EventoPagoQR).filter(
             models.EventoPagoQR.id_evento == db_qr.id_evento,
@@ -1494,13 +1506,19 @@ def update_pago_qr(
             func.lower(models.EventoPagoQR.nombre_paquete) == nombre_limpio.lower()
         ).first()
         if duplicado:
-            raise ValidacionNegocioError(f"Ya existe otro paquete de pago con el nombre '{nombre_limpio}' para este evento")
+            raise ValidacionNegocioError(f"Ya existe otro paquete o ítem de pago con el nombre '{nombre_limpio}' para este evento")
         db_qr.nombre_paquete = nombre_limpio
 
     if monto is not None:
         if monto <= 0:
-            raise ValidacionNegocioError("El monto del paquete debe ser mayor a 0")
+            raise ValidacionNegocioError("El monto debe ser mayor a 0")
         db_qr.monto = monto
+
+    if es_individual is not None:
+        db_qr.es_individual = bool(es_individual)
+
+    if descripcion is not None:
+        db_qr.descripcion = descripcion.strip() if descripcion.strip() else None
 
     if file_content is not None and len(file_content) > 0:
         rel_url = _safe_save_qr_file(db_qr.id_evento, file_content)
@@ -1515,7 +1533,12 @@ def update_pago_qr(
         accion="ACTUALIZAR_PAQUETE_PAGO_QR",
         tabla_afectada="eventos_pagos_qr",
         id_registro_afectado=id_qr,
-        valor_nuevo={"nombre_paquete": db_qr.nombre_paquete, "monto": str(db_qr.monto)},
+        valor_nuevo={
+            "nombre_paquete": db_qr.nombre_paquete, 
+            "monto": str(db_qr.monto),
+            "es_individual": db_qr.es_individual,
+            "descripcion": db_qr.descripcion
+        },
         ip_direccion=ip_address
     )
     return db_qr
@@ -1980,6 +2003,8 @@ def duplicar_evento(
             nombre_paquete=pkg.nombre_paquete,
             monto=pkg.monto,
             url_qr=pkg.url_qr,
+            es_individual=bool(pkg.es_individual),
+            descripcion=pkg.descripcion,
             creado_por=current_user.id_usuario,
             fecha_creacion=now_utc,
             id_estado=2

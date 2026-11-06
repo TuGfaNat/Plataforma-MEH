@@ -5,6 +5,8 @@ from typing import Optional
 class EventoPagoQRBase(BaseModel):
     nombre_paquete: str
     monto: Decimal
+    es_individual: bool = False
+    descripcion: Optional[str] = None
 
 class EventoPagoQRCreate(EventoPagoQRBase):
     pass
@@ -12,6 +14,8 @@ class EventoPagoQRCreate(EventoPagoQRBase):
 class EventoPagoQRUpdate(BaseModel):
     nombre_paquete: Optional[str] = None
     monto: Optional[Decimal] = None
+    es_individual: Optional[bool] = None
+    descripcion: Optional[str] = None
 
 class EventoPagoQRResponse(EventoPagoQRBase):
     id_qr: int

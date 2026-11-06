@@ -253,10 +253,12 @@ async def create_pago_qr(
     nombre_paquete: str = Form(...),
     monto: float = Form(...),
     file: UploadFile = File(...),
+    es_individual: bool = Form(False),
+    descripcion: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    """Crea un paquete de pago y QR asociado a un evento con validación y anti-duplicado."""
+    """Crea un paquete de pago o ítem individual y QR asociado a un evento con validación y anti-duplicado."""
     ip_address = request.client.host if request.client else None
     file_content = await file.read()
     
@@ -267,7 +269,9 @@ async def create_pago_qr(
         nombre_paquete=nombre_paquete,
         monto=monto,
         file_content=file_content,
-        ip_address=ip_address
+        ip_address=ip_address,
+        es_individual=es_individual,
+        descripcion=descripcion
     )
 
 @router.put("/pagos-qr/{id_qr}", response_model=EventoPagoQRResponse)
@@ -277,10 +281,12 @@ async def update_pago_qr(
     nombre_paquete: Optional[str] = Form(None),
     monto: Optional[float] = Form(None),
     file: Optional[UploadFile] = File(None),
+    es_individual: Optional[bool] = Form(None),
+    descripcion: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
-    """Actualiza datos y/o código QR de un paquete de pago con anti-duplicado (Admin, Organizador, Moderador)."""
+    """Actualiza datos y/o código QR de un paquete o ítem individual con anti-duplicado (Admin, Organizador, Moderador)."""
     ip_address = request.client.host if request.client else None
     file_content = await file.read() if file else None
 
@@ -291,7 +297,9 @@ async def update_pago_qr(
         nombre_paquete=nombre_paquete,
         monto=monto,
         file_content=file_content,
-        ip_address=ip_address
+        ip_address=ip_address,
+        es_individual=es_individual,
+        descripcion=descripcion
     )
 
 @router.delete("/pagos-qr/{id_qr}", status_code=status.HTTP_204_NO_CONTENT)

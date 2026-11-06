@@ -411,6 +411,7 @@ const EventoPublico = () => {
         fData.append('tipo_referencia', 'EVENTO');
         fData.append('monto', selectedPackage.monto);
         fData.append('metodo_pago', 'TRANSFERENCIA');
+        fData.append('notas_admin', `${selectedPackage.es_individual ? 'Ítem Individual' : 'Paquete'}: ${selectedPackage.nombre_paquete}`);
         fData.append('file', paymentFile);
 
         await pagoService.uploadComprobanteOcr(fData);
@@ -856,7 +857,7 @@ const EventoPublico = () => {
                       Registro Oficial
                     </MEHTypography>
                     <MEHTypography variant="h2" style={{ marginTop: '4px', fontSize: '1.6rem' }}>
-                      {packages.length > 0 ? "Evento con Aporte / Paquete" : "Acceso Gratuito"}
+                      {packages.length > 0 ? "Evento con Aporte / Opciones de Pago" : "Acceso Gratuito"}
                     </MEHTypography>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
                       {evento.estado === 'EN_CURSO' && (
@@ -1004,24 +1005,51 @@ const EventoPublico = () => {
                         </Field>
                       </div>
 
-                      {/* Paquetes de Pago (si aplica) */}
+                      {/* Paquetes de Pago e Ítems Individuales (si aplica) */}
                       {packages.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '6px' }}>
-                          <Field label="Seleccionar Paquete de Pago" required>
+                          <Field label="Seleccionar Opción de Pago" required>
                             <Select 
-                              value={selectedPackage?.id_paquete || ''} 
+                              value={selectedPackage?.id_qr || selectedPackage?.id_paquete || ''} 
                               onChange={(e) => {
-                                const found = packages.find(p => String(p.id_paquete) === String(e.target.value));
+                                const val = e.target.value;
+                                const found = packages.find(p => String(p.id_qr || p.id_paquete) === String(val));
                                 setSelectedPackage(found || null);
                               }}
                             >
-                              {packages.map(p => (
-                                <option key={p.id_paquete} value={p.id_paquete}>
-                                  {p.nombre_paquete} - Bs. {p.monto}
-                                </option>
-                              ))}
+                              {packages.some(p => !p.es_individual) && (
+                                <optgroup label="📦 Paquetes Completos">
+                                  {packages.filter(p => !p.es_individual).map(p => (
+                                    <option key={p.id_qr || p.id_paquete} value={p.id_qr || p.id_paquete}>
+                                      {p.nombre_paquete} - Bs. {p.monto}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              )}
+                              {packages.some(p => p.es_individual) && (
+                                <optgroup label="🏷️ Ítems Individuales / Sueltos">
+                                  {packages.filter(p => p.es_individual).map(p => (
+                                    <option key={p.id_qr || p.id_paquete} value={p.id_qr || p.id_paquete}>
+                                      {p.nombre_paquete} - Bs. {p.monto} {p.descripcion ? `(${p.descripcion})` : ''}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              )}
                             </Select>
                           </Field>
+
+                          {selectedPackage && (
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                              <Badge appearance="filled" color={selectedPackage.es_individual ? 'informative' : 'brand'}>
+                                {selectedPackage.es_individual ? '🏷️ Ítem Individual' : '📦 Paquete Completo'}
+                              </Badge>
+                              {selectedPackage.descripcion && (
+                                <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>
+                                  {selectedPackage.descripcion}
+                                </span>
+                              )}
+                            </div>
+                          )}
 
                           {selectedPackage?.url_qr && (
                             <div style={{ textAlign: 'center', padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '12px' }}>
@@ -1031,7 +1059,7 @@ const EventoPublico = () => {
                                 style={{ width: '160px', height: '160px', objectFit: 'contain', backgroundColor: '#fff', padding: '8px', borderRadius: '8px' }} 
                               />
                               <div style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: '6px' }}>
-                                Escanea este código QR para realizar la transferencia de Bs. {selectedPackage.monto}.
+                                Escanea este código QR para realizar la transferencia de Bs. {selectedPackage.monto} por "{selectedPackage.nombre_paquete}".
                               </div>
                             </div>
                           )}
