@@ -416,9 +416,10 @@ def update_user_role(
     admin_user: models.Usuario, 
     id_usuario: int, 
     nuevo_rol: str, 
+    roles_secundarios: Optional[str] = None,
     ip_address: Optional[str] = None
 ) -> models.Usuario:
-    """Cambia el rol de un usuario (Solo ADMIN)."""
+    """Cambia el rol de un usuario y opcionalmente sus roles secundarios (Solo ADMIN)."""
     if not has_permission(admin_user.rol, PERMISSION_AUDIT_READ):
         raise PermisoDenegadoError("Solo los administradores pueden cambiar roles")
     
@@ -443,6 +444,8 @@ def update_user_role(
     
     rol_anterior = usuario.rol
     usuario.rol = nuevo_rol
+    if roles_secundarios is not None:
+        usuario.roles_secundarios = roles_secundarios
     
     db.commit()
     db.refresh(usuario)

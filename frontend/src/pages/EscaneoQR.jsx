@@ -922,45 +922,83 @@ const EscaneoQR = () => {
                   Punto: <b>{currentCpNombre}</b> • Registrado con éxito
                 </span>
 
-                {/* Rol del Asistente y Entregables Especiales (Staff, Voluntarios, Speakers, etc.) */}
+                {/* Rol(es) del Asistente y Entregables Especiales (Soporte de Doble Rol: Voluntario, Speaker, etc.) */}
                 {(() => {
-                  const role = lastScan.rol || lastScan.usuario?.rol || 'MIEMBRO';
-                  let badgeStyle = { backgroundColor: '#10b981', color: '#ffffff', fontWeight: 'bold' };
-                  let roleLabel = '🎟️ ASISTENTE GENERAL';
-                  let roleDeliverable = null;
+                  const rawRoles = lastScan.roles || lastScan.usuario?.roles || [lastScan.rol || lastScan.usuario?.rol || 'MIEMBRO'];
+                  const allRoles = Array.isArray(rawRoles) ? rawRoles : [rawRoles];
 
-                  if (role === 'ORGANIZADOR') {
-                    badgeStyle = { backgroundColor: '#7c3aed', color: '#ffffff', fontWeight: 'bold' };
-                    roleLabel = '👔 EQUIPO ORGANIZADOR';
-                    roleDeliverable = '⭐ Credencial Oficial de Staff + Kit Organizador';
-                  } else if (role === 'ADMIN') {
-                    badgeStyle = { backgroundColor: '#581c87', color: '#ffffff', fontWeight: 'bold' };
-                    roleLabel = '👑 ADMINISTRADOR';
-                    roleDeliverable = '⭐ Credencial de Administrador + Acceso Total';
-                  } else if (role === 'EMBAJADOR' || role === 'SOPORTE') {
-                    badgeStyle = { backgroundColor: '#0284c7', color: '#ffffff', fontWeight: 'bold' };
-                    roleLabel = '🤝 VOLUNTARIO / STAFF DE APOYO';
-                    roleDeliverable = '👕 Polera Oficial de Voluntario + Credencial de Apoyo';
-                  } else if (role === 'SPEAKER') {
-                    badgeStyle = { backgroundColor: '#d97706', color: '#ffffff', fontWeight: 'bold' };
-                    roleLabel = '🎤 SPEAKER / PONENTE';
-                    roleDeliverable = '✨ Credencial VIP + Obsequio Speaker + Acceso Sala VIP';
-                  } else if (role === 'MENTOR') {
-                    badgeStyle = { backgroundColor: '#0891b2', color: '#ffffff', fontWeight: 'bold' };
-                    roleLabel = '💡 MENTOR MEH';
-                    roleDeliverable = '🚀 Credencial Oficial Mentor + Acceso a Salas Técnicas';
+                  const roleConfigs = {
+                    ORGANIZADOR: {
+                      label: '👔 EQUIPO ORGANIZADOR',
+                      style: { backgroundColor: '#7c3aed', color: '#ffffff', fontWeight: 'bold' },
+                      deliverable: '⭐ Credencial Oficial de Staff + Kit Organizador'
+                    },
+                    ADMIN: {
+                      label: '👑 ADMINISTRADOR',
+                      style: { backgroundColor: '#581c87', color: '#ffffff', fontWeight: 'bold' },
+                      deliverable: '⭐ Credencial de Administrador + Acceso Total'
+                    },
+                    VOLUNTARIO: {
+                      label: '🤝 VOLUNTARIO / STAFF',
+                      style: { backgroundColor: '#0284c7', color: '#ffffff', fontWeight: 'bold' },
+                      deliverable: '👕 Polera Oficial de Voluntario + Credencial de Apoyo'
+                    },
+                    EMBAJADOR: {
+                      label: '🌟 EMBAJADOR MEH',
+                      style: { backgroundColor: '#0369a1', color: '#ffffff', fontWeight: 'bold' },
+                      deliverable: '👕 Polera Oficial de Embajador + Credencial'
+                    },
+                    SOPORTE: {
+                      label: '🛠️ SOPORTE LOGÍSTICO',
+                      style: { backgroundColor: '#0284c7', color: '#ffffff', fontWeight: 'bold' },
+                      deliverable: '👕 Credencial de Soporte Técnico'
+                    },
+                    SPEAKER: {
+                      label: '🎤 SPEAKER / PONENTE',
+                      style: { backgroundColor: '#d97706', color: '#ffffff', fontWeight: 'bold' },
+                      deliverable: '✨ Credencial VIP + Obsequio Speaker + Acceso Sala VIP'
+                    },
+                    MENTOR: {
+                      label: '💡 MENTOR MEH',
+                      style: { backgroundColor: '#0891b2', color: '#ffffff', fontWeight: 'bold' },
+                      deliverable: '🚀 Credencial Oficial Mentor + Acceso a Salas Técnicas'
+                    },
+                    MIEMBRO: {
+                      label: '🎟️ ASISTENTE GENERAL',
+                      style: { backgroundColor: '#10b981', color: '#ffffff', fontWeight: 'bold' },
+                      deliverable: null
+                    }
+                  };
+
+                  const activeBadges = [];
+                  const activeDeliverables = [];
+
+                  allRoles.forEach(r => {
+                    const config = roleConfigs[r];
+                    if (config && !activeBadges.some(b => b.label === config.label)) {
+                      activeBadges.push(config);
+                      if (config.deliverable) activeDeliverables.push(config.deliverable);
+                    }
+                  });
+
+                  if (activeBadges.length === 0) {
+                    activeBadges.push(roleConfigs.MIEMBRO);
                   }
 
                   return (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
-                      <Badge appearance="filled" size="large" style={badgeStyle}>
-                        {roleLabel}
-                      </Badge>
-                      {roleDeliverable && (
-                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#38bdf8', backgroundColor: 'rgba(2, 132, 199, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
-                          {roleDeliverable}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                        {activeBadges.map((b, idx) => (
+                          <Badge key={idx} appearance="filled" size="large" style={b.style}>
+                            {b.label}
+                          </Badge>
+                        ))}
+                      </div>
+                      {activeDeliverables.map((deliv, idx) => (
+                        <span key={idx} style={{ fontSize: '11px', fontWeight: 'bold', color: '#38bdf8', backgroundColor: 'rgba(2, 132, 199, 0.15)', padding: '2px 8px', borderRadius: '4px' }}>
+                          {deliv}
                         </span>
-                      )}
+                      ))}
                     </div>
                   );
                 })()}

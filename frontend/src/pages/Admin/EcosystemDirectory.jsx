@@ -34,6 +34,7 @@ import {
 import {
   Mic24Regular,
   PeopleStar24Regular,
+  PeopleTeam24Regular,
   Reward24Regular,
   PeopleCommunity24Regular,
   PeopleCommunity24Filled,
@@ -260,6 +261,7 @@ const EcosystemDirectory = () => {
 
   // Estados para el Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [voluntarioModal, setVoluntarioModal] = useState({ open: false, id_usuario: null, loading: false });
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -359,6 +361,11 @@ const EcosystemDirectory = () => {
   };
 
   const handleAdd = () => {
+    if (selectedTab === 'voluntarios') {
+      const firstAvailable = registeredUsers[0]?.id_usuario || null;
+      setVoluntarioModal({ open: true, id_usuario: firstAvailable, loading: false });
+      return;
+    }
     resetForm();
     setIsModalOpen(true);
   };
@@ -481,6 +488,7 @@ const EcosystemDirectory = () => {
         >
           <Tab value="speakers" icon={<Mic24Regular />}>{t("speakers")}</Tab>
           <Tab value="mentores" icon={<PeopleStar24Regular />}>{t("mentors") || "Mentores"}</Tab>
+          <Tab value="voluntarios" icon={<PeopleTeam24Regular />}>{t("volunteers") || "Voluntarios"}</Tab>
           <Tab value="auspiciadores" icon={<Reward24Regular />}>{t("sponsors")}</Tab>
           <Tab value="comunidades" icon={<PeopleCommunity24Regular />}>{t("allied_communities")}</Tab>
         </TabList>
@@ -620,6 +628,69 @@ const EcosystemDirectory = () => {
                         {m.facebook_url && <MEHButton size="small" style={{minWidth: '32px'}} onClick={() => window.open(m.facebook_url, "_blank")}>Fb</MEHButton>}
                         {m.instagram_url && <MEHButton size="small" style={{minWidth: '32px'}} onClick={() => window.open(m.instagram_url, "_blank")}>Ig</MEHButton>}
                     </div>
+                </div>
+              </div>
+            ))}
+
+          {selectedTab === "voluntarios" &&
+            data.map((v, index) => (
+              <div key={`vol-${v.id_usuario || index}`} className={styles.card}>
+                <div className="shine-effect" />
+                <img
+                  src={getImageUrl(v.foto_url)}
+                  alt={v.nombre_completo}
+                  className={styles.avatar}
+                  onError={(e) => { e.target.src = 'https://via.placeholder.com/400x300?text=Voluntario+MEH'; }}
+                />
+                
+                <div className={styles.cardBody}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '6px' }}>
+                    <Subtitle1 style={{ fontWeight: "bold", fontSize: '18px' }}>{v.nombre_completo}</Subtitle1>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      <Badge color="informative" appearance="filled">🤝 Voluntario</Badge>
+                      {v.es_speaker && <Badge color="warning" appearance="tint">🎤 También Speaker</Badge>}
+                      {v.es_mentor && <Badge color="success" appearance="tint">💡 También Mentor</Badge>}
+                    </div>
+                  </div>
+
+                  <Caption1 style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.8 }}>
+                    <Briefcase24Regular style={{ fontSize: "14px" }} /> {v.institucion || "Staff Voluntario MEH"}
+                  </Caption1>
+
+                  <Body1 className={styles.bio}>
+                    Miembro del equipo voluntario de apoyo logístico y operativo para conferencias, talleres y dinámicas de la comunidad.
+                  </Body1>
+
+                  {v.correo && (
+                    <div className={styles.contactBadges}>
+                      <Tooltip content={t("admin_send_email")} relationship="label">
+                        <div className={`${styles.actionChip} ${styles.emailChip}`} onClick={() => window.location.href=`mailto:${v.correo}`}>
+                          <Mail24Regular style={{fontSize: '16px'}} /> {v.correo}
+                        </div>
+                      </Tooltip>
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.footerActions}>
+                  <Button 
+                    icon={<Delete24Regular />} 
+                    appearance="subtle" 
+                    size="small" 
+                    style={{ color: tokens.colorPaletteRedForeground1 }} 
+                    onClick={async () => {
+                      if (!window.confirm(`¿Quitar la designación de voluntario a ${v.nombre_completo}?`)) return;
+                      try {
+                        await adminService.removerVoluntario(v.id_usuario);
+                        notify("Éxito", "Designación de voluntario removida", "success");
+                        fetchData();
+                      } catch (err) {
+                        notify("Error", "No se pudo remover el rol de voluntario", "error");
+                      }
+                    }}
+                  >
+                    Quitar Voluntario
+                  </Button>
                 </div>
               </div>
             ))}
@@ -942,6 +1013,63 @@ const EcosystemDirectory = () => {
               </DialogActions>
             </DialogBody>
           </form>
+        </DialogSurface>
+      </Dialog>
+
+      {/* DIÁLOGO MODAL: DESIGNAR VOLUNTARIO */}
+      <Dialog 
+        open={voluntarioModal.open} 
+        onOpenChange={(e, d) => !d.open && setVoluntarioModal({ open: false, id_usuario: null, loading: false })}
+      >
+        <DialogSurface className={styles.dialogSurface}>
+          <DialogBody>
+            <DialogTitle>🤝 Designar Voluntario del Ecosistema</DialogTitle>
+            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '10px' }}>
+              <MEHTypography variant="body" style={{ opacity: 0.8 }}>
+                Selecciona a un usuario registrado para asignarle el estatus de Voluntario. Si el usuario ya es Speaker o Mentor, <b>conservará ambos roles</b> sin perder sus datos.
+              </MEHTypography>
+
+              <Field label="Seleccionar Usuario Registrado" required>
+                <Select
+                  value={voluntarioModal.id_usuario ? String(voluntarioModal.id_usuario) : ""}
+                  onChange={(e, d) => setVoluntarioModal(prev => ({ ...prev, id_usuario: Number(d.value) }))}
+                >
+                  <option value="">-- Elige un usuario registrado --</option>
+                  {registeredUsers.map(u => (
+                    <option key={u.id_usuario} value={u.id_usuario}>
+                      {u.nombres} {u.apellidos} ({u.correo}) - Rol: {u.rol}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </DialogContent>
+            <DialogActions style={{ marginTop: '16px' }}>
+              <Button appearance="secondary" onClick={() => setVoluntarioModal({ open: false, id_usuario: null, loading: false })}>
+                {t("cancel")}
+              </Button>
+              <MEHButton
+                appearance="primary"
+                disabled={!voluntarioModal.id_usuario || voluntarioModal.loading}
+                loading={voluntarioModal.loading}
+                onClick={async () => {
+                  if (!voluntarioModal.id_usuario) return;
+                  setVoluntarioModal(prev => ({ ...prev, loading: true }));
+                  try {
+                    await adminService.asignarVoluntario(voluntarioModal.id_usuario);
+                    notify("Éxito", "Usuario designado como Voluntario exitosamente", "success");
+                    setVoluntarioModal({ open: false, id_usuario: null, loading: false });
+                    fetchData();
+                  } catch (err) {
+                    const detail = err.response?.data?.detail;
+                    notify("Error", typeof detail === 'string' ? detail : "No se pudo asignar como voluntario", "error");
+                    setVoluntarioModal(prev => ({ ...prev, loading: false }));
+                  }
+                }}
+              >
+                Designar como Voluntario
+              </MEHButton>
+            </DialogActions>
+          </DialogBody>
         </DialogSurface>
       </Dialog>
     </div>

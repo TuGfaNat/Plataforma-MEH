@@ -33,6 +33,18 @@ const adminService = {
     const response = await api.delete(`/admin-directories/mentores/${id}`);
     return response.data;
   },
+  getVoluntarios: async () => {
+    const response = await api.get('/admin-directories/voluntarios');
+    return response.data;
+  },
+  asignarVoluntario: async (idUsuario) => {
+    const response = await api.post(`/admin-directories/voluntarios/${idUsuario}`);
+    return response.data;
+  },
+  removerVoluntario: async (idUsuario) => {
+    const response = await api.delete(`/admin-directories/voluntarios/${idUsuario}`);
+    return response.data;
+  },
   getAuspiciadores: async () => {
     const response = await api.get('/admin-directories/auspiciadores');
     return response.data;

@@ -58,6 +58,7 @@ class Usuario(Base, AuditMixin, EstadoLifecycleMixin):
     correo = Column(String, unique=True, index=True)
     password_hash = Column(TEXT)
     rol = Column(String, default="MIEMBRO")
+    roles_secundarios = Column(String, nullable=True) # Lista separada por comas ej: "SPEAKER,VOLUNTARIO"
     fecha_registro = Column(DateTime, default=datetime.utcnow)
     bio = Column(TEXT, nullable=True)
     
@@ -96,7 +97,7 @@ class Usuario(Base, AuditMixin, EstadoLifecycleMixin):
 
     __table_args__ = (
         CheckConstraint(
-            "rol IN ('ADMIN', 'ORGANIZADOR', 'MODERADOR', 'SOPORTE', 'EMBAJADOR', 'MIEMBRO', 'SPEAKER', 'MENTOR')",
+            "rol IN ('ADMIN', 'ORGANIZADOR', 'MODERADOR', 'SOPORTE', 'EMBAJADOR', 'VOLUNTARIO', 'MIEMBRO', 'SPEAKER', 'MENTOR')",
             name="usuarios_rol_check"
         ),
     )

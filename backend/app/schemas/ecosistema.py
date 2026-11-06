@@ -78,6 +78,24 @@ class MentorResponse(MentorBase):
     id_mentor: int
     model_config = ConfigDict(from_attributes=True)
 
+# --- VOLUNTARIOS ---
+class VoluntarioResponse(BaseModel):
+    id_usuario: int
+    nombres: str
+    apellidos: str
+    nombre_completo: str
+    correo: str
+    foto_url: Optional[str] = None
+    rol_principal: str
+    roles: List[str]
+    institucion: Optional[str] = None
+    es_speaker: bool = False
+    speaker_info: Optional[dict] = None
+    es_mentor: bool = False
+    mentor_info: Optional[dict] = None
+    fecha_registro: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
 # --- AUSPICIADORES ---
 class AuspiciadorBase(BaseModel):
     nombre: str

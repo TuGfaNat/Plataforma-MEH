@@ -151,3 +151,31 @@ def delete_comunidad(
 ):
     ecosistema_service.delete_comunidad(db, id_comunidad, current_user)
     return None
+
+# --- VOLUNTARIOS ---
+@router.get("/voluntarios", response_model=List[schema.VoluntarioResponse])
+def get_voluntarios(
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    return ecosistema_service.list_voluntarios(db)
+
+@router.post("/voluntarios/{id_usuario}")
+def asignar_voluntario(
+    id_usuario: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    ip = request.client.host if request.client else None
+    return ecosistema_service.asignar_voluntario(db, current_user, id_usuario, ip)
+
+@router.delete("/voluntarios/{id_usuario}")
+def remover_voluntario(
+    id_usuario: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    ip = request.client.host if request.client else None
+    return ecosistema_service.remover_voluntario(db, current_user, id_usuario, ip)

@@ -3,6 +3,7 @@
 // ==========================================
 export const ROLE_VISITANTE = 'VISITANTE';     // Usuario no autenticado (público general)
 export const ROLE_MIEMBRO = 'MIEMBRO';         // Miembro o estudiante registrado base
+export const ROLE_VOLUNTARIO = 'VOLUNTARIO';   // Voluntario del staff operativo y de apoyo
 export const ROLE_SPEAKER = 'SPEAKER';         // Expositor / Ponente invitado
 export const ROLE_MENTOR = 'MENTOR';           // Mentor técnico o guía de comunidad
 export const ROLE_EMBAJADOR = 'EMBAJADOR';     // Representante de comunidad o miembro distinguido
@@ -32,6 +33,7 @@ export const PERMISSION_BADGES_MANAGE = 'badges.manage';             // Crear, e
 // ==========================================
 const roleInheritance = {
   [ROLE_MIEMBRO]: [],
+  [ROLE_VOLUNTARIO]: [ROLE_MIEMBRO],                 // Voluntario hereda permisos de Miembro base
   [ROLE_SPEAKER]: [ROLE_MIEMBRO],                    // Speaker hereda permisos de Miembro base
   [ROLE_MENTOR]: [ROLE_MIEMBRO],                     // Mentor hereda permisos de Miembro base
   [ROLE_EMBAJADOR]: [ROLE_MIEMBRO],                  // Embajador hereda todo lo de Miembro
@@ -46,6 +48,7 @@ const roleInheritance = {
 // ==========================================
 const directPermissions = {
   [ROLE_MIEMBRO]: [],
+  [ROLE_VOLUNTARIO]: [PERMISSION_ATTENDANCE_SCAN],
   [ROLE_SPEAKER]: [PERMISSION_SPEAKER_ACCESS],
   [ROLE_MENTOR]: [],
   [ROLE_EMBAJADOR]: [PERMISSION_VIP_ACCESS],
@@ -91,24 +94,41 @@ const getEffectiveRoles = (role) => {
   return visited;
 };
 
-// Comprueba si el rol del usuario coincide directa o indirectamente con los roles permitidos
-export const hasAnyRole = (userRole, allowedRoles = []) => {
-  if (!userRole) return false;
-  if (allowedRoles.length === 0) return true;
-
-  const effectiveRoles = getEffectiveRoles(userRole);
-  return allowedRoles.some((allowedRole) => effectiveRoles.has(allowedRole));
+// Normaliza un rol individual, un arreglo de roles o una cadena separada por comas
+export const getNormalizedUserRoles = (userRoleOrRoles) => {
+  if (!userRoleOrRoles) return [];
+  if (Array.isArray(userRoleOrRoles)) return userRoleOrRoles.filter(Boolean);
+  if (typeof userRoleOrRoles === 'string') {
+    return userRoleOrRoles.split(',').map((r) => r.trim()).filter(Boolean);
+  }
+  return [];
 };
 
-// Comprueba si el rol de un usuario posee un permiso técnico solicitado (directo o heredado)
-export const hasPermission = (userRole, permission) => {
-  if (!userRole) return false;
+// Comprueba si el rol del usuario (o cualquiera de sus roles acumulados) coincide con los roles permitidos
+export const hasAnyRole = (userRoleOrRoles, allowedRoles = []) => {
+  if (!userRoleOrRoles) return false;
+  if (allowedRoles.length === 0) return true;
 
-  const effectiveRoles = getEffectiveRoles(userRole);
-  const permissions = new Set();
-  for (const role of effectiveRoles) {
-    (directPermissions[role] || []).forEach((item) => permissions.add(item));
+  const roles = getNormalizedUserRoles(userRoleOrRoles);
+  return roles.some((role) => {
+    const effectiveRoles = getEffectiveRoles(role);
+    return allowedRoles.some((allowedRole) => effectiveRoles.has(allowedRole));
+  });
+};
+
+// Comprueba si el rol de un usuario (o cualquiera de sus roles acumulados) posee un permiso técnico solicitado
+export const hasPermission = (userRoleOrRoles, permission) => {
+  if (!userRoleOrRoles) return false;
+
+  const roles = getNormalizedUserRoles(userRoleOrRoles);
+  for (const role of roles) {
+    const effectiveRoles = getEffectiveRoles(role);
+    for (const r of effectiveRoles) {
+      if ((directPermissions[r] || []).includes(permission)) {
+        return true;
+      }
+    }
   }
 
-  return permissions.has(permission);
+  return false;
 };

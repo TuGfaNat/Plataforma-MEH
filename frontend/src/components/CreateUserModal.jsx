@@ -252,6 +252,7 @@ const CreateUserModal = ({ open, onClose, currentUser = null, onSuccess }) => {
                       disabled={currentUser && currentUser.rol !== 'ADMIN'}
                     >
                       <option value="MIEMBRO">MIEMBRO</option>
+                      <option value="VOLUNTARIO">VOLUNTARIO</option>
                       <option value="SPEAKER">SPEAKER</option>
                       <option value="MENTOR">MENTOR</option>
                       {(!currentUser || currentUser.rol === 'ADMIN') && (

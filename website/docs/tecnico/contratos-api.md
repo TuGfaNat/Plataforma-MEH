@@ -12,7 +12,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 :::
 
 **Total de módulos de API documentados:** 20  
-**Total de endpoints expuestos:** 172
+**Total de endpoints expuestos:** 175
 
 ---
 
@@ -54,6 +54,9 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`POST`** | `/api/admin-directories/comunidades` | Operación create_comunidad | `data: ComunidadCreate` | `201 Created` | Requiere Auth (JWT) |
 | **`PUT`** | `/api/admin-directories/comunidades/{id_comunidad}` | Operación update_comunidad | `id_comunidad: int`, `data: ComunidadUpdate` | `200 OK` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/admin-directories/comunidades/{id_comunidad}` | Operación delete_comunidad | `id_comunidad: int` | `204 No Content` | Requiere Auth (JWT) |
+| **`GET`** | `/api/admin-directories/voluntarios` | Operación get_voluntarios | - | `200 OK` | Requiere Auth (JWT) |
+| **`POST`** | `/api/admin-directories/voluntarios/{id_usuario}` | Operación asignar_voluntario | `id_usuario: int` | `200 OK` | Requiere Auth (JWT) |
+| **`DELETE`** | `/api/admin-directories/voluntarios/{id_usuario}` | Operación remover_voluntario | `id_usuario: int` | `200 OK` | Requiere Auth (JWT) |
 
 ## Módulo `asistencia` (Prefix: `/asistencia`)
 
@@ -82,7 +85,7 @@ Cualquier modificación en rutas, métodos o permisos se refleja directamente en
 | **`POST`** | `/api/auth/usuarios/{id_usuario}/reset-password` | Restablece la contraseña de un usuario directamente (Solo ADMIN). | `id_usuario: int`, `payload: AdminResetPasswordRequest` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/auth/usuarios/{id_usuario}/suspender` | Suspende a un usuario con motivo (Solo ADMIN). | `id_usuario: int`, `payload: SuspenderUsuarioRequest` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/auth/usuarios/{id_usuario}/restaurar` | Restaura una cuenta de usuario suspendida (Solo ADMIN). | `id_usuario: int` | `200 OK` | Requiere Auth (JWT) |
-| **`PUT`** | `/api/auth/usuarios/{id_usuario}/rol` | Cambia el rango de un usuario (Solo para Administradores). | `id_usuario: int`, `nuevo_rol: str` | `200 OK` | Requiere Auth (JWT) |
+| **`PUT`** | `/api/auth/usuarios/{id_usuario}/rol` | Cambia el rango de un usuario y roles secundarios (Solo para Administradores). | `id_usuario: int`, `nuevo_rol: str` | `200 OK` | Requiere Auth (JWT) |
 | **`DELETE`** | `/api/auth/usuarios/{id_usuario}` | Suspende lógicamente un usuario sin borrado físico (Solo Administradores). | `id_usuario: int` | `204 No Content` | Requiere Auth (JWT) |
 | **`GET`** | `/api/auth/directorio` | Directorio de miembros con métricas y nivel (Solo ADMIN/ORGANIZADOR). | `skip: int`, `limit: int` | `200 OK` | Requiere Auth (JWT) |
 | **`POST`** | `/api/auth/admin/users` | Endpoint para que Administradores y Organizadores creen cuentas de usuario directamente. | `payload: dict` | `201 Created` | Requiere Auth (JWT), Staff / Organizador |

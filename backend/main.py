@@ -72,8 +72,13 @@ def startup_db_migrations():
                 conn.execute(text("ALTER TABLE usuarios DROP CONSTRAINT IF EXISTS usuarios_rol_check;"))
                 conn.execute(text(
                     "ALTER TABLE usuarios ADD CONSTRAINT usuarios_rol_check "
-                    "CHECK (rol IN ('ADMIN', 'ORGANIZADOR', 'MODERADOR', 'SOPORTE', 'EMBAJADOR', 'MIEMBRO', 'SPEAKER', 'MENTOR'));"
+                    "CHECK (rol IN ('ADMIN', 'ORGANIZADOR', 'MODERADOR', 'SOPORTE', 'EMBAJADOR', 'VOLUNTARIO', 'MIEMBRO', 'SPEAKER', 'MENTOR'));"
                 ))
+            except Exception:
+                pass
+
+            try:
+                conn.execute(text("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS roles_secundarios VARCHAR;"))
             except Exception:
                 pass
 

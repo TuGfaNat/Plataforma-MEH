@@ -219,12 +219,12 @@ const AcreditacionPanel = ({
   // Filtrado reactivo inteligente por rol y por nombre(s), apellido(s), email o código QR
   const filteredParticipantes = useMemo(() => {
     return participantes.filter(p => {
-      const pRol = (p.rol || p.usuario?.rol || 'MIEMBRO').toUpperCase();
+      const allRoles = (p.roles || [p.rol || p.usuario?.rol || 'MIEMBRO']).map(r => String(r).toUpperCase());
       if (roleFilter !== 'ALL') {
-        if (roleFilter === 'VOLUNTARIOS' && !(pRol === 'EMBAJADOR' || pRol === 'SOPORTE')) return false;
-        if (roleFilter === 'ORGANIZADORES' && !(pRol === 'ORGANIZADOR' || pRol === 'ADMIN')) return false;
-        if (roleFilter === 'SPEAKERS_MENTORES' && !(pRol === 'SPEAKER' || pRol === 'MENTOR')) return false;
-        if (roleFilter === 'MIEMBRO' && pRol !== 'MIEMBRO') return false;
+        if (roleFilter === 'VOLUNTARIOS' && !(allRoles.includes('VOLUNTARIO') || allRoles.includes('EMBAJADOR') || allRoles.includes('SOPORTE'))) return false;
+        if (roleFilter === 'ORGANIZADORES' && !(allRoles.includes('ORGANIZADOR') || allRoles.includes('ADMIN'))) return false;
+        if (roleFilter === 'SPEAKERS_MENTORES' && !(allRoles.includes('SPEAKER') || allRoles.includes('MENTOR'))) return false;
+        if (roleFilter === 'MIEMBRO' && !allRoles.includes('MIEMBRO')) return false;
       }
 
       if (!searchTerm.trim()) return true;
@@ -378,31 +378,38 @@ const AcreditacionPanel = ({
                     <MEHTypography variant="body" style={{ fontWeight: 600, fontSize: '13px', lineHeight: 1.2 }}>
                       {nombre}
                     </MEHTypography>
-                    {pRol === 'ORGANIZADOR' && (
-                      <Badge appearance="filled" size="small" style={{ backgroundColor: '#7c3aed', color: '#fff' }}>
-                        👔 Organizador
-                      </Badge>
-                    )}
-                    {pRol === 'ADMIN' && (
-                      <Badge appearance="filled" size="small" style={{ backgroundColor: '#581c87', color: '#fff' }}>
-                        👑 Admin
-                      </Badge>
-                    )}
-                    {(pRol === 'EMBAJADOR' || pRol === 'SOPORTE') && (
-                      <Badge appearance="filled" size="small" style={{ backgroundColor: '#0284c7', color: '#fff' }}>
-                        🤝 Voluntario
-                      </Badge>
-                    )}
-                    {pRol === 'SPEAKER' && (
-                      <Badge appearance="filled" size="small" style={{ backgroundColor: '#d97706', color: '#fff' }}>
-                        🎤 Speaker
-                      </Badge>
-                    )}
-                    {pRol === 'MENTOR' && (
-                      <Badge appearance="filled" size="small" style={{ backgroundColor: '#0891b2', color: '#fff' }}>
-                        💡 Mentor
-                      </Badge>
-                    )}
+                    {(() => {
+                      const allRoles = (p.roles || [pRol]).map(r => String(r).toUpperCase());
+                      return (
+                        <>
+                          {allRoles.includes('ORGANIZADOR') && (
+                            <Badge appearance="filled" size="small" style={{ backgroundColor: '#7c3aed', color: '#fff' }}>
+                              👔 Organizador
+                            </Badge>
+                          )}
+                          {allRoles.includes('ADMIN') && (
+                            <Badge appearance="filled" size="small" style={{ backgroundColor: '#581c87', color: '#fff' }}>
+                              👑 Admin
+                            </Badge>
+                          )}
+                          {(allRoles.includes('VOLUNTARIO') || allRoles.includes('EMBAJADOR') || allRoles.includes('SOPORTE')) && (
+                            <Badge appearance="filled" size="small" style={{ backgroundColor: '#0284c7', color: '#fff' }}>
+                              🤝 Voluntario
+                            </Badge>
+                          )}
+                          {allRoles.includes('SPEAKER') && (
+                            <Badge appearance="filled" size="small" style={{ backgroundColor: '#d97706', color: '#fff' }}>
+                              🎤 Speaker
+                            </Badge>
+                          )}
+                          {allRoles.includes('MENTOR') && (
+                            <Badge appearance="filled" size="small" style={{ backgroundColor: '#0891b2', color: '#fff' }}>
+                              💡 Mentor
+                            </Badge>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                   <MEHTypography variant="caption" style={{ opacity: 0.7, fontSize: '11px' }}>
                     {correo || 'Sin correo registrado'}

@@ -72,6 +72,7 @@ erDiagram
 | `correo` | `STRING` | **-** | SÍ | unique, index |
 | `password_hash` | `TEXT` | **-** | SÍ | - |
 | `rol` | `STRING` | **-** | SÍ | default=MIEMBRO |
+| `roles_secundarios` | `STRING` | **-** | SÍ | - |
 | `fecha_registro` | `DATETIME` | **-** | SÍ | default=utcnow |
 | `bio` | `TEXT` | **-** | SÍ | - |
 | `institucion` | `STRING` | **-** | SÍ | - |

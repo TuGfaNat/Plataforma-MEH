@@ -7,6 +7,7 @@ ROLE_ORGANIZADOR = "ORGANIZADOR"
 ROLE_EMBAJADOR = "EMBAJADOR"
 ROLE_MODERADOR = "MODERADOR"
 ROLE_SOPORTE = "SOPORTE"
+ROLE_VOLUNTARIO = "VOLUNTARIO"
 ROLE_MIEMBRO = "MIEMBRO"
 ROLE_SPEAKER = "SPEAKER"
 ROLE_MENTOR = "MENTOR"
@@ -18,6 +19,7 @@ ALL_DB_ROLES = [
     ROLE_EMBAJADOR,
     ROLE_MODERADOR,
     ROLE_SOPORTE,
+    ROLE_VOLUNTARIO,
     ROLE_MIEMBRO,
     ROLE_SPEAKER,
     ROLE_MENTOR,
@@ -37,6 +39,7 @@ PERMISSION_BADGES_MANAGE = "badges.manage"
 
 _ROLE_INHERITANCE: Dict[str, List[str]] = {
     ROLE_MIEMBRO: [],
+    ROLE_VOLUNTARIO: [ROLE_MIEMBRO],
     ROLE_SPEAKER: [ROLE_MIEMBRO],
     ROLE_MENTOR: [ROLE_MIEMBRO],
     ROLE_EMBAJADOR: [ROLE_MIEMBRO],
@@ -48,6 +51,7 @@ _ROLE_INHERITANCE: Dict[str, List[str]] = {
 
 _DIRECT_PERMISSIONS: Dict[str, Set[str]] = {
     ROLE_MIEMBRO: set(),
+    ROLE_VOLUNTARIO: {PERMISSION_ATTENDANCE_SCAN},
     ROLE_SPEAKER: {PERMISSION_SPEAKER_ACCESS},
     ROLE_MENTOR: set(),
     ROLE_EMBAJADOR: {PERMISSION_VIP_ACCESS},
@@ -96,6 +100,31 @@ def get_effective_permissions(role: str) -> Set[str]:
 def has_permission(role: str, permission: str) -> bool:
     """Verifica si un rol posee un permiso específico (directo o heredado)."""
     return permission in get_effective_permissions(role)
+
+def get_user_all_roles(user) -> List[str]:
+    """Obtiene la lista completa de roles de un usuario (rol primario + secundarios)."""
+    if not user:
+        return []
+    roles = []
+    base_rol = getattr(user, "rol", None)
+    if base_rol:
+        roles.append(base_rol)
+    secundarios = getattr(user, "roles_secundarios", None)
+    if secundarios:
+        for r in str(secundarios).split(","):
+            r = r.strip()
+            if r and r not in roles:
+                roles.append(r)
+    return roles
+
+def user_has_permission(user, permission: str) -> bool:
+    """Verifica si un usuario posee un permiso evaluando todos sus roles activos."""
+    if not user:
+        return False
+    for r in get_user_all_roles(user):
+        if has_permission(r, permission):
+            return True
+    return False
 
 def ensure_roles(user_role: str, allowed_roles: Iterable[str], detail: str = "Rol no autorizado") -> None:
     """Valida que el usuario pertenezca a uno de los roles permitidos."""

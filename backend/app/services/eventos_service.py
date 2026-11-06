@@ -785,6 +785,20 @@ def registrar_asistencia_qr(
         nombre_paquete = pago.notas_admin or (f"Bs. {pago.monto}")
         monto_pagado = float(pago.monto) if pago.monto is not None else None
 
+    # Resolver roles acumulativos (soporte de doble rol: ej. Voluntario + Speaker)
+    user_roles = [usuario.rol] if usuario.rol else ["MIEMBRO"]
+    if getattr(usuario, "roles_secundarios", None):
+        for r in str(usuario.roles_secundarios).split(","):
+            r = r.strip()
+            if r and r not in user_roles:
+                user_roles.append(r)
+    spk_record = db.query(models.Speaker).filter(models.Speaker.id_usuario == usuario.id_usuario, models.Speaker.id_estado != 0).first()
+    if spk_record and "SPEAKER" not in user_roles:
+        user_roles.append("SPEAKER")
+    mnt_record = db.query(models.Mentor).filter(models.Mentor.id_usuario == usuario.id_usuario, models.Mentor.id_estado != 0).first()
+    if mnt_record and "MENTOR" not in user_roles:
+        user_roles.append("MENTOR")
+
     return {
         "message": "Asistencia registrada con éxito", 
         "usuario": {
@@ -792,9 +806,11 @@ def registrar_asistencia_qr(
             "id_usuario": usuario.id_usuario,
             "correo": getattr(usuario, "correo", ""),
             "rol": getattr(usuario, "rol", "MIEMBRO") or "MIEMBRO",
+            "roles": user_roles,
             "institucion": getattr(usuario, "institucion", None),
         },
         "rol": getattr(usuario, "rol", "MIEMBRO") or "MIEMBRO",
+        "roles": user_roles,
         "evento": {
             "titulo": ret_evento_titulo,
             "id_evento": evento.id_evento,
@@ -1319,6 +1335,13 @@ def get_inscritos_confirmados(db: Session, id_evento: int, staff_user: models.Us
             nombre_paquete = pago.notas_admin or (f"Bs. {pago.monto}")
             monto_pagado = float(pago.monto) if pago.monto is not None else None
 
+        user_roles = [ins.usuario.rol] if ins.usuario and ins.usuario.rol else ["MIEMBRO"]
+        if ins.usuario and getattr(ins.usuario, "roles_secundarios", None):
+            for r in str(ins.usuario.roles_secundarios).split(","):
+                r = r.strip()
+                if r and r not in user_roles:
+                    user_roles.append(r)
+
         resultado.append({
             "id_inscripcion": ins.id_inscripcion,
             "id_usuario": ins.id_usuario,
@@ -1327,6 +1350,7 @@ def get_inscritos_confirmados(db: Session, id_evento: int, staff_user: models.Us
             "nombre_completo": f"{ins.usuario.nombres} {ins.usuario.apellidos}",
             "correo": getattr(ins.usuario, "correo", "") or "",
             "rol": getattr(ins.usuario, "rol", "MIEMBRO") or "MIEMBRO",
+            "roles": user_roles,
             "paquete": nombre_paquete,
             "monto_pagado": monto_pagado,
             "incluidos": parse_incluidos_list(evento.incluidos)
@@ -1606,6 +1630,13 @@ def get_evento_participantes(db: Session, id_evento: int, staff_user: models.Usu
         usuario = ins.usuario
         presente, fecha_acred = _calcular_asistencia_y_fecha(ins)
 
+        user_roles = [usuario.rol] if usuario and usuario.rol else ["MIEMBRO"]
+        if usuario and getattr(usuario, "roles_secundarios", None):
+            for r in str(usuario.roles_secundarios).split(","):
+                r = r.strip()
+                if r and r not in user_roles:
+                    user_roles.append(r)
+
         resultado.append({
             "id_inscripcion": ins.id_inscripcion,
             "id_usuario": ins.id_usuario,
@@ -1619,13 +1650,15 @@ def get_evento_participantes(db: Session, id_evento: int, staff_user: models.Usu
             "fecha_inscripcion": ins.fecha_inscripcion.isoformat() if ins.fecha_inscripcion else None,
             "id_pago": ins.id_pago,
             "rol": getattr(usuario, "rol", "MIEMBRO") if usuario else "MIEMBRO",
+            "roles": user_roles,
             "usuario": {
                 "id_usuario": usuario.id_usuario,
                 "nombres": usuario.nombres,
                 "apellidos": usuario.apellidos,
                 "email": usuario.correo,
                 "correo": usuario.correo,
-                "rol": getattr(usuario, "rol", "MIEMBRO")
+                "rol": getattr(usuario, "rol", "MIEMBRO"),
+                "roles": user_roles
             } if usuario else None
         })
     return resultado

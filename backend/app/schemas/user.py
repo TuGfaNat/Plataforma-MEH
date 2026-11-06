@@ -16,6 +16,7 @@ class UserBase(BaseModel):
     apellidos: str
     correo: EmailStr
     rol: str = "MIEMBRO"
+    roles_secundarios: Optional[str] = None
     alias: Optional[str] = None
     foto_url: Optional[str] = None
     preferencia_tema: Optional[str] = "dark"
@@ -158,6 +159,7 @@ class AdminUserUpdate(BaseModel):
     correo: Optional[EmailStr] = None
     alias: Optional[str] = None
     rol: Optional[str] = None
+    roles_secundarios: Optional[str] = None
     institucion: Optional[str] = None
     estudia_en: Optional[str] = None
     tipo_entidad: Optional[str] = None

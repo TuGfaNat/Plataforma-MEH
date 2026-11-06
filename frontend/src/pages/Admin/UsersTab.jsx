@@ -161,9 +161,12 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
   const filteredUsers = [...realUsers]
     .sort((a, b) => (b.id_usuario || 0) - (a.id_usuario || 0))
     .filter(u => {
-      if (roleFilter !== 'ALL' && u.rol !== roleFilter) return false;
+      if (roleFilter !== 'ALL') {
+        const allRoles = [u.rol, ...(u.roles_secundarios ? u.roles_secundarios.split(',').map(r => r.trim()) : [])];
+        if (!allRoles.includes(roleFilter)) return false;
+      }
       return matchesSmartSearch(
-        [u.nombres, u.apellidos, u.correo, u.alias, u.rol, u.institucion, u.id_usuario],
+        [u.nombres, u.apellidos, u.correo, u.alias, u.rol, u.roles_secundarios, u.institucion, u.id_usuario],
         searchTerm
       );
     });
@@ -176,6 +179,7 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
       correo: user.correo || '',
       alias: user.alias || '',
       rol: user.rol || 'MIEMBRO',
+      roles_secundarios: user.roles_secundarios || '',
       institucion: user.institucion || user.estudia_en || '',
       bio: user.bio || '',
       email_verificado: user.email_verificado !== false
@@ -290,6 +294,7 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
             <option value="ORGANIZADOR">ORGANIZADOR</option>
             <option value="MODERADOR">MODERADOR</option>
             <option value="SOPORTE">SOPORTE</option>
+            <option value="VOLUNTARIO">VOLUNTARIO</option>
             <option value="EMBAJADOR">EMBAJADOR</option>
             <option value="SPEAKER">SPEAKER</option>
             <option value="MENTOR">MENTOR</option>
@@ -468,9 +473,16 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
                     <TableCell>{new Date(u.fecha_registro).toLocaleDateString()}</TableCell>
 
                     <TableCell>
-                      <Badge appearance="outline" color={u.rol === 'ADMIN' ? 'danger' : u.rol === 'ORGANIZADOR' ? 'warning' : 'brand'}>
-                        {u.rol}
-                      </Badge>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <Badge appearance="outline" color={u.rol === 'ADMIN' ? 'danger' : u.rol === 'ORGANIZADOR' ? 'warning' : u.rol === 'VOLUNTARIO' ? 'informative' : 'brand'}>
+                          {u.rol}
+                        </Badge>
+                        {u.roles_secundarios && u.roles_secundarios.split(',').map(sec => sec.trim()).filter(Boolean).map(sec => (
+                          <Badge key={sec} appearance="tint" color="informative" size="small">
+                            +{sec}
+                          </Badge>
+                        ))}
+                      </div>
                     </TableCell>
 
                     <TableCell>
@@ -582,9 +594,14 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
 
                   {/* Fila 2: Badges de Estado, Rol, Email */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', paddingTop: '4px' }}>
-                    <Badge appearance="outline" color={u.rol === 'ADMIN' ? 'danger' : u.rol === 'ORGANIZADOR' ? 'warning' : 'brand'}>
+                    <Badge appearance="outline" color={u.rol === 'ADMIN' ? 'danger' : u.rol === 'ORGANIZADOR' ? 'warning' : u.rol === 'VOLUNTARIO' ? 'informative' : 'brand'}>
                       {u.rol}
                     </Badge>
+                    {u.roles_secundarios && u.roles_secundarios.split(',').map(sec => sec.trim()).filter(Boolean).map(sec => (
+                      <Badge key={sec} appearance="tint" color="informative" size="small">
+                        +{sec}
+                      </Badge>
+                    ))}
 
                     {isSuspended ? (
                       <Badge appearance="filled" color="danger">SUSPENDIDO</Badge>
@@ -719,7 +736,7 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
               </div>
 
               <div className={styles.rowTwo}>
-                <Field label="Rol en la Plataforma">
+                <Field label="Rol Principal en la Plataforma">
                   <Select 
                     value={editForm.rol} 
                     onChange={(e) => setEditForm(prev => ({ ...prev, rol: e.target.value }))}
@@ -728,6 +745,7 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
                     <option value="ORGANIZADOR">ORGANIZADOR</option>
                     <option value="MODERADOR">MODERADOR</option>
                     <option value="SOPORTE">SOPORTE</option>
+                    <option value="VOLUNTARIO">VOLUNTARIO</option>
                     <option value="EMBAJADOR">EMBAJADOR</option>
                     <option value="SPEAKER">SPEAKER</option>
                     <option value="MENTOR">MENTOR</option>
@@ -745,6 +763,39 @@ const UsersTab = ({ loading, data, searchTerm, setSearchBox, handleExportCSV, cu
                   </Select>
                 </Field>
               </div>
+
+              <Field label="Roles Adicionales / Doble Rol (Opcional)">
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                  {['VOLUNTARIO', 'SPEAKER', 'MENTOR', 'EMBAJADOR'].map(r => {
+                    const secList = (editForm.roles_secundarios || '').split(',').map(s => s.trim()).filter(Boolean);
+                    const isChecked = secList.includes(r);
+                    const isPrimary = editForm.rol === r;
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        disabled={isPrimary}
+                        onClick={() => {
+                          const next = isChecked ? secList.filter(s => s !== r) : [...secList, r];
+                          setEditForm(prev => ({ ...prev, roles_secundarios: next.join(',') }));
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          cursor: isPrimary ? 'not-allowed' : 'pointer',
+                          border: '1px solid',
+                          borderColor: isPrimary ? '#7c3aed' : isChecked ? '#38bdf8' : '#334155',
+                          backgroundColor: isPrimary ? 'rgba(124, 58, 237, 0.2)' : isChecked ? 'rgba(56, 189, 248, 0.2)' : 'transparent',
+                          color: isPrimary ? '#c4b5fd' : isChecked ? '#7dd3fc' : '#94a3b8'
+                        }}
+                      >
+                        {isPrimary ? `✓ ${r} (Principal)` : isChecked ? `✓ ${r}` : `+ ${r}`}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
 
               <Field label="Institución / Universidad">
                 <Input 

@@ -34,4 +34,21 @@ describe('RBAC Logic (Frontend)', () => {
     expect(hasPermission(ROLE_MENTOR, PERMISSION_EVENTS_MANAGE)).toBe(false);
     expect(hasPermission(ROLE_MENTOR, PERMISSION_AUDIT_READ)).toBe(false);
   });
+
+  it('should allow VOLUNTARIO to scan attendance and support double roles (VOLUNTARIO + SPEAKER)', async () => {
+    const { ROLE_VOLUNTARIO, PERMISSION_ATTENDANCE_SCAN } = await import('./rbac');
+    // 1. Permiso directo de voluntario
+    expect(hasPermission(ROLE_VOLUNTARIO, PERMISSION_ATTENDANCE_SCAN)).toBe(true);
+    expect(hasPermission(ROLE_VOLUNTARIO, PERMISSION_EVENTS_MANAGE)).toBe(false);
+
+    // 2. Doble rol: VOLUNTARIO + SPEAKER
+    const dualRoles = ['VOLUNTARIO', 'SPEAKER'];
+    expect(hasPermission(dualRoles, PERMISSION_ATTENDANCE_SCAN)).toBe(true);
+    expect(hasPermission(dualRoles, PERMISSION_SPEAKER_ACCESS)).toBe(true);
+    expect(hasPermission(dualRoles, PERMISSION_EVENTS_MANAGE)).toBe(false);
+
+    // 3. Cadena separada por comas
+    expect(hasPermission('VOLUNTARIO, SPEAKER', PERMISSION_ATTENDANCE_SCAN)).toBe(true);
+    expect(hasPermission('VOLUNTARIO, SPEAKER', PERMISSION_SPEAKER_ACCESS)).toBe(true);
+  });
 });

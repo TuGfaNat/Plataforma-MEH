@@ -148,6 +148,7 @@ class InscriptoConfirmadoResponse(BaseModel):
     nombre_completo: str
     correo: Optional[str] = None
     rol: Optional[str] = "MIEMBRO"
+    roles: Optional[List[str]] = None
     paquete: Optional[str] = None
     monto_pagado: Optional[float] = None
     incluidos: Optional[List[str]] = None
