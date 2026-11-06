@@ -232,6 +232,19 @@ router_usuarios = APIRouter(
     tags=["usuarios"]
 )
 
+@router_usuarios.get("", response_model=List[user_schema.UserResponse])
+@router_usuarios.get("/", response_model=List[user_schema.UserResponse], include_in_schema=False)
+def list_usuarios_direct(
+    search: Optional[str] = None,
+    rol: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 500,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Alias directo para listar usuarios /usuarios."""
+    return auth_service.list_users(db, current_user.rol, search, rol)
+
 @router_usuarios.get("/directorio", response_model=List[user_schema.DirectorioMiembroResponse])
 def get_directorio_usuarios(
     search: Optional[str] = None,

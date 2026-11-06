@@ -279,15 +279,21 @@ const EcosystemDirectory = () => {
 
   const [errors, setErrors] = useState({});
 
-  useEffect(() => {
-    const loadUsers = async () => {
+  const loadUsers = async () => {
+    try {
+      let res;
       try {
-        const res = await api.get('/usuarios/?skip=0&limit=500');
-        setRegisteredUsers(Array.isArray(res.data) ? res.data : []);
-      } catch (err) {
-        console.warn('No se pudo cargar la lista de usuarios para vinculación:', err);
+        res = await api.get('/auth/usuarios');
+      } catch {
+        res = await api.get('/usuarios');
       }
-    };
+      setRegisteredUsers(Array.isArray(res?.data) ? res.data : []);
+    } catch (err) {
+      console.warn('No se pudo cargar la lista de usuarios para vinculación:', err);
+    }
+  };
+
+  useEffect(() => {
     loadUsers();
   }, []);
 
@@ -361,6 +367,7 @@ const EcosystemDirectory = () => {
   };
 
   const handleAdd = () => {
+    loadUsers();
     if (selectedTab === 'voluntarios') {
       const firstAvailable = registeredUsers[0]?.id_usuario || null;
       setVoluntarioModal({ open: true, id_usuario: firstAvailable, loading: false });
@@ -371,6 +378,7 @@ const EcosystemDirectory = () => {
   };
 
   const handleEdit = (item) => {
+    loadUsers();
     const normalizedItem = { ...item };
     Object.keys(formData).forEach(key => {
         normalizedItem[key] = item[key] ?? "";
@@ -795,16 +803,19 @@ const EcosystemDirectory = () => {
                     hint="Selecciona una cuenta registrada para autocompletar nombre, correo, foto y vincular su perfil oficial"
                   >
                     <Select
-                      value={formData.id_usuario || ""}
-                      onChange={(e, d) => handleUserSelect(d.value)}
+                      value={formData.id_usuario ? String(formData.id_usuario) : ""}
+                      onChange={(e, d) => handleUserSelect(d?.value ?? e?.target?.value)}
                       style={{ width: "100%" }}
                     >
                       <option value="">-- Ingreso manual / Sin vincular --</option>
-                      {registeredUsers.map((u) => (
-                        <option key={u.id_usuario} value={u.id_usuario}>
-                          {u.nombres} {u.apellidos} ({u.correo}) — Rol: {u.rol}
-                        </option>
-                      ))}
+                      {registeredUsers.map((u) => {
+                        const fullName = `${u.nombres || ""} ${u.apellidos || ""}`.trim() || u.alias || u.correo;
+                        return (
+                          <option key={u.id_usuario} value={u.id_usuario}>
+                            {fullName} ({u.correo}) — Rol: {u.rol}
+                          </option>
+                        );
+                      })}
                     </Select>
                   </Field>
                 )}
@@ -1032,14 +1043,17 @@ const EcosystemDirectory = () => {
               <Field label="Seleccionar Usuario Registrado" required>
                 <Select
                   value={voluntarioModal.id_usuario ? String(voluntarioModal.id_usuario) : ""}
-                  onChange={(e, d) => setVoluntarioModal(prev => ({ ...prev, id_usuario: Number(d.value) }))}
+                  onChange={(e, d) => setVoluntarioModal(prev => ({ ...prev, id_usuario: Number(d?.value ?? e?.target?.value) }))}
                 >
                   <option value="">-- Elige un usuario registrado --</option>
-                  {registeredUsers.map(u => (
-                    <option key={u.id_usuario} value={u.id_usuario}>
-                      {u.nombres} {u.apellidos} ({u.correo}) - Rol: {u.rol}
-                    </option>
-                  ))}
+                  {registeredUsers.map(u => {
+                    const fullName = `${u.nombres || ""} ${u.apellidos || ""}`.trim() || u.alias || u.correo;
+                    return (
+                      <option key={u.id_usuario} value={u.id_usuario}>
+                        {fullName} ({u.correo}) - Rol: {u.rol}
+                      </option>
+                    );
+                  })}
                 </Select>
               </Field>
             </DialogContent>

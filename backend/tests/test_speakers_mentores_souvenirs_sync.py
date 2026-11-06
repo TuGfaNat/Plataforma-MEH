@@ -152,3 +152,44 @@ def test_mis_pedidos_souvenirs_and_pagos_hydration():
         assert f"Seminario Cloud {uid}" in pago_souvenir.detalles_referencia
     finally:
         db.close()
+
+def test_usuarios_direct_and_auth_endpoints():
+    from fastapi.testclient import TestClient
+    from main import app
+    from app.core.auth import create_access_token
+
+    client = TestClient(app)
+    db = SessionLocal()
+    uid = uuid.uuid4().hex[:8]
+    try:
+        admin = models.Usuario(
+            nombres="AdminUser",
+            apellidos="Test",
+            correo=f"admin_eco_{uid}@meh.com",
+            password_hash="fakehash",
+            rol="ADMIN",
+            id_estado=1
+        )
+        db.add(admin)
+        db.commit()
+        db.refresh(admin)
+
+        token = create_access_token(data={"sub": admin.correo})
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # 1. Test GET /auth/usuarios
+        r1 = client.get("/auth/usuarios", headers=headers)
+        assert r1.status_code == 200
+        assert isinstance(r1.json(), list)
+
+        # 2. Test GET /usuarios
+        r2 = client.get("/usuarios", headers=headers)
+        assert r2.status_code == 200
+        assert isinstance(r2.json(), list)
+
+        # 3. Test GET /usuarios/?skip=0&limit=500
+        r3 = client.get("/usuarios/?skip=0&limit=500", headers=headers)
+        assert r3.status_code == 200
+        assert isinstance(r3.json(), list)
+    finally:
+        db.close()
