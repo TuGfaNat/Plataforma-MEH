@@ -98,6 +98,7 @@ def format_pedido_response(pedido: models.Pedido):
             "id_producto": d.id_producto,
             "cantidad": d.cantidad,
             "precio_unitario": d.precio_unitario,
+            "talla": getattr(d, 'talla', None),
             "producto_nombre": d.producto.nombre if d.producto else None,
             "producto_imagen": d.producto.imagen_url if d.producto else None
         })
@@ -175,12 +176,20 @@ def create_pedido(
         subtotal = precio_unitario * item["cantidad"]
         total += subtotal
         
+        talla_item = item.get("talla")
         detalles_db.append(models.PedidoDetalle(
             id_producto=prod.id_producto,
             cantidad=item["cantidad"],
-            precio_unitario=precio_unitario
+            precio_unitario=precio_unitario,
+            talla=talla_item
         ))
-        log_items.append({"id_producto": prod.id_producto, "nombre": prod.nombre, "cantidad": item["cantidad"], "subtotal": float(subtotal)})
+        log_items.append({
+            "id_producto": prod.id_producto,
+            "nombre": prod.nombre,
+            "cantidad": item["cantidad"],
+            "subtotal": float(subtotal),
+            "talla": talla_item
+        })
 
     # 2. Crear el registro de PAGO asociado (COMPLETADO)
     db_pago = models.Pago(

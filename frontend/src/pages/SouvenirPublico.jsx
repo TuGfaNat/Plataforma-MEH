@@ -260,8 +260,9 @@ const SouvenirPublico = () => {
   const [producto, setProducto] = useState(null);
   const [error, setError] = useState(null);
 
-  // Cantidad seleccionada
+  // Cantidad y Talla seleccionada
   const [cantidad, setCantidad] = useState(1);
+  const [selectedTalla, setSelectedTalla] = useState('');
 
   // Modal de Pago / Compra
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -280,6 +281,13 @@ const SouvenirPublico = () => {
         } else {
           setProducto(prod);
           setCantidad(1);
+          if (prod.tiene_tallas) {
+            const tallasStr = prod.tallas_disponibles || 'S, M, L, XL';
+            const list = tallasStr.split(',').map(s => s.trim()).filter(Boolean);
+            if (list.length > 0) setSelectedTalla(list[0]);
+          } else {
+            setSelectedTalla('');
+          }
         }
       } catch (err) {
         console.error("Error al cargar el souvenir:", err);
@@ -331,6 +339,10 @@ const SouvenirPublico = () => {
       navigate(`/login?returnTo=${encodeURIComponent(`/souvenir/${id}`)}`);
       return;
     }
+    if (producto.tiene_tallas && !selectedTalla) {
+      notify("Talla requerida", "Por favor selecciona una talla antes de continuar", "warning");
+      return;
+    }
     setPurchaseCompleted(false);
     setPaymentFile(null);
     setIsCheckoutOpen(true);
@@ -349,7 +361,8 @@ const SouvenirPublico = () => {
       formData.append('tipo_referencia', 'SOUVENIR');
       formData.append('monto', totalPagar);
       formData.append('metodo_pago', 'TRANSFERENCIA');
-      formData.append('notas_admin', `Compra Souvenir: ${producto.nombre} (Cantidad: ${cantidad})`);
+      const descTalla = (producto.tiene_tallas && selectedTalla) ? ` (Talla: ${selectedTalla})` : '';
+      formData.append('notas_admin', `Compra Souvenir: ${producto.nombre}${descTalla} (Cantidad: ${cantidad})`);
       formData.append('file', paymentFile);
 
       await pagoService.uploadComprobanteOcr(formData);
@@ -514,6 +527,62 @@ const SouvenirPublico = () => {
               </Badge>
             </div>
 
+            {/* Selector de Tallas si aplica */}
+            {producto.tiene_tallas && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 'bold' }}>
+                    Selecciona tu Talla:
+                  </span>
+                  {selectedTalla && (
+                    <Badge appearance="filled" color="brand">
+                      Talla {selectedTalla}
+                    </Badge>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {(producto.tallas_disponibles || 'S, M, L, XL')
+                    .split(',')
+                    .map(t => t.trim())
+                    .filter(Boolean)
+                    .map(talla => {
+                      const isSelected = selectedTalla === talla;
+                      return (
+                        <button
+                          key={talla}
+                          type="button"
+                          onClick={() => setSelectedTalla(talla)}
+                          style={{
+                            minWidth: '46px',
+                            height: '38px',
+                            padding: '0 12px',
+                            borderRadius: '10px',
+                            border: isSelected
+                              ? `2px solid ${tokens.colorBrandStroke1}`
+                              : `1px solid ${tokens.colorNeutralStroke1}`,
+                            backgroundColor: isSelected
+                              ? tokens.colorBrandBackground
+                              : tokens.colorNeutralBackground1,
+                            color: isSelected
+                              ? tokens.colorNeutralForegroundOnBrand
+                              : tokens.colorNeutralForeground1,
+                            fontWeight: 'bold',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {talla}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
             {/* Selector de Cantidad */}
             {!isAgotado && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -628,7 +697,7 @@ const SouvenirPublico = () => {
                   <CheckmarkCircle24Filled fontSize={56} style={{ color: tokens.colorPaletteGreenForeground1 }} />
                   <MEHTypography variant="h3">¡Comprobante Enviado!</MEHTypography>
                   <MEHTypography variant="body" style={{ opacity: 0.9, fontSize: '13px', lineHeight: 1.5 }}>
-                    Hemos recibido tu comprobante de <b>Bs. {subtotal}</b> por <b>{cantidad}x {producto.nombre}</b>. Nuestro equipo administrativo validará tu transferencia bancaria.
+                    Hemos recibido tu comprobante de <b>Bs. {subtotal}</b> por <b>{cantidad}x {producto.nombre}{producto.tiene_tallas && selectedTalla ? ` (Talla ${selectedTalla})` : ''}</b>. Nuestro equipo administrativo validará tu transferencia bancaria.
                   </MEHTypography>
                   <MessageBar intent="info" layout="multiline" style={{ borderRadius: '10px', width: '100%', marginTop: '8px' }}>
                     <MessageBarBody>
@@ -641,6 +710,9 @@ const SouvenirPublico = () => {
                   <div style={{ padding: '12px 16px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '12px', border: `1px solid ${tokens.colorNeutralStroke2}` }}>
                     <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{producto.nombre}</div>
                     <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '2px' }}>
+                      {producto.tiene_tallas && selectedTalla && (
+                        <>Talla: <b style={{ color: tokens.colorBrandForeground1 }}>{selectedTalla}</b> • </>
+                      )}
                       Cantidad: <b>{cantidad}</b> • Total: <b style={{ color: tokens.colorBrandForeground1 }}>Bs. {subtotal}</b>
                     </div>
                   </div>

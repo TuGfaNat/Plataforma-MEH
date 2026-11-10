@@ -10,7 +10,12 @@ export const useSouvenirsManager = (notify, refreshGlobalData) => {
     precio: 0, 
     stock: 10, 
     imagen_url: '', 
-    categoria: 'SOUVENIR' 
+    qr_url: '',
+    categoria: 'SOUVENIR',
+    tiene_tallas: false,
+    tallas_disponibles: 'S, M, L, XL',
+    id_estado: 2,
+    activo: true
   });
 
   const handleSaveSouvenir = async () => {
@@ -22,7 +27,7 @@ export const useSouvenirsManager = (notify, refreshGlobalData) => {
         await adminService.createSouvenir(newSouvenir);
         notify("Éxito", "Producto agregado", "success");
       }
-      setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', categoria: 'SOUVENIR' });
+      setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', qr_url: '', categoria: 'SOUVENIR', tiene_tallas: false, tallas_disponibles: 'S, M, L, XL', id_estado: 2, activo: true });
       setIsEditingSouvenir(false);
       refreshGlobalData();
     } catch (e) {
@@ -37,7 +42,12 @@ export const useSouvenirsManager = (notify, refreshGlobalData) => {
       precio: s.precio,
       stock: s.stock,
       imagen_url: s.imagen_url || '',
-      categoria: s.categoria || 'SOUVENIR'
+      qr_url: s.qr_url || '',
+      categoria: s.categoria || 'SOUVENIR',
+      tiene_tallas: Boolean(s.tiene_tallas),
+      tallas_disponibles: s.tallas_disponibles || 'S, M, L, XL',
+      id_estado: s.id_estado ?? 2,
+      activo: s.activo ?? true
     });
     setCurrentSouvenirId(s.id_producto);
     setIsEditingSouvenir(true);

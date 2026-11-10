@@ -305,6 +305,73 @@ const SouvenirsTab = ({
           </Field>
         </div>
 
+        {/* Selector de Tallas para Souvenirs */}
+        <div style={{ 
+          padding: '14px', 
+          backgroundColor: tokens.colorNeutralBackground3, 
+          borderRadius: '14px', 
+          border: `1px solid ${tokens.colorNeutralStroke2}`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px'
+        }}>
+          <Switch 
+            label="¿Este producto requiere talla? (Poleras, buzos, gorras...)"
+            checked={Boolean(newSouvenir.tiene_tallas)} 
+            onChange={(e, d) => setNewSouvenir({
+              ...newSouvenir, 
+              tiene_tallas: d.checked,
+              tallas_disponibles: d.checked ? (newSouvenir.tallas_disponibles || 'S, M, L, XL') : ''
+            })} 
+          />
+          {Boolean(newSouvenir.tiene_tallas) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '4px' }}>
+              <MEHTypography variant="caption" style={{ fontWeight: '600' }}>
+                Tallas disponibles (haz clic para alternar o edita el texto):
+              </MEHTypography>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(talla => {
+                  const currentTallas = (newSouvenir.tallas_disponibles || '')
+                    .split(',')
+                    .map(t => t.trim())
+                    .filter(Boolean);
+                  const isSelected = currentTallas.includes(talla);
+                  return (
+                    <Button
+                      key={talla}
+                      size="small"
+                      appearance={isSelected ? "primary" : "outline"}
+                      onClick={() => {
+                        let updated;
+                        if (isSelected) {
+                          updated = currentTallas.filter(t => t !== talla);
+                        } else {
+                          updated = [...currentTallas, talla];
+                        }
+                        setNewSouvenir({
+                          ...newSouvenir,
+                          tallas_disponibles: updated.join(', ')
+                        });
+                      }}
+                      style={{ minWidth: '40px', fontWeight: 'bold' }}
+                    >
+                      {talla}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Field label="Texto personalizado de tallas">
+                <Input 
+                  placeholder="Ej: S, M, L, XL o Talla Única" 
+                  value={newSouvenir.tallas_disponibles || ''} 
+                  onChange={(e, d) => setNewSouvenir({...newSouvenir, tallas_disponibles: d.value})}
+                  style={{ width: '100%' }}
+                />
+              </Field>
+            </div>
+          )}
+        </div>
+
         <div style={{ margin: '4px 0' }}>
           <Switch 
             label={newSouvenir.id_estado === 1 ? "Inactivo (Oculto en catálogo)" : "Activo (Visible en catálogo)"} 
@@ -327,7 +394,7 @@ const SouvenirsTab = ({
           <Button 
             appearance="subtle" 
             onClick={() => {
-              setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', qr_url: '', categoria: 'SOUVENIR', id_estado: 2 });
+              setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', qr_url: '', categoria: 'SOUVENIR', tiene_tallas: false, tallas_disponibles: 'S, M, L, XL', id_estado: 2 });
               setIsEditingSouvenir(false);
             }}
           >
@@ -404,6 +471,11 @@ const SouvenirsTab = ({
                           <Badge color={(i.id_estado === 1 || i.activo === false) ? 'warning' : 'success'} appearance="filled">
                             {(i.id_estado === 1 || i.activo === false) ? 'INACTIVO' : 'ACTIVO'}
                           </Badge>
+                          {i.tiene_tallas && (
+                            <Badge appearance="tint" color="informative" size="small">
+                              Tallas: {i.tallas_disponibles || 'S, M, L, XL'}
+                            </Badge>
+                          )}
                         </div>
                         <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
                           {i.descripcion || t("admin_no_description")}
@@ -522,6 +594,11 @@ const SouvenirsTab = ({
                     <Badge color={(i.id_estado === 1 || i.activo === false) ? 'warning' : 'success'} appearance="filled" size="small">
                       {(i.id_estado === 1 || i.activo === false) ? 'INACTIVO' : 'ACTIVO'}
                     </Badge>
+                    {i.tiene_tallas && (
+                      <Badge appearance="tint" color="informative" size="small">
+                        Tallas: {i.tallas_disponibles || 'S, M, L, XL'}
+                      </Badge>
+                    )}
                   </div>
                   <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {i.descripcion || t("admin_no_description")}

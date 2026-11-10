@@ -12,6 +12,8 @@ class ProductoBase(BaseModel):
     es_kit_evento: bool = False
     imagen_url: Optional[str] = None
     qr_url: Optional[str] = None
+    tiene_tallas: Optional[bool] = False
+    tallas_disponibles: Optional[str] = None
     categoria: str = "SOUVENIR"
     id_estado: Optional[int] = 2
     activo: Optional[bool] = True
@@ -27,6 +29,8 @@ class ProductoUpdate(BaseModel):
     es_kit_evento: Optional[bool] = None
     imagen_url: Optional[str] = None
     qr_url: Optional[str] = None
+    tiene_tallas: Optional[bool] = None
+    tallas_disponibles: Optional[str] = None
     categoria: Optional[str] = None
     id_estado: Optional[int] = None
     activo: Optional[bool] = None
@@ -42,6 +46,7 @@ class ProductoResponse(ProductoBase):
 class VentaItem(BaseModel):
     id_producto: int
     cantidad: int
+    talla: Optional[str] = None
 
 class VentaRequest(BaseModel):
     id_usuario: int
@@ -55,6 +60,7 @@ class PedidoDetalleResponse(BaseModel):
     id_producto: int
     cantidad: int
     precio_unitario: Decimal
+    talla: Optional[str] = None
     producto_nombre: Optional[str] = None
     producto_imagen: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)

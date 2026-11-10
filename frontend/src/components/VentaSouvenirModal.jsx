@@ -110,6 +110,7 @@ const VentaSouvenirModal = ({
 
   // Datos de la venta
   const [selectedProductoId, setSelectedProductoId] = useState('');
+  const [selectedTalla, setSelectedTalla] = useState('');
   const [cantidad, setCantidad] = useState(1);
   const [metodoPago, setMetodoPago] = useState('EFECTIVO');
   const [submitting, setSubmitting] = useState(false);
@@ -219,6 +220,16 @@ const VentaSouvenirModal = ({
   const precioUnitario = selectedProd ? Number(selectedProd.precio || 0) : 0;
   const total = (precioUnitario * Number(cantidad || 0)).toFixed(2);
 
+  useEffect(() => {
+    if (selectedProd?.tiene_tallas) {
+      const tallasStr = selectedProd.tallas_disponibles || 'S, M, L, XL';
+      const list = tallasStr.split(',').map(s => s.trim()).filter(Boolean);
+      setSelectedTalla(prev => (list.includes(prev) ? prev : (list[0] || '')));
+    } else {
+      setSelectedTalla('');
+    }
+  }, [selectedProductoId, productos]);
+
   const handleSubmit = async () => {
     const userId = selectedUser?.id_usuario;
     if (!userId) {
@@ -227,6 +238,10 @@ const VentaSouvenirModal = ({
     }
     if (!selectedProd) {
       notify('Atención', 'Debes seleccionar un souvenir válido.', 'warning');
+      return;
+    }
+    if (selectedProd.tiene_tallas && !selectedTalla) {
+      notify('Atención', 'Debes seleccionar una talla para la prenda.', 'warning');
       return;
     }
     if (cantidad < 1 || cantidad > maxStock) {
@@ -240,7 +255,11 @@ const VentaSouvenirModal = ({
     try {
       await adminService.registrarVentaSouvenir(
         userId,
-        [{ id_producto: selectedProd.id_producto, cantidad: Number(cantidad) }],
+        [{ 
+          id_producto: selectedProd.id_producto, 
+          cantidad: Number(cantidad),
+          talla: selectedProd.tiene_tallas ? selectedTalla : null
+        }],
         metodoPago,
         finalEventoId,
         notas.trim() || null
@@ -248,7 +267,7 @@ const VentaSouvenirModal = ({
 
       notify(
         'Venta Registrada Exitosamente',
-        `Se descontaron ${cantidad} unidad(es) de "${selectedProd.nombre}" del inventario. Comprador: ${selectedUser.nombres || selectedUser.nombre} ${selectedUser.apellidos || ''}. Total: Bs. ${total} (${metodoPago}).`,
+        `Se descontaron ${cantidad} unidad(es) de "${selectedProd.nombre}"${selectedProd.tiene_tallas && selectedTalla ? ` (Talla: ${selectedTalla})` : ''} del inventario. Comprador: ${selectedUser.nombres || selectedUser.nombre} ${selectedUser.apellidos || ''}. Total: Bs. ${total} (${metodoPago}).`,
         'success'
       );
       if (onSuccess) onSuccess();
@@ -452,7 +471,23 @@ const VentaSouvenirModal = ({
               )}
             </div>
 
-            {/* 3. Cantidad y Método de Pago */}
+            {/* 3. Cantidad, Talla y Método de Pago */}
+            {selectedProd?.tiene_tallas && (
+              <Field label="Talla del Souvenir / Prenda:" required>
+                <Select value={selectedTalla} onChange={(e, d) => setSelectedTalla(d.value)}>
+                  {(selectedProd.tallas_disponibles || 'S, M, L, XL')
+                    .split(',')
+                    .map(t => t.trim())
+                    .filter(Boolean)
+                    .map(talla => (
+                      <option key={talla} value={talla}>
+                        Talla {talla}
+                      </option>
+                    ))}
+                </Select>
+              </Field>
+            )}
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <Field label="Cantidad a Comprar:" required>
                 <Input

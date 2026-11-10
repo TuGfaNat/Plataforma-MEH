@@ -427,6 +427,11 @@ const HistorialVentasSouvenirsModal = ({ open, onClose, eventoId = null, eventoT
                                   <span style={{ fontWeight: '500' }}>
                                     {d.producto_nombre || `Producto #${d.id_producto}`}
                                   </span>
+                                  {d.talla && (
+                                    <Badge appearance="tint" color="informative" size="small" style={{ marginLeft: '6px' }}>
+                                      Talla {d.talla}
+                                    </Badge>
+                                  )}
                                   {d.precio_unitario && (
                                     <span style={{ opacity: 0.6, fontSize: '11px', marginLeft: '6px' }}>
                                       (Bs. {Number(d.precio_unitario).toFixed(2)} c/u)

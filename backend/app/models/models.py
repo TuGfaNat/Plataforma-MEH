@@ -202,6 +202,8 @@ class Producto(Base, AuditMixin, EstadoLifecycleMixin):
     es_kit_evento = Column(Boolean, default=False)
     imagen_url = Column(TEXT, nullable=True)
     qr_url = Column(TEXT, nullable=True)
+    tiene_tallas = Column(Boolean, default=False)
+    tallas_disponibles = Column(String(255), nullable=True)
     categoria = Column(String, default="SOUVENIR")
     activo = Column(Boolean, default=True)
 
@@ -236,6 +238,7 @@ class PedidoDetalle(Base, EstadoLifecycleMixin):
     id_producto = Column(Integer, ForeignKey("productos.id_producto"), index=True)
     cantidad = Column(Integer, default=1)
     precio_unitario = Column(Numeric(10, 2))
+    talla = Column(String(30), nullable=True)
 
     pedido = relationship("Pedido", back_populates="detalles")
     producto = relationship("Producto")

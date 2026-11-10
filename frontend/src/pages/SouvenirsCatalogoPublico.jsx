@@ -322,6 +322,13 @@ const SouvenirsCatalogoPublico = () => {
                       <MEHTypography variant="caption" style={{ opacity: 0.7, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginTop: '6px', lineHeight: 1.4 }}>
                         {item.descripcion || 'Edición oficial MEH.'}
                       </MEHTypography>
+                      {item.tiene_tallas && (
+                        <div style={{ marginTop: '6px' }}>
+                          <Badge appearance="tint" color="informative" size="small">
+                            Tallas: {item.tallas_disponibles || 'S, M, L, XL'}
+                          </Badge>
+                        </div>
+                      )}
                     </div>
 
                     <div style={{ borderTop: `1px solid ${tokens.colorNeutralBackground3}`, paddingTop: '12px', marginTop: '8px' }}>

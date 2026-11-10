@@ -129,3 +129,70 @@ def test_souvenir_venta_evento_stock_and_permissions(db_session: Session):
     assert len(found["detalles"]) == 1
     assert found["detalles"][0]["cantidad"] == 3
     assert found["detalles"][0]["producto_nombre"] == producto.nombre
+
+
+def test_souvenir_tallas_creation_and_pos_sale(db_session: Session):
+    timestamp = datetime.utcnow().timestamp()
+    admin_email = f"admin_tallas_{timestamp}@example.com"
+    admin = models.Usuario(
+        nombres="Admin",
+        apellidos="Tallas",
+        correo=admin_email,
+        password_hash=auth_core.get_password_hash("Admin12345!"),
+        rol="ADMIN",
+        email_verificado=True,
+        activo=True,
+        id_estado=2
+    )
+    db_session.add(admin)
+
+    buyer = models.Usuario(
+        nombres="Cliente",
+        apellidos="Talla",
+        correo=f"cliente_talla_{timestamp}@example.com",
+        password_hash=auth_core.get_password_hash("Pass123!"),
+        rol="MIEMBRO",
+        email_verificado=True,
+        activo=True,
+        id_estado=2
+    )
+    db_session.add(buyer)
+    db_session.commit()
+    db_session.refresh(admin)
+    db_session.refresh(buyer)
+
+    token = auth_core.create_access_token(data={"sub": admin.correo, "rol": admin.rol})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Crear producto con tallas habilitadas
+    create_res = client.post("/souvenirs/", json={
+        "nombre": f"Hoodie MEH Exclusivo {timestamp}",
+        "descripcion": "Polerón con capucha y logo bordado",
+        "precio": 120.00,
+        "stock": 15,
+        "categoria": "SOUVENIR",
+        "tiene_tallas": True,
+        "tallas_disponibles": "S, M, L, XL"
+    }, headers=headers)
+    assert create_res.status_code == 201
+    prod_data = create_res.json()
+    assert prod_data["tiene_tallas"] is True
+    assert prod_data["tallas_disponibles"] == "S, M, L, XL"
+
+    # 2. Venta POS especificando talla L
+    venta_res = client.post("/souvenirs/ventas", json={
+        "id_usuario": buyer.id_usuario,
+        "items": [{
+            "id_producto": prod_data["id_producto"],
+            "cantidad": 2,
+            "talla": "L"
+        }],
+        "metodo_pago": "QR",
+        "notas": "Talla L confirmada"
+    }, headers=headers)
+    assert venta_res.status_code == 200
+    venta_json = venta_res.json()
+    assert len(venta_json["detalles"]) == 1
+    assert venta_json["detalles"][0]["talla"] == "L"
+    assert venta_json["detalles"][0]["cantidad"] == 2
+
