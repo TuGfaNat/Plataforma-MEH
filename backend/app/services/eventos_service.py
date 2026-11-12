@@ -1580,6 +1580,89 @@ def delete_pago_qr(
     )
     return True
 
+def get_all_existing_pagos_qr(db: Session) -> List[dict]:
+    """Obtiene los paquetes y QRs creados en cualquier evento para ser reutilizados como plantilla o catálogo."""
+    items = db.query(
+        models.EventoPagoQR, models.Evento.titulo.label("evento_titulo")
+    ).join(
+        models.Evento, models.EventoPagoQR.id_evento == models.Evento.id_evento
+    ).filter(
+        models.EventoPagoQR.id_estado == 2,
+        models.Evento.id_estado != 0
+    ).order_by(models.EventoPagoQR.fecha_creacion.desc()).all()
+
+    result = []
+    for qr, titulo in items:
+        result.append({
+            "id_qr": qr.id_qr,
+            "id_evento_origen": qr.id_evento,
+            "evento_origen_titulo": titulo,
+            "nombre_paquete": qr.nombre_paquete,
+            "monto": float(qr.monto),
+            "url_qr": qr.url_qr,
+            "es_individual": bool(qr.es_individual),
+            "descripcion": qr.descripcion
+        })
+    return result
+
+def import_pago_qr_to_event(
+    db: Session,
+    admin_user: models.Usuario,
+    id_evento_destino: int,
+    id_qr_origen: int,
+    ip_address: Optional[str] = None
+) -> models.EventoPagoQR:
+    """Importa o clona un paquete/ítem existente hacia otro evento."""
+    if admin_user.rol not in ["ADMIN", "ORGANIZADOR", "MODERADOR"]:
+        raise PermisoDenegadoError("No tienes permisos para gestionar QRs de pago de eventos")
+
+    origen = db.query(models.EventoPagoQR).filter(
+        models.EventoPagoQR.id_qr == id_qr_origen,
+        models.EventoPagoQR.id_estado == 2
+    ).first()
+    if not origen:
+        raise ValidacionNegocioError("Paquete o ítem de origen no encontrado")
+
+    duplicado = db.query(models.EventoPagoQR).filter(
+        models.EventoPagoQR.id_evento == id_evento_destino,
+        models.EventoPagoQR.id_estado != 0,
+        func.lower(models.EventoPagoQR.nombre_paquete) == origen.nombre_paquete.strip().lower()
+    ).first()
+    if duplicado:
+        raise ValidacionNegocioError(f"Ya existe una opción con el nombre '{origen.nombre_paquete}' en este evento")
+
+    now_utc = _get_utc_now()
+    nuevo_qr = models.EventoPagoQR(
+        id_evento=id_evento_destino,
+        nombre_paquete=origen.nombre_paquete,
+        monto=origen.monto,
+        url_qr=origen.url_qr,
+        es_individual=bool(origen.es_individual),
+        descripcion=origen.descripcion,
+        creado_por=admin_user.id_usuario,
+        fecha_creacion=now_utc,
+        id_estado=2
+    )
+    db.add(nuevo_qr)
+    db.commit()
+    db.refresh(nuevo_qr)
+
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="IMPORTAR_PAQUETE_PAGO_QR",
+        tabla_afectada="eventos_pagos_qr",
+        id_registro_afectado=nuevo_qr.id_qr,
+        valor_nuevo={
+            "id_evento_destino": id_evento_destino,
+            "id_qr_origen": id_qr_origen,
+            "nombre_paquete": nuevo_qr.nombre_paquete,
+            "monto": str(nuevo_qr.monto)
+        },
+        ip_direccion=ip_address
+    )
+    return nuevo_qr
+
 def get_evento_token_qr(db: Session, id_evento: int) -> dict:
     """Obtiene o genera el token_qr único del evento para difusión y acreditación."""
     evento = get_evento_by_id(db, id_evento)

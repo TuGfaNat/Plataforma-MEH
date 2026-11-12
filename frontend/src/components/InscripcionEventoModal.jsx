@@ -28,6 +28,15 @@ import * as offlineDb from '../utils/offlineDb';
 import { resolveApiFileUrl } from '../services/api';
 import { getEventoCoverByContext } from '../utils/eventoImagen';
 
+const FREE_OPTION = {
+  id_qr: 'FREE',
+  nombre_paquete: 'Solo Entrada Gratuita',
+  monto: 0,
+  es_individual: false,
+  es_gratuito: true,
+  descripcion: 'Acceso general al evento sin costo. No incluye paquete de bienvenida ni souvenirs.'
+};
+
 const useStyles = makeStyles({
   freeContainer: {
     display: 'flex',
@@ -180,6 +189,7 @@ const InscripcionEventoModal = ({
   const displayedPackages = packages.filter(p => {
     if (tipoOpcion === 'PAQUETES') return !p.es_individual;
     if (tipoOpcion === 'INDIVIDUALES') return p.es_individual;
+    if (tipoOpcion === 'GRATIS') return false;
     return true;
   });
 
@@ -211,14 +221,14 @@ const InscripcionEventoModal = ({
           const res = await pagoService.getEventPaymentPackages(evento.id_evento);
           const pkgs = res || [];
           setPackages(pkgs);
-          setSelectedPackage(null);
+          setSelectedPackage(FREE_OPTION);
           setFile(null);
           const paqs = pkgs.filter(p => !p.es_individual);
           const inds = pkgs.filter(p => p.es_individual);
           if (paqs.length > 0 && inds.length === 0) {
-            setTipoOpcion('PAQUETES');
+            setTipoOpcion('TODOS');
           } else if (inds.length > 0 && paqs.length === 0) {
-            setTipoOpcion('INDIVIDUALES');
+            setTipoOpcion('TODOS');
           } else {
             setTipoOpcion('TODOS');
           }
@@ -267,9 +277,8 @@ const InscripcionEventoModal = ({
   };
 
   const procesarEventoPago = async () => {
-    if (!selectedPackage) {
-      notify("Validación", "Debes seleccionar un paquete de inscripción", "warning");
-      return false;
+    if (!selectedPackage || selectedPackage.es_gratuito) {
+      return true;
     }
     if (!file) {
       notify("Validación", "Debes adjuntar el comprobante de pago", "warning");
@@ -299,7 +308,7 @@ const InscripcionEventoModal = ({
 
   const handleConfirmar = async () => {
     setLoading(true);
-    const isPaid = packages.length > 0;
+    const isPaid = Boolean(selectedPackage && !selectedPackage.es_gratuito && Number(selectedPackage.monto) > 0);
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 
     // Manejo Offline para eventos gratuitos / lista de espera
@@ -464,10 +473,10 @@ const InscripcionEventoModal = ({
                     </MEHTypography>
                   </div>
                 ) : (
-                  // --- EVENTO DE PAGO ---
+                  // --- OPCIONES DE APORTE Y ENTRADA GRATUITA ---
                   <div className={styles.paidContainer}>
                     <MEHTypography variant="body" style={{ opacity: 0.8, fontSize: '13px' }}>
-                      Este evento cuenta con opciones de aporte. Puedes elegir un paquete completo o adquirir un ítem individual suelto:
+                      La entrada a este evento es 100% gratuita. De forma opcional, puedes adquirir un paquete de bienvenida completo o un ítem individual desglosado:
                     </MEHTypography>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
@@ -476,21 +485,31 @@ const InscripcionEventoModal = ({
                           Selecciona tu Paquete o Ítem Individual:
                         </Label>
                         {selectedPackage && (
-                          <Badge appearance="tint" color={selectedPackage.es_individual ? 'informative' : 'brand'}>
-                            {selectedPackage.es_individual ? '🏷️ Ítem' : '📦 Paquete'}: {selectedPackage.nombre_paquete}
+                          <Badge appearance="tint" color={selectedPackage.es_gratuito ? 'success' : (selectedPackage.es_individual ? 'informative' : 'brand')}>
+                            {selectedPackage.es_gratuito ? '🎟️ Acceso Libre' : (selectedPackage.es_individual ? '🏷️ Ítem' : '📦 Paquete')}: {selectedPackage.nombre_paquete}
                           </Badge>
                         )}
                       </div>
 
                       {/* Filtro por pestañas si existen tanto paquetes como individuales */}
                       {paquetes.length > 0 && individuales.length > 0 && (
-                        <div style={{ display: 'flex', gap: '8px', padding: '4px', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: '12px', width: 'fit-content' }}>
+                        <div style={{ display: 'flex', gap: '8px', padding: '4px', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: '12px', width: 'fit-content', flexWrap: 'wrap' }}>
                           <MEHButton
                             size="small"
                             appearance={tipoOpcion === 'TODOS' ? 'primary' : 'subtle'}
                             onClick={() => setTipoOpcion('TODOS')}
                           >
-                            Todos ({packages.length})
+                            Todos ({packages.length + 1})
+                          </MEHButton>
+                          <MEHButton
+                            size="small"
+                            appearance={tipoOpcion === 'GRATIS' ? 'primary' : 'subtle'}
+                            onClick={() => {
+                              setTipoOpcion('GRATIS');
+                              setSelectedPackage(FREE_OPTION);
+                            }}
+                          >
+                            🎟️ Solo Gratis
                           </MEHButton>
                           <MEHButton
                             size="small"
@@ -511,6 +530,49 @@ const InscripcionEventoModal = ({
 
                       {/* Tarjetas interactivas de paquetes e ítems para compra clara */}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                        {/* Opción Gratuita siempre disponible */}
+                        {(tipoOpcion === 'TODOS' || tipoOpcion === 'GRATIS') && (
+                          <div
+                            key="card-free-entry"
+                            onClick={() => {
+                              setSelectedPackage(FREE_OPTION);
+                              setFile(null);
+                            }}
+                            style={{
+                              padding: '14px',
+                              borderRadius: '12px',
+                              border: selectedPackage?.es_gratuito ? `2px solid ${tokens.colorPaletteGreenBorder1}` : '1px solid rgba(255,255,255,0.1)',
+                              backgroundColor: selectedPackage?.es_gratuito ? 'rgba(34, 177, 76, 0.16)' : 'rgba(255,255,255,0.03)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '8px',
+                              transition: 'all 0.18s ease',
+                              boxShadow: selectedPackage?.es_gratuito ? '0 4px 16px rgba(34, 177, 76, 0.25)' : 'none',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
+                              <Badge appearance="filled" color="success" size="small">
+                                🎟️ Acceso Libre
+                              </Badge>
+                              {selectedPackage?.es_gratuito ? (
+                                <Badge color="success" appearance="filled" size="small">✓ Elegido</Badge>
+                              ) : (
+                                <Badge appearance="outline" size="small">Elegir</Badge>
+                              )}
+                            </div>
+                            <div style={{ fontWeight: 'bold', fontSize: '14px', lineHeight: '1.2' }}>
+                              Solo Entrada Gratuita
+                            </div>
+                            <div style={{ fontSize: '12px', opacity: 0.75, lineHeight: 1.3 }}>
+                              Asistencia al evento sin costo. No incluye paquete de bienvenida ni souvenirs.
+                            </div>
+                            <div style={{ fontSize: '20px', fontWeight: 'bold', color: tokens.colorPaletteGreenForeground1, marginTop: 'auto' }}>
+                              Bs. 0 (Gratis)
+                            </div>
+                          </div>
+                        )}
+
                         {displayedPackages.map(pkg => {
                           const isSelected = selectedPackage?.id_qr === pkg.id_qr;
                           return (
@@ -565,12 +627,17 @@ const InscripcionEventoModal = ({
                         id="paquete-select"
                         placeholder="Selecciona un paquete o ítem de inscripción"
                         style={{ display: 'none' }}
-                        value={selectedPackage ? `${selectedPackage.nombre_paquete} — Bs. ${selectedPackage.monto}` : ''}
+                        value={selectedPackage ? (selectedPackage.es_gratuito ? 'Solo Entrada Gratuita — Bs. 0' : `${selectedPackage.nombre_paquete} — Bs. ${selectedPackage.monto}`) : ''}
                         onOptionSelect={(e, data) => {
-                          const pkg = packages.find(p => p.id_qr.toString() === data.optionValue);
-                          setSelectedPackage(pkg);
+                          if (data.optionValue === 'FREE') {
+                            setSelectedPackage(FREE_OPTION);
+                          } else {
+                            const pkg = packages.find(p => p.id_qr.toString() === data.optionValue);
+                            if (pkg) setSelectedPackage(pkg);
+                          }
                         }}
                       >
+                        <Option key="FREE" value="FREE">🎟️ Solo Entrada Gratuita — Bs. 0</Option>
                         {packages.map(pkg => (
                           <Option key={pkg.id_qr} value={pkg.id_qr.toString()}>
                             {pkg.es_individual ? '🏷️ ' : '📦 '}{pkg.nombre_paquete} — Bs. {pkg.monto}
@@ -579,7 +646,22 @@ const InscripcionEventoModal = ({
                       </Dropdown>
                     </div>
 
-                    {selectedPackage && (
+                    {/* Detalle de opción seleccionada */}
+                    {selectedPackage?.es_gratuito ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', padding: '16px', backgroundColor: 'rgba(34, 177, 76, 0.08)', borderRadius: '12px', border: '1px solid rgba(34, 177, 76, 0.25)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <CheckmarkCircle24Regular style={{ color: tokens.colorPaletteGreenForeground1, fontSize: '24px', flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontWeight: 'bold', fontSize: '14px', color: tokens.colorPaletteGreenForeground1 }}>
+                              🎟️ Inscripción 100% Gratuita Seleccionada
+                            </div>
+                            <div style={{ fontSize: '12px', opacity: 0.85, marginTop: '2px' }}>
+                              El acceso al evento es libre. No requieres realizar ningún pago ni transferir por QR. Al confirmar, recibirás tu ticket QR oficial directamente.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : selectedPackage ? (
                       <div className={styles.qrSection}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
                           <Badge appearance="filled" color={selectedPackage.es_individual ? 'informative' : 'brand'}>
@@ -590,10 +672,32 @@ const InscripcionEventoModal = ({
                           </MEHTypography>
                         </div>
 
-                        {selectedPackage.descripcion && (
-                          <MEHTypography variant="caption" style={{ opacity: 0.85, textAlign: 'center', maxWidth: '420px' }}>
-                            {selectedPackage.descripcion}
-                          </MEHTypography>
+                        {/* Desglose de contenido para paquetes completos */}
+                        {!selectedPackage.es_individual && selectedPackage.descripcion && (
+                          <div style={{ backgroundColor: 'rgba(255,255,255,0.04)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.08)', maxWidth: '440px', textAlign: 'left', width: '100%' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 'bold', color: tokens.colorBrandForeground1 }}>
+                              📦 Contenido Incluido en este Paquete:
+                            </div>
+                            <div style={{ fontSize: '12px', opacity: 0.85, marginTop: '2px' }}>
+                              {selectedPackage.descripcion}
+                            </div>
+                            {individuales.length > 0 && (
+                              <div style={{ fontSize: '11px', opacity: 0.75, marginTop: '6px' }}>
+                                💡 Si solo deseas un ítem suelto de este paquete, puedes seleccionarlo en la pestaña <b>🏷️ Ítems Individuales</b> con su respectivo QR.
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {selectedPackage.es_individual && selectedPackage.descripcion && (
+                          <div style={{ backgroundColor: 'rgba(0, 120, 212, 0.08)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(0, 120, 212, 0.2)', maxWidth: '440px', textAlign: 'left', width: '100%' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 'bold', color: tokens.colorInformationForeground1 }}>
+                              🏷️ Ítem Individual Desglosado:
+                            </div>
+                            <div style={{ fontSize: '12px', opacity: 0.85, marginTop: '2px' }}>
+                              {selectedPackage.descripcion}
+                            </div>
+                          </div>
                         )}
                         
                         {selectedPackage.url_qr ? (
@@ -617,39 +721,42 @@ const InscripcionEventoModal = ({
                           </MessageBar>
                         )}
                       </div>
+                    ) : null}
+
+                    {/* Subida de comprobante solo requerida para paquetes o ítems de pago */}
+                    {selectedPackage && !selectedPackage.es_gratuito && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Label required style={{ fontWeight: '600' }}>Comprobante de Pago (PDF/JPG/PNG)</Label>
+                          {file && (
+                            <Badge appearance="tint" color="success">
+                              Archivo cargado ({(file.size / 1024).toFixed(0)} KB)
+                            </Badge>
+                          )}
+                        </div>
+                        <div className={styles.uploadArea}>
+                          <Input 
+                            type="file" 
+                            onChange={handleFileChange} 
+                            className={styles.fileInput}
+                            accept=".pdf,.jpg,.jpeg,.png"
+                          />
+                          <Attach24Regular style={{ fontSize: '36px', color: tokens.colorBrandForeground1, marginBottom: '6px', opacity: 0.85 }} />
+                          <MEHTypography variant="caption" style={{ display: 'block', fontWeight: 'bold', fontSize: '13px' }}>
+                            {file ? `✓ ${file.name}` : "Haz clic para seleccionar o tomar foto de tu comprobante"}
+                          </MEHTypography>
+                          <span style={{ fontSize: '11px', opacity: 0.7 }}>
+                            Sube la captura de pantalla o PDF de la transferencia bancaria
+                          </span>
+                        </div>
+
+                        <MessageBar intent="info" layout="multiline" style={{ borderRadius: '10px', width: '100%' }}>
+                          <MessageBarBody>
+                            Al aprobarse tu pago, recibirás tu código QR logístico único por correo y en tu dashboard.
+                          </MessageBarBody>
+                        </MessageBar>
+                      </div>
                     )}
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Label required style={{ fontWeight: '600' }}>Comprobante de Pago (PDF/JPG/PNG)</Label>
-                        {file && (
-                          <Badge appearance="tint" color="success">
-                            Archivo cargado ({(file.size / 1024).toFixed(0)} KB)
-                          </Badge>
-                        )}
-                      </div>
-                      <div className={styles.uploadArea}>
-                        <Input 
-                          type="file" 
-                          onChange={handleFileChange} 
-                          className={styles.fileInput}
-                          accept=".pdf,.jpg,.jpeg,.png"
-                        />
-                        <Attach24Regular style={{ fontSize: '36px', color: tokens.colorBrandForeground1, marginBottom: '6px', opacity: 0.85 }} />
-                        <MEHTypography variant="caption" style={{ display: 'block', fontWeight: 'bold', fontSize: '13px' }}>
-                          {file ? `✓ ${file.name}` : "Haz clic para seleccionar o tomar foto de tu comprobante"}
-                        </MEHTypography>
-                        <span style={{ fontSize: '11px', opacity: 0.7 }}>
-                          Sube la captura de pantalla o PDF de la transferencia bancaria
-                        </span>
-                      </div>
-                    </div>
-
-                    <MessageBar intent="info" layout="multiline" style={{ borderRadius: '10px', width: '100%' }}>
-                      <MessageBarBody>
-                        Al aprobarse tu pago, recibirás tu código QR logístico único por correo y en tu dashboard.
-                      </MessageBarBody>
-                    </MessageBar>
                   </div>
                 )}
               </div>
@@ -661,13 +768,13 @@ const InscripcionEventoModal = ({
             <MEHButton 
               appearance="primary" 
               loading={loading} 
-              disabled={checkingPackages}
+              disabled={checkingPackages || (Boolean(selectedPackage && !selectedPackage.es_gratuito) && !file)}
               onClick={handleConfirmar}
             >
               {isSoldOut 
                 ? "Unirme a Lista de Espera" 
-                : packages.length === 0 
-                  ? "Confirmar Inscripción" 
+                : packages.length === 0 || selectedPackage?.es_gratuito
+                  ? "Confirmar Entrada Gratuita" 
                   : "Subir y Confirmar"}
             </MEHButton>
           </DialogActions>

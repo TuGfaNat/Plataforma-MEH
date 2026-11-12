@@ -241,6 +241,14 @@ def get_evento_qr_image(id_evento: int, db: Session = Depends(get_db)):
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 
+@router.get("/pagos-qr/existentes")
+def get_existing_pagos_qr(
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Obtiene paquetes y QRs de eventos previos para reutilización / plantillas (Staff)."""
+    return eventos_service.get_all_existing_pagos_qr(db)
+
 @router.get("/{id_evento}/pagos-qr", response_model=List[EventoPagoQRResponse])
 def get_pagos_qr(id_evento: int, db: Session = Depends(get_db)):
     """Obtiene los paquetes y QRs de pago configurados para un evento."""
@@ -272,6 +280,24 @@ async def create_pago_qr(
         ip_address=ip_address,
         es_individual=es_individual,
         descripcion=descripcion
+    )
+
+@router.post("/{id_evento}/pagos-qr/importar/{id_qr_origen}", response_model=EventoPagoQRResponse, status_code=status.HTTP_201_CREATED)
+def import_pago_qr(
+    id_evento: int,
+    id_qr_origen: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Importa o clona un paquete o ítem existente a un evento con su QR e información."""
+    ip_address = request.client.host if request.client else None
+    return eventos_service.import_pago_qr_to_event(
+        db=db,
+        admin_user=current_user,
+        id_evento_destino=id_evento,
+        id_qr_origen=id_qr_origen,
+        ip_address=ip_address
     )
 
 @router.put("/pagos-qr/{id_qr}", response_model=EventoPagoQRResponse)

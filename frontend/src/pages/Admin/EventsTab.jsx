@@ -12,7 +12,7 @@ import {
   QrCode24Regular, PeopleTeam24Regular, Mic24Regular, Link24Regular,
   Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled, ArrowDownload24Regular,
   Megaphone24Regular, DismissCircle24Regular, Share24Regular, Copy24Regular, DocumentTable24Regular,
-  Image24Regular, PersonAdd24Regular, ShoppingBag24Regular
+  Image24Regular, PersonAdd24Regular, ShoppingBag24Regular, ArrowSplit24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
@@ -223,6 +223,13 @@ const EventsTab = ({
     loading: false 
   });
 
+  // Modos de creación: exclusivo vs reutilizar existentes
+  const [paquetesExistentes, setPaquetesExistentes] = useState([]);
+  const [loadingPaquetesExistentes, setLoadingPaquetesExistentes] = useState(false);
+  const [modoCreacionQr, setModoCreacionQr] = useState('EXCLUSIVO'); // 'EXCLUSIVO' | 'REUTILIZAR'
+  const [selectedPlantillaQrId, setSelectedPlantillaQrId] = useState('');
+  const [importingQr, setImportingQr] = useState(false);
+
   // Estados para Badge Social
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [badgePlantillaFile, setBadgePlantillaFile] = useState(null);
@@ -392,6 +399,64 @@ const EventsTab = ({
     } finally {
       setLoadingQr(false);
     }
+  };
+
+  const handleDesglosarPaquete = (pkg) => {
+    setModoCreacionQr('EXCLUSIVO');
+    setNuevoEsIndividual(true);
+    setNuevoNombrePaquete('');
+    setNuevaDescripcion(`Ítem desglosado de: ${pkg.nombre_paquete}`);
+    setNuevoMonto('');
+    setQrFile(null);
+    setFileInputKey(prev => prev + 1);
+    const formEl = document.getElementById('form-agregar-pago-qr');
+    if (formEl) {
+      formEl.scrollIntoView({ behavior: 'smooth' });
+    }
+    const inputEl = document.getElementById('input-nombre-paquete-qr');
+    if (inputEl) {
+      setTimeout(() => inputEl.focus(), 200);
+    }
+  };
+
+  const fetchPaquetesExistentes = async () => {
+    try {
+      setLoadingPaquetesExistentes(true);
+      const res = await api.get('/eventos/pagos-qr/existentes');
+      setPaquetesExistentes(res.data || []);
+    } catch (err) {
+      console.error("Error al cargar paquetes existentes:", err);
+    } finally {
+      setLoadingPaquetesExistentes(false);
+    }
+  };
+
+  const handleImportarPagoQr = async (idQrOrigen) => {
+    if (!selectedEventoId) return;
+    try {
+      setImportingQr(true);
+      await api.post(`/eventos/${selectedEventoId}/pagos-qr/importar/${idQrOrigen}`);
+      await fetchPagosQr();
+      if (notify) notify("Paquete Importado", "El paquete se ha añadido a este evento exitosamente con su QR", "success");
+      setSelectedPlantillaQrId('');
+    } catch (err) {
+      console.error("Error al importar paquete QR:", err);
+      const detail = err.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : "No se pudo importar el paquete.");
+    } finally {
+      setImportingQr(false);
+    }
+  };
+
+  const handleUsarComoPlantilla = (plantilla) => {
+    setModoCreacionQr('EXCLUSIVO');
+    setNuevoEsIndividual(Boolean(plantilla.es_individual));
+    setNuevoNombrePaquete(plantilla.nombre_paquete);
+    setNuevoMonto(plantilla.monto ? String(plantilla.monto) : '');
+    setNuevaDescripcion(plantilla.descripcion || '');
+    if (notify) notify("Datos cargados", "Puedes editar los datos y subir un nuevo QR si lo necesitas", "info");
+    const formEl = document.getElementById('form-agregar-pago-qr');
+    if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleCancelarEvento = async () => {
@@ -1117,32 +1182,70 @@ const EventsTab = ({
                             return true;
                           })
                           .map(pkg => (
-                            <div key={pkg.id_qr} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: '12px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '12px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                    <img src={resolveApiFileUrl(pkg.url_qr)} alt={pkg.nombre_paquete} style={{ width: '56px', height: '56px', objectFit: 'contain', backgroundColor: 'white', borderRadius: '6px', padding: '2px', border: '1px solid rgba(0,0,0,0.08)' }} />
-                                    <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                          <MEHTypography variant="body"><b>{pkg.nombre_paquete}</b></MEHTypography>
-                                          {pkg.es_individual ? (
-                                            <Badge color="informative" appearance="tint" size="small">🏷️ Ítem Individual</Badge>
-                                          ) : (
-                                            <Badge color="brand" appearance="tint" size="small">📦 Paquete Completo</Badge>
-                                          )}
+                            <div key={pkg.id_qr} style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '12px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                        <img src={resolveApiFileUrl(pkg.url_qr)} alt={pkg.nombre_paquete} style={{ width: '56px', height: '56px', objectFit: 'contain', backgroundColor: 'white', borderRadius: '6px', padding: '2px', border: '1px solid rgba(0,0,0,0.08)' }} />
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                              <MEHTypography variant="body"><b>{pkg.nombre_paquete}</b></MEHTypography>
+                                              {pkg.es_individual ? (
+                                                <Badge color="informative" appearance="tint" size="small">🏷️ Ítem Individual</Badge>
+                                              ) : (
+                                                <Badge color="brand" appearance="tint" size="small">📦 Paquete Completo</Badge>
+                                              )}
+                                            </div>
+                                            {pkg.descripcion && (
+                                              <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.75, fontSize: '0.8rem', marginTop: '2px' }}>
+                                                {pkg.descripcion}
+                                              </MEHTypography>
+                                            )}
+                                            <MEHTypography variant="caption" style={{ display: 'block', color: tokens.colorBrandForeground1, fontWeight: 'bold', marginTop: '2px' }}>
+                                              Bs. {pkg.monto}
+                                            </MEHTypography>
                                         </div>
-                                        {pkg.descripcion && (
-                                          <MEHTypography variant="caption" style={{ display: 'block', opacity: 0.75, fontSize: '0.8rem', marginTop: '2px' }}>
-                                            {pkg.descripcion}
-                                          </MEHTypography>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        {!pkg.es_individual && (
+                                          <Button 
+                                            size="small" 
+                                            appearance="outline" 
+                                            icon={<ArrowSplit24Regular />} 
+                                            onClick={() => handleDesglosarPaquete(pkg)}
+                                            title="Desglosar ítem individual de este paquete con su propio QR"
+                                          >
+                                            Desglosar Ítem
+                                          </Button>
                                         )}
-                                        <MEHTypography variant="caption" style={{ display: 'block', color: tokens.colorBrandForeground1, fontWeight: 'bold', marginTop: '2px' }}>
-                                          Bs. {pkg.monto}
-                                        </MEHTypography>
+                                        <Button icon={<Edit24Regular />} appearance="subtle" aria-label="Editar paquete" onClick={() => handleOpenEditPagoQr(pkg)} />
+                                        <Button icon={<Delete24Regular />} appearance="subtle" aria-label="Eliminar paquete" style={{ color: tokens.colorPaletteRedForeground1 }} onClick={() => handleDeletePagoQr(pkg.id_qr)} />
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <Button icon={<Edit24Regular />} appearance="subtle" aria-label="Editar paquete" onClick={() => handleOpenEditPagoQr(pkg)} />
-                                    <Button icon={<Delete24Regular />} appearance="subtle" aria-label="Eliminar paquete" style={{ color: tokens.colorPaletteRedForeground1 }} onClick={() => handleDeletePagoQr(pkg.id_qr)} />
-                                </div>
+
+                                {/* Vista de desglose e ítems individuales asociados para paquetes completos */}
+                                {!pkg.es_individual && (
+                                  <div style={{ marginTop: '4px', paddingTop: '8px', borderTop: `1px dashed ${tokens.colorNeutralStroke2}`, width: '100%' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                                      <span style={{ fontSize: '0.78rem', opacity: 0.85, fontWeight: 'bold' }}>
+                                        🔍 Ítems individuales desglosados en este evento ({pagosQr.filter(p => p.es_individual).length}):
+                                      </span>
+                                      {pagosQr.filter(p => p.es_individual).length === 0 && (
+                                        <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>
+                                          Tip: Haz clic en "Desglosar Ítem" para ofrecer piezas sueltas con su respectivo QR.
+                                        </span>
+                                      )}
+                                    </div>
+                                    {pagosQr.filter(p => p.es_individual).length > 0 && (
+                                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                                        {pagosQr.filter(p => p.es_individual).map(ind => (
+                                          <Badge key={ind.id_qr} appearance="tint" color="informative" size="small">
+                                            🏷️ {ind.nombre_paquete} (Bs. {ind.monto})
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -1154,48 +1257,158 @@ const EventsTab = ({
 
                 <Divider style={{ margin: '14px 0' }} />
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <MEHTypography variant="h4">Agregar Nuevo Paquete o Ítem Individual</MEHTypography>
-                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', backgroundColor: tokens.colorNeutralBackground1, padding: '10px 14px', borderRadius: '8px' }}>
-                      <Switch 
-                        label={nuevoEsIndividual ? "🏷️ Tipo: Ítem Individual / Extra Suelto" : "📦 Tipo: Paquete de Inscripción"}
-                        checked={nuevoEsIndividual} 
-                        onChange={(e, d) => setNuevoEsIndividual(d.checked)} 
-                      />
-                      <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>
-                        {nuevoEsIndividual 
-                          ? "Para quienes solo quieren una cosa del paquete (ej. Solo Polera, Solo Credencial, Entrada Simple)" 
-                          : "Para un paquete con kit de inscripción completo"}
-                      </span>
+                <div id="form-agregar-pago-qr" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <MEHTypography variant="h4">
+                        {modoCreacionQr === 'EXCLUSIVO' ? "Agregar Nuevo Paquete o Ítem Exclusivo" : "Seleccionar de Paquetes Existentes"}
+                      </MEHTypography>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <Button 
+                          size="small" 
+                          appearance={modoCreacionQr === 'EXCLUSIVO' ? 'primary' : 'secondary'}
+                          onClick={() => setModoCreacionQr('EXCLUSIVO')}
+                        >
+                          ✨ Crear Exclusivo
+                        </Button>
+                        <Button 
+                          size="small" 
+                          appearance={modoCreacionQr === 'REUTILIZAR' ? 'primary' : 'secondary'}
+                          onClick={() => {
+                            setModoCreacionQr('REUTILIZAR');
+                            void fetchPaquetesExistentes();
+                          }}
+                        >
+                          📋 Seleccionar Existente
+                        </Button>
+                      </div>
                     </div>
 
-                    <div className={styles.formTwoCol}>
-                        <Field label={nuevoEsIndividual ? "Nombre del Ítem Individual" : "Nombre del Paquete"} required>
+                    {modoCreacionQr === 'REUTILIZAR' ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '12px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                        <MEHTypography variant="body" style={{ opacity: 0.85, fontSize: '13px' }}>
+                          Elige un paquete o ítem creado previamente en otros eventos para reutilizarlo en este evento sin tener que crearlo desde cero ni volver a subir el código QR:
+                        </MEHTypography>
+
+                        {loadingPaquetesExistentes ? (
+                          <Spinner size="small" label="Cargando catálogo de paquetes existentes..." />
+                        ) : paquetesExistentes.filter(p => p.id_evento_origen !== (currentEvent?.id_evento || selectedEventoId)).length === 0 ? (
+                          <div style={{ opacity: 0.7, fontSize: '0.85rem', padding: '8px 0' }}>
+                            No hay paquetes previos en otros eventos para reutilizar. Puedes crear uno exclusivo en la pestaña "✨ Crear Exclusivo".
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <Field label="Seleccionar Paquete o Ítem de Catálogo">
+                              <Select
+                                value={selectedPlantillaQrId}
+                                onChange={(e) => setSelectedPlantillaQrId(e.target.value)}
+                              >
+                                <option value="">-- Elige un paquete o ítem existente --</option>
+                                {paquetesExistentes
+                                  .filter(p => p.id_evento_origen !== (currentEvent?.id_evento || selectedEventoId))
+                                  .map(p => (
+                                    <option key={p.id_qr} value={p.id_qr}>
+                                      {p.es_individual ? '🏷️ ' : '📦 '}{p.nombre_paquete} (Bs. {p.monto}) — de {p.evento_origen_titulo}
+                                    </option>
+                                  ))}
+                              </Select>
+                            </Field>
+
+                            {selectedPlantillaQrId && (() => {
+                              const p = paquetesExistentes.find(x => String(x.id_qr) === String(selectedPlantillaQrId));
+                              if (!p) return null;
+                              return (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px', padding: '14px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '10px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                    <img src={resolveApiFileUrl(p.url_qr)} alt={p.nombre_paquete} style={{ width: '64px', height: '64px', objectFit: 'contain', backgroundColor: 'white', borderRadius: '6px', padding: '2px', border: '1px solid rgba(0,0,0,0.1)' }} />
+                                    <div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <b>{p.nombre_paquete}</b>
+                                        <Badge appearance="tint" color={p.es_individual ? 'informative' : 'brand'} size="small">
+                                          {p.es_individual ? '🏷️ Ítem' : '📦 Paquete'}
+                                        </Badge>
+                                      </div>
+                                      <div style={{ fontSize: '0.9rem', color: tokens.colorBrandForeground1, fontWeight: 'bold', marginTop: '2px' }}>
+                                        Bs. {p.monto}
+                                      </div>
+                                      {p.descripcion && <div style={{ fontSize: '0.8rem', opacity: 0.8, marginTop: '2px' }}>{p.descripcion}</div>}
+                                      <div style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '2px' }}>Evento de origen: {p.evento_origen_titulo}</div>
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: 'flex', gap: '8px' }}>
+                                    <MEHButton 
+                                      size="small" 
+                                      appearance="outline"
+                                      onClick={() => handleUsarComoPlantilla(p)}
+                                    >
+                                      Editar como Plantilla
+                                    </MEHButton>
+                                    <MEHButton 
+                                      size="small" 
+                                      appearance="primary" 
+                                      loading={importingQr}
+                                      onClick={() => handleImportarPagoQr(p.id_qr)}
+                                    >
+                                      Importar a este Evento
+                                    </MEHButton>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        {nuevoEsIndividual && nuevaDescripcion && nuevaDescripcion.includes('Ítem desglosado de:') && (
+                          <div style={{ padding: '8px 12px', backgroundColor: 'rgba(0, 120, 212, 0.08)', borderRadius: '8px', border: '1px solid rgba(0, 120, 212, 0.25)', fontSize: '0.85rem' }}>
+                            💡 <b>Desglosando ítem individual con QR propio:</b> Estás creando una opción suelta de este paquete (ej. <i>Solo Polera</i>, <i>Solo Credencial</i>). Define su nombre, su precio en Bs. y carga el código QR específico para cobrar ese ítem.
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', backgroundColor: tokens.colorNeutralBackground1, padding: '10px 14px', borderRadius: '8px' }}>
+                          <Switch 
+                            label={nuevoEsIndividual ? "🏷️ Tipo: Ítem Individual / Extra Suelto" : "📦 Tipo: Paquete de Inscripción"}
+                            checked={nuevoEsIndividual} 
+                            onChange={(e, d) => setNuevoEsIndividual(d.checked)} 
+                          />
+                          <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>
+                            {nuevoEsIndividual 
+                              ? "Para quienes solo quieren una cosa del paquete (ej. Solo Polera, Solo Credencial, Entrada Simple)" 
+                              : "Para un paquete con kit de inscripción completo"}
+                          </span>
+                        </div>
+
+                        <div className={styles.formTwoCol}>
+                            <Field label={nuevoEsIndividual ? "Nombre del Ítem Individual" : "Nombre del Paquete"} required>
+                                <Input 
+                                  id="input-nombre-paquete-qr"
+                                  value={nuevoNombrePaquete} 
+                                  onChange={(e, d) => setNuevoNombrePaquete(d.value)} 
+                                  placeholder={nuevoEsIndividual ? "Ej: Solo Polera Oficial, Solo Credencial VIP" : "Ej: Pase VIP, Acceso General"} 
+                                />
+                            </Field>
+                            <Field label="Precio (Bs.)" required>
+                                <Input type="number" value={nuevoMonto} onChange={(e, d) => setNuevoMonto(d.value)} placeholder="0.00" />
+                            </Field>
+                        </div>
+
+                        <Field label="Descripción o Qué Incluye (opcional)">
                             <Input 
-                              value={nuevoNombrePaquete} 
-                              onChange={(e, d) => setNuevoNombrePaquete(d.value)} 
-                              placeholder={nuevoEsIndividual ? "Ej: Solo Polera Oficial, Solo Credencial VIP" : "Ej: Pase VIP, Acceso General"} 
+                              value={nuevaDescripcion} 
+                              onChange={(e, d) => setNuevaDescripcion(d.value)} 
+                              placeholder={nuevoEsIndividual ? "Ej: Solo la polera oficial del evento sin kit extra" : "Ej: Incluye entrada, credencial y polera"} 
                             />
                         </Field>
-                        <Field label="Precio (Bs.)" required>
-                            <Input type="number" value={nuevoMonto} onChange={(e, d) => setNuevoMonto(d.value)} placeholder="0.00" />
+
+                        <Field label="Imagen Código QR de Pago" required>
+                            <Input type="file" key={fileInputKey} id="qr-file-input" onChange={(e) => setQrFile(e.target.files[0])} accept="image/*,application/pdf" />
                         </Field>
-                    </div>
-
-                    <Field label="Descripción o Qué Incluye (opcional)">
-                        <Input 
-                          value={nuevaDescripcion} 
-                          onChange={(e, d) => setNuevaDescripcion(d.value)} 
-                          placeholder={nuevoEsIndividual ? "Ej: Solo la polera oficial del evento sin kit extra" : "Ej: Incluye entrada, credencial y polera"} 
-                        />
-                    </Field>
-
-                    <Field label="Imagen Código QR de Pago" required>
-                        <Input type="file" key={fileInputKey} id="qr-file-input" onChange={(e) => setQrFile(e.target.files[0])} accept="image/*,application/pdf" />
-                    </Field>
-                    <MEHButton appearance="primary" onClick={handleAddPagoQr} disabled={loadingQr || !nuevoNombrePaquete || !nuevoMonto || !qrFile} style={{ marginTop: '4px' }}>
-                        {nuevoEsIndividual ? "Guardar Ítem Individual y QR" : "Guardar Paquete y QR"}
-                    </MEHButton>
+                        <MEHButton appearance="primary" onClick={handleAddPagoQr} disabled={loadingQr || !nuevoNombrePaquete || !nuevoMonto || !qrFile} style={{ marginTop: '4px' }}>
+                            {nuevoEsIndividual ? "Guardar Ítem Individual y QR" : "Guardar Paquete y QR"}
+                        </MEHButton>
+                      </>
+                    )}
                 </div>
             </div>
 

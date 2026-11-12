@@ -332,7 +332,7 @@ const EventoPublico = () => {
         const pkgs = await pagoService.getEventPaymentPackages(id);
         setPackages(pkgs || []);
         if (pkgs && pkgs.length > 0) {
-          setSelectedPackage(pkgs[0]);
+          setSelectedPackage({ id_qr: 'FREE', nombre_paquete: 'Solo Entrada Gratuita', monto: 0, es_gratuito: true });
         }
       } catch (_err) {
         // Paquetes no configurados o evento gratuito
@@ -389,14 +389,9 @@ const EventoPublico = () => {
 
     setSubmitting(true);
     try {
-      const isPaid = packages.length > 0;
+      const isPaid = Boolean(selectedPackage && !selectedPackage.es_gratuito && Number(selectedPackage.monto) > 0);
 
       if (isPaid) {
-        if (!selectedPackage) {
-          notify("Validación", "Debes seleccionar un paquete de inscripción", "warning");
-          setSubmitting(false);
-          return;
-        }
         if (!paymentFile) {
           notify("Validación", "Debes adjuntar el comprobante de pago", "warning");
           setSubmitting(false);
@@ -857,7 +852,7 @@ const EventoPublico = () => {
                       Registro Oficial
                     </MEHTypography>
                     <MEHTypography variant="h2" style={{ marginTop: '4px', fontSize: '1.6rem' }}>
-                      {packages.length > 0 ? "Evento con Aporte / Opciones de Pago" : "Acceso Gratuito"}
+                      {packages.length > 0 ? "Entrada Libre con Opciones de Paquete / Aporte" : "Acceso Gratuito"}
                     </MEHTypography>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
                       {evento.estado === 'EN_CURSO' && (
@@ -1008,15 +1003,21 @@ const EventoPublico = () => {
                       {/* Paquetes de Pago e Ítems Individuales (si aplica) */}
                       {packages.length > 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '6px' }}>
-                          <Field label="Seleccionar Opción de Pago" required>
+                          <Field label="Seleccionar Opción de Registro / Aporte" required>
                             <Select 
-                              value={selectedPackage?.id_qr || selectedPackage?.id_paquete || ''} 
+                              value={selectedPackage?.id_qr || selectedPackage?.id_paquete || 'FREE'} 
                               onChange={(e) => {
                                 const val = e.target.value;
-                                const found = packages.find(p => String(p.id_qr || p.id_paquete) === String(val));
-                                setSelectedPackage(found || null);
+                                if (val === 'FREE') {
+                                  setSelectedPackage({ id_qr: 'FREE', nombre_paquete: 'Solo Entrada Gratuita', monto: 0, es_gratuito: true });
+                                  setPaymentFile(null);
+                                } else {
+                                  const found = packages.find(p => String(p.id_qr || p.id_paquete) === String(val));
+                                  setSelectedPackage(found || null);
+                                }
                               }}
                             >
+                              <option value="FREE">🎟️ Solo Entrada Gratuita (Acceso Libre — Bs. 0)</option>
                               {packages.some(p => !p.es_individual) && (
                                 <optgroup label="📦 Paquetes Completos">
                                   {packages.filter(p => !p.es_individual).map(p => (
@@ -1038,20 +1039,31 @@ const EventoPublico = () => {
                             </Select>
                           </Field>
 
-                          {selectedPackage && (
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                              <Badge appearance="filled" color={selectedPackage.es_individual ? 'informative' : 'brand'}>
-                                {selectedPackage.es_individual ? '🏷️ Ítem Individual' : '📦 Paquete Completo'}
-                              </Badge>
+                          {selectedPackage?.es_gratuito ? (
+                            <div style={{ padding: '12px 14px', backgroundColor: 'rgba(34, 177, 76, 0.08)', borderRadius: '10px', border: '1px solid rgba(34, 177, 76, 0.25)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <span style={{ fontSize: '20px' }}>🎉</span>
+                              <div style={{ fontSize: '0.85rem' }}>
+                                <b>Entrada 100% Gratuita:</b> Asistirás al evento de forma libre sin costo. No requieres realizar ningún pago ni transferir por QR.
+                              </div>
+                            </div>
+                          ) : selectedPackage ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <Badge appearance="filled" color={selectedPackage.es_individual ? 'informative' : 'brand'}>
+                                  {selectedPackage.es_individual ? '🏷️ Ítem Individual' : '📦 Paquete Completo'}
+                                </Badge>
+                                <span style={{ fontWeight: 'bold' }}>Bs. {selectedPackage.monto}</span>
+                              </div>
                               {selectedPackage.descripcion && (
-                                <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>
+                                <div style={{ fontSize: '0.85rem', opacity: 0.85, backgroundColor: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                  {!selectedPackage.es_individual && <b>📦 Contenido incluido: </b>}
                                   {selectedPackage.descripcion}
-                                </span>
+                                </div>
                               )}
                             </div>
-                          )}
+                          ) : null}
 
-                          {selectedPackage?.url_qr && (
+                          {Boolean(selectedPackage && !selectedPackage.es_gratuito && selectedPackage.url_qr) && (
                             <div style={{ textAlign: 'center', padding: '12px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '12px' }}>
                               <img 
                                 src={resolveApiFileUrl(selectedPackage.url_qr)} 
@@ -1064,21 +1076,23 @@ const EventoPublico = () => {
                             </div>
                           )}
 
-                          <Field label={t("upload_payment_proof")} required>
-                            <div className={styles.uploadArea}>
-                              <input 
-                                type="file" 
-                                accept="image/*,application/pdf" 
-                                className={styles.fileInput} 
-                                onChange={(e) => setPaymentFile(e.target.files[0])}
-                                required
-                              />
-                              <ReceiptMoney24Filled style={{ fontSize: '24px', opacity: 0.7, margin: '0 auto 6px auto', display: 'block' }} />
-                              <span style={{ fontSize: '0.85rem' }}>
-                                {paymentFile ? paymentFile.name : "Subir comprobante (PNG, JPG, PDF)"}
-                              </span>
-                            </div>
-                          </Field>
+                          {Boolean(selectedPackage && !selectedPackage.es_gratuito) && (
+                            <Field label={t("upload_payment_proof")} required>
+                              <div className={styles.uploadArea}>
+                                <input 
+                                  type="file" 
+                                  accept="image/*,application/pdf" 
+                                  className={styles.fileInput} 
+                                  onChange={(e) => setPaymentFile(e.target.files[0])}
+                                  required
+                                />
+                                <ReceiptMoney24Filled style={{ fontSize: '24px', opacity: 0.7, margin: '0 auto 6px auto', display: 'block' }} />
+                                <span style={{ fontSize: '0.85rem' }}>
+                                  {paymentFile ? paymentFile.name : "Subir comprobante (PNG, JPG, PDF)"}
+                                </span>
+                              </div>
+                            </Field>
+                          )}
                         </div>
                       )}
 
