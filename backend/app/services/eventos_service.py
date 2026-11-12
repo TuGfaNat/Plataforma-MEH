@@ -1581,29 +1581,135 @@ def delete_pago_qr(
     return True
 
 def get_all_existing_pagos_qr(db: Session) -> List[dict]:
-    """Obtiene los paquetes y QRs creados en cualquier evento para ser reutilizados como plantilla o catálogo."""
-    items = db.query(
-        models.EventoPagoQR, models.Evento.titulo.label("evento_titulo")
-    ).join(
-        models.Evento, models.EventoPagoQR.id_evento == models.Evento.id_evento
-    ).filter(
-        models.EventoPagoQR.id_estado == 2,
-        models.Evento.id_estado != 0
-    ).order_by(models.EventoPagoQR.fecha_creacion.desc()).all()
-
+    """Obtiene paquetes y QRs creados en cualquier evento y productos/kits de la tienda para reutilización."""
     result = []
-    for qr, titulo in items:
-        result.append({
-            "id_qr": qr.id_qr,
-            "id_evento_origen": qr.id_evento,
-            "evento_origen_titulo": titulo,
-            "nombre_paquete": qr.nombre_paquete,
-            "monto": float(qr.monto),
-            "url_qr": qr.url_qr,
-            "es_individual": bool(qr.es_individual),
-            "descripcion": qr.descripcion
-        })
+
+    # 1. Productos y Kits de la Tienda de Souvenirs
+    try:
+        productos = db.query(models.Producto).filter(
+            models.Producto.id_estado == 2,
+            models.Producto.activo == True
+        ).order_by(models.Producto.nombre.asc()).all()
+
+        for p in productos:
+            result.append({
+                "id_item": f"prod_{p.id_producto}",
+                "id_referencia": f"prod_{p.id_producto}",
+                "id_producto": p.id_producto,
+                "id_qr": None,
+                "id_evento_origen": None,
+                "tipo_origen": "TIENDA",
+                "evento_origen_titulo": "📦 Kit de Evento (Tienda)" if p.es_kit_evento else "🛍️ Tienda de Souvenirs",
+                "nombre_paquete": p.nombre,
+                "monto": float(p.precio),
+                "url_qr": p.qr_url,
+                "es_individual": not bool(p.es_kit_evento),
+                "descripcion": p.descripcion,
+                "tiene_qr": bool(p.qr_url),
+                "imagen_url": p.imagen_url
+            })
+    except Exception as e:
+        logger.error(f"Error al obtener productos de la tienda para catálogo QR: {e}")
+
+    # 2. Paquetes y QRs de eventos existentes
+    try:
+        items = db.query(
+            models.EventoPagoQR, models.Evento.titulo.label("evento_titulo")
+        ).join(
+            models.Evento, models.EventoPagoQR.id_evento == models.Evento.id_evento
+        ).filter(
+            models.EventoPagoQR.id_estado == 2,
+            models.Evento.id_estado != 0
+        ).order_by(models.EventoPagoQR.fecha_creacion.desc()).all()
+
+        for qr, titulo in items:
+            result.append({
+                "id_item": f"qr_{qr.id_qr}",
+                "id_referencia": f"qr_{qr.id_qr}",
+                "id_producto": None,
+                "id_qr": qr.id_qr,
+                "id_evento_origen": qr.id_evento,
+                "tipo_origen": "EVENTO",
+                "evento_origen_titulo": f"📅 Evento: {titulo}",
+                "nombre_paquete": qr.nombre_paquete,
+                "monto": float(qr.monto),
+                "url_qr": qr.url_qr,
+                "es_individual": bool(qr.es_individual),
+                "descripcion": qr.descripcion,
+                "tiene_qr": bool(qr.url_qr),
+                "imagen_url": None
+            })
+    except Exception as e:
+        logger.error(f"Error al obtener paquetes de eventos para catálogo QR: {e}")
+
     return result
+
+def import_producto_to_event(
+    db: Session,
+    admin_user: models.Usuario,
+    id_evento_destino: int,
+    id_producto: int,
+    file_content: Optional[bytes] = None,
+    file_extension: Optional[str] = None,
+    ip_address: Optional[str] = None
+) -> models.EventoPagoQR:
+    """Importa o adapta un producto/souvenir/kit de la tienda hacia un evento con su QR."""
+    if admin_user.rol not in ["ADMIN", "ORGANIZADOR", "MODERADOR"]:
+        raise PermisoDenegadoError("No tienes permisos para gestionar QRs de pago de eventos")
+
+    prod = db.query(models.Producto).filter(
+        models.Producto.id_producto == id_producto,
+        models.Producto.id_estado != 0
+    ).first()
+    if not prod:
+        raise ValidacionNegocioError("Producto o souvenir de la tienda no encontrado")
+
+    duplicado = db.query(models.EventoPagoQR).filter(
+        models.EventoPagoQR.id_evento == id_evento_destino,
+        models.EventoPagoQR.id_estado != 0,
+        func.lower(models.EventoPagoQR.nombre_paquete) == prod.nombre.strip().lower()
+    ).first()
+    if duplicado:
+        raise ValidacionNegocioError(f"Ya existe una opción con el nombre '{prod.nombre}' en este evento")
+
+    if file_content and len(file_content) > 0:
+        url_qr = _safe_save_qr_file(id_evento_destino, file_content, file_extension)
+    elif prod.qr_url:
+        url_qr = prod.qr_url
+    else:
+        raise ValidacionNegocioError("El producto no cuenta con un código QR en la tienda. Debes subir la imagen del QR para este evento.")
+
+    now_utc = _get_utc_now()
+    nuevo_qr = models.EventoPagoQR(
+        id_evento=id_evento_destino,
+        nombre_paquete=prod.nombre.strip(),
+        monto=prod.precio,
+        url_qr=url_qr,
+        es_individual=not bool(prod.es_kit_evento),
+        descripcion=prod.descripcion,
+        creado_por=admin_user.id_usuario,
+        fecha_creacion=now_utc,
+        id_estado=2
+    )
+    db.add(nuevo_qr)
+    db.commit()
+    db.refresh(nuevo_qr)
+
+    registrar_log(
+        db=db,
+        id_admin=admin_user.id_usuario,
+        accion="IMPORTAR_PRODUCTO_TIENDA_PAGO_QR",
+        tabla_afectada="eventos_pagos_qr",
+        id_registro_afectado=nuevo_qr.id_qr,
+        valor_nuevo={
+            "id_evento_destino": id_evento_destino,
+            "id_producto_tienda": id_producto,
+            "nombre_paquete": nuevo_qr.nombre_paquete,
+            "monto": str(nuevo_qr.monto)
+        },
+        ip_direccion=ip_address
+    )
+    return nuevo_qr
 
 def import_pago_qr_to_event(
     db: Session,

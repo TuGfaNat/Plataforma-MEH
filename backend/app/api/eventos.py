@@ -300,6 +300,29 @@ def import_pago_qr(
         ip_address=ip_address
     )
 
+@router.post("/{id_evento}/pagos-qr/importar-producto/{id_producto}", response_model=EventoPagoQRResponse, status_code=status.HTTP_201_CREATED)
+async def import_producto_qr(
+    id_evento: int,
+    id_producto: int,
+    request: Request,
+    file: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+    current_user: models.Usuario = Depends(get_current_user)
+):
+    """Importa un producto o kit de la tienda de souvenirs a un evento, usando su QR o adjuntando uno nuevo."""
+    ip_address = request.client.host if request.client else None
+    file_content = await file.read() if file else None
+    ext = file.filename.split(".")[-1] if file and file.filename else None
+    return eventos_service.import_producto_to_event(
+        db=db,
+        admin_user=current_user,
+        id_evento_destino=id_evento,
+        id_producto=id_producto,
+        file_content=file_content,
+        file_extension=ext,
+        ip_address=ip_address
+    )
+
 @router.put("/pagos-qr/{id_qr}", response_model=EventoPagoQRResponse)
 async def update_pago_qr(
     id_qr: int,

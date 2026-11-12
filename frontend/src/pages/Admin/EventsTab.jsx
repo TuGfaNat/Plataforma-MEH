@@ -228,6 +228,8 @@ const EventsTab = ({
   const [loadingPaquetesExistentes, setLoadingPaquetesExistentes] = useState(false);
   const [modoCreacionQr, setModoCreacionQr] = useState('EXCLUSIVO'); // 'EXCLUSIVO' | 'REUTILIZAR'
   const [selectedPlantillaQrId, setSelectedPlantillaQrId] = useState('');
+  const [filtroOrigenCatalogo, setFiltroOrigenCatalogo] = useState('ALL'); // 'ALL' | 'TIENDA' | 'EVENTOS'
+  const [importQrFile, setImportQrFile] = useState(null);
   const [importingQr, setImportingQr] = useState(false);
 
   // Estados para Badge Social
@@ -439,10 +441,35 @@ const EventsTab = ({
       await fetchPagosQr();
       if (notify) notify("Paquete Importado", "El paquete se ha añadido a este evento exitosamente con su QR", "success");
       setSelectedPlantillaQrId('');
+      setImportQrFile(null);
     } catch (err) {
       console.error("Error al importar paquete QR:", err);
       const detail = err.response?.data?.detail;
       alert(typeof detail === 'string' ? detail : "No se pudo importar el paquete.");
+    } finally {
+      setImportingQr(false);
+    }
+  };
+
+  const handleImportarProductoTienda = async (idProducto, file = null) => {
+    if (!selectedEventoId || !idProducto) return;
+    try {
+      setImportingQr(true);
+      const formData = new FormData();
+      if (file) {
+        formData.append('file', file);
+      }
+      await api.post(`/eventos/${selectedEventoId}/pagos-qr/importar-producto/${idProducto}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      await fetchPagosQr();
+      if (notify) notify("Producto Importado", "El producto de la tienda se ha agregado a este evento exitosamente", "success");
+      setSelectedPlantillaQrId('');
+      setImportQrFile(null);
+    } catch (err) {
+      console.error("Error al importar producto de tienda:", err);
+      const detail = err.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : "No se pudo importar el producto de la tienda.");
     } finally {
       setImportingQr(false);
     }
@@ -1286,77 +1313,197 @@ const EventsTab = ({
                     {modoCreacionQr === 'REUTILIZAR' ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '12px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
                         <MEHTypography variant="body" style={{ opacity: 0.85, fontSize: '13px' }}>
-                          Elige un paquete o ítem creado previamente en otros eventos para reutilizarlo en este evento sin tener que crearlo desde cero ni volver a subir el código QR:
+                          Elige un producto o kit de la tienda MEH o un paquete creado previamente en otros eventos para agregarlo a este evento:
                         </MEHTypography>
 
                         {loadingPaquetesExistentes ? (
-                          <Spinner size="small" label="Cargando catálogo de paquetes existentes..." />
-                        ) : paquetesExistentes.filter(p => p.id_evento_origen !== (currentEvent?.id_evento || selectedEventoId)).length === 0 ? (
-                          <div style={{ opacity: 0.7, fontSize: '0.85rem', padding: '8px 0' }}>
-                            No hay paquetes previos en otros eventos para reutilizar. Puedes crear uno exclusivo en la pestaña "✨ Crear Exclusivo".
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <Field label="Seleccionar Paquete o Ítem de Catálogo">
-                              <Select
-                                value={selectedPlantillaQrId}
-                                onChange={(e) => setSelectedPlantillaQrId(e.target.value)}
-                              >
-                                <option value="">-- Elige un paquete o ítem existente --</option>
-                                {paquetesExistentes
-                                  .filter(p => p.id_evento_origen !== (currentEvent?.id_evento || selectedEventoId))
-                                  .map(p => (
-                                    <option key={p.id_qr} value={p.id_qr}>
-                                      {p.es_individual ? '🏷️ ' : '📦 '}{p.nombre_paquete} (Bs. {p.monto}) — de {p.evento_origen_titulo}
-                                    </option>
-                                  ))}
-                              </Select>
-                            </Field>
+                          <Spinner size="small" label="Cargando catálogo de la tienda y eventos..." />
+                        ) : (() => {
+                          const itemsDisponibles = paquetesExistentes.filter(p => 
+                            p.tipo_origen === 'TIENDA' || (p.tipo_origen === 'EVENTO' && p.id_evento_origen !== (currentEvent?.id_evento || selectedEventoId))
+                          );
+                          const countTienda = itemsDisponibles.filter(p => p.tipo_origen === 'TIENDA').length;
+                          const countEventos = itemsDisponibles.filter(p => p.tipo_origen === 'EVENTO').length;
 
-                            {selectedPlantillaQrId && (() => {
-                              const p = paquetesExistentes.find(x => String(x.id_qr) === String(selectedPlantillaQrId));
-                              if (!p) return null;
-                              return (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px', padding: '14px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '10px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                                    <img src={resolveApiFileUrl(p.url_qr)} alt={p.nombre_paquete} style={{ width: '64px', height: '64px', objectFit: 'contain', backgroundColor: 'white', borderRadius: '6px', padding: '2px', border: '1px solid rgba(0,0,0,0.1)' }} />
-                                    <div>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <b>{p.nombre_paquete}</b>
-                                        <Badge appearance="tint" color={p.es_individual ? 'informative' : 'brand'} size="small">
-                                          {p.es_individual ? '🏷️ Ítem' : '📦 Paquete'}
-                                        </Badge>
+                          const itemsFiltrados = itemsDisponibles.filter(p => {
+                            if (filtroOrigenCatalogo === 'TIENDA') return p.tipo_origen === 'TIENDA';
+                            if (filtroOrigenCatalogo === 'EVENTOS') return p.tipo_origen === 'EVENTO';
+                            return true;
+                          });
+
+                          const itemsTienda = itemsFiltrados.filter(p => p.tipo_origen === 'TIENDA');
+                          const itemsEventos = itemsFiltrados.filter(p => p.tipo_origen === 'EVENTO');
+
+                          if (itemsDisponibles.length === 0) {
+                            return (
+                              <div style={{ opacity: 0.7, fontSize: '0.85rem', padding: '8px 0' }}>
+                                No se encontraron productos en la tienda ni paquetes en otros eventos para reutilizar. Puedes crear uno en la pestaña "✨ Crear Exclusivo".
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                <Button 
+                                  size="small" 
+                                  appearance={filtroOrigenCatalogo === 'ALL' ? 'primary' : 'secondary'}
+                                  onClick={() => setFiltroOrigenCatalogo('ALL')}
+                                >
+                                  Todos ({itemsDisponibles.length})
+                                </Button>
+                                <Button 
+                                  size="small" 
+                                  appearance={filtroOrigenCatalogo === 'TIENDA' ? 'primary' : 'secondary'}
+                                  onClick={() => setFiltroOrigenCatalogo('TIENDA')}
+                                >
+                                  🛍️ De la Tienda ({countTienda})
+                                </Button>
+                                <Button 
+                                  size="small" 
+                                  appearance={filtroOrigenCatalogo === 'EVENTOS' ? 'primary' : 'secondary'}
+                                  onClick={() => setFiltroOrigenCatalogo('EVENTOS')}
+                                >
+                                  📅 De Otros Eventos ({countEventos})
+                                </Button>
+                              </div>
+
+                              <Field label="Seleccionar Paquete, Ítem o Souvenir de Catálogo">
+                                <Select
+                                  value={selectedPlantillaQrId}
+                                  onChange={(e) => {
+                                    setSelectedPlantillaQrId(e.target.value);
+                                    setImportQrFile(null);
+                                  }}
+                                >
+                                  <option value="">-- Elige un ítem de la tienda o paquete existente --</option>
+                                  {itemsTienda.length > 0 && (
+                                    <optgroup label="🛍️ Productos y Kits de la Tienda de Souvenirs">
+                                      {itemsTienda.map(p => {
+                                        const keyVal = p.id_referencia || p.id_item || String(p.id_qr);
+                                        return (
+                                          <option key={keyVal} value={keyVal}>
+                                            🛍️ {p.nombre_paquete} (Bs. {p.monto}) {p.tiene_qr ? '— con QR' : '— sin QR'}
+                                          </option>
+                                        );
+                                      })}
+                                    </optgroup>
+                                  )}
+                                  {itemsEventos.length > 0 && (
+                                    <optgroup label="📅 Paquetes de Otros Eventos">
+                                      {itemsEventos.map(p => {
+                                        const keyVal = p.id_referencia || p.id_item || String(p.id_qr);
+                                        return (
+                                          <option key={keyVal} value={keyVal}>
+                                            {p.es_individual ? '🏷️ ' : '📦 '}{p.nombre_paquete} (Bs. {p.monto}) — de {p.evento_origen_titulo}
+                                          </option>
+                                        );
+                                      })}
+                                    </optgroup>
+                                  )}
+                                </Select>
+                              </Field>
+
+                              {selectedPlantillaQrId && (() => {
+                                const p = paquetesExistentes.find(x => (x.id_referencia || x.id_item || String(x.id_qr)) === String(selectedPlantillaQrId));
+                                if (!p) return null;
+                                const esDeTienda = p.tipo_origen === 'TIENDA';
+
+                                return (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '14px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '10px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                        {p.url_qr ? (
+                                          <img src={resolveApiFileUrl(p.url_qr)} alt={p.nombre_paquete} style={{ width: '64px', height: '64px', objectFit: 'contain', backgroundColor: 'white', borderRadius: '6px', padding: '2px', border: '1px solid rgba(0,0,0,0.1)' }} />
+                                        ) : (
+                                          <div style={{ width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: tokens.colorNeutralBackground3, borderRadius: '6px', fontSize: '28px', border: '1px solid rgba(0,0,0,0.1)' }}>
+                                            🛍️
+                                          </div>
+                                        )}
+                                        <div>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <b>{p.nombre_paquete}</b>
+                                            <Badge appearance="tint" color={esDeTienda ? 'success' : (p.es_individual ? 'informative' : 'brand')} size="small">
+                                              {esDeTienda ? `🛍️ Tienda (${p.tipo_producto || 'Souvenir'})` : (p.es_individual ? '🏷️ Ítem' : '📦 Paquete')}
+                                            </Badge>
+                                          </div>
+                                          <div style={{ fontSize: '0.9rem', color: tokens.colorBrandForeground1, fontWeight: 'bold', marginTop: '2px' }}>
+                                            Bs. {p.monto}
+                                          </div>
+                                          {p.descripcion && <div style={{ fontSize: '0.8rem', opacity: 0.8, marginTop: '2px' }}>{p.descripcion}</div>}
+                                          <div style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '2px' }}>Origen: {p.evento_origen_titulo}</div>
+                                        </div>
                                       </div>
-                                      <div style={{ fontSize: '0.9rem', color: tokens.colorBrandForeground1, fontWeight: 'bold', marginTop: '2px' }}>
-                                        Bs. {p.monto}
+
+                                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <MEHButton 
+                                          size="small" 
+                                          appearance="outline"
+                                          onClick={() => handleUsarComoPlantilla(p)}
+                                        >
+                                          Editar como Plantilla
+                                        </MEHButton>
+
+                                        {esDeTienda ? (
+                                          p.tiene_qr ? (
+                                            <MEHButton 
+                                              size="small" 
+                                              appearance="primary" 
+                                              loading={importingQr}
+                                              onClick={() => handleImportarProductoTienda(p.id_producto, null)}
+                                            >
+                                              Importar a este Evento
+                                            </MEHButton>
+                                          ) : (
+                                            <MEHButton 
+                                              size="small" 
+                                              appearance="primary" 
+                                              loading={importingQr}
+                                              disabled={!importQrFile}
+                                              onClick={() => handleImportarProductoTienda(p.id_producto, importQrFile)}
+                                            >
+                                              Importar con este QR
+                                            </MEHButton>
+                                          )
+                                        ) : (
+                                          <MEHButton 
+                                            size="small" 
+                                            appearance="primary" 
+                                            loading={importingQr}
+                                            onClick={() => handleImportarPagoQr(p.id_qr)}
+                                          >
+                                            Importar a este Evento
+                                          </MEHButton>
+                                        )}
                                       </div>
-                                      {p.descripcion && <div style={{ fontSize: '0.8rem', opacity: 0.8, marginTop: '2px' }}>{p.descripcion}</div>}
-                                      <div style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '2px' }}>Evento de origen: {p.evento_origen_titulo}</div>
                                     </div>
-                                  </div>
 
-                                  <div style={{ display: 'flex', gap: '8px' }}>
-                                    <MEHButton 
-                                      size="small" 
-                                      appearance="outline"
-                                      onClick={() => handleUsarComoPlantilla(p)}
-                                    >
-                                      Editar como Plantilla
-                                    </MEHButton>
-                                    <MEHButton 
-                                      size="small" 
-                                      appearance="primary" 
-                                      loading={importingQr}
-                                      onClick={() => handleImportarPagoQr(p.id_qr)}
-                                    >
-                                      Importar a este Evento
-                                    </MEHButton>
+                                    {esDeTienda && !p.tiene_qr && (
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px 12px', backgroundColor: 'rgba(255, 185, 0, 0.1)', borderRadius: '8px', border: '1px solid rgba(255, 185, 0, 0.3)' }}>
+                                        <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                                          📷 Sube la imagen del QR para cobrar este ítem de la tienda en este evento:
+                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                          <input 
+                                            type="file" 
+                                            accept="image/*"
+                                            onChange={(e) => setImportQrFile(e.target.files?.[0] || null)}
+                                            style={{ fontSize: '0.85rem' }}
+                                          />
+                                          {importQrFile && (
+                                            <span style={{ fontSize: '0.8rem', color: '#107C41', fontWeight: 500 }}>
+                                              ✓ {importQrFile.name}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        )}
+                                );
+                              })()}
+                            </div>
+                          );
+                        })()}
                       </div>
                     ) : (
                       <>
