@@ -212,6 +212,9 @@ const EventsTab = ({
   const [filtroTipoQr, setFiltroTipoQr] = useState('ALL');
   const [qrFile, setQrFile] = useState(null);
   const [fileInputKey, setFileInputKey] = useState(0);
+  const [nuevoTieneTallas, setNuevoTieneTallas] = useState(false);
+  const [nuevoTallasStock, setNuevoTallasStock] = useState({ S: 10, M: 20, L: 15, XL: 5 });
+  const [nuevaTallaCustom, setNuevaTallaCustom] = useState('');
   const [editQrDialog, setEditQrDialog] = useState({ 
     open: false, 
     idQr: null, 
@@ -219,6 +222,9 @@ const EventsTab = ({
     monto: '', 
     es_individual: false,
     descripcion: '',
+    tiene_tallas: false,
+    tallas_stock: { S: 10, M: 20, L: 15, XL: 5 },
+    nuevaTallaCustom: '',
     file: null, 
     loading: false 
   });
@@ -305,6 +311,16 @@ const EventsTab = ({
     }
   };
 
+  const parseStockHelper = (val) => {
+    if (!val) return { S: 10, M: 20, L: 15, XL: 5 };
+    if (typeof val === 'object') return val;
+    try {
+      return JSON.parse(val);
+    } catch {
+      return { S: 10, M: 20, L: 15, XL: 5 };
+    }
+  };
+
   const handleAddPagoQr = async (e) => {
     e.preventDefault();
     if (!nuevoNombrePaquete || !nuevoMonto || !qrFile) {
@@ -320,6 +336,10 @@ const EventsTab = ({
     if (nuevaDescripcion.trim()) {
       formData.append('descripcion', nuevaDescripcion.trim());
     }
+    formData.append('tiene_tallas', nuevoTieneTallas);
+    if (nuevoTieneTallas) {
+      formData.append('tallas_stock', JSON.stringify(nuevoTallasStock));
+    }
 
     try {
       setLoadingQr(true);
@@ -332,6 +352,9 @@ const EventsTab = ({
       setNuevoMonto('');
       setNuevoEsIndividual(false);
       setNuevaDescripcion('');
+      setNuevoTieneTallas(false);
+      setNuevoTallasStock({ S: 10, M: 20, L: 15, XL: 5 });
+      setNuevaTallaCustom('');
       setQrFile(null);
       setFileInputKey(prev => prev + 1);
       
@@ -353,6 +376,9 @@ const EventsTab = ({
       monto: pkg.monto.toString(),
       es_individual: Boolean(pkg.es_individual),
       descripcion: pkg.descripcion || '',
+      tiene_tallas: Boolean(pkg.tiene_tallas),
+      tallas_stock: parseStockHelper(pkg.tallas_stock),
+      nuevaTallaCustom: '',
       file: null,
       loading: false
     });
@@ -368,6 +394,10 @@ const EventsTab = ({
     formData.append('monto', editQrDialog.monto);
     formData.append('es_individual', Boolean(editQrDialog.es_individual));
     formData.append('descripcion', editQrDialog.descripcion ? editQrDialog.descripcion.trim() : '');
+    formData.append('tiene_tallas', Boolean(editQrDialog.tiene_tallas));
+    if (editQrDialog.tiene_tallas) {
+      formData.append('tallas_stock', JSON.stringify(editQrDialog.tallas_stock || {}));
+    }
     if (editQrDialog.file) {
       formData.append('file', editQrDialog.file);
     }
@@ -377,12 +407,13 @@ const EventsTab = ({
       await api.put(`/eventos/pagos-qr/${editQrDialog.idQr}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setEditQrDialog({ open: false, idQr: null, nombre_paquete: '', monto: '', es_individual: false, descripcion: '', file: null, loading: false });
+      setEditQrDialog({ open: false, idQr: null, nombre_paquete: '', monto: '', es_individual: false, descripcion: '', tiene_tallas: false, tallas_stock: { S: 10, M: 20, L: 15, XL: 5 }, nuevaTallaCustom: '', file: null, loading: false });
       await fetchPagosQr();
     } catch (err) {
       console.error("Error al actualizar pago QR:", err);
       const detail = err.response?.data?.detail;
       alert(typeof detail === 'string' ? detail : "Error al actualizar el paquete de pago QR.");
+    } finally {
       setEditQrDialog(prev => ({ ...prev, loading: false }));
     }
   };
@@ -481,7 +512,13 @@ const EventsTab = ({
     setNuevoNombrePaquete(plantilla.nombre_paquete);
     setNuevoMonto(plantilla.monto ? String(plantilla.monto) : '');
     setNuevaDescripcion(plantilla.descripcion || '');
-    if (notify) notify("Datos cargados", "Puedes editar los datos y subir un nuevo QR si lo necesitas", "info");
+    setNuevoTieneTallas(Boolean(plantilla.tiene_tallas));
+    if (plantilla.tallas_stock) {
+      setNuevoTallasStock(parseStockHelper(plantilla.tallas_stock));
+    } else {
+      setNuevoTallasStock({ S: 10, M: 20, L: 15, XL: 5 });
+    }
+    if (notify) notify("Datos cargados", "Puedes editar los datos, tallas y subir un nuevo QR si lo necesitas", "info");
     const formEl = document.getElementById('form-agregar-pago-qr');
     if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
   };
@@ -1230,6 +1267,44 @@ const EventsTab = ({
                                             <MEHTypography variant="caption" style={{ display: 'block', color: tokens.colorBrandForeground1, fontWeight: 'bold', marginTop: '2px' }}>
                                               Bs. {pkg.monto}
                                             </MEHTypography>
+
+                                            {pkg.tiene_tallas && (() => {
+                                              let stockObj = {};
+                                              if (pkg.tallas_stock) {
+                                                try {
+                                                  stockObj = typeof pkg.tallas_stock === 'object' ? pkg.tallas_stock : JSON.parse(pkg.tallas_stock);
+                                                } catch {
+                                                  stockObj = {};
+                                                }
+                                              }
+                                              const tallasEntries = Object.entries(stockObj);
+                                              const totalStock = tallasEntries.reduce((acc, [, val]) => acc + (Number(val) || 0), 0);
+
+                                              return (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '6px' }}>
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', opacity: 0.85 }}>👕 Tallas ({totalStock} tot.):</span>
+                                                    {tallasEntries.length === 0 ? (
+                                                      <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>Sin tallas</span>
+                                                    ) : (
+                                                      tallasEntries.map(([talla, cant]) => {
+                                                        const agotado = Number(cant) <= 0;
+                                                        return (
+                                                          <Badge 
+                                                            key={talla} 
+                                                            appearance={agotado ? "tint" : "filled"} 
+                                                            color={agotado ? "danger" : (Number(cant) <= 3 ? "warning" : "informative")}
+                                                            size="small"
+                                                          >
+                                                            {talla}: {cant} {agotado ? '(Agotado)' : ''}
+                                                          </Badge>
+                                                        );
+                                                      })
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              );
+                                            })()}
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1547,6 +1622,84 @@ const EventsTab = ({
                               placeholder={nuevoEsIndividual ? "Ej: Solo la polera oficial del evento sin kit extra" : "Ej: Incluye entrada, credencial y polera"} 
                             />
                         </Field>
+
+                        {/* Control de Tallas y Stock por Talla */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: tokens.colorNeutralBackground1, padding: '12px 14px', borderRadius: '10px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                            <Switch 
+                              label="👕 Este paquete/ítem incluye prenda o producto con tallas (S, M, L, XL...)"
+                              checked={nuevoTieneTallas} 
+                              onChange={(e, d) => setNuevoTieneTallas(d.checked)} 
+                            />
+                            {nuevoTieneTallas && (
+                              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: tokens.colorBrandForeground1 }}>
+                                Total en inventario: {Object.values(nuevoTallasStock).reduce((a, b) => a + (Number(b) || 0), 0)} unidades
+                              </span>
+                            )}
+                          </div>
+
+                          {nuevoTieneTallas && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+                              <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>
+                                Define la cantidad / contador de unidades disponibles para cada talla. A medida que los participantes compren o se inscriban, el contador irá bajando automáticamente:
+                              </span>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px' }}>
+                                {Object.entries(nuevoTallasStock).map(([talla, cant]) => (
+                                  <div key={talla} style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '8px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '8px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>Talla {talla}</span>
+                                      <Button 
+                                        size="small" 
+                                        appearance="subtle" 
+                                        icon={<Delete24Regular style={{ fontSize: '14px' }} />} 
+                                        onClick={() => {
+                                          const copy = { ...nuevoTallasStock };
+                                          delete copy[talla];
+                                          setNuevoTallasStock(copy);
+                                        }}
+                                        title={`Eliminar talla ${talla}`}
+                                      />
+                                    </div>
+                                    <Input 
+                                      type="number" 
+                                      size="small" 
+                                      min="0"
+                                      value={cant} 
+                                      onChange={(e, d) => {
+                                        const num = Math.max(0, parseInt(d.value, 10) || 0);
+                                        setNuevoTallasStock(prev => ({ ...prev, [talla]: num }));
+                                      }}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginTop: '4px' }}>
+                                <Input 
+                                  size="small" 
+                                  placeholder="Ej: XS, XXL, 14..." 
+                                  value={nuevaTallaCustom}
+                                  onChange={(e, d) => setNuevaTallaCustom(d.value)}
+                                  style={{ maxWidth: '160px' }}
+                                />
+                                <Button 
+                                  size="small" 
+                                  appearance="secondary"
+                                  onClick={() => {
+                                    const t = nuevaTallaCustom.trim().toUpperCase();
+                                    if (t && !(t in nuevoTallasStock)) {
+                                      setNuevoTallasStock(prev => ({ ...prev, [t]: 10 }));
+                                      setNuevaTallaCustom('');
+                                    }
+                                  }}
+                                >
+                                  + Añadir Talla
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
 
                         <Field label="Imagen Código QR de Pago" required>
                             <Input type="file" key={fileInputKey} id="qr-file-input" onChange={(e) => setQrFile(e.target.files[0])} accept="image/*,application/pdf" />
@@ -1923,6 +2076,91 @@ const EventsTab = ({
                   placeholder="Ej: Detalle de qué incluye o exclusividad"
                 />
               </Field>
+
+              {/* Control de Tallas y Stock por Talla en Edición */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: tokens.colorNeutralBackground2, padding: '12px 14px', borderRadius: '10px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <Switch 
+                    label="👕 Incluye tallas y control de inventario"
+                    checked={editQrDialog.tiene_tallas} 
+                    onChange={(e, d) => setEditQrDialog(prev => ({ ...prev, tiene_tallas: d.checked }))} 
+                  />
+                  {editQrDialog.tiene_tallas && (
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: tokens.colorBrandForeground1 }}>
+                      Total en inventario: {Object.values(editQrDialog.tallas_stock || {}).reduce((a, b) => a + (Number(b) || 0), 0)} unidades
+                    </span>
+                  )}
+                </div>
+
+                {editQrDialog.tiene_tallas && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+                    <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>
+                      Ajusta el contador de unidades disponibles por talla:
+                    </span>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '8px' }}>
+                      {Object.entries(editQrDialog.tallas_stock || {}).map(([talla, cant]) => (
+                        <div key={talla} style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '6px 8px', backgroundColor: tokens.colorNeutralBackground1, borderRadius: '8px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 'bold', fontSize: '0.8rem' }}>Talla {talla}</span>
+                            <Button 
+                              size="small" 
+                              appearance="subtle" 
+                              icon={<Delete24Regular style={{ fontSize: '13px' }} />} 
+                              onClick={() => {
+                                const copy = { ...(editQrDialog.tallas_stock || {}) };
+                                delete copy[talla];
+                                setEditQrDialog(prev => ({ ...prev, tallas_stock: copy }));
+                              }}
+                              title={`Eliminar talla ${talla}`}
+                            />
+                          </div>
+                          <Input 
+                            type="number" 
+                            size="small" 
+                            min="0"
+                            value={cant} 
+                            onChange={(e, d) => {
+                              const num = Math.max(0, parseInt(d.value, 10) || 0);
+                              setEditQrDialog(prev => ({
+                                ...prev,
+                                tallas_stock: { ...prev.tallas_stock, [talla]: num }
+                              }));
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginTop: '4px' }}>
+                      <Input 
+                        size="small" 
+                        placeholder="Ej: XS, XXL..." 
+                        value={editQrDialog.nuevaTallaCustom || ''}
+                        onChange={(e, d) => setEditQrDialog(prev => ({ ...prev, nuevaTallaCustom: d.value }))}
+                        style={{ maxWidth: '140px' }}
+                      />
+                      <Button 
+                        size="small" 
+                        appearance="secondary"
+                        onClick={() => {
+                          const t = (editQrDialog.nuevaTallaCustom || '').trim().toUpperCase();
+                          if (t && !(t in (editQrDialog.tallas_stock || {}))) {
+                            setEditQrDialog(prev => ({
+                              ...prev,
+                              tallas_stock: { ...(prev.tallas_stock || {}), [t]: 10 },
+                              nuevaTallaCustom: ''
+                            }));
+                          }
+                        }}
+                      >
+                        + Añadir Talla
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <Field label="Nueva Imagen QR (opcional)">
                 <Input
                   type="file"

@@ -370,13 +370,89 @@ describe('MEH-017: Reembolsos, Historial, Reintentos y QR de Pago', () => {
       fireEvent.click(btnConfirmar);
 
       await waitFor(() => {
-        expect(eventoService.inscribirse).toHaveBeenCalledWith(99);
+        expect(eventoService.inscribirse).toHaveBeenCalledWith(99, expect.objectContaining({ id_qr: 102 }));
         expect(pagoService.uploadComprobanteOcr).toHaveBeenCalledWith(expect.any(FormData));
       });
 
       const calledFormData = pagoService.uploadComprobanteOcr.mock.calls[0][0];
       expect(calledFormData.get('notas_admin')).toBe('Ítem Individual: Solo Polera Conmemorativa');
       expect(calledFormData.get('monto')).toBe('45');
+    });
+
+    it('gestiona la selección de tallas con contador de inventario y bloquea tallas agotadas', async () => {
+      const mockEvento = {
+        id_evento: 99,
+        titulo: 'Congreso Tech 2026',
+        capacidad_max: 100,
+        cupos_ocupados: 10,
+        cupos_disponibles: 90
+      };
+
+      pagoService.getEventPaymentPackages.mockResolvedValue([
+        {
+          id_qr: 103,
+          nombre_paquete: 'Polera conmemorativa oficial',
+          monto: 50.0,
+          url_qr: '/qrs/polera.png',
+          es_individual: true,
+          tiene_tallas: true,
+          tallas_stock: JSON.stringify({ S: 4, M: 0, L: 10 }),
+          descripcion: 'Polera de algodón'
+        }
+      ]);
+
+      eventoService.inscribirse.mockResolvedValue({ id_inscripcion: 999 });
+      pagoService.uploadComprobanteOcr.mockResolvedValue({ success: true });
+
+      renderWithProvider(
+        <InscripcionEventoModal evento={mockEvento} buttonText="Comprar Polera" />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /Comprar Polera/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Polera conmemorativa oficial')).toBeInTheDocument();
+      });
+
+      // Seleccionar el ítem
+      fireEvent.click(screen.getByText('Polera conmemorativa oficial'));
+
+      // Verificar que se muestren las tallas con inventario disponible y agotado
+      await waitFor(() => {
+        expect(screen.getByText(/Selecciona tu Talla/i)).toBeInTheDocument();
+        expect(screen.getByText('4 disp.')).toBeInTheDocument();
+        expect(screen.getByText('Agotado')).toBeInTheDocument();
+        expect(screen.getByText('10 disp.')).toBeInTheDocument();
+      });
+
+      // El botón de talla M debe estar deshabilitado
+      const btnTallaM = screen.getByText('Agotado').closest('button');
+      expect(btnTallaM).toBeDisabled();
+
+      // Subir archivo simulado
+      const fileInput = document.querySelector('input[type="file"]');
+      const fakeFile = new File(['fake receipt'], 'recibo_polera.png', { type: 'image/png' });
+      fireEvent.change(fileInput, { target: { files: [fakeFile] } });
+
+      // Seleccionar talla S (disponible)
+      const btnTallaS = screen.getByText('4 disp.').closest('button');
+      fireEvent.click(btnTallaS);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Talla S seleccionada/i)).toBeInTheDocument();
+      });
+
+      // Confirmar compra con talla S
+      const btnConfirmar = screen.getByRole('button', { name: /Subir y Confirmar/i });
+      fireEvent.click(btnConfirmar);
+
+      await waitFor(() => {
+        expect(eventoService.inscribirse).toHaveBeenCalledWith(99, { id_qr: 103, talla: 'S' });
+        expect(pagoService.uploadComprobanteOcr).toHaveBeenCalledWith(expect.any(FormData));
+      });
+
+      const calledFormData = pagoService.uploadComprobanteOcr.mock.calls[0][0];
+      expect(calledFormData.get('notas_admin')).toBe('Ítem Individual: Polera conmemorativa oficial (Talla: S)');
     });
   });
 });

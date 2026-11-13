@@ -16,24 +16,28 @@ router = APIRouter(
 def inscribir_evento(
     id_evento: int,
     request: Request,
+    body: Optional[inscripcion_schema.InscribirEventoRequest] = None,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user),
     x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key")
 ):
-    """Inscribe al usuario actual en un evento con soporte de idempotencia."""
+    """Inscribe al usuario actual en un evento con soporte de idempotencia y selección de talla/paquete."""
     ip_address = request.client.host if request.client else None
     return inscripciones_service.inscribir_evento(
         db,
         current_user.id_usuario,
         id_evento,
         ip_address,
-        idempotency_key=x_idempotency_key
+        idempotency_key=x_idempotency_key,
+        id_qr=body.id_qr if body else None,
+        talla=body.talla if body else None
     )
 
 @router.post("/inscribir/{id_evento}", response_model=inscripcion_schema.InscripcionEventoResponse)
 def inscribir_evento_legacy(
     id_evento: int,
     request: Request,
+    body: Optional[inscripcion_schema.InscribirEventoRequest] = None,
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user),
     x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key")
@@ -45,7 +49,9 @@ def inscribir_evento_legacy(
         current_user.id_usuario,
         id_evento,
         ip_address,
-        idempotency_key=x_idempotency_key
+        idempotency_key=x_idempotency_key,
+        id_qr=body.id_qr if body else None,
+        talla=body.talla if body else None
     )
 
 @router.get("/eventos/mis-inscripciones", response_model=List[inscripcion_schema.InscripcionEventoResponse])

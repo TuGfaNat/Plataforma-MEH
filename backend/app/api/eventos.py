@@ -263,12 +263,15 @@ async def create_pago_qr(
     file: UploadFile = File(...),
     es_individual: bool = Form(False),
     descripcion: Optional[str] = Form(None),
+    tiene_tallas: bool = Form(False),
+    tallas_stock: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
     """Crea un paquete de pago o ítem individual y QR asociado a un evento con validación y anti-duplicado."""
     ip_address = request.client.host if request.client else None
     file_content = await file.read()
+    ext = file.filename.split(".")[-1] if file and file.filename else None
     
     return eventos_service.create_pago_qr(
         db=db,
@@ -277,9 +280,12 @@ async def create_pago_qr(
         nombre_paquete=nombre_paquete,
         monto=monto,
         file_content=file_content,
+        file_extension=ext,
         ip_address=ip_address,
         es_individual=es_individual,
-        descripcion=descripcion
+        descripcion=descripcion,
+        tiene_tallas=tiene_tallas,
+        tallas_stock=tallas_stock
     )
 
 @router.post("/{id_evento}/pagos-qr/importar/{id_qr_origen}", response_model=EventoPagoQRResponse, status_code=status.HTTP_201_CREATED)
@@ -332,6 +338,8 @@ async def update_pago_qr(
     file: Optional[UploadFile] = File(None),
     es_individual: Optional[bool] = Form(None),
     descripcion: Optional[str] = Form(None),
+    tiene_tallas: Optional[bool] = Form(None),
+    tallas_stock: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     current_user: models.Usuario = Depends(get_current_user)
 ):
@@ -348,7 +356,9 @@ async def update_pago_qr(
         file_content=file_content,
         ip_address=ip_address,
         es_individual=es_individual,
-        descripcion=descripcion
+        descripcion=descripcion,
+        tiene_tallas=tiene_tallas,
+        tallas_stock=tallas_stock
     )
 
 @router.delete("/pagos-qr/{id_qr}", status_code=status.HTTP_204_NO_CONTENT)

@@ -204,6 +204,7 @@ class Producto(Base, AuditMixin, EstadoLifecycleMixin):
     qr_url = Column(TEXT, nullable=True)
     tiene_tallas = Column(Boolean, default=False)
     tallas_disponibles = Column(String(255), nullable=True)
+    tallas_stock = Column(TEXT, nullable=True)
     categoria = Column(String, default="SOUVENIR")
     activo = Column(Boolean, default=True)
 
@@ -298,9 +299,12 @@ class InscripcionEvento(Base, AuditMixin, EstadoLifecycleMixin):
     asistio = Column(Boolean, default=False)
     fecha_validacion = Column(DateTime, nullable=True)
     id_pago = Column(Integer, ForeignKey("pagos.id_pago"), nullable=True, index=True)
+    id_qr = Column(Integer, ForeignKey("eventos_pagos_qr.id_qr", ondelete="SET NULL"), nullable=True, index=True)
+    talla = Column(String(30), nullable=True)
 
     usuario = relationship("Usuario", back_populates="inscripciones_eventos", foreign_keys="[InscripcionEvento.id_usuario]")
     evento = relationship("Evento", back_populates="inscripciones")
+    pago_qr = relationship("EventoPagoQR", foreign_keys=[id_qr])
     asistencias = relationship("AsistenciaDetalle", back_populates="inscripcion", cascade="all, delete-orphan")
 
     @property
@@ -570,6 +574,8 @@ class EventoPagoQR(Base, AuditMixin, EstadoLifecycleMixin):
     url_qr = Column(String(255), nullable=False)
     es_individual = Column(Boolean, default=False, nullable=False)
     descripcion = Column(TEXT, nullable=True)
+    tiene_tallas = Column(Boolean, default=False, nullable=False)
+    tallas_stock = Column(TEXT, nullable=True)
 
     evento = relationship("Evento", back_populates="pagos_qr")
 

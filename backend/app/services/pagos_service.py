@@ -433,6 +433,21 @@ def reembolsar_pago(
         if inscripcion_reemb:
             inscripcion_reemb.estado_inscripcion = "CANCELADA"
             inscripcion_reemb.codigo_qr = None
+            if inscripcion_reemb.id_qr and inscripcion_reemb.talla:
+                pago_qr = db.query(models.EventoPagoQR).filter(
+                    models.EventoPagoQR.id_qr == inscripcion_reemb.id_qr,
+                    models.EventoPagoQR.id_estado != 0
+                ).first()
+                if pago_qr and pago_qr.tiene_tallas and pago_qr.tallas_stock:
+                    try:
+                        import json
+                        stock_dict = json.loads(pago_qr.tallas_stock)
+                        talla_val = inscripcion_reemb.talla.strip()
+                        if talla_val in stock_dict:
+                            stock_dict[talla_val] = stock_dict.get(talla_val, 0) + 1
+                            pago_qr.tallas_stock = json.dumps(stock_dict)
+                    except Exception:
+                        pass
 
     db.commit()
     db.refresh(db_pago)

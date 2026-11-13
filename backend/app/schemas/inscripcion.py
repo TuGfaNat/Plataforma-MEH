@@ -6,9 +6,15 @@ from typing import Optional
 class InscripcionEventoBase(BaseModel):
     id_evento: int
     estado_inscripcion: str = "PENDIENTE"
+    id_qr: Optional[int] = None
+    talla: Optional[str] = None
 
 class InscripcionEventoCreate(InscripcionEventoBase):
     pass
+
+class InscribirEventoRequest(BaseModel):
+    id_qr: Optional[int] = None
+    talla: Optional[str] = None
 
 class EventoSimple(BaseModel):
     id_evento: int

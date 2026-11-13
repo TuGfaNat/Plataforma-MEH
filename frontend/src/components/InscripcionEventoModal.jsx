@@ -147,6 +147,7 @@ const InscripcionEventoModal = ({
   const [checkingPackages, setCheckingPackages] = useState(false);
   const [packages, setPackages] = useState([]);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [selectedTalla, setSelectedTalla] = useState('');
   const [tipoOpcion, setTipoOpcion] = useState('TODOS');
   const [file, setFile] = useState(null);
   const [isQrZoomed, setIsQrZoomed] = useState(false);
@@ -280,12 +281,19 @@ const InscripcionEventoModal = ({
     if (!selectedPackage || selectedPackage.es_gratuito) {
       return true;
     }
+    if (selectedPackage.tiene_tallas && !selectedTalla) {
+      notify("Talla requerida", "Por favor selecciona una talla disponible para este paquete o ítem", "warning");
+      return false;
+    }
     if (!file) {
       notify("Validación", "Debes adjuntar el comprobante de pago", "warning");
       return false;
     }
 
-    const inscripcionResponse = await eventoService.inscribirse(evento.id_evento);
+    const inscripcionResponse = await eventoService.inscribirse(evento.id_evento, {
+      id_qr: selectedPackage.id_qr !== 'FREE' ? selectedPackage.id_qr : null,
+      talla: (selectedPackage.tiene_tallas && selectedTalla) ? selectedTalla : null
+    });
     const idInscripcion = inscripcionResponse.id_inscripcion;
 
     const formData = new FormData();
@@ -294,7 +302,8 @@ const InscripcionEventoModal = ({
     formData.append('monto', selectedPackage.monto);
     formData.append('metodo_pago', 'TRANSFERENCIA');
     const descTipo = selectedPackage.es_individual ? 'Ítem Individual' : 'Paquete';
-    formData.append('notas_admin', `${descTipo}: ${selectedPackage.nombre_paquete}`);
+    const descTalla = (selectedPackage.tiene_tallas && selectedTalla) ? ` (Talla: ${selectedTalla})` : '';
+    formData.append('notas_admin', `${descTipo}: ${selectedPackage.nombre_paquete}${descTalla}`);
     formData.append('file', file);
 
     await pagoService.uploadComprobanteOcr(formData);
@@ -578,7 +587,10 @@ const InscripcionEventoModal = ({
                           return (
                             <div
                               key={pkg.id_qr}
-                              onClick={() => setSelectedPackage(pkg)}
+                              onClick={() => {
+                                setSelectedPackage(pkg);
+                                setSelectedTalla('');
+                              }}
                               style={{
                                 padding: '14px',
                                 borderRadius: '12px',
@@ -609,6 +621,11 @@ const InscripcionEventoModal = ({
                               <div style={{ fontWeight: 'bold', fontSize: '14px', lineHeight: '1.2' }}>
                                 {pkg.nombre_paquete}
                               </div>
+                              {pkg.tiene_tallas && (
+                                <div style={{ fontSize: '11px', color: tokens.colorBrandForeground1, fontWeight: 'bold' }}>
+                                  👕 Con tallas e inventario
+                                </div>
+                              )}
                               {pkg.descripcion && (
                                 <div style={{ fontSize: '12px', opacity: 0.75, lineHeight: 1.3 }}>
                                   {pkg.descripcion}
@@ -671,6 +688,83 @@ const InscripcionEventoModal = ({
                             {selectedPackage.nombre_paquete} — Monto: Bs. {selectedPackage.monto}
                           </MEHTypography>
                         </div>
+
+                        {/* Selector de Tallas si el paquete o ítem tiene tallas */}
+                        {selectedPackage.tiene_tallas && (() => {
+                          let stockObj = {};
+                          if (selectedPackage.tallas_stock) {
+                            try {
+                              stockObj = typeof selectedPackage.tallas_stock === 'object' ? selectedPackage.tallas_stock : JSON.parse(selectedPackage.tallas_stock);
+                            } catch {
+                              stockObj = {};
+                            }
+                          }
+                          const tallasEntries = Object.entries(stockObj);
+
+                          return (
+                            <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', padding: '14px', borderRadius: '10px', border: `1px solid ${tokens.colorBrandStroke1}`, maxWidth: '440px', width: '100%', textAlign: 'left' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '4px' }}>
+                                <span style={{ fontSize: '13px', fontWeight: 'bold' }}>👕 Selecciona tu Talla:</span>
+                                {selectedTalla && (
+                                  <Badge appearance="filled" color="brand" size="small">
+                                    Talla {selectedTalla} seleccionada
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                {tallasEntries.length === 0 ? (
+                                  <span style={{ fontSize: '12px', opacity: 0.6 }}>No hay tallas configuradas en este paquete.</span>
+                                ) : (
+                                  tallasEntries.map(([talla, cant]) => {
+                                    const countNum = Number(cant) || 0;
+                                    const agotado = countNum <= 0;
+                                    const isSelected = selectedTalla === talla;
+
+                                    return (
+                                      <button
+                                        type="button"
+                                        key={talla}
+                                        disabled={agotado}
+                                        onClick={() => setSelectedTalla(talla)}
+                                        style={{
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          alignItems: 'center',
+                                          padding: '8px 14px',
+                                          borderRadius: '8px',
+                                          border: isSelected 
+                                            ? `2px solid ${tokens.colorBrandForeground1}` 
+                                            : (agotado ? '1px dashed rgba(255,255,255,0.2)' : '1px solid rgba(255,255,255,0.15)'),
+                                          backgroundColor: isSelected 
+                                            ? 'rgba(127, 19, 236, 0.28)' 
+                                            : (agotado ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)'),
+                                          color: isSelected 
+                                            ? '#fff' 
+                                            : (agotado ? 'rgba(255,255,255,0.4)' : '#fff'),
+                                          cursor: agotado ? 'not-allowed' : 'pointer',
+                                          transition: 'all 0.15s ease',
+                                          opacity: agotado ? 0.45 : 1
+                                        }}
+                                      >
+                                        <span style={{ fontWeight: 'bold', fontSize: '14px' }}>{talla}</span>
+                                        <span style={{ fontSize: '11px', marginTop: '2px', color: agotado ? '#ff6b6b' : (countNum <= 3 ? '#fbc02d' : '#8bc34a'), fontWeight: 500 }}>
+                                          {agotado ? 'Agotado' : `${countNum} disp.`}
+                                        </span>
+                                      </button>
+                                    );
+                                  })
+                                )}
+                              </div>
+
+                              {!selectedTalla && tallasEntries.length > 0 && (
+                                <div style={{ fontSize: '11px', color: '#fbc02d', marginTop: '8px' }}>
+                                  ⚠️ Selecciona una talla disponible para poder confirmar tu inscripción.
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         {/* Desglose de contenido para paquetes completos */}
                         {!selectedPackage.es_individual && selectedPackage.descripcion && (

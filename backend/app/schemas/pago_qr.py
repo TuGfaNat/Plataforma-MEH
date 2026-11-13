@@ -7,6 +7,8 @@ class EventoPagoQRBase(BaseModel):
     monto: Decimal
     es_individual: bool = False
     descripcion: Optional[str] = None
+    tiene_tallas: bool = False
+    tallas_stock: Optional[str] = None
 
 class EventoPagoQRCreate(EventoPagoQRBase):
     pass
@@ -16,6 +18,8 @@ class EventoPagoQRUpdate(BaseModel):
     monto: Optional[Decimal] = None
     es_individual: Optional[bool] = None
     descripcion: Optional[str] = None
+    tiene_tallas: Optional[bool] = None
+    tallas_stock: Optional[str] = None
 
 class EventoPagoQRResponse(EventoPagoQRBase):
     id_qr: int

@@ -1,4 +1,5 @@
 import uuid
+import json
 from datetime import datetime, timezone
 from typing import List, Optional
 from sqlalchemy.orm import Session
@@ -22,9 +23,11 @@ def inscribir_evento(
     user_id: int,
     id_evento: int,
     ip_address: Optional[str] = None,
-    idempotency_key: Optional[str] = None
+    idempotency_key: Optional[str] = None,
+    id_qr: Optional[int] = None,
+    talla: Optional[str] = None
 ) -> models.InscripcionEvento:
-    """Inscribe a un usuario en un evento con gestión de cupos, lista de espera, token QR único e idempotencia."""
+    """Inscribe a un usuario en un evento con gestión de cupos, lista de espera, control de stock por talla, token QR único e idempotencia."""
     evento = db.query(models.Evento).filter(
         models.Evento.id_evento == id_evento,
         models.Evento.id_estado != 0
@@ -43,6 +46,32 @@ def inscribir_evento(
     usuario = db.query(models.Usuario).filter(models.Usuario.id_usuario == user_id).first()
     if not usuario or not usuario.activo or usuario.id_estado == 0:
         raise ValidacionNegocioError("Tu cuenta de usuario está inactiva o desactivada. Contacta al administrador.")
+
+    # Validar y reservar stock de talla si el paquete tiene tallas
+    pago_qr = None
+    talla_seleccionada = None
+    if id_qr is not None:
+        pago_qr = db.query(models.EventoPagoQR).filter(
+            models.EventoPagoQR.id_qr == id_qr,
+            models.EventoPagoQR.id_evento == id_evento,
+            models.EventoPagoQR.id_estado != 0
+        ).first()
+        if pago_qr and pago_qr.tiene_tallas:
+            if not talla or not str(talla).strip():
+                raise ValidacionNegocioError("Debes seleccionar una talla para este paquete o ítem")
+            talla_seleccionada = str(talla).strip()
+            stock_dict = {}
+            if pago_qr.tallas_stock:
+                try:
+                    stock_dict = json.loads(pago_qr.tallas_stock)
+                except Exception:
+                    stock_dict = {}
+            disponibles = stock_dict.get(talla_seleccionada, 0)
+            if disponibles <= 0:
+                raise ValidacionNegocioError(f"La talla '{talla_seleccionada}' se encuentra agotada para este paquete")
+            # Descontar 1 del contador de esa talla
+            stock_dict[talla_seleccionada] = max(0, disponibles - 1)
+            pago_qr.tallas_stock = json.dumps(stock_dict)
 
     # Verificar si ya existe una inscripción activa
     inscripcion_existente = db.query(models.InscripcionEvento).filter(
@@ -95,6 +124,8 @@ def inscribir_evento(
         inscripcion_existente.estado_inscripcion = estado_final
         inscripcion_existente.codigo_qr = token_qr
         inscripcion_existente.asistio = False
+        inscripcion_existente.id_qr = id_qr
+        inscripcion_existente.talla = talla_seleccionada
         inscripcion_existente.fecha_validacion = _get_utc_now() if estado_final == "CONFIRMADA" else None
         db_inscripcion = inscripcion_existente
     else:
@@ -105,6 +136,8 @@ def inscribir_evento(
             estado_inscripcion=estado_final,
             codigo_qr=token_qr,
             asistio=False,
+            id_qr=id_qr,
+            talla=talla_seleccionada,
             fecha_validacion=_get_utc_now() if estado_final == "CONFIRMADA" else None,
             id_estado=2
         )
@@ -182,6 +215,23 @@ def cancelar_inscripcion_evento(
 
     inscripcion.estado_inscripcion = "CANCELADA"
     inscripcion.id_estado = 0
+
+    # Restituir stock de la talla si correspondía a un paquete con tallas
+    if inscripcion.id_qr and inscripcion.talla:
+        pago_qr = db.query(models.EventoPagoQR).filter(
+            models.EventoPagoQR.id_qr == inscripcion.id_qr,
+            models.EventoPagoQR.id_estado != 0
+        ).first()
+        if pago_qr and pago_qr.tiene_tallas and pago_qr.tallas_stock:
+            try:
+                stock_dict = json.loads(pago_qr.tallas_stock)
+                talla_val = inscripcion.talla.strip()
+                if talla_val in stock_dict:
+                    stock_dict[talla_val] = stock_dict.get(talla_val, 0) + 1
+                    pago_qr.tallas_stock = json.dumps(stock_dict)
+            except Exception:
+                pass
+
     db.commit()
 
     registrar_log(

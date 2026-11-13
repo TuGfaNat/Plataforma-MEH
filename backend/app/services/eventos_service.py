@@ -1418,7 +1418,9 @@ def create_pago_qr(
     ip_address: Optional[str] = None,
     file_extension: Optional[str] = None,
     es_individual: bool = False,
-    descripcion: Optional[str] = None
+    descripcion: Optional[str] = None,
+    tiene_tallas: bool = False,
+    tallas_stock: Optional[str] = None
 ) -> models.EventoPagoQR:
     """Crea un paquete de pago o ítem individual y QR asociado a un evento con validación y anti-duplicado."""
     if admin_user.rol not in ["ADMIN", "ORGANIZADOR", "MODERADOR"]:
@@ -1448,6 +1450,8 @@ def create_pago_qr(
         url_qr=rel_url,
         es_individual=bool(es_individual),
         descripcion=descripcion.strip() if descripcion else None,
+        tiene_tallas=bool(tiene_tallas),
+        tallas_stock=tallas_stock if bool(tiene_tallas) else None,
         id_estado=2
     )
     db.add(nuevo_qr)
@@ -1465,7 +1469,9 @@ def create_pago_qr(
             "nombre_paquete": nombre_limpio, 
             "monto": str(monto),
             "es_individual": bool(es_individual),
-            "descripcion": nuevo_qr.descripcion
+            "descripcion": nuevo_qr.descripcion,
+            "tiene_tallas": nuevo_qr.tiene_tallas,
+            "tallas_stock": nuevo_qr.tallas_stock
         },
         ip_direccion=ip_address
     )
@@ -1481,7 +1487,9 @@ def update_pago_qr(
     file_content: Optional[bytes] = None,
     ip_address: Optional[str] = None,
     es_individual: Optional[bool] = None,
-    descripcion: Optional[str] = None
+    descripcion: Optional[str] = None,
+    tiene_tallas: Optional[bool] = None,
+    tallas_stock: Optional[str] = None
 ) -> models.EventoPagoQR:
     """Actualiza datos y/o imagen de un paquete o ítem individual con anti-duplicado (ADMIN, ORGANIZADOR, MODERADOR)."""
     if admin_user.rol not in ["ADMIN", "ORGANIZADOR", "MODERADOR"]:
@@ -1520,6 +1528,14 @@ def update_pago_qr(
     if descripcion is not None:
         db_qr.descripcion = descripcion.strip() if descripcion.strip() else None
 
+    if tiene_tallas is not None:
+        db_qr.tiene_tallas = bool(tiene_tallas)
+        if not db_qr.tiene_tallas:
+            db_qr.tallas_stock = None
+
+    if tallas_stock is not None:
+        db_qr.tallas_stock = tallas_stock
+
     if file_content is not None and len(file_content) > 0:
         rel_url = _safe_save_qr_file(db_qr.id_evento, file_content)
         db_qr.url_qr = rel_url
@@ -1537,7 +1553,9 @@ def update_pago_qr(
             "nombre_paquete": db_qr.nombre_paquete, 
             "monto": str(db_qr.monto),
             "es_individual": db_qr.es_individual,
-            "descripcion": db_qr.descripcion
+            "descripcion": db_qr.descripcion,
+            "tiene_tallas": db_qr.tiene_tallas,
+            "tallas_stock": db_qr.tallas_stock
         },
         ip_direccion=ip_address
     )
@@ -1592,6 +1610,12 @@ def get_all_existing_pagos_qr(db: Session) -> List[dict]:
         ).order_by(models.Producto.nombre.asc()).all()
 
         for p in productos:
+            stock_tallas_val = p.tallas_stock
+            if not stock_tallas_val and p.tiene_tallas:
+                tallas_list = [t.strip() for t in (p.tallas_disponibles or "S, M, L, XL").split(",") if t.strip()]
+                default_stock = max(1, (p.stock or 40) // max(1, len(tallas_list)))
+                stock_tallas_val = json.dumps({t: default_stock for t in tallas_list})
+
             result.append({
                 "id_item": f"prod_{p.id_producto}",
                 "id_referencia": f"prod_{p.id_producto}",
@@ -1606,6 +1630,8 @@ def get_all_existing_pagos_qr(db: Session) -> List[dict]:
                 "es_individual": not bool(p.es_kit_evento),
                 "descripcion": p.descripcion,
                 "tiene_qr": bool(p.qr_url),
+                "tiene_tallas": bool(p.tiene_tallas),
+                "tallas_stock": stock_tallas_val,
                 "imagen_url": p.imagen_url
             })
     except Exception as e:
@@ -1637,6 +1663,8 @@ def get_all_existing_pagos_qr(db: Session) -> List[dict]:
                 "es_individual": bool(qr.es_individual),
                 "descripcion": qr.descripcion,
                 "tiene_qr": bool(qr.url_qr),
+                "tiene_tallas": bool(qr.tiene_tallas),
+                "tallas_stock": qr.tallas_stock,
                 "imagen_url": None
             })
     except Exception as e:
@@ -1680,6 +1708,12 @@ def import_producto_to_event(
         raise ValidacionNegocioError("El producto no cuenta con un código QR en la tienda. Debes subir la imagen del QR para este evento.")
 
     now_utc = _get_utc_now()
+    stock_tallas_val = prod.tallas_stock
+    if not stock_tallas_val and prod.tiene_tallas:
+        tallas_list = [t.strip() for t in (prod.tallas_disponibles or "S, M, L, XL").split(",") if t.strip()]
+        default_stock = max(1, (prod.stock or 40) // max(1, len(tallas_list)))
+        stock_tallas_val = json.dumps({t: default_stock for t in tallas_list})
+
     nuevo_qr = models.EventoPagoQR(
         id_evento=id_evento_destino,
         nombre_paquete=prod.nombre.strip(),
@@ -1687,6 +1721,8 @@ def import_producto_to_event(
         url_qr=url_qr,
         es_individual=not bool(prod.es_kit_evento),
         descripcion=prod.descripcion,
+        tiene_tallas=bool(prod.tiene_tallas),
+        tallas_stock=stock_tallas_val if bool(prod.tiene_tallas) else None,
         creado_por=admin_user.id_usuario,
         fecha_creacion=now_utc,
         id_estado=2
@@ -1745,6 +1781,8 @@ def import_pago_qr_to_event(
         url_qr=origen.url_qr,
         es_individual=bool(origen.es_individual),
         descripcion=origen.descripcion,
+        tiene_tallas=bool(origen.tiene_tallas),
+        tallas_stock=origen.tallas_stock,
         creado_por=admin_user.id_usuario,
         fecha_creacion=now_utc,
         id_estado=2

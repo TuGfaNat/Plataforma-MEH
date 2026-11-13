@@ -11,12 +11,15 @@ const eventoService = {
     return response.data;
   },
 
-  inscribirse: async (idEvento, { idempotency_key } = {}) => {
+  inscribirse: async (idEvento, { idempotency_key, id_qr, talla } = {}) => {
     const config = {};
     if (idempotency_key) {
       config.headers = { 'X-Idempotency-Key': idempotency_key };
     }
-    const response = await api.post(`/inscripciones/eventos/${idEvento}`, {}, config);
+    const payload = {};
+    if (id_qr !== undefined && id_qr !== null) payload.id_qr = id_qr;
+    if (talla) payload.talla = talla;
+    const response = await api.post(`/inscripciones/eventos/${idEvento}`, payload, config);
     return response.data;
   },
 
