@@ -556,7 +556,8 @@ const Comunidad = () => {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <MEHTypography variant="body" style={{ display: 'block', fontWeight: 'bold' }}>{anuncio.titulo}</MEHTypography>
                         <div 
-                          style={{ opacity: 0.8, marginTop: '4px', fontSize: '13px', lineHeight: '1.5', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                          className="meh-rich-content"
+                          style={{ opacity: 0.9, marginTop: '4px', fontSize: '13px', lineHeight: '1.5', whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#f1f5f9' }}
                           dangerouslySetInnerHTML={{ __html: anuncio.contenido }}
                         />
                       </div>

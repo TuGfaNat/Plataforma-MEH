@@ -12,7 +12,8 @@ import {
   QrCode24Regular, PeopleTeam24Regular, Mic24Regular, Link24Regular,
   Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled, ArrowDownload24Regular,
   Megaphone24Regular, DismissCircle24Regular, Share24Regular, Copy24Regular, DocumentTable24Regular,
-  Image24Regular, PersonAdd24Regular, ShoppingBag24Regular, ArrowSplit24Regular
+  Image24Regular, PersonAdd24Regular, ShoppingBag24Regular, ArrowSplit24Regular,
+  Subtract20Regular, Subtract24Regular, Add20Regular, Box24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
@@ -296,6 +297,103 @@ const EventsTab = ({
     file: null, 
     loading: false 
   });
+
+  const [stockPaqueteModal, setStockPaqueteModal] = useState({
+    open: false,
+    paquete: null,
+    tallas_stock: {},
+    nuevaTallaInput: '',
+    saving: false
+  });
+
+  const handleOpenStockPaqueteQr = (pkg) => {
+    let st = {};
+    if (pkg.tallas_stock) {
+      try {
+        st = typeof pkg.tallas_stock === 'object' ? pkg.tallas_stock : JSON.parse(pkg.tallas_stock);
+      } catch {
+        st = {};
+      }
+    }
+    if (Object.keys(st).length === 0) {
+      st = { S: 10, M: 20, L: 15, XL: 5 };
+    }
+    setStockPaqueteModal({
+      open: true,
+      paquete: pkg,
+      tallas_stock: { ...st },
+      nuevaTallaInput: '',
+      saving: false
+    });
+  };
+
+  const adjustTallaPaquete = (talla, delta) => {
+    setStockPaqueteModal(prev => {
+      const current = Number(prev.tallas_stock[talla] || 0);
+      const next = Math.max(0, current + delta);
+      return {
+        ...prev,
+        tallas_stock: { ...prev.tallas_stock, [talla]: next }
+      };
+    });
+  };
+
+  const setTallaPaqueteQty = (talla, val) => {
+    setStockPaqueteModal(prev => {
+      const next = Math.max(0, parseInt(val || '0', 10));
+      return {
+        ...prev,
+        tallas_stock: { ...prev.tallas_stock, [talla]: next }
+      };
+    });
+  };
+
+  const handleAddTallaPaquete = () => {
+    const val = (stockPaqueteModal.nuevaTallaInput || '').trim().toUpperCase();
+    if (!val) return;
+    setStockPaqueteModal(prev => {
+      if (prev.tallas_stock[val] !== undefined) return prev;
+      return {
+        ...prev,
+        tallas_stock: { ...prev.tallas_stock, [val]: 10 },
+        nuevaTallaInput: ''
+      };
+    });
+  };
+
+  const handleDeleteTallaPaquete = (talla) => {
+    setStockPaqueteModal(prev => {
+      const copy = { ...prev.tallas_stock };
+      delete copy[talla];
+      return {
+        ...prev,
+        tallas_stock: copy
+      };
+    });
+  };
+
+  const handleSaveStockPaqueteQr = async () => {
+    if (!stockPaqueteModal.paquete) return;
+    setStockPaqueteModal(prev => ({ ...prev, saving: true }));
+    try {
+      const formData = new FormData();
+      formData.append('tiene_tallas', 'true');
+      formData.append('tallas_stock', JSON.stringify(stockPaqueteModal.tallas_stock));
+      await api.put(`/eventos/pagos-qr/${stockPaqueteModal.paquete.id_qr}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (notify) {
+        notify("Stock de Tallas Actualizado", `Inventario guardado para "${stockPaqueteModal.paquete.nombre_paquete}".`, "success");
+      }
+      setStockPaqueteModal(prev => ({ ...prev, open: false, saving: false }));
+      await fetchPagosQr();
+    } catch (err) {
+      console.error("Error al actualizar tallas del paquete QR:", err);
+      if (notify) notify("Error", "No se pudo actualizar el stock del paquete.", "error");
+      else alert("Error al actualizar el stock del paquete.");
+      setStockPaqueteModal(prev => ({ ...prev, saving: false }));
+    }
+  };
 
   // Modos de creación: exclusivo vs reutilizar existentes
   const [paquetesExistentes, setPaquetesExistentes] = useState([]);
@@ -1146,11 +1244,13 @@ const EventsTab = ({
                   <MEHTypography variant="caption" style={{ fontWeight: 'bold', opacity: 0.75, display: 'block', marginBottom: '4px' }}>
                     📝 Descripción del Evento:
                   </MEHTypography>
-                  <div
-                    className="ql-editor"
-                    style={{ padding: 0, fontSize: '14px', lineHeight: '1.6', opacity: 0.9, color: tokens.colorNeutralForeground1 }}
-                    dangerouslySetInnerHTML={{ __html: currentEvent.descripcion }}
-                  />
+                  <div className="ql-snow" style={{ width: '100%' }}>
+                    <div
+                      className="ql-editor meh-rich-content"
+                      style={{ padding: 0, fontSize: '14px', lineHeight: '1.6', color: '#f1f5f9' }}
+                      dangerouslySetInnerHTML={{ __html: currentEvent.descripcion }}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -1379,7 +1479,11 @@ const EventsTab = ({
                                               const totalStock = tallasEntries.reduce((acc, [, val]) => acc + (Number(val) || 0), 0);
 
                                               return (
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '6px' }}>
+                                                <div 
+                                                  style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '6px', cursor: 'pointer' }}
+                                                  onClick={() => handleOpenStockPaqueteQr(pkg)}
+                                                  title="Clic para gestionar o ajustar stock de tallas"
+                                                >
                                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                                     <span style={{ fontSize: '0.75rem', fontWeight: 'bold', opacity: 0.85 }}>👕 Tallas ({totalStock} tot.):</span>
                                                     {tallasEntries.length === 0 ? (
@@ -1405,7 +1509,18 @@ const EventsTab = ({
                                             })()}
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        {pkg.tiene_tallas && (
+                                          <Button 
+                                            size="small" 
+                                            appearance="outline" 
+                                            icon={<Box24Regular />} 
+                                            onClick={() => handleOpenStockPaqueteQr(pkg)}
+                                            title="Ajustar inventario por tallas (ventas o reservas directas)"
+                                          >
+                                            Ajustar Tallas
+                                          </Button>
+                                        )}
                                         {!pkg.es_individual && (
                                           <Button 
                                             size="small" 
@@ -1759,16 +1874,42 @@ const EventsTab = ({
                                         title={`Eliminar talla ${talla}`}
                                       />
                                     </div>
-                                    <Input 
-                                      type="number" 
-                                      size="small" 
-                                      min="0"
-                                      value={cant} 
-                                      onChange={(e, d) => {
-                                        const num = Math.max(0, parseInt(d.value, 10) || 0);
-                                        setNuevoTallasStock(prev => ({ ...prev, [talla]: num }));
-                                      }}
-                                    />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                      <Button
+                                        size="small"
+                                        appearance="subtle"
+                                        icon={<Subtract20Regular />}
+                                        disabled={Number(cant || 0) <= 0}
+                                        onClick={() => {
+                                          const num = Math.max(0, (Number(cant) || 0) - 1);
+                                          setNuevoTallasStock(prev => ({ ...prev, [talla]: num }));
+                                        }}
+                                        title="Restar 1 (Venta / Reserva)"
+                                        style={{ minWidth: '22px', padding: '0 2px', color: tokens.colorPaletteRedForeground1 }}
+                                      />
+                                      <Input 
+                                        type="number" 
+                                        size="small" 
+                                        min="0"
+                                        style={{ textAlign: 'center' }}
+                                        value={cant} 
+                                        onChange={(e, d) => {
+                                          const num = Math.max(0, parseInt(d.value, 10) || 0);
+                                          setNuevoTallasStock(prev => ({ ...prev, [talla]: num }));
+                                        }}
+                                      />
+                                      <Button
+                                        size="small"
+                                        appearance="subtle"
+                                        icon={<Add20Regular />}
+                                        onClick={() => {
+                                          const num = (Number(cant) || 0) + 1;
+                                          setNuevoTallasStock(prev => ({ ...prev, [talla]: num }));
+                                        }}
+                                        title="Sumar 1 (Ingreso / Devolución)"
+                                        style={{ minWidth: '22px', padding: '0 2px', color: tokens.colorPaletteGreenForeground1 }}
+                                      />
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -2213,19 +2354,51 @@ const EventsTab = ({
                               title={`Eliminar talla ${talla}`}
                             />
                           </div>
-                          <Input 
-                            type="number" 
-                            size="small" 
-                            min="0"
-                            value={cant} 
-                            onChange={(e, d) => {
-                              const num = Math.max(0, parseInt(d.value, 10) || 0);
-                              setEditQrDialog(prev => ({
-                                ...prev,
-                                tallas_stock: { ...prev.tallas_stock, [talla]: num }
-                              }));
-                            }}
-                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                            <Button
+                              size="small"
+                              appearance="subtle"
+                              icon={<Subtract20Regular />}
+                              disabled={Number(cant || 0) <= 0}
+                              onClick={() => {
+                                const num = Math.max(0, (Number(cant) || 0) - 1);
+                                setEditQrDialog(prev => ({
+                                  ...prev,
+                                  tallas_stock: { ...prev.tallas_stock, [talla]: num }
+                                }));
+                              }}
+                              title="Restar 1 (Venta / Reserva)"
+                              style={{ minWidth: '22px', padding: '0 2px', color: tokens.colorPaletteRedForeground1 }}
+                            />
+                            <Input 
+                              type="number" 
+                              size="small" 
+                              min="0"
+                              style={{ textAlign: 'center' }}
+                              value={cant} 
+                              onChange={(e, d) => {
+                                const num = Math.max(0, parseInt(d.value, 10) || 0);
+                                setEditQrDialog(prev => ({
+                                  ...prev,
+                                  tallas_stock: { ...prev.tallas_stock, [talla]: num }
+                                }));
+                              }}
+                            />
+                            <Button
+                              size="small"
+                              appearance="subtle"
+                              icon={<Add20Regular />}
+                              onClick={() => {
+                                const num = (Number(cant) || 0) + 1;
+                                setEditQrDialog(prev => ({
+                                  ...prev,
+                                  tallas_stock: { ...prev.tallas_stock, [talla]: num }
+                                }));
+                              }}
+                              title="Sumar 1 (Ingreso / Devolución)"
+                              style={{ minWidth: '22px', padding: '0 2px', color: tokens.colorPaletteGreenForeground1 }}
+                            />
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -2277,6 +2450,142 @@ const EventsTab = ({
                 disabled={editQrDialog.loading || !editQrDialog.nombre_paquete || !editQrDialog.monto}
               >
                 {editQrDialog.loading ? <Spinner size="tiny" /> : 'Guardar Cambios'}
+              </MEHButton>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+            {/* Modal de Ajuste Rápido de Stock de Tallas para Paquete QR */}
+      <Dialog open={stockPaqueteModal.open} onOpenChange={(e, d) => setStockPaqueteModal(prev => ({ ...prev, open: d.open }))}>
+        <DialogSurface style={{ backgroundColor: tokens.colorNeutralBackground1, maxWidth: '560px', width: '92%', borderRadius: '16px' }}>
+          <DialogBody>
+            <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Box24Regular style={{ color: tokens.colorBrandForeground1 }} />
+              <span>Ajustar Inventario de Tallas</span>
+            </DialogTitle>
+            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '10px' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '15px' }}>{stockPaqueteModal.paquete?.nombre_paquete}</div>
+                  <div style={{ fontSize: '12px', opacity: 0.7 }}>
+                    Bs. {stockPaqueteModal.paquete?.monto} • {stockPaqueteModal.paquete?.es_individual ? 'Ítem Individual' : 'Paquete Completo'}
+                  </div>
+                </div>
+                <Badge size="large" appearance="filled" color="brand">
+                  Total: {Object.values(stockPaqueteModal.tallas_stock || {}).reduce((a, b) => a + (Number(b) || 0), 0)} u.
+                </Badge>
+              </div>
+
+              <div style={{ fontSize: '13px', opacity: 0.85, backgroundColor: 'rgba(255, 255, 255, 0.03)', padding: '10px 12px', borderRadius: '8px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                💡 <b>Ventas y Reservas manuales:</b> Descuenta con <b>[-]</b> las unidades entregadas o reservadas fuera de la web, o suma con <b>[+]</b> nuevos ingresos o devoluciones.
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px' }}>
+                {Object.entries(stockPaqueteModal.tallas_stock || {}).map(([talla, cant]) => {
+                  const num = Number(cant) || 0;
+                  const isAgotado = num <= 0;
+                  return (
+                    <div 
+                      key={talla} 
+                      style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '6px', 
+                        padding: '10px', 
+                        backgroundColor: tokens.colorNeutralBackground2, 
+                        borderRadius: '10px', 
+                        border: `1px solid ${isAgotado ? tokens.colorPaletteRedBorder2 : tokens.colorNeutralBackground3}` 
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 'bold', fontSize: '13px' }}>Talla {talla}</span>
+                        <Badge size="small" appearance="tint" color={isAgotado ? "danger" : (num <= 2 ? "warning" : "success")}>
+                          {isAgotado ? 'Agotado' : `${num} disp.`}
+                        </Badge>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Button
+                          size="small"
+                          appearance="subtle"
+                          icon={<Subtract20Regular />}
+                          disabled={num <= 0}
+                          onClick={() => adjustTallaPaquete(talla, -1)}
+                          title="Restar 1 (Venta / Reserva)"
+                          style={{ minWidth: '28px', padding: '0 2px', color: tokens.colorPaletteRedForeground1 }}
+                        />
+                        <Input
+                          type="number"
+                          min="0"
+                          size="small"
+                          style={{ width: '55px', textAlign: 'center' }}
+                          value={cant !== undefined ? cant.toString() : '0'}
+                          onChange={(e, d) => setTallaPaqueteQty(talla, d.value)}
+                        />
+                        <Button
+                          size="small"
+                          appearance="subtle"
+                          icon={<Add20Regular />}
+                          onClick={() => adjustTallaPaquete(talla, 1)}
+                          title="Sumar 1 (Ingreso / Devolución)"
+                          style={{ minWidth: '28px', padding: '0 2px', color: tokens.colorPaletteGreenForeground1 }}
+                        />
+                        <Button
+                          size="small"
+                          appearance="subtle"
+                          icon={<Delete24Regular style={{ fontSize: '13px' }} />}
+                          onClick={() => handleDeleteTallaPaquete(talla)}
+                          title="Eliminar talla"
+                          style={{ minWidth: '22px', padding: '0 2px', opacity: 0.6 }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <Button 
+                          size="small" 
+                          appearance="subtle" 
+                          style={{ fontSize: '11px', padding: '2px 4px', flex: 1 }}
+                          disabled={num <= 0}
+                          onClick={() => adjustTallaPaquete(talla, -1)}
+                        >
+                          -1 Venta
+                        </Button>
+                        <Button 
+                          size="small" 
+                          appearance="subtle" 
+                          style={{ fontSize: '11px', padding: '2px 4px', flex: 1 }}
+                          onClick={() => adjustTallaPaquete(talla, 1)}
+                        >
+                          +1 Stock
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Agregar nueva talla */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                <Input
+                  size="small"
+                  placeholder="Nueva talla (ej: XS, XXL)"
+                  value={stockPaqueteModal.nuevaTallaInput}
+                  onChange={(e, d) => setStockPaqueteModal(prev => ({ ...prev, nuevaTallaInput: d.value }))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTallaPaquete(); } }}
+                  style={{ maxWidth: '180px' }}
+                />
+                <Button size="small" appearance="secondary" icon={<Add20Regular />} onClick={handleAddTallaPaquete}>
+                  Añadir Talla
+                </Button>
+              </div>
+            </DialogContent>
+            <DialogActions style={{ marginTop: '16px' }}>
+              <Button appearance="secondary" onClick={() => setStockPaqueteModal(prev => ({ ...prev, open: false }))} disabled={stockPaqueteModal.saving}>
+                Cancelar
+              </Button>
+              <MEHButton appearance="primary" onClick={handleSaveStockPaqueteQr} disabled={stockPaqueteModal.saving}>
+                {stockPaqueteModal.saving ? <Spinner size="tiny" /> : '💾 Guardar Stock'}
               </MEHButton>
             </DialogActions>
           </DialogBody>

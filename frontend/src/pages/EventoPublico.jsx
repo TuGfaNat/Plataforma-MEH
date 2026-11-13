@@ -757,11 +757,13 @@ const EventoPublico = () => {
                   <MEHTypography variant="h3">Acerca de este evento</MEHTypography>
                   {evento.descripcion ? (
                     hasHtmlTags(evento.descripcion) ? (
-                      <div 
-                        className={`ql-editor ${styles.descriptionText}`}
-                        style={{ padding: 0 }}
-                        dangerouslySetInnerHTML={{ __html: evento.descripcion }}
-                      />
+                      <div className="ql-snow" style={{ width: '100%' }}>
+                        <div 
+                          className={`ql-editor meh-rich-content ${styles.descriptionText}`}
+                          style={{ padding: 0, color: '#f1f5f9' }}
+                          dangerouslySetInnerHTML={{ __html: evento.descripcion }}
+                        />
+                      </div>
                     ) : (
                       <MEHTypography className={styles.descriptionText}>
                         {evento.descripcion}

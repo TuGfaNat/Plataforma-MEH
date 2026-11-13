@@ -432,11 +432,13 @@ const EventsMaster = () => {
                 <MEHTypography variant="caption" style={{ fontWeight: 'bold', opacity: 0.7 }}>Descripción:</MEHTypography>
                 {selectedEventForDetails?.descripcion ? (
                   hasHtmlTags(selectedEventForDetails.descripcion) ? (
-                    <div 
-                      className="ql-editor"
-                      style={{ padding: 0, opacity: 0.9, lineHeight: '1.5', fontSize: '14px', color: tokens.colorNeutralForeground1 }}
-                      dangerouslySetInnerHTML={{ __html: selectedEventForDetails.descripcion }}
-                    />
+                    <div className="ql-snow" style={{ width: '100%' }}>
+                      <div 
+                        className="ql-editor meh-rich-content"
+                        style={{ padding: 0, opacity: 0.95, lineHeight: '1.6', fontSize: '14px', color: '#f1f5f9' }}
+                        dangerouslySetInnerHTML={{ __html: selectedEventForDetails.descripcion }}
+                      />
+                    </div>
                   ) : (
                     <MEHTypography variant="body" style={{ opacity: 0.9, whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
                       {selectedEventForDetails.descripcion}

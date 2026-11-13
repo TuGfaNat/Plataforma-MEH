@@ -116,9 +116,12 @@ body, html {
   }
 }
 
-/* Integración y normalización de tema oscuro para editores ReactQuill */
-.ql-snow .ql-editor {
-  color: #f1f5f9;
+/* Integración y normalización de tema oscuro para editores ReactQuill y vistas previas de contenido enriquecido */
+.ql-snow .ql-editor,
+.ql-editor,
+.meh-rich-content,
+.meh-content-preview {
+  color: #f1f5f9 !important;
 }
 
 .ql-snow .ql-editor p,
@@ -126,23 +129,105 @@ body, html {
 .ql-snow .ql-editor li,
 .ql-snow .ql-editor strong,
 .ql-snow .ql-editor em,
+.ql-snow .ql-editor b,
+.ql-snow .ql-editor i,
+.ql-snow .ql-editor u,
+.ql-snow .ql-editor s,
 .ql-snow .ql-editor h1,
 .ql-snow .ql-editor h2,
 .ql-snow .ql-editor h3,
 .ql-snow .ql-editor h4,
 .ql-snow .ql-editor h5,
-.ql-snow .ql-editor h6 {
+.ql-snow .ql-editor h6,
+.ql-snow .ql-editor font,
+.ql-snow .ql-editor div,
+.ql-editor p,
+.ql-editor span,
+.ql-editor li,
+.ql-editor strong,
+.ql-editor em,
+.ql-editor b,
+.ql-editor i,
+.ql-editor u,
+.ql-editor s,
+.ql-editor h1,
+.ql-editor h2,
+.ql-editor h3,
+.ql-editor h4,
+.ql-editor h5,
+.ql-editor h6,
+.ql-editor font,
+.ql-editor div,
+.meh-rich-content p,
+.meh-rich-content span,
+.meh-rich-content li,
+.meh-rich-content strong,
+.meh-rich-content em,
+.meh-rich-content b,
+.meh-rich-content i,
+.meh-rich-content u,
+.meh-rich-content s,
+.meh-rich-content h1,
+.meh-rich-content h2,
+.meh-rich-content h3,
+.meh-rich-content h4,
+.meh-rich-content h5,
+.meh-rich-content h6,
+.meh-rich-content font,
+.meh-rich-content div,
+.meh-content-preview p,
+.meh-content-preview span,
+.meh-content-preview li,
+.meh-content-preview strong,
+.meh-content-preview em,
+.meh-content-preview b,
+.meh-content-preview i,
+.meh-content-preview u,
+.meh-content-preview s,
+.meh-content-preview h1,
+.meh-content-preview h2,
+.meh-content-preview h3,
+.meh-content-preview h4,
+.meh-content-preview h5,
+.meh-content-preview h6,
+.meh-content-preview font,
+.meh-content-preview div {
   color: inherit !important;
   background-color: transparent !important;
 }
 
-.ql-snow .ql-editor a,
-.ql-snow .ql-editor a * {
-  color: #a78bfa !important;
-  text-decoration: underline;
+.ql-snow .ql-editor pre,
+.ql-snow .ql-editor pre *,
+.ql-editor pre,
+.ql-editor pre *,
+.meh-rich-content pre,
+.meh-rich-content pre * {
+  background-color: #1a1a24 !important;
+  color: #f8f8f2 !important;
+  border-radius: 6px;
 }
 
-.ql-snow .ql-editor.ql-blank::before {
+.ql-snow .ql-editor blockquote,
+.ql-editor blockquote,
+.meh-rich-content blockquote {
+  border-left: 4px solid #a78bfa !important;
+  padding-left: 12px !important;
+  color: #cbd5e1 !important;
+  margin: 8px 0 !important;
+}
+
+.ql-snow .ql-editor a,
+.ql-snow .ql-editor a *,
+.ql-editor a,
+.ql-editor a *,
+.meh-rich-content a,
+.meh-rich-content a * {
+  color: #a78bfa !important;
+  text-decoration: underline !important;
+}
+
+.ql-snow .ql-editor.ql-blank::before,
+.ql-editor.ql-blank::before {
   color: rgba(255, 255, 255, 0.45) !important;
   font-style: normal;
 }

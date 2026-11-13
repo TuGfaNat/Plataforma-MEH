@@ -1,16 +1,18 @@
 import React from 'react';
 import { 
   Table, TableBody, TableRow, TableCell, Badge, Spinner, Field, Input, tokens, makeStyles, shorthands, 
-  Avatar, Button, Tooltip, Textarea, Switch
+  Avatar, Button, Tooltip, Textarea, Switch,
+  Dialog, DialogSurface, DialogBody, DialogTitle, DialogContent, DialogActions
 } from '@fluentui/react-components';
 import { useTranslation } from 'react-i18next';
 import { 
   Add24Regular, ArrowUpload24Regular, Edit20Regular, Delete20Regular, 
   Box24Filled, Money20Regular, Info20Regular, Search24Regular, Link20Regular, Open20Regular,
-  Receipt24Regular, Dismiss24Regular
+  Receipt24Regular, Dismiss24Regular, Subtract20Regular, Subtract24Regular, Add20Regular, Box24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import adminService from '../../services/adminService';
+import { resolveApiFileUrl } from '../../services/api';
 import VentaSouvenirModal from '../../components/VentaSouvenirModal';
 import HistorialVentasSouvenirsModal from '../../components/HistorialVentasSouvenirsModal';
 import { useNotify } from '../../App';
@@ -129,7 +131,7 @@ const useStyles = makeStyles({
   }
 });
 
-const renderTallasStockBadges = (item) => {
+const renderTallasStockBadges = (item, onOpenStock) => {
   if (!item.tiene_tallas) return null;
   let st = {};
   if (item.tallas_stock) {
@@ -142,13 +144,34 @@ const renderTallasStockBadges = (item) => {
   const entries = Object.entries(st);
   if (entries.length === 0) {
     return (
-      <Badge appearance="tint" color="informative" size="small">
+      <Badge 
+        appearance="tint" 
+        color="informative" 
+        size="small"
+        style={{ cursor: onOpenStock ? 'pointer' : 'default' }}
+        onClick={(e) => {
+          if (onOpenStock) {
+            e.stopPropagation();
+            onOpenStock(item);
+          }
+        }}
+        title="Clic para gestionar stock de tallas"
+      >
         Tallas: {item.tallas_disponibles || 'S, M, L, XL'}
       </Badge>
     );
   }
   return (
-    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
+    <div 
+      style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '2px', cursor: onOpenStock ? 'pointer' : 'default' }}
+      onClick={(e) => {
+        if (onOpenStock) {
+          e.stopPropagation();
+          onOpenStock(item);
+        }
+      }}
+      title="Clic para gestionar o ajustar stock de tallas"
+    >
       {entries.map(([talla, cant]) => {
         const c = Number(cant) || 0;
         return (
@@ -178,6 +201,123 @@ const SouvenirsTab = ({
   const [isHistorialModalOpen, setIsHistorialModalOpen] = React.useState(false);
   const { notify } = useNotify();
   const [updatingId, setUpdatingId] = React.useState(null);
+  const [stockModal, setStockModal] = React.useState({
+    open: false,
+    producto: null,
+    tallas_stock: {},
+    stock: 0,
+    tiene_tallas: false,
+    nuevaTallaInput: '',
+    saving: false
+  });
+
+  const handleOpenStockModal = (item) => {
+    let ts = {};
+    if (item.tallas_stock) {
+      try {
+        ts = typeof item.tallas_stock === 'object' ? item.tallas_stock : JSON.parse(item.tallas_stock);
+      } catch {
+        ts = {};
+      }
+    }
+    if (item.tiene_tallas && Object.keys(ts).length === 0) {
+      const arr = (item.tallas_disponibles || 'S, M, L, XL').split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+      arr.forEach(t => { ts[t] = 5; });
+    }
+
+    setStockModal({
+      open: true,
+      producto: item,
+      tallas_stock: { ...ts },
+      stock: item.stock || 0,
+      tiene_tallas: Boolean(item.tiene_tallas),
+      nuevaTallaInput: '',
+      saving: false
+    });
+  };
+
+  const adjustTalla = (talla, delta) => {
+    setStockModal(prev => {
+      const current = Number(prev.tallas_stock[talla] || 0);
+      const next = Math.max(0, current + delta);
+      const updated = { ...prev.tallas_stock, [talla]: next };
+      const total = Object.values(updated).reduce((a, b) => a + Number(b || 0), 0);
+      return {
+        ...prev,
+        tallas_stock: updated,
+        stock: total
+      };
+    });
+  };
+
+  const setTallaQty = (talla, val) => {
+    setStockModal(prev => {
+      const next = Math.max(0, parseInt(val || '0', 10));
+      const updated = { ...prev.tallas_stock, [talla]: next };
+      const total = Object.values(updated).reduce((a, b) => a + Number(b || 0), 0);
+      return {
+        ...prev,
+        tallas_stock: updated,
+        stock: total
+      };
+    });
+  };
+
+  const handleAddTallaInModal = () => {
+    const val = stockModal.nuevaTallaInput.trim().toUpperCase();
+    if (!val) return;
+    setStockModal(prev => {
+      if (prev.tallas_stock[val] !== undefined) return prev;
+      const updated = { ...prev.tallas_stock, [val]: 5 };
+      const total = Object.values(updated).reduce((a, b) => a + Number(b || 0), 0);
+      return {
+        ...prev,
+        tallas_stock: updated,
+        stock: total,
+        nuevaTallaInput: ''
+      };
+    });
+  };
+
+  const handleDeleteTallaInModal = (talla) => {
+    setStockModal(prev => {
+      const updated = { ...prev.tallas_stock };
+      delete updated[talla];
+      const total = Object.values(updated).reduce((a, b) => a + Number(b || 0), 0);
+      return {
+        ...prev,
+        tallas_stock: updated,
+        stock: total
+      };
+    });
+  };
+
+  const handleSaveStockModal = async () => {
+    if (!stockModal.producto) return;
+    setStockModal(prev => ({ ...prev, saving: true }));
+    try {
+      const payload = {
+        stock: stockModal.stock
+      };
+      if (stockModal.tiene_tallas) {
+        payload.tiene_tallas = true;
+        payload.tallas_stock = stockModal.tallas_stock;
+        payload.tallas_disponibles = Object.keys(stockModal.tallas_stock).join(', ');
+      }
+      await adminService.updateSouvenir(stockModal.producto.id_producto, payload);
+      notify(
+        "Stock Actualizado",
+        `Se guardó el nuevo inventario para "${stockModal.producto.nombre}" (${stockModal.stock} unidades en total).`,
+        "success"
+      );
+      setStockModal(prev => ({ ...prev, open: false, saving: false }));
+      if (fetchData) await fetchData();
+    } catch (err) {
+      console.error("Error al actualizar stock:", err);
+      notify("Error", "No se pudo actualizar el inventario.", "error");
+      setStockModal(prev => ({ ...prev, saving: false }));
+    }
+  };
 
   const handleAddTalla = () => {
     const val = nuevaTallaInput.trim().toUpperCase();
@@ -412,11 +552,30 @@ const SouvenirsTab = ({
                       <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{talla}</span>
                       <span style={{ fontSize: '10px', opacity: 0.6 }}>{Number(cant) <= 0 ? 'Agotado' : 'Disp.'}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <Button
+                        size="small"
+                        appearance="subtle"
+                        icon={<Subtract20Regular />}
+                        disabled={Number(cant || 0) <= 0}
+                        onClick={() => {
+                          const val = Math.max(0, (Number(cant) || 0) - 1);
+                          const updated = { ...(newSouvenir.tallas_stock || {}), [talla]: val };
+                          const sumStock = Object.values(updated).reduce((a, b) => a + Number(b || 0), 0);
+                          setNewSouvenir({
+                            ...newSouvenir,
+                            tallas_stock: updated,
+                            stock: sumStock,
+                            tallas_disponibles: Object.keys(updated).join(', ')
+                          });
+                        }}
+                        title="Restar 1 (Venta / Reserva)"
+                        style={{ minWidth: '22px', padding: '0 2px', color: tokens.colorPaletteRedForeground1 }}
+                      />
                       <Input
                         type="number"
                         min="0"
-                        style={{ width: '65px' }}
+                        style={{ width: '50px', textAlign: 'center' }}
                         size="small"
                         value={cant !== undefined ? cant.toString() : '0'}
                         onChange={(e, data) => {
@@ -434,8 +593,26 @@ const SouvenirsTab = ({
                       <Button
                         size="small"
                         appearance="subtle"
+                        icon={<Add20Regular />}
+                        onClick={() => {
+                          const val = (Number(cant) || 0) + 1;
+                          const updated = { ...(newSouvenir.tallas_stock || {}), [talla]: val };
+                          const sumStock = Object.values(updated).reduce((a, b) => a + Number(b || 0), 0);
+                          setNewSouvenir({
+                            ...newSouvenir,
+                            tallas_stock: updated,
+                            stock: sumStock,
+                            tallas_disponibles: Object.keys(updated).join(', ')
+                          });
+                        }}
+                        title="Sumar 1 (Ingreso / Devolución)"
+                        style={{ minWidth: '22px', padding: '0 2px', color: tokens.colorPaletteGreenForeground1 }}
+                      />
+                      <Button
+                        size="small"
+                        appearance="subtle"
                         icon={<Dismiss24Regular />}
-                        style={{ minWidth: '24px', padding: '0 4px', color: tokens.colorPaletteRedForeground1 }}
+                        style={{ minWidth: '22px', padding: '0 2px', color: tokens.colorPaletteRedForeground1 }}
                         title="Eliminar talla"
                         onClick={() => {
                           const updated = { ...(newSouvenir.tallas_stock || {}) };
@@ -597,7 +774,7 @@ const SouvenirsTab = ({
                           <Badge color={(i.id_estado === 1 || i.activo === false) ? 'warning' : 'success'} appearance="filled">
                             {(i.id_estado === 1 || i.activo === false) ? 'INACTIVO' : 'ACTIVO'}
                           </Badge>
-                          {renderTallasStockBadges(i)}
+                          {renderTallasStockBadges(i, handleOpenStockModal)}
                         </div>
                         <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
                           {i.descripcion || t("admin_no_description")}
@@ -617,6 +794,14 @@ const SouvenirsTab = ({
                   </TableCell>
                   <TableCell>
                     <div className={styles.actionsCell}>
+                      <Tooltip content="Ajustar inventario por tallas (ventas, reservas, devoluciones)" relationship="label">
+                        <Button 
+                          appearance="subtle" 
+                          icon={<Box24Regular />} 
+                          onClick={() => handleOpenStockModal(i)}
+                          style={{ color: tokens.colorBrandForeground1 }}
+                        />
+                      </Tooltip>
                       <Tooltip content={(i.id_estado === 1 || i.activo === false) ? "Activar (mostrar en catálogo)" : "Desactivar (ocultar del catálogo)"} relationship="label">
                         <Switch 
                           checked={i.id_estado !== 1 && i.activo !== false} 
@@ -716,7 +901,7 @@ const SouvenirsTab = ({
                     <Badge color={(i.id_estado === 1 || i.activo === false) ? 'warning' : 'success'} appearance="filled" size="small">
                       {(i.id_estado === 1 || i.activo === false) ? 'INACTIVO' : 'ACTIVO'}
                     </Badge>
-                    {renderTallasStockBadges(i)}
+                    {renderTallasStockBadges(i, handleOpenStockModal)}
                   </div>
                   <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {i.descripcion || t("admin_no_description")}
@@ -735,6 +920,15 @@ const SouvenirsTab = ({
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Tooltip content="Ajustar Stock / Tallas" relationship="label">
+                    <Button 
+                      size="small"
+                      appearance="subtle" 
+                      icon={<Box24Regular />} 
+                      style={{ color: tokens.colorBrandForeground1 }}
+                      onClick={() => handleOpenStockModal(i)}
+                    />
+                  </Tooltip>
                   <Tooltip content={(i.id_estado === 1 || i.activo === false) ? "Activar (mostrar en catálogo)" : "Desactivar (ocultar del catálogo)"} relationship="label">
                     <Switch 
                       checked={i.id_estado !== 1 && i.activo !== false} 
@@ -779,6 +973,190 @@ const SouvenirsTab = ({
           ))
         )}
       </div>
+
+      {/* Modal de Ajuste Rápido de Stock y Tallas (Ventas / Reservas manuales) */}
+      <Dialog open={stockModal.open} onOpenChange={(e, d) => setStockModal(prev => ({ ...prev, open: d.open }))}>
+        <DialogSurface style={{ backgroundColor: tokens.colorNeutralBackground1, maxWidth: '580px', width: '92%', borderRadius: '16px' }}>
+          <DialogBody>
+            <DialogTitle style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Box24Regular style={{ color: tokens.colorBrandForeground1 }} />
+                <span>Ajustar Stock / Tallas</span>
+              </div>
+            </DialogTitle>
+            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '10px' }}>
+                <Avatar 
+                  name={stockModal.producto?.nombre} 
+                  image={stockModal.producto?.imagen_url ? { src: resolveApiFileUrl(stockModal.producto.imagen_url) } : undefined} 
+                  size={44} 
+                  shape="rounded"
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '15px' }}>{stockModal.producto?.nombre}</div>
+                  <div style={{ fontSize: '12px', opacity: 0.7 }}>
+                    Bs. {stockModal.producto?.precio} • {stockModal.tiene_tallas ? 'Control por Tallas Activo' : 'Producto sin Tallas'}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <Badge size="large" appearance="filled" color={stockModal.stock > 0 ? "brand" : "danger"}>
+                    {stockModal.stock} tot.
+                  </Badge>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '13px', opacity: 0.85, backgroundColor: 'rgba(255, 255, 255, 0.03)', padding: '10px 12px', borderRadius: '8px', border: `1px solid ${tokens.colorNeutralBackground3}` }}>
+                💡 <b>Ventas y Reservas manuales:</b> Usa <b>[-]</b> para descontar prendas reservadas o vendidas en efectivo/fuera de la plataforma, y <b>[+]</b> para sumar ingresos o devoluciones. También puedes escribir la cantidad directamente.
+              </div>
+
+              {stockModal.tiene_tallas ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px' }}>
+                    {Object.entries(stockModal.tallas_stock || {}).map(([talla, cant]) => {
+                      const num = Number(cant) || 0;
+                      const isAgotado = num <= 0;
+                      return (
+                        <div 
+                          key={talla} 
+                          style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            gap: '8px', 
+                            padding: '10px', 
+                            backgroundColor: tokens.colorNeutralBackground2, 
+                            borderRadius: '10px', 
+                            border: `1px solid ${isAgotado ? tokens.colorPaletteRedBorder2 : tokens.colorNeutralBackground3}` 
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 'bold', fontSize: '14px' }}>Talla {talla}</span>
+                            <Badge 
+                              size="small" 
+                              appearance="tint" 
+                              color={isAgotado ? "danger" : (num <= 2 ? "warning" : "success")}
+                            >
+                              {isAgotado ? 'Agotado' : `${num} disp.`}
+                            </Badge>
+                          </div>
+
+                          {/* Controles de incremento / decremento y entrada numérica */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Button
+                              size="small"
+                              appearance="subtle"
+                              icon={<Subtract20Regular />}
+                              disabled={num <= 0}
+                              onClick={() => adjustTalla(talla, -1)}
+                              title="Restar 1 (Venta / Reserva)"
+                              style={{ minWidth: '30px', padding: '0 4px', color: tokens.colorPaletteRedForeground1 }}
+                            />
+                            <Input
+                              type="number"
+                              min="0"
+                              size="small"
+                              style={{ width: '60px', textAlign: 'center' }}
+                              value={cant !== undefined ? cant.toString() : '0'}
+                              onChange={(e, d) => setTallaQty(talla, d.value)}
+                            />
+                            <Button
+                              size="small"
+                              appearance="subtle"
+                              icon={<Add20Regular />}
+                              onClick={() => adjustTalla(talla, 1)}
+                              title="Sumar 1 (Ingreso / Devolución)"
+                              style={{ minWidth: '30px', padding: '0 4px', color: tokens.colorPaletteGreenForeground1 }}
+                            />
+                            <Button
+                              size="small"
+                              appearance="subtle"
+                              icon={<Dismiss24Regular style={{ fontSize: '14px' }} />}
+                              onClick={() => handleDeleteTallaInModal(talla)}
+                              title="Quitar talla"
+                              style={{ minWidth: '24px', padding: '0 2px', opacity: 0.6 }}
+                            />
+                          </div>
+
+                          {/* Atajos rápidos de 1 clic */}
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <Button 
+                              size="small" 
+                              appearance="subtle" 
+                              style={{ fontSize: '11px', padding: '2px 4px', flex: 1 }}
+                              disabled={num <= 0}
+                              onClick={() => adjustTalla(talla, -1)}
+                            >
+                              -1 Venta
+                            </Button>
+                            <Button 
+                              size="small" 
+                              appearance="subtle" 
+                              style={{ fontSize: '11px', padding: '2px 4px', flex: 1 }}
+                              onClick={() => adjustTalla(talla, 1)}
+                            >
+                              +1 Stock
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Añadir nueva talla si hace falta */}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
+                    <Input
+                      size="small"
+                      placeholder="Nueva talla (ej: XS, XXL)"
+                      value={stockModal.nuevaTallaInput}
+                      onChange={(e, d) => setStockModal(prev => ({ ...prev, nuevaTallaInput: d.value }))}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTallaInModal(); } }}
+                      style={{ maxWidth: '180px' }}
+                    />
+                    <Button size="small" appearance="secondary" icon={<Add20Regular />} onClick={handleAddTallaInModal}>
+                      Añadir Talla
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* Producto sin tallas: ajuste de stock general */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '14px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '10px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 'bold' }}>Unidades disponibles en inventario:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Button 
+                      icon={<Subtract24Regular />} 
+                      disabled={stockModal.stock <= 0}
+                      onClick={() => setStockModal(prev => ({ ...prev, stock: Math.max(0, prev.stock - 1) }))}
+                    >
+                      -1 Venta / Reserva
+                    </Button>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={stockModal.stock.toString()}
+                      onChange={(e, d) => setStockModal(prev => ({ ...prev, stock: Math.max(0, parseInt(d.value || '0', 10)) }))}
+                      style={{ width: '80px', textAlign: 'center' }}
+                    />
+                    <Button 
+                      icon={<Add24Regular />} 
+                      onClick={() => setStockModal(prev => ({ ...prev, stock: prev.stock + 1 }))}
+                    >
+                      +1 Ingreso
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+            <DialogActions style={{ marginTop: '16px' }}>
+              <Button appearance="secondary" onClick={() => setStockModal(prev => ({ ...prev, open: false }))} disabled={stockModal.saving}>
+                Cancelar
+              </Button>
+              <MEHButton appearance="primary" onClick={handleSaveStockModal} disabled={stockModal.saving}>
+                {stockModal.saving ? <Spinner size="tiny" /> : '💾 Guardar Stock'}
+              </MEHButton>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
       <VentaSouvenirModal
         open={isVentaModalOpen}
         onClose={() => setIsVentaModalOpen(false)}

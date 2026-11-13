@@ -934,7 +934,8 @@ const Dashboard = () => {
                   />
                 )}
                 <div 
-                  style={{ lineHeight: '1.6', opacity: 0.9, fontSize: '14px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                  className="meh-rich-content"
+                  style={{ lineHeight: '1.6', opacity: 0.9, fontSize: '14px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#f1f5f9' }}
                   dangerouslySetInnerHTML={{ __html: selectedAnnouncement?.contenido || '' }}
                 />
                 
