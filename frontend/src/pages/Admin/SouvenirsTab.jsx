@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   Add24Regular, ArrowUpload24Regular, Edit20Regular, Delete20Regular, 
   Box24Filled, Money20Regular, Info20Regular, Search24Regular, Link20Regular, Open20Regular,
-  Receipt24Regular
+  Receipt24Regular, Dismiss24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import adminService from '../../services/adminService';
@@ -129,6 +129,43 @@ const useStyles = makeStyles({
   }
 });
 
+const renderTallasStockBadges = (item) => {
+  if (!item.tiene_tallas) return null;
+  let st = {};
+  if (item.tallas_stock) {
+    try {
+      st = typeof item.tallas_stock === 'object' ? item.tallas_stock : JSON.parse(item.tallas_stock);
+    } catch {
+      st = {};
+    }
+  }
+  const entries = Object.entries(st);
+  if (entries.length === 0) {
+    return (
+      <Badge appearance="tint" color="informative" size="small">
+        Tallas: {item.tallas_disponibles || 'S, M, L, XL'}
+      </Badge>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
+      {entries.map(([talla, cant]) => {
+        const c = Number(cant) || 0;
+        return (
+          <Badge
+            key={talla}
+            size="small"
+            appearance="tint"
+            color={c <= 0 ? 'danger' : (c <= 2 ? 'warning' : 'brand')}
+          >
+            {talla}: {c <= 0 ? 'Agotado' : `${c} u.`}
+          </Badge>
+        );
+      })}
+    </div>
+  );
+};
+
 const SouvenirsTab = ({ 
   data, newSouvenir, setNewSouvenir, isEditingSouvenir, setIsEditingSouvenir, uploading, 
   handleFileUpload, handleSaveSouvenir, handleEditSouvenir, confirmDelete, fetchData
@@ -136,10 +173,28 @@ const SouvenirsTab = ({
   const styles = useStyles();
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [nuevaTallaInput, setNuevaTallaInput] = React.useState('');
   const [isVentaModalOpen, setIsVentaModalOpen] = React.useState(false);
   const [isHistorialModalOpen, setIsHistorialModalOpen] = React.useState(false);
   const { notify } = useNotify();
   const [updatingId, setUpdatingId] = React.useState(null);
+
+  const handleAddTalla = () => {
+    const val = nuevaTallaInput.trim().toUpperCase();
+    if (!val) return;
+    const current = { ...(newSouvenir.tallas_stock || {}) };
+    if (current[val] === undefined) {
+      current[val] = 5;
+      const sumStock = Object.values(current).reduce((a, b) => a + Number(b || 0), 0);
+      setNewSouvenir({
+        ...newSouvenir,
+        tallas_stock: current,
+        stock: sumStock,
+        tallas_disponibles: Object.keys(current).join(', ')
+      });
+    }
+    setNuevaTallaInput('');
+  };
 
   const handleToggleStatus = async (item, checked) => {
     const newStatus = checked ? 2 : 1;
@@ -305,7 +360,7 @@ const SouvenirsTab = ({
           </Field>
         </div>
 
-        {/* Selector de Tallas para Souvenirs */}
+        {/* Selector de Tallas con Control de Inventario */}
         <div style={{ 
           padding: '14px', 
           backgroundColor: tokens.colorNeutralBackground3, 
@@ -313,61 +368,132 @@ const SouvenirsTab = ({
           border: `1px solid ${tokens.colorNeutralStroke2}`,
           display: 'flex',
           flexDirection: 'column',
-          gap: '10px'
+          gap: '12px'
         }}>
           <Switch 
-            label="¿Este producto requiere talla? (Poleras, buzos, gorras...)"
+            label="¿Este producto tiene control de inventario por tallas? (Poleras, buzos, gorras...)"
             checked={Boolean(newSouvenir.tiene_tallas)} 
-            onChange={(e, d) => setNewSouvenir({
-              ...newSouvenir, 
-              tiene_tallas: d.checked,
-              tallas_disponibles: d.checked ? (newSouvenir.tallas_disponibles || 'S, M, L, XL') : ''
-            })} 
+            onChange={(e, d) => {
+              const defaultStock = { S: 5, M: 10, L: 8, XL: 2 };
+              const currentStock = (newSouvenir.tallas_stock && Object.keys(newSouvenir.tallas_stock).length > 0) 
+                ? newSouvenir.tallas_stock 
+                : defaultStock;
+              const totalStock = d.checked ? Object.values(currentStock).reduce((a, b) => a + Number(b || 0), 0) : newSouvenir.stock;
+              setNewSouvenir({
+                ...newSouvenir, 
+                tiene_tallas: d.checked,
+                tallas_stock: d.checked ? currentStock : null,
+                stock: totalStock,
+                tallas_disponibles: d.checked ? Object.keys(currentStock).join(', ') : ''
+              });
+            }} 
           />
           {Boolean(newSouvenir.tiene_tallas) && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '4px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '4px' }}>
               <MEHTypography variant="caption" style={{ fontWeight: '600' }}>
-                Tallas disponibles (haz clic para alternar o edita el texto):
+                👕 Inventario / Cantidad disponible por cada talla:
               </MEHTypography>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(talla => {
-                  const currentTallas = (newSouvenir.tallas_disponibles || '')
-                    .split(',')
-                    .map(t => t.trim())
-                    .filter(Boolean);
-                  const isSelected = currentTallas.includes(talla);
-                  return (
-                    <Button
-                      key={talla}
-                      size="small"
-                      appearance={isSelected ? "primary" : "outline"}
-                      onClick={() => {
-                        let updated;
-                        if (isSelected) {
-                          updated = currentTallas.filter(t => t !== talla);
-                        } else {
-                          updated = [...currentTallas, talla];
-                        }
-                        setNewSouvenir({
-                          ...newSouvenir,
-                          tallas_disponibles: updated.join(', ')
-                        });
-                      }}
-                      style={{ minWidth: '40px', fontWeight: 'bold' }}
-                    >
-                      {talla}
-                    </Button>
-                  );
-                })}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px' }}>
+                {Object.entries(newSouvenir.tallas_stock || {}).map(([talla, cant]) => (
+                  <div 
+                    key={talla} 
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      padding: '8px 10px', 
+                      backgroundColor: tokens.colorNeutralBackground1, 
+                      borderRadius: '8px', 
+                      border: `1px solid ${Number(cant) <= 0 ? tokens.colorPaletteRedBorder2 : tokens.colorNeutralStroke1}`
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: '40px' }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{talla}</span>
+                      <span style={{ fontSize: '10px', opacity: 0.6 }}>{Number(cant) <= 0 ? 'Agotado' : 'Disp.'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Input
+                        type="number"
+                        min="0"
+                        style={{ width: '65px' }}
+                        size="small"
+                        value={cant !== undefined ? cant.toString() : '0'}
+                        onChange={(e, data) => {
+                          const val = Math.max(0, parseInt(data.value || '0', 10));
+                          const updated = { ...(newSouvenir.tallas_stock || {}), [talla]: val };
+                          const sumStock = Object.values(updated).reduce((a, b) => a + Number(b || 0), 0);
+                          setNewSouvenir({
+                            ...newSouvenir,
+                            tallas_stock: updated,
+                            stock: sumStock,
+                            tallas_disponibles: Object.keys(updated).join(', ')
+                          });
+                        }}
+                      />
+                      <Button
+                        size="small"
+                        appearance="subtle"
+                        icon={<Dismiss24Regular />}
+                        style={{ minWidth: '24px', padding: '0 4px', color: tokens.colorPaletteRedForeground1 }}
+                        title="Eliminar talla"
+                        onClick={() => {
+                          const updated = { ...(newSouvenir.tallas_stock || {}) };
+                          delete updated[talla];
+                          const sumStock = Object.values(updated).reduce((a, b) => a + Number(b || 0), 0);
+                          setNewSouvenir({
+                            ...newSouvenir,
+                            tallas_stock: updated,
+                            stock: sumStock,
+                            tallas_disponibles: Object.keys(updated).join(', ')
+                          });
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
-              <Field label="Texto personalizado de tallas">
-                <Input 
-                  placeholder="Ej: S, M, L, XL o Talla Única" 
-                  value={newSouvenir.tallas_disponibles || ''} 
-                  onChange={(e, d) => setNewSouvenir({...newSouvenir, tallas_disponibles: d.value})}
-                  style={{ width: '100%' }}
+
+              {/* Agregar Talla Personalizada o Botones Rápidos */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginTop: '4px' }}>
+                <Input
+                  size="small"
+                  placeholder="Nueva talla (ej: XS, XXL, 14)"
+                  value={nuevaTallaInput}
+                  onChange={(e, d) => setNuevaTallaInput(d.value)}
+                  style={{ maxWidth: '200px' }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddTalla();
+                    }
+                  }}
                 />
-              </Field>
+                <Button size="small" appearance="outline" onClick={handleAddTalla}>
+                  + Añadir Talla
+                </Button>
+                <Button 
+                  size="small" 
+                  appearance="subtle" 
+                  onClick={() => {
+                    const defaults = { S: 5, M: 10, L: 8, XL: 2 };
+                    const merged = { ...defaults, ...(newSouvenir.tallas_stock || {}) };
+                    const sumStock = Object.values(merged).reduce((a, b) => a + Number(b || 0), 0);
+                    setNewSouvenir({
+                      ...newSouvenir,
+                      tallas_stock: merged,
+                      stock: sumStock,
+                      tallas_disponibles: Object.keys(merged).join(', ')
+                    });
+                  }}
+                >
+                  Cargar S, M, L, XL
+                </Button>
+              </div>
+
+              <div style={{ fontSize: '11px', color: tokens.colorBrandForeground1, marginTop: '2px' }}>
+                💡 El stock total del producto se calcula automáticamente sumando las existencias de cada talla.
+              </div>
             </div>
           )}
         </div>
@@ -394,7 +520,7 @@ const SouvenirsTab = ({
           <Button 
             appearance="subtle" 
             onClick={() => {
-              setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', qr_url: '', categoria: 'SOUVENIR', tiene_tallas: false, tallas_disponibles: 'S, M, L, XL', id_estado: 2 });
+              setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', qr_url: '', categoria: 'SOUVENIR', tiene_tallas: false, tallas_disponibles: 'S, M, L, XL', tallas_stock: { S: 5, M: 10, L: 8, XL: 2 }, id_estado: 2 });
               setIsEditingSouvenir(false);
             }}
           >
@@ -471,11 +597,7 @@ const SouvenirsTab = ({
                           <Badge color={(i.id_estado === 1 || i.activo === false) ? 'warning' : 'success'} appearance="filled">
                             {(i.id_estado === 1 || i.activo === false) ? 'INACTIVO' : 'ACTIVO'}
                           </Badge>
-                          {i.tiene_tallas && (
-                            <Badge appearance="tint" color="informative" size="small">
-                              Tallas: {i.tallas_disponibles || 'S, M, L, XL'}
-                            </Badge>
-                          )}
+                          {renderTallasStockBadges(i)}
                         </div>
                         <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
                           {i.descripcion || t("admin_no_description")}
@@ -594,11 +716,7 @@ const SouvenirsTab = ({
                     <Badge color={(i.id_estado === 1 || i.activo === false) ? 'warning' : 'success'} appearance="filled" size="small">
                       {(i.id_estado === 1 || i.activo === false) ? 'INACTIVO' : 'ACTIVO'}
                     </Badge>
-                    {i.tiene_tallas && (
-                      <Badge appearance="tint" color="informative" size="small">
-                        Tallas: {i.tallas_disponibles || 'S, M, L, XL'}
-                      </Badge>
-                    )}
+                    {renderTallasStockBadges(i)}
                   </div>
                   <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {i.descripcion || t("admin_no_description")}

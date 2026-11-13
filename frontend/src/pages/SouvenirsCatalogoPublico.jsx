@@ -323,10 +323,34 @@ const SouvenirsCatalogoPublico = () => {
                         {item.descripcion || 'Edición oficial MEH.'}
                       </MEHTypography>
                       {item.tiene_tallas && (
-                        <div style={{ marginTop: '6px' }}>
-                          <Badge appearance="tint" color="informative" size="small">
-                            Tallas: {item.tallas_disponibles || 'S, M, L, XL'}
-                          </Badge>
+                        <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          {(() => {
+                            let st = {};
+                            if (item.tallas_stock) {
+                              try { st = typeof item.tallas_stock === 'object' ? item.tallas_stock : JSON.parse(item.tallas_stock); } catch { st = {}; }
+                            }
+                            const entries = Object.entries(st);
+                            if (entries.length === 0) {
+                              return (
+                                <Badge appearance="tint" color="informative" size="small">
+                                  Tallas: {item.tallas_disponibles || 'S, M, L, XL'}
+                                </Badge>
+                              );
+                            }
+                            return entries.map(([talla, cant]) => {
+                              const c = Number(cant) || 0;
+                              return (
+                                <Badge
+                                  key={talla}
+                                  size="small"
+                                  appearance="tint"
+                                  color={c <= 0 ? 'danger' : 'brand'}
+                                >
+                                  {talla}: {c <= 0 ? 'Agotado' : `${c}`}
+                                </Badge>
+                              );
+                            });
+                          })()}
                         </div>
                       )}
                     </div>

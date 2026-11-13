@@ -202,7 +202,7 @@ const AdminPanel = () => {
   // Souvenirs & POS
   const [isEditingSouvenir, setIsEditingSouvenir] = useState(false);
   const [currentSouvenirId, setCurrentSouvenirId] = useState(null);
-  const [newSouvenir, setNewSouvenir] = useState({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', qr_url: '', categoria: 'SOUVENIR', tiene_tallas: false, tallas_disponibles: 'S, M, L, XL', id_estado: 2 });
+  const [newSouvenir, setNewSouvenir] = useState({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', qr_url: '', categoria: 'SOUVENIR', tiene_tallas: false, tallas_disponibles: 'S, M, L, XL', tallas_stock: { S: 5, M: 10, L: 8, XL: 2 }, id_estado: 2 });
 
   // Biblioteca
   const [isEditingRecurso, setIsEditingRecurso] = useState(false);
@@ -473,7 +473,10 @@ const AdminPanel = () => {
       try {
           const payload = {
               ...newSouvenir,
-              activo: newSouvenir.id_estado !== 1
+              activo: newSouvenir.id_estado !== 1,
+              tallas_stock: newSouvenir.tiene_tallas && newSouvenir.tallas_stock
+                ? (typeof newSouvenir.tallas_stock === 'string' ? newSouvenir.tallas_stock : JSON.stringify(newSouvenir.tallas_stock))
+                : null
           };
           if (isEditingSouvenir) {
               await adminService.updateSouvenir(currentSouvenirId, payload);
@@ -482,13 +485,31 @@ const AdminPanel = () => {
               await adminService.createSouvenir(payload);
               notify("Éxito", "Producto agregado", "success");
           }
-          setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', qr_url: '', categoria: 'SOUVENIR', tiene_tallas: false, tallas_disponibles: 'S, M, L, XL', id_estado: 2, activo: true });
+          setNewSouvenir({ nombre: '', descripcion: '', precio: 0, stock: 10, imagen_url: '', qr_url: '', categoria: 'SOUVENIR', tiene_tallas: false, tallas_disponibles: 'S, M, L, XL', tallas_stock: { S: 5, M: 10, L: 8, XL: 2 }, id_estado: 2, activo: true });
           setIsEditingSouvenir(false); void fetchData();
       } catch (e) { notify("Error", "Fallo al guardar producto", "error"); }
   };
 
   const handleEditSouvenir = (s) => {
     const isActivo = s.id_estado !== 1 && s.activo !== false;
+    let parsedTallasStock = { S: 5, M: 10, L: 8, XL: 2 };
+    if (s.tallas_stock) {
+      try {
+        parsedTallasStock = typeof s.tallas_stock === 'object' ? s.tallas_stock : JSON.parse(s.tallas_stock);
+      } catch {
+        parsedTallasStock = { S: 5, M: 10, L: 8, XL: 2 };
+      }
+    } else if (s.tallas_disponibles) {
+      const parts = s.tallas_disponibles.split(',').map(t => t.trim()).filter(Boolean);
+      if (parts.length > 0) {
+        parsedTallasStock = {};
+        const avg = Math.floor((s.stock || 10) / parts.length);
+        parts.forEach((p, idx) => {
+          parsedTallasStock[p] = idx === 0 ? (s.stock || 10) - avg * (parts.length - 1) : avg;
+        });
+      }
+    }
+
     setNewSouvenir({ 
         nombre: s.nombre, 
         descripcion: s.descripcion || '', 
@@ -498,6 +519,7 @@ const AdminPanel = () => {
         qr_url: s.qr_url || '',
         tiene_tallas: Boolean(s.tiene_tallas),
         tallas_disponibles: s.tallas_disponibles || 'S, M, L, XL',
+        tallas_stock: parsedTallasStock,
         categoria: s.categoria || 'SOUVENIR',
         id_estado: isActivo ? 2 : 1,
         activo: isActivo

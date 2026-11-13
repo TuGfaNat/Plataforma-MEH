@@ -14,6 +14,7 @@ class ProductoBase(BaseModel):
     qr_url: Optional[str] = None
     tiene_tallas: Optional[bool] = False
     tallas_disponibles: Optional[str] = None
+    tallas_stock: Optional[str] = None
     categoria: str = "SOUVENIR"
     id_estado: Optional[int] = 2
     activo: Optional[bool] = True
@@ -31,6 +32,7 @@ class ProductoUpdate(BaseModel):
     qr_url: Optional[str] = None
     tiene_tallas: Optional[bool] = None
     tallas_disponibles: Optional[str] = None
+    tallas_stock: Optional[str] = None
     categoria: Optional[str] = None
     id_estado: Optional[int] = None
     activo: Optional[bool] = None

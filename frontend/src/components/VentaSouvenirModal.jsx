@@ -216,19 +216,42 @@ const VentaSouvenirModal = ({
   });
 
   const selectedProd = productos.find(p => String(p.id_producto) === String(selectedProductoId));
-  const maxStock = selectedProd ? selectedProd.stock : 0;
+
+  const selectedProdTallasStock = React.useMemo(() => {
+    if (!selectedProd?.tiene_tallas || !selectedProd?.tallas_stock) return null;
+    try {
+      return typeof selectedProd.tallas_stock === 'object' ? selectedProd.tallas_stock : JSON.parse(selectedProd.tallas_stock);
+    } catch {
+      return null;
+    }
+  }, [selectedProd?.tiene_tallas, selectedProd?.tallas_stock]);
+
+  const maxStock = React.useMemo(() => {
+    if (!selectedProd) return 0;
+    if (selectedProd.tiene_tallas && selectedProdTallasStock && selectedTalla) {
+      return Number(selectedProdTallasStock[selectedTalla] ?? 0);
+    }
+    return selectedProd.stock || 0;
+  }, [selectedProd, selectedProdTallasStock, selectedTalla]);
+
   const precioUnitario = selectedProd ? Number(selectedProd.precio || 0) : 0;
   const total = (precioUnitario * Number(cantidad || 0)).toFixed(2);
 
   useEffect(() => {
     if (selectedProd?.tiene_tallas) {
-      const tallasStr = selectedProd.tallas_disponibles || 'S, M, L, XL';
-      const list = tallasStr.split(',').map(s => s.trim()).filter(Boolean);
-      setSelectedTalla(prev => (list.includes(prev) ? prev : (list[0] || '')));
+      if (selectedProdTallasStock && Object.keys(selectedProdTallasStock).length > 0) {
+        const entries = Object.entries(selectedProdTallasStock);
+        const firstAvailable = entries.find(([_, cant]) => Number(cant) > 0);
+        setSelectedTalla(prev => (prev && selectedProdTallasStock[prev] !== undefined ? prev : (firstAvailable ? firstAvailable[0] : entries[0][0])));
+      } else {
+        const tallasStr = selectedProd.tallas_disponibles || 'S, M, L, XL';
+        const list = tallasStr.split(',').map(s => s.trim()).filter(Boolean);
+        setSelectedTalla(prev => (list.includes(prev) ? prev : (list[0] || '')));
+      }
     } else {
       setSelectedTalla('');
     }
-  }, [selectedProductoId, productos]);
+  }, [selectedProductoId, productos, selectedProdTallasStock]);
 
   const handleSubmit = async () => {
     const userId = selectedUser?.id_usuario;
@@ -475,21 +498,33 @@ const VentaSouvenirModal = ({
             {selectedProd?.tiene_tallas && (
               <Field label="Talla del Souvenir / Prenda:" required>
                 <Select value={selectedTalla} onChange={(e, d) => setSelectedTalla(d.value)}>
-                  {(selectedProd.tallas_disponibles || 'S, M, L, XL')
-                    .split(',')
-                    .map(t => t.trim())
-                    .filter(Boolean)
-                    .map(talla => (
-                      <option key={talla} value={talla}>
-                        Talla {talla}
-                      </option>
-                    ))}
+                  {selectedProdTallasStock ? (
+                    Object.entries(selectedProdTallasStock).map(([talla, cant]) => {
+                      const countNum = Number(cant) || 0;
+                      const agotado = countNum <= 0;
+                      return (
+                        <option key={talla} value={talla} disabled={agotado}>
+                          Talla {talla} {agotado ? '(Agotado)' : `(${countNum} disponibles)`}
+                        </option>
+                      );
+                    })
+                  ) : (
+                    (selectedProd.tallas_disponibles || 'S, M, L, XL')
+                      .split(',')
+                      .map(t => t.trim())
+                      .filter(Boolean)
+                      .map(talla => (
+                        <option key={talla} value={talla}>
+                          Talla {talla}
+                        </option>
+                      ))
+                  )}
                 </Select>
               </Field>
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <Field label="Cantidad a Comprar:" required>
+              <Field label={`Cantidad a Comprar${maxStock ? ` (Máx: ${maxStock})` : ''}:`} required>
                 <Input
                   type="number"
                   min={1}

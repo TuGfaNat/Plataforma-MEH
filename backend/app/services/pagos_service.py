@@ -317,8 +317,30 @@ def validar_pago(
 
     if pago_update.estado_pago == "APROBADO" and db_pago.tipo_referencia == "SOUVENIR":
         prod = db.query(models.Producto).filter(models.Producto.id_producto == db_pago.id_referencia).first()
-        if prod and prod.stock > 0:
-            prod.stock -= 1
+        talla_detectada = None
+        if db_pago.notas_admin and "(Talla: " in db_pago.notas_admin:
+            try:
+                talla_detectada = db_pago.notas_admin.split("(Talla: ")[1].split(")")[0].strip()
+            except Exception:
+                pass
+
+        if prod:
+            if prod.tiene_tallas and talla_detectada and prod.tallas_stock:
+                try:
+                    import json
+                    stock_dict = json.loads(prod.tallas_stock)
+                    if talla_detectada in stock_dict:
+                        stock_dict[talla_detectada] = max(0, stock_dict.get(talla_detectada, 0) - 1)
+                        prod.tallas_stock = json.dumps(stock_dict)
+                        prod.stock = max(0, sum(int(v) for v in stock_dict.values()))
+                    elif prod.stock > 0:
+                        prod.stock -= 1
+                except Exception:
+                    if prod.stock > 0:
+                        prod.stock -= 1
+            elif prod.stock > 0:
+                prod.stock -= 1
+
         pedido_existente = db.query(models.Pedido).filter(models.Pedido.id_pago == db_pago.id_pago).first()
         if not pedido_existente:
             nuevo_pedido = models.Pedido(
@@ -335,7 +357,8 @@ def validar_pago(
                     id_pedido=nuevo_pedido.id_pedido,
                     id_producto=prod.id_producto,
                     cantidad=1,
-                    precio_unitario=prod.precio
+                    precio_unitario=prod.precio,
+                    talla=talla_detectada
                 ))
 
     db.commit()
@@ -448,6 +471,30 @@ def reembolsar_pago(
                             pago_qr.tallas_stock = json.dumps(stock_dict)
                     except Exception:
                         pass
+
+    if db_pago.tipo_referencia == "SOUVENIR":
+        prod = db.query(models.Producto).filter(models.Producto.id_producto == db_pago.id_referencia).first()
+        talla_detectada = None
+        if db_pago.notas_admin and "(Talla: " in db_pago.notas_admin:
+            try:
+                talla_detectada = db_pago.notas_admin.split("(Talla: ")[1].split(")")[0].strip()
+            except Exception:
+                pass
+        if prod:
+            if prod.tiene_tallas and talla_detectada and prod.tallas_stock:
+                try:
+                    import json
+                    stock_dict = json.loads(prod.tallas_stock)
+                    if talla_detectada in stock_dict:
+                        stock_dict[talla_detectada] = stock_dict.get(talla_detectada, 0) + 1
+                        prod.tallas_stock = json.dumps(stock_dict)
+                        prod.stock = max(0, sum(int(v) for v in stock_dict.values()))
+                    else:
+                        prod.stock += 1
+                except Exception:
+                    prod.stock += 1
+            else:
+                prod.stock += 1
 
     db.commit()
     db.refresh(db_pago)

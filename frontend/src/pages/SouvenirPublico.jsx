@@ -282,9 +282,23 @@ const SouvenirPublico = () => {
           setProducto(prod);
           setCantidad(1);
           if (prod.tiene_tallas) {
-            const tallasStr = prod.tallas_disponibles || 'S, M, L, XL';
-            const list = tallasStr.split(',').map(s => s.trim()).filter(Boolean);
-            if (list.length > 0) setSelectedTalla(list[0]);
+            let stockObj = {};
+            if (prod.tallas_stock) {
+              try {
+                stockObj = typeof prod.tallas_stock === 'object' ? prod.tallas_stock : JSON.parse(prod.tallas_stock);
+              } catch {
+                stockObj = {};
+              }
+            }
+            const tallasEntries = Object.entries(stockObj);
+            if (tallasEntries.length > 0) {
+              const firstAvail = tallasEntries.find(([_, cant]) => Number(cant) > 0);
+              setSelectedTalla(firstAvail ? firstAvail[0] : tallasEntries[0][0]);
+            } else {
+              const tallasStr = prod.tallas_disponibles || 'S, M, L, XL';
+              const list = tallasStr.split(',').map(s => s.trim()).filter(Boolean);
+              if (list.length > 0) setSelectedTalla(list[0]);
+            }
           } else {
             setSelectedTalla('');
           }
@@ -341,6 +355,10 @@ const SouvenirPublico = () => {
     }
     if (producto.tiene_tallas && !selectedTalla) {
       notify("Talla requerida", "Por favor selecciona una talla antes de continuar", "warning");
+      return;
+    }
+    if (isAgotado || stockDisponible < cantidad) {
+      notify("Stock no disponible", `Solo quedan ${stockDisponible} unidades disponibles en la talla seleccionada.`, "warning");
       return;
     }
     setPurchaseCompleted(false);
@@ -413,7 +431,25 @@ const SouvenirPublico = () => {
     );
   }
 
-  const stockDisponible = producto.stock || 0;
+  const tallasStockObj = React.useMemo(() => {
+    if (!producto?.tiene_tallas || !producto?.tallas_stock) return null;
+    try {
+      return typeof producto.tallas_stock === 'object' 
+        ? producto.tallas_stock 
+        : JSON.parse(producto.tallas_stock);
+    } catch {
+      return null;
+    }
+  }, [producto?.tiene_tallas, producto?.tallas_stock]);
+
+  const stockDisponible = React.useMemo(() => {
+    if (!producto) return 0;
+    if (producto.tiene_tallas && tallasStockObj && selectedTalla) {
+      return Number(tallasStockObj[selectedTalla] ?? 0);
+    }
+    return Number(producto.stock || 0);
+  }, [producto, tallasStockObj, selectedTalla]);
+
   const isAgotado = stockDisponible <= 0;
   const subtotal = (Number(producto.precio) * cantidad).toFixed(2);
   const imagenUrl = producto.imagen_url ? resolveApiFileUrl(producto.imagen_url) : DEFAULT_SOUVENIR_IMG;
@@ -527,58 +563,104 @@ const SouvenirPublico = () => {
               </Badge>
             </div>
 
-            {/* Selector de Tallas si aplica */}
+            {/* Selector de Tallas con Inventario */}
             {producto.tiene_tallas && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '13px', fontWeight: 'bold' }}>
-                    Selecciona tu Talla:
+                    👕 Selecciona tu Talla:
                   </span>
                   {selectedTalla && (
                     <Badge appearance="filled" color="brand">
-                      Talla {selectedTalla}
+                      Talla {selectedTalla} ({stockDisponible > 0 ? `${stockDisponible} disponibles` : 'Agotado'})
                     </Badge>
                   )}
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {(producto.tallas_disponibles || 'S, M, L, XL')
-                    .split(',')
-                    .map(t => t.trim())
-                    .filter(Boolean)
-                    .map(talla => {
+                  {tallasStockObj ? (
+                    Object.entries(tallasStockObj).map(([talla, cant]) => {
+                      const countNum = Number(cant) || 0;
+                      const agotado = countNum <= 0;
                       const isSelected = selectedTalla === talla;
                       return (
                         <button
                           key={talla}
                           type="button"
-                          onClick={() => setSelectedTalla(talla)}
+                          disabled={agotado}
+                          onClick={() => {
+                            setSelectedTalla(talla);
+                            setCantidad(1);
+                          }}
                           style={{
-                            minWidth: '46px',
-                            height: '38px',
-                            padding: '0 12px',
+                            minWidth: '60px',
+                            padding: '6px 12px',
                             borderRadius: '10px',
                             border: isSelected
                               ? `2px solid ${tokens.colorBrandStroke1}`
-                              : `1px solid ${tokens.colorNeutralStroke1}`,
+                              : (agotado ? '1px dashed rgba(255,255,255,0.2)' : `1px solid ${tokens.colorNeutralStroke1}`),
                             backgroundColor: isSelected
                               ? tokens.colorBrandBackground
-                              : tokens.colorNeutralBackground1,
+                              : (agotado ? 'rgba(255,255,255,0.02)' : tokens.colorNeutralBackground1),
                             color: isSelected
                               ? tokens.colorNeutralForegroundOnBrand
-                              : tokens.colorNeutralForeground1,
-                            fontWeight: 'bold',
-                            fontSize: '13px',
-                            cursor: 'pointer',
+                              : (agotado ? 'rgba(255,255,255,0.4)' : tokens.colorNeutralForeground1),
+                            cursor: agotado ? 'not-allowed' : 'pointer',
+                            opacity: agotado ? 0.45 : 1,
                             transition: 'all 0.15s ease',
                             display: 'flex',
+                            flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
+                            gap: '2px'
                           }}
                         >
-                          {talla}
+                          <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{talla}</span>
+                          <span style={{ fontSize: '10px', color: agotado ? '#ff6b6b' : (countNum <= 2 ? '#fbc02d' : 'inherit') }}>
+                            {agotado ? 'Agotado' : `${countNum} disp.`}
+                          </span>
                         </button>
                       );
-                    })}
+                    })
+                  ) : (
+                    (producto.tallas_disponibles || 'S, M, L, XL')
+                      .split(',')
+                      .map(t => t.trim())
+                      .filter(Boolean)
+                      .map(talla => {
+                        const isSelected = selectedTalla === talla;
+                        return (
+                          <button
+                            key={talla}
+                            type="button"
+                            onClick={() => setSelectedTalla(talla)}
+                            style={{
+                              minWidth: '46px',
+                              height: '38px',
+                              padding: '0 12px',
+                              borderRadius: '10px',
+                              border: isSelected
+                                ? `2px solid ${tokens.colorBrandStroke1}`
+                                : `1px solid ${tokens.colorNeutralStroke1}`,
+                              backgroundColor: isSelected
+                                ? tokens.colorBrandBackground
+                                : tokens.colorNeutralBackground1,
+                              color: isSelected
+                                ? tokens.colorNeutralForegroundOnBrand
+                                : tokens.colorNeutralForeground1,
+                              fontWeight: 'bold',
+                              fontSize: '13px',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            {talla}
+                          </button>
+                        );
+                      })
+                  )}
                 </div>
               </div>
             )}

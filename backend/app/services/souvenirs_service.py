@@ -24,6 +24,18 @@ def create_producto(db: Session, data: dict, user_id: int):
     elif 'activo' in data and data['activo'] is not None:
         data['id_estado'] = 2 if data['activo'] else 1
 
+    # Sincronizar stock total a partir de tallas_stock si aplica
+    if data.get('tiene_tallas') and data.get('tallas_stock'):
+        try:
+            import json
+            ts = json.loads(data['tallas_stock']) if isinstance(data['tallas_stock'], str) else data['tallas_stock']
+            if isinstance(ts, dict):
+                data['stock'] = sum(int(v) for v in ts.values())
+                if not data.get('tallas_disponibles'):
+                    data['tallas_disponibles'] = ", ".join(ts.keys())
+        except Exception:
+            pass
+
     clean_data = {k: v for k, v in data.items() if hasattr(models.Producto, k)}
     db_obj = models.Producto(**clean_data)
     db.add(db_obj)
@@ -50,6 +62,18 @@ def update_producto(db: Session, id_producto: int, data: dict, user_id: int):
         data['activo'] = (data['id_estado'] == 2)
     elif 'activo' in data and data['activo'] is not None:
         data['id_estado'] = 2 if data['activo'] else 1
+
+    # Sincronizar stock total a partir de tallas_stock si aplica
+    if data.get('tiene_tallas', getattr(db_obj, 'tiene_tallas', False)) and 'tallas_stock' in data:
+        try:
+            import json
+            ts = json.loads(data['tallas_stock']) if isinstance(data['tallas_stock'], str) else data['tallas_stock']
+            if isinstance(ts, dict):
+                data['stock'] = sum(int(v) for v in ts.values())
+                if 'tallas_disponibles' not in data or not data['tallas_disponibles']:
+                    data['tallas_disponibles'] = ", ".join(ts.keys())
+        except Exception:
+            pass
 
     valor_anterior = {k: getattr(db_obj, k) for k in data.keys() if hasattr(db_obj, k)}
     
@@ -166,17 +190,35 @@ def create_pedido(
         if not prod:
             raise HTTPException(status_code=404, detail=f"Producto {item['id_producto']} no encontrado")
         
-        if prod.stock < item["cantidad"] and metodo_pago not in ("CORTESIA", "CORRECCION", "AJUSTE"):
-            raise HTTPException(status_code=400, detail=f"Stock insuficiente para {prod.nombre} (disponible: {prod.stock})")
-        
-        # Descontar stock automáticamente en base de datos (sin dejarlo negativo si es cortesía/ajuste)
-        prod.stock = max(0, prod.stock - item["cantidad"])
+        talla_item = (item.get("talla") or "").strip() if item.get("talla") else None
+
+        # Descontar stock por talla si el producto tiene control de inventario de tallas
+        if prod.tiene_tallas and talla_item and prod.tallas_stock:
+            try:
+                import json
+                tallas_dict = json.loads(prod.tallas_stock) if isinstance(prod.tallas_stock, str) else (prod.tallas_stock or {})
+                cant_disponible = int(tallas_dict.get(talla_item, 0))
+                if cant_disponible < item["cantidad"] and metodo_pago not in ("CORTESIA", "CORRECCION", "AJUSTE"):
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Stock insuficiente para la talla '{talla_item}' de {prod.nombre} (disponible: {cant_disponible})"
+                    )
+                tallas_dict[talla_item] = max(0, cant_disponible - item["cantidad"])
+                prod.tallas_stock = json.dumps(tallas_dict)
+                prod.stock = max(0, sum(int(v) for v in tallas_dict.values()))
+            except (json.JSONDecodeError, ValueError):
+                if prod.stock < item["cantidad"] and metodo_pago not in ("CORTESIA", "CORRECCION", "AJUSTE"):
+                    raise HTTPException(status_code=400, detail=f"Stock insuficiente para {prod.nombre} (disponible: {prod.stock})")
+                prod.stock = max(0, prod.stock - item["cantidad"])
+        else:
+            if prod.stock < item["cantidad"] and metodo_pago not in ("CORTESIA", "CORRECCION", "AJUSTE"):
+                raise HTTPException(status_code=400, detail=f"Stock insuficiente para {prod.nombre} (disponible: {prod.stock})")
+            prod.stock = max(0, prod.stock - item["cantidad"])
         
         precio_unitario = prod.precio
         subtotal = precio_unitario * item["cantidad"]
         total += subtotal
         
-        talla_item = item.get("talla")
         detalles_db.append(models.PedidoDetalle(
             id_producto=prod.id_producto,
             cantidad=item["cantidad"],
