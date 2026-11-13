@@ -23,6 +23,7 @@ import { getEventoCoverByContext, getEventoCoverVariants } from '../utils/evento
 import eventoService from '../services/eventoService';
 import InscripcionEventoModal from '../components/InscripcionEventoModal';
 import { useNotify } from '../App';
+import { stripHtml, hasHtmlTags } from '../utils/textUtils';
 
 const DEFAULT_EVENT_IMG = "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop";
 
@@ -308,9 +309,12 @@ const EventsMaster = () => {
                         {event.titulo}
                       </MEHTypography>
                       <MEHTypography className={styles.eventDescription}>
-                        {event.descripcion && event.descripcion.length > 120 
-                          ? `${event.descripcion.substring(0, 120)}...` 
-                          : event.descripcion}
+                        {(() => {
+                          const cleanDesc = stripHtml(event.descripcion);
+                          return cleanDesc && cleanDesc.length > 120 
+                            ? `${cleanDesc.substring(0, 120)}...` 
+                            : cleanDesc;
+                        })()}
                       </MEHTypography>
                       <div style={{ flexGrow: 1 }} />
                       <div 
@@ -426,9 +430,23 @@ const EventsMaster = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <MEHTypography variant="caption" style={{ fontWeight: 'bold', opacity: 0.7 }}>Descripción:</MEHTypography>
-                <MEHTypography variant="body" style={{ opacity: 0.9, whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
-                  {selectedEventForDetails?.descripcion || 'Sin descripción disponible.'}
-                </MEHTypography>
+                {selectedEventForDetails?.descripcion ? (
+                  hasHtmlTags(selectedEventForDetails.descripcion) ? (
+                    <div 
+                      className="ql-editor"
+                      style={{ padding: 0, opacity: 0.9, lineHeight: '1.5', fontSize: '14px', color: tokens.colorNeutralForeground1 }}
+                      dangerouslySetInnerHTML={{ __html: selectedEventForDetails.descripcion }}
+                    />
+                  ) : (
+                    <MEHTypography variant="body" style={{ opacity: 0.9, whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
+                      {selectedEventForDetails.descripcion}
+                    </MEHTypography>
+                  )
+                ) : (
+                  <MEHTypography variant="body" style={{ opacity: 0.9 }}>
+                    Sin descripción disponible.
+                  </MEHTypography>
+                )}
               </div>
 
               {selectedEventForDetails?.ubicacion && (

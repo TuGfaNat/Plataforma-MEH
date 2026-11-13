@@ -38,6 +38,7 @@ import { useAuth, useNotify, useTheme } from '../App';
 import eventoService from '../services/eventoService';
 import pagoService from '../services/pagoService';
 import { resolveApiFileUrl } from '../services/api';
+import { hasHtmlTags } from '../utils/textUtils';
 import { getEventoCoverVariants } from '../utils/eventoImagen';
 import { designTokens } from '../theme/theme';
 import BadgeSocialModal from '../components/BadgeSocialModal';
@@ -754,9 +755,23 @@ const EventoPublico = () => {
                 {/* Descripción Completa (Sin truncar) */}
                 <div className={styles.infoSection}>
                   <MEHTypography variant="h3">Acerca de este evento</MEHTypography>
-                  <MEHTypography className={styles.descriptionText}>
-                    {evento.descripcion || "Participa en este evento exclusivo organizado por la comunidad tecnológica de Microsoft Education Hub."}
-                  </MEHTypography>
+                  {evento.descripcion ? (
+                    hasHtmlTags(evento.descripcion) ? (
+                      <div 
+                        className={`ql-editor ${styles.descriptionText}`}
+                        style={{ padding: 0 }}
+                        dangerouslySetInnerHTML={{ __html: evento.descripcion }}
+                      />
+                    ) : (
+                      <MEHTypography className={styles.descriptionText}>
+                        {evento.descripcion}
+                      </MEHTypography>
+                    )
+                  ) : (
+                    <MEHTypography className={styles.descriptionText}>
+                      Participa en este evento exclusivo organizado por la comunidad tecnológica de Microsoft Education Hub.
+                    </MEHTypography>
+                  )}
                 </div>
 
                 {/* Incluidos y Entregables */}

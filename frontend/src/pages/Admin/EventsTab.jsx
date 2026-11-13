@@ -18,6 +18,8 @@ import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
 import eventoService from '../../services/eventoService';
 import { useNotify } from '../../App';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import AcreditacionPanel from './AcreditacionPanel';
 import BadgeSocialModal from '../../components/BadgeSocialModal';
 import CheckpointPermisosPanel from '../../components/CheckpointPermisosPanel';
@@ -25,6 +27,16 @@ import EventoPortadaUploader from '../../components/EventoPortadaUploader';
 import EmailDryRunModal from '../../components/EmailDryRunModal';
 import VentaSouvenirModal from '../../components/VentaSouvenirModal';
 import HistorialVentasSouvenirsModal from '../../components/HistorialVentasSouvenirsModal';
+
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    ['blockquote', 'code-block'],
+    ['link', 'clean'],
+  ],
+};
 
 const useStyles = makeStyles({
   grid: { 
@@ -170,6 +182,62 @@ const useStyles = makeStyles({
     flexWrap: 'wrap',
     gap: '8px',
     marginTop: '8px'
+  },
+  quillWrapper: { 
+    width: '100%',
+    boxSizing: 'border-box',
+    marginTop: '4px',
+    '& .ql-toolbar': { 
+      backgroundColor: tokens.colorNeutralBackground3, 
+      ...shorthands.borderColor(tokens.colorNeutralStroke1), 
+      ...shorthands.borderRadius('12px', '12px', '0', '0'),
+      '& .ql-stroke': {
+        stroke: tokens.colorNeutralForeground1,
+      },
+      '& .ql-fill': {
+        fill: tokens.colorNeutralForeground1,
+      },
+      '& .ql-picker': {
+        color: tokens.colorNeutralForeground1,
+      },
+      '& button:hover .ql-stroke, & .ql-picker:hover .ql-stroke': {
+        stroke: tokens.colorBrandForeground1,
+      },
+      '& button:hover .ql-fill, & .ql-picker:hover .ql-fill': {
+        fill: tokens.colorBrandForeground1,
+      },
+      '& button.ql-active .ql-stroke': {
+        stroke: tokens.colorBrandForeground1,
+      },
+      '& button.ql-active .ql-fill': {
+        fill: tokens.colorBrandForeground1,
+      }
+    }, 
+    '& .ql-container': { 
+      ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1), 
+      ...shorthands.borderRadius('0', '0', '12px', '12px'), 
+      minHeight: '170px', 
+      backgroundColor: tokens.colorNeutralBackground1,
+      color: tokens.colorNeutralForeground1,
+      fontSize: '14px',
+      fontFamily: 'inherit',
+      '& .ql-editor': {
+        minHeight: '140px',
+        color: `${tokens.colorNeutralForeground1} !important`,
+        lineHeight: '1.6',
+        fontSize: '14px',
+      },
+      '& .ql-editor p, & .ql-editor span, & .ql-editor li, & .ql-editor strong, & .ql-editor em, & .ql-editor h1, & .ql-editor h2, & .ql-editor h3, & .ql-editor h4, & .ql-editor h5, & .ql-editor h6': {
+        color: `${tokens.colorNeutralForeground1} !important`,
+      },
+      '& .ql-editor a, & .ql-editor a *': {
+        color: `${tokens.colorBrandForeground1} !important`,
+      },
+      '& .ql-editor.ql-blank::before': {
+        color: `${tokens.colorNeutralForeground3} !important`,
+        fontStyle: 'normal',
+      }
+    }
   }
 });
 
@@ -712,8 +780,10 @@ const EventsTab = ({
 
   const onSave = () => {
     if (validateForm()) {
+      const cleanDesc = (newEvento.descripcion === '<p><br></p>') ? '' : (newEvento.descripcion || '');
       handleSaveEvento({
         ...newEvento,
+        descripcion: cleanDesc,
         agenda: JSON.stringify(agenda),
         id_speakers: selectedSpeakers
       });
@@ -801,8 +871,16 @@ const EventsTab = ({
               <Input value={newEvento.titulo} onChange={(e, d) => setNewEvento({...newEvento, titulo: d.value})} />
             </Field>
 
-            <Field label={t("admin_description")}>
-              <Textarea rows={3} value={newEvento.descripcion} onChange={(e, d) => setNewEvento({...newEvento, descripcion: d.value})} placeholder={t("admin_event_description_placeholder")} />
+            <Field label={t("admin_description") || "Descripción del Evento"}>
+              <div className={styles.quillWrapper}>
+                <ReactQuill
+                  theme="snow"
+                  value={newEvento.descripcion || ''}
+                  onChange={(val) => setNewEvento({ ...newEvento, descripcion: val })}
+                  modules={quillModules}
+                  placeholder={t("admin_event_description_placeholder") || "Escribe los detalles, agenda y notas del evento..."}
+                />
+              </div>
             </Field>
 
             <div className={styles.formTwoCol}>
@@ -1053,6 +1131,26 @@ const EventsTab = ({
                   {currentEvent.incluidos && currentEvent.incluidos.split(',').map(s => s.trim()).filter(Boolean).map((item, idx) => (
                     <Badge key={idx} appearance="outline" color="brand">{item}</Badge>
                   ))}
+                </div>
+              )}
+
+              {/* Descripción del Evento */}
+              {currentEvent.descripcion && (
+                <div style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  marginTop: '4px'
+                }}>
+                  <MEHTypography variant="caption" style={{ fontWeight: 'bold', opacity: 0.75, display: 'block', marginBottom: '4px' }}>
+                    📝 Descripción del Evento:
+                  </MEHTypography>
+                  <div
+                    className="ql-editor"
+                    style={{ padding: 0, fontSize: '14px', lineHeight: '1.6', opacity: 0.9, color: tokens.colorNeutralForeground1 }}
+                    dangerouslySetInnerHTML={{ __html: currentEvent.descripcion }}
+                  />
                 </div>
               )}
 

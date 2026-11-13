@@ -14,6 +14,7 @@ import { MEHButton, MEHCard, MEHTypography } from "../components/ui";
 import eventoService from "../services/eventoService";
 import cursoService from "../services/cursoService";
 import { getEventoCoverByContext } from "../utils/eventoImagen";
+import { stripHtml } from "../utils/textUtils";
 
 import {
   CalendarStar24Regular,
@@ -502,9 +503,12 @@ const Landing = () => {
                         lineHeight: "1.6",
                       }}
                     >
-                      {evento.descripcion
-                        ? evento.descripcion.substring(0, 100) + "..."
-                        : "Aprende las últimas tecnologías de Microsoft con expertos."}
+                      {(() => {
+                        const clean = stripHtml(evento.descripcion);
+                        return clean
+                          ? (clean.length > 100 ? clean.substring(0, 100) + "..." : clean)
+                          : "Aprende las últimas tecnologías de Microsoft con expertos.";
+                      })()}
                     </MEHTypography>
                     <MEHButton
                       appearance="primary"
