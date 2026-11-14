@@ -2305,25 +2305,6 @@ const EventsTab = ({
                 />
               </div>
             </div>
-
-            {currentEvent.agenda && (
-                <div className={styles.infoCard} style={{ backgroundColor: tokens.colorNeutralBackground2 }}>
-                    <MEHTypography variant="h3">{t("agenda")}</MEHTypography>
-                    {JSON.parse(currentEvent.agenda).map((item, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', padding: '8px 0', borderBottom: `1px solid ${tokens.colorNeutralBackground3}` }}>
-                            <b style={{ minWidth: '60px', color: tokens.colorBrandForeground1 }}>{item.hora}</b>
-                            <div style={{ flexGrow: 1, minWidth: 0 }}>
-                                <MEHTypography variant="body"><b>{item.actividad}</b></MEHTypography>
-                                {item.id_speaker && (
-                                    <MEHTypography variant="caption" style={{ opacity: 0.7 }}>
-                                        {t("admin_with_speaker")}: {speakersList.find(s => s.id_speaker == item.id_speaker)?.nombre}
-                                    </MEHTypography>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
           </div>
         ) : (
           <div style={{textAlign: 'center', padding: '64px 24px', opacity: 0.5}}>
