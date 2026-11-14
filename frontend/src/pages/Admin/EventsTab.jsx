@@ -972,24 +972,10 @@ const EventsTab = ({
       handleSaveEvento({
         ...newEvento,
         descripcion: cleanDesc,
-        agenda: JSON.stringify(agenda),
+        agenda: isEditingEvento ? (currentEvent?.agenda ?? (agenda.length > 0 ? JSON.stringify(agenda) : null)) : (agenda.length > 0 ? JSON.stringify(agenda) : null),
         id_speakers: selectedSpeakers
       });
     }
-  };
-
-  const addAgendaItem = () => {
-    setAgenda([...agenda, { hora: '18:00', actividad: '', id_speaker: null }]);
-  };
-
-  const removeAgendaItem = (index) => {
-    setAgenda(agenda.filter((_, i) => i !== index));
-  };
-
-  const updateAgendaItem = (index, field, value) => {
-    const updated = [...agenda];
-    updated[index][field] = value;
-    setAgenda(updated);
   };
 
   const toggleSpeaker = (id) => {
@@ -1152,22 +1138,34 @@ const EventsTab = ({
               ))}
             </div>
 
-            <Divider>{t("admin_event_agenda")}</Divider>
-            <div>
-              {agenda.map((item, idx) => (
-                <div key={idx} className={styles.agendaItem}>
-                  <Input type="time" value={item.hora} onChange={(e, d) => updateAgendaItem(idx, 'hora', d.value)} style={{ width: '110px' }} />
-                  <Input value={item.actividad} onChange={(e, d) => updateAgendaItem(idx, 'actividad', d.value)} placeholder={t("admin_activity_placeholder")} style={{ flexGrow: 1, minWidth: '150px' }} />
-                  <Select value={item.id_speaker || ''} onChange={(e) => updateAgendaItem(idx, 'id_speaker', e.target.value)} style={{ minWidth: '150px' }}>
-                    <option value="">{t("admin_no_speaker")}</option>
-                    {speakersList.filter(s => selectedSpeakers.includes(s.id_speaker)).map(s => (
-                      <option key={s.id_speaker} value={s.id_speaker}>{s.nombre}</option>
-                    ))}
-                  </Select>
-                  <Button icon={<Dismiss24Regular />} appearance="subtle" onClick={() => removeAgendaItem(idx)} />
-                </div>
-              ))}
-              <MEHButton icon={<Add24Regular />} appearance="subtle" onClick={addAgendaItem}>{t("admin_add_agenda_block")}</MEHButton>
+            <div style={{
+              margin: '14px 0',
+              padding: '12px 16px',
+              backgroundColor: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CalendarLtr24Regular style={{ color: tokens.colorBrandForeground1, fontSize: '18px' }} />
+                <span style={{ fontSize: '13px', opacity: 0.9 }}>
+                  <b>Agenda y Cronograma:</b> Se administra desde la sección interactiva del evento (con presets automáticos, horarios y ponentes).
+                </span>
+              </div>
+              {isEditingEvento && currentEvent && (
+                <Button 
+                  size="small" 
+                  appearance="outline" 
+                  icon={<Edit24Regular />} 
+                  onClick={() => handleOpenAgendaModal(currentEvent)}
+                >
+                  Configurar Cronograma
+                </Button>
+              )}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1362,15 +1360,6 @@ const EventsTab = ({
                   </MEHButton>
                   <MEHButton size="small" icon={<Megaphone24Regular />} appearance="outline" onClick={() => setIsAvisarModalOpen(true)}>
                     Avisar inscritos
-                  </MEHButton>
-                  <MEHButton 
-                    size="small" 
-                    icon={<CalendarLtr24Regular />} 
-                    appearance="outline" 
-                    onClick={() => handleOpenAgendaModal(currentEvent)}
-                    title="Configurar y gestionar la agenda o cronograma de este evento"
-                  >
-                    📅 Agenda / Cronograma
                   </MEHButton>
                   <MEHButton 
                     size="small" 
