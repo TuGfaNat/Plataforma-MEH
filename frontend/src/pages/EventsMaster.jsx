@@ -418,9 +418,6 @@ const EventsMaster = () => {
                 {selectedEventForDetails?.refrigerio_incluido && (
                   <Badge color="success" appearance="tint">🍪 Refrigerio Incluido</Badge>
                 )}
-                {selectedEventForDetails?.incluidos && selectedEventForDetails.incluidos.split(',').map(s => s.trim()).filter(Boolean).map((item, idx) => (
-                  <Badge key={idx} color="brand" appearance="tint">🎁 {item}</Badge>
-                ))}
                 {(selectedEventForDetails?.capacidad_maxima || selectedEventForDetails?.capacidad_max) && (
                   <Badge color="informative" appearance="outline">
                     👥 Cupos: {selectedEventForDetails.cupos_ocupados || 0} / {selectedEventForDetails.capacidad_maxima || selectedEventForDetails.capacidad_max}

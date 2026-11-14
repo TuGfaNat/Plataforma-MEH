@@ -24,7 +24,6 @@ import {
   Share24Regular, 
   CheckmarkCircle24Filled, 
   ArrowLeft24Regular,
-  Gift24Regular,
   Mic24Regular,
   Link24Regular,
   Translate24Regular,
@@ -468,25 +467,6 @@ const EventoPublico = () => {
     : Math.max(0, cuposMax - cuposOcupados);
   const isSoldOut = cuposDisponibles <= 0;
 
-  // Entrega de incluidos
-  const parseIncluidos = () => {
-    const list = [];
-    if (evento?.refrigerio_incluido) list.push("Refrigerio / Coffee Break");
-    if (evento?.incluidos) {
-      if (typeof evento.incluidos === 'string') {
-        evento.incluidos.split(',').map(s => s.trim()).filter(Boolean).forEach(p => {
-          if (!list.includes(p)) list.push(p);
-        });
-      } else if (Array.isArray(evento.incluidos)) {
-        evento.incluidos.forEach(p => {
-          if (p && !list.includes(p)) list.push(p);
-        });
-      }
-    }
-    return list;
-  };
-  const incluidosList = parseIncluidos();
-
   // Parse de agenda JSON si existe
   let agendaItems = [];
   if (evento?.agenda) {
@@ -775,22 +755,6 @@ const EventoPublico = () => {
                     </MEHTypography>
                   )}
                 </div>
-
-                {/* Incluidos y Entregables */}
-                {incluidosList.length > 0 && (
-                  <div className={styles.infoSection}>
-                    <MEHTypography variant="h3" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Gift24Regular style={{ color: tokens.colorBrandForeground1 }} /> {t("event_included_perks")}
-                    </MEHTypography>
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '6px' }}>
-                      {incluidosList.map((item, idx) => (
-                        <Badge key={`perk-${item}-${idx}`} color="brand" appearance="tint" size="large" style={{ padding: '8px 14px' }}>
-                          🎁 {item}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* Ponentes / Speakers */}
                 {evento.speakers && evento.speakers.length > 0 && (
