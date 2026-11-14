@@ -159,6 +159,12 @@ def create_evento(
     if cap_maxima is not None:
         data["capacidad_max"] = cap_maxima
 
+    # Serializar agenda si viene como lista o diccionario
+    if "agenda" in data and data["agenda"] is not None:
+        if isinstance(data["agenda"], (list, dict)):
+            import json
+            data["agenda"] = json.dumps(data["agenda"])
+
     # Generar token_qr del evento al crearlo
     token_qr = f"EVENTO_{uuid.uuid4().hex[:12].upper()}"
 
@@ -280,6 +286,12 @@ def update_evento(
     auto_aprobar_espera = update_data.pop("auto_aprobar_espera", False)
     if cap_maxima is not None:
         update_data["capacidad_max"] = cap_maxima
+
+    # Serializar agenda si viene como lista o diccionario
+    if "agenda" in update_data and update_data["agenda"] is not None:
+        if isinstance(update_data["agenda"], (list, dict)):
+            import json
+            update_data["agenda"] = json.dumps(update_data["agenda"])
 
     for key, value in update_data.items():
         setattr(db_evento, key, value)

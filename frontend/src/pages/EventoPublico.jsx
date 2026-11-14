@@ -821,19 +821,31 @@ const EventoPublico = () => {
                   <div className={styles.infoSection}>
                     <MEHTypography variant="h3">{t("event_schedule")}</MEHTypography>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {agendaItems.map((item, idx) => (
-                        <div key={`agenda-${item.hora || idx}-${item.titulo || item.title || idx}`} className={styles.agendaItem}>
-                          <div style={{ fontWeight: tokens.fontWeightBold, color: tokens.colorBrandForeground1, minWidth: '80px' }}>
-                            {item.hora || item.time || `Bloque ${idx + 1}`}
+                      {agendaItems.map((item, idx) => {
+                        const spk = evento.speakers?.find(s => s.id_speaker == item.id_speaker);
+                        return (
+                          <div key={`agenda-${item.hora || idx}-${item.actividad || item.titulo || idx}`} className={styles.agendaItem}>
+                            <div style={{ fontWeight: tokens.fontWeightBold, color: tokens.colorBrandForeground1, minWidth: '85px', flexShrink: 0 }}>
+                              {item.hora || item.time || `Bloque ${idx + 1}`}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: tokens.fontWeightBold, fontSize: '1.05rem' }}>
+                                {item.actividad || item.titulo || item.title || item.tema || "Actividad programada"}
+                              </div>
+                              {item.descripcion && (
+                                <div style={{ opacity: 0.8, fontSize: '0.9rem', marginTop: '3px' }}>{item.descripcion}</div>
+                              )}
+                              {spk && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                                  <Badge appearance="tint" color="informative" size="small">
+                                    👤 {spk.nombre} {spk.especialidad ? `• ${spk.especialidad}` : ''}
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <div style={{ fontWeight: tokens.fontWeightBold }}>{item.titulo || item.title || item.tema}</div>
-                            {item.descripcion && (
-                              <div style={{ opacity: 0.7, fontSize: '0.9rem', marginTop: '2px' }}>{item.descripcion}</div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}

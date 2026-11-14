@@ -485,6 +485,31 @@ const EventsMaster = () => {
                   </div>
                 </div>
               )}
+
+              {/* Agenda / Cronograma en vista de detalles */}
+              {selectedEventForDetails?.agenda && (() => {
+                let items = [];
+                try {
+                  items = typeof selectedEventForDetails.agenda === 'string' ? JSON.parse(selectedEventForDetails.agenda) : selectedEventForDetails.agenda;
+                } catch { items = []; }
+                if (!Array.isArray(items) || items.length === 0) return null;
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                    <MEHTypography variant="caption" style={{ fontWeight: 'bold', opacity: 0.7 }}>📅 Cronograma del Evento:</MEHTypography>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {items.map((it, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '6px 10px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '8px' }}>
+                          <span style={{ fontWeight: 'bold', color: tokens.colorBrandForeground1, minWidth: '60px', fontSize: '13px' }}>{it.hora}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600 }}>{it.actividad || it.titulo || it.title || it.tema}</div>
+                            {it.descripcion && <div style={{ fontSize: '11px', opacity: 0.75 }}>{it.descripcion}</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </DialogContent>
             <DialogActions style={{ gap: '12px' }}>
               {selectedEventForDetails && isEventActive(selectedEventForDetails) ? (

@@ -13,7 +13,8 @@ import {
   Clock24Regular, Dismiss24Regular, ReceiptMoney24Filled, ArrowDownload24Regular,
   Megaphone24Regular, DismissCircle24Regular, Share24Regular, Copy24Regular, DocumentTable24Regular,
   Image24Regular, PersonAdd24Regular, ShoppingBag24Regular, ArrowSplit24Regular,
-  Subtract20Regular, Subtract24Regular, Add20Regular, Box24Regular
+  Subtract20Regular, Subtract24Regular, Add20Regular, Box24Regular,
+  ArrowUp24Regular, ArrowDown24Regular
 } from '@fluentui/react-icons';
 import { MEHButton, MEHTypography } from '../../components/ui';
 import api, { resolveApiFileUrl } from '../../services/api';
@@ -392,6 +393,95 @@ const EventsTab = ({
       if (notify) notify("Error", "No se pudo actualizar el stock del paquete.", "error");
       else alert("Error al actualizar el stock del paquete.");
       setStockPaqueteModal(prev => ({ ...prev, saving: false }));
+    }
+  };
+
+  // Estados y funciones para gestión rápida de Agenda / Cronograma
+  const [agendaModal, setAgendaModal] = useState({
+    open: false,
+    evento: null,
+    items: [],
+    saving: false
+  });
+
+  const parseAgendaHelper = (raw) => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const handleOpenAgendaModal = (ev) => {
+    const targetEv = ev || currentEvent;
+    if (!targetEv) return;
+    const parsed = parseAgendaHelper(targetEv.agenda);
+    setAgendaModal({
+      open: true,
+      evento: targetEv,
+      items: parsed.length > 0 ? parsed : [
+        { hora: '09:00', actividad: 'Acreditación y Registro de Asistentes', descripcion: 'Entrega de credenciales, stickers y kits oficiales', id_speaker: null },
+        { hora: '09:30', actividad: 'Bienvenida y Palabras de Apertura', descripcion: 'Presentación del evento y agenda de la jornada', id_speaker: null },
+        { hora: '10:00', actividad: 'Conferencia Principal / Keynote', descripcion: 'Tema central de tecnología e innovación', id_speaker: null },
+        { hora: '12:00', actividad: 'Networking & Coffee Break', descripcion: 'Espacio de refrigerio y conexión entre participantes', id_speaker: null }
+      ],
+      saving: false
+    });
+  };
+
+  const handleAddAgendaBlock = (preset = null) => {
+    const newItem = preset || { hora: '14:00', actividad: '', descripcion: '', id_speaker: null };
+    setAgendaModal(prev => ({
+      ...prev,
+      items: [...prev.items, newItem]
+    }));
+  };
+
+  const handleUpdateAgendaBlock = (idx, field, value) => {
+    setAgendaModal(prev => {
+      const copy = [...prev.items];
+      copy[idx] = { ...copy[idx], [field]: value };
+      return { ...prev, items: copy };
+    });
+  };
+
+  const handleRemoveAgendaBlock = (idx) => {
+    setAgendaModal(prev => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== idx)
+    }));
+  };
+
+  const handleMoveAgendaBlock = (idx, direction) => {
+    setAgendaModal(prev => {
+      const copy = [...prev.items];
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= copy.length) return prev;
+      const temp = copy[idx];
+      copy[idx] = copy[targetIdx];
+      copy[targetIdx] = temp;
+      return { ...prev, items: copy };
+    });
+  };
+
+  const handleSaveAgendaModal = async () => {
+    if (!agendaModal.evento) return;
+    setAgendaModal(prev => ({ ...prev, saving: true }));
+    try {
+      const cleanItems = agendaModal.items.filter(it => (it.actividad || it.titulo || '').trim() || it.hora);
+      await api.put(`/eventos/${agendaModal.evento.id_evento}`, {
+        agenda: JSON.stringify(cleanItems)
+      });
+      notify("Agenda Actualizada", "El cronograma del evento ha sido guardado con éxito.", "success");
+      setAgendaModal(prev => ({ ...prev, open: false, saving: false }));
+      if (fetchData) await fetchData();
+    } catch (err) {
+      console.error("Error al guardar agenda:", err);
+      notify("Error", "No se pudo guardar la agenda del evento.", "error");
+      setAgendaModal(prev => ({ ...prev, saving: false }));
     }
   };
 
@@ -1275,6 +1365,15 @@ const EventsTab = ({
                   </MEHButton>
                   <MEHButton 
                     size="small" 
+                    icon={<CalendarLtr24Regular />} 
+                    appearance="outline" 
+                    onClick={() => handleOpenAgendaModal(currentEvent)}
+                    title="Configurar y gestionar la agenda o cronograma de este evento"
+                  >
+                    📅 Agenda / Cronograma
+                  </MEHButton>
+                  <MEHButton 
+                    size="small" 
                     icon={<Share24Regular />} 
                     appearance="outline" 
                     onClick={() => setIsBadgeModalOpen(true)}
@@ -1345,6 +1444,97 @@ const EventsTab = ({
                   />
                 </div>
               </div>
+
+              {/* SECCIÓN DESTACADA: Agenda y Cronograma del Evento */}
+              {(() => {
+                const currentAgendaList = parseAgendaHelper(currentEvent.agenda);
+                return (
+                  <div style={{
+                    marginTop: '14px',
+                    padding: '14px 16px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderRadius: '12px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: currentAgendaList.length > 0 ? '10px' : '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <CalendarLtr24Regular style={{ color: tokens.colorBrandForeground1, fontSize: '20px' }} />
+                        <MEHTypography variant="body" style={{ fontWeight: 'bold' }}>
+                          📅 Agenda y Cronograma del Evento
+                        </MEHTypography>
+                        <Badge size="small" appearance="tint" color={currentAgendaList.length > 0 ? "brand" : "informative"}>
+                          {currentAgendaList.length > 0 ? `${currentAgendaList.length} ${currentAgendaList.length === 1 ? 'bloque' : 'bloques'}` : 'Sin cronograma aún'}
+                        </Badge>
+                      </div>
+                      <Button 
+                        size="small" 
+                        appearance={currentAgendaList.length > 0 ? "outline" : "primary"}
+                        icon={currentAgendaList.length > 0 ? <Edit24Regular /> : <Add24Regular />} 
+                        onClick={() => handleOpenAgendaModal(currentEvent)}
+                      >
+                        {currentAgendaList.length > 0 ? "Editar Cronograma" : "+ Poner Agenda / Cronograma"}
+                      </Button>
+                    </div>
+
+                    {currentAgendaList.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {currentAgendaList.map((item, idx) => {
+                          const spk = speakersList.find(s => s.id_speaker == item.id_speaker);
+                          return (
+                            <div 
+                              key={idx} 
+                              style={{ 
+                                display: 'flex', 
+                                gap: '14px', 
+                                alignItems: 'flex-start',
+                                padding: '10px 14px', 
+                                backgroundColor: tokens.colorNeutralBackground2, 
+                                borderRadius: '10px',
+                                border: `1px solid ${tokens.colorNeutralBackground3}`
+                              }}
+                            >
+                              <div style={{ minWidth: '70px', fontWeight: 'bold', color: tokens.colorBrandForeground1, fontSize: '13px', paddingTop: '1px' }}>
+                                ⏰ {item.hora || `Bloque ${idx + 1}`}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                                  {item.actividad || item.titulo || item.title || item.tema || "Actividad programada"}
+                                </div>
+                                {item.descripcion && (
+                                  <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '2px' }}>
+                                    {item.descripcion}
+                                  </div>
+                                )}
+                                {spk && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                                    <Badge size="small" appearance="tint" color="informative">
+                                      👤 Ponente: {spk.nombre} {spk.especialidad ? `• ${spk.especialidad}` : ''}
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: '12px 14px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '10px' }}>
+                        <div style={{ fontSize: '13px', opacity: 0.85, maxWidth: '600px' }}>
+                          💡 <b>Aún no has definido la agenda:</b> Agrega los horarios de conferencias, talleres, coffee breaks y ponentes para que los inscritos y visitantes puedan ver el cronograma oficial en la web.
+                        </div>
+                        <Button 
+                          size="small" 
+                          appearance="primary" 
+                          icon={<Add24Regular />} 
+                          onClick={() => handleOpenAgendaModal(currentEvent)}
+                        >
+                          + Poner Agenda / Cronograma
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             <div className={styles.twoColResponsive}>
@@ -2592,7 +2782,156 @@ const EventsTab = ({
         </DialogSurface>
       </Dialog>
 
-      {/* Modal Badge Social */}
+            {/* Modal Interactivo de Gestión de Agenda y Cronograma */}
+      <Dialog open={agendaModal.open} onOpenChange={(e, d) => setAgendaModal(prev => ({ ...prev, open: d.open }))}>
+        <DialogSurface style={{ backgroundColor: tokens.colorNeutralBackground1, maxWidth: '680px', width: '94%', borderRadius: '16px' }}>
+          <DialogBody>
+            <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CalendarLtr24Regular style={{ color: tokens.colorBrandForeground1 }} />
+              <span>Gestionar Agenda / Cronograma del Evento</span>
+            </DialogTitle>
+            <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '8px' }}>
+              <div style={{ padding: '10px 12px', backgroundColor: tokens.colorNeutralBackground2, borderRadius: '10px', fontSize: '13px', opacity: 0.9 }}>
+                Configura los bloques horarios del evento. Puedes añadir actividades, conferencias, descansos y asignar ponentes. Los cambios se reflejarán de inmediato en la web pública.
+              </div>
+
+              {/* Botones de Atajos Rápidos */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 'bold', opacity: 0.8 }}>⚡ Agregar bloque rápido sugerido:</span>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  <Button size="small" appearance="subtle" onClick={() => handleAddAgendaBlock({ hora: '08:30', actividad: 'Registro y Acreditación', descripcion: 'Entrega de credenciales y material oficial', id_speaker: null })}>
+                    + Acreditación (08:30)
+                  </Button>
+                  <Button size="small" appearance="subtle" onClick={() => handleAddAgendaBlock({ hora: '09:00', actividad: 'Bienvenida y Apertura Oficial', descripcion: 'Palabras de inicio e inauguración', id_speaker: null })}>
+                    + Apertura (09:00)
+                  </Button>
+                  <Button size="small" appearance="subtle" onClick={() => handleAddAgendaBlock({ hora: '10:00', actividad: 'Conferencia Magistral', descripcion: '', id_speaker: null })}>
+                    + Conferencia (10:00)
+                  </Button>
+                  <Button size="small" appearance="subtle" onClick={() => handleAddAgendaBlock({ hora: '11:30', actividad: 'Coffee Break & Networking', descripcion: 'Espacio de refrigerio y conexión', id_speaker: null })}>
+                    + Coffee Break (11:30)
+                  </Button>
+                  <Button size="small" appearance="subtle" onClick={() => handleAddAgendaBlock({ hora: '14:00', actividad: 'Taller Práctico / Workshop', descripcion: 'Sesión práctica guiada', id_speaker: null })}>
+                    + Taller (14:00)
+                  </Button>
+                  <Button size="small" appearance="subtle" onClick={() => handleAddAgendaBlock({ hora: '17:30', actividad: 'Cierre, Premiación y Despedida', descripcion: 'Conclusiones y sorteos', id_speaker: null })}>
+                    + Cierre (17:30)
+                  </Button>
+                  <Button size="small" appearance="secondary" icon={<Add24Regular />} onClick={() => handleAddAgendaBlock()}>
+                    + Bloque en blanco
+                  </Button>
+                </div>
+              </div>
+
+              {/* Lista de Bloques */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto', paddingRight: '4px' }}>
+                {agendaModal.items.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '24px', opacity: 0.6 }}>
+                    No hay bloques configurados. Usa los botones superiores para añadir actividades al cronograma.
+                  </div>
+                ) : (
+                  agendaModal.items.map((item, idx) => (
+                    <div 
+                      key={idx} 
+                      style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '8px', 
+                        padding: '12px', 
+                        backgroundColor: tokens.colorNeutralBackground2, 
+                        borderRadius: '10px', 
+                        border: `1px solid ${tokens.colorNeutralBackground3}` 
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 'bold', fontSize: '13px', color: tokens.colorBrandForeground1 }}>
+                          Bloque #{idx + 1}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Button 
+                            size="small" 
+                            appearance="subtle" 
+                            icon={<ArrowUp24Regular style={{ fontSize: '14px' }} />} 
+                            disabled={idx === 0} 
+                            onClick={() => handleMoveAgendaBlock(idx, -1)} 
+                            title="Mover arriba" 
+                          />
+                          <Button 
+                            size="small" 
+                            appearance="subtle" 
+                            icon={<ArrowDown24Regular style={{ fontSize: '14px' }} />} 
+                            disabled={idx === agendaModal.items.length - 1} 
+                            onClick={() => handleMoveAgendaBlock(idx, 1)} 
+                            title="Mover abajo" 
+                          />
+                          <Button 
+                            size="small" 
+                            appearance="subtle" 
+                            icon={<Delete24Regular style={{ fontSize: '14px' }} />} 
+                            onClick={() => handleRemoveAgendaBlock(idx)} 
+                            title="Eliminar este bloque"
+                            style={{ color: tokens.colorPaletteRedForeground1 }} 
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Input 
+                          type="time" 
+                          size="small" 
+                          value={item.hora || ''} 
+                          onChange={(e, d) => handleUpdateAgendaBlock(idx, 'hora', d.value)} 
+                          style={{ maxWidth: '120px' }} 
+                        />
+                        <Input 
+                          size="small" 
+                          placeholder="Nombre de la actividad (ej: Keynote de Apertura)" 
+                          value={item.actividad || item.titulo || ''} 
+                          onChange={(e, d) => handleUpdateAgendaBlock(idx, 'actividad', d.value)} 
+                          style={{ flex: 1, minWidth: '200px' }} 
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Input 
+                          size="small" 
+                          placeholder="Descripción o detalle breve (opcional)" 
+                          value={item.descripcion || ''} 
+                          onChange={(e, d) => handleUpdateAgendaBlock(idx, 'descripcion', d.value)} 
+                          style={{ flex: 1, minWidth: '180px' }} 
+                        />
+                        <Select 
+                          size="small" 
+                          value={item.id_speaker || ''} 
+                          onChange={(e) => handleUpdateAgendaBlock(idx, 'id_speaker', e.target.value ? Number(e.target.value) : null)} 
+                          style={{ minWidth: '160px' }}
+                        >
+                          <option value="">Sin ponente específico</option>
+                          {speakersList.map(s => (
+                            <option key={s.id_speaker} value={s.id_speaker}>
+                              👤 {s.nombre}
+                            </option>
+                          ))}
+                        </Select>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </DialogContent>
+            <DialogActions style={{ marginTop: '14px' }}>
+              <Button appearance="secondary" onClick={() => setAgendaModal(prev => ({ ...prev, open: false }))} disabled={agendaModal.saving}>
+                Cancelar
+              </Button>
+              <MEHButton appearance="primary" onClick={handleSaveAgendaModal} disabled={agendaModal.saving}>
+                {agendaModal.saving ? <Spinner size="tiny" /> : '💾 Guardar Cronograma'}
+              </MEHButton>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+{/* Modal Badge Social */}
       <BadgeSocialModal 
         isOpen={isBadgeModalOpen} 
         onClose={() => setIsBadgeModalOpen(false)} 

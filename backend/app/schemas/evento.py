@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, model_validator
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 
 # --- RELACIONES SIMPLES ---
 class SpeakerSimple(BaseModel):
@@ -33,7 +33,7 @@ class EventoBase(BaseModel):
     modalidad: str = "PRESENCIAL"
     ubicacion: Optional[str] = None
     link_mapas: Optional[str] = None
-    agenda: Optional[str] = None # JSON string
+    agenda: Optional[Union[str, List[Dict[str, Any]]]] = None # JSON string or list
     capacidad_max: Optional[int] = 50
     capacidad_maxima: Optional[int] = None
     imagen_url: Optional[str] = None
@@ -58,7 +58,7 @@ class EventoUpdate(BaseModel):
     modalidad: Optional[str] = None
     ubicacion: Optional[str] = None
     link_mapas: Optional[str] = None
-    agenda: Optional[str] = None
+    agenda: Optional[Union[str, List[Dict[str, Any]]]] = None
     estado: Optional[str] = None
     motivo_cancelacion: Optional[str] = None
     capacidad_max: Optional[int] = None

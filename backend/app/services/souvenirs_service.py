@@ -33,6 +33,7 @@ def create_producto(db: Session, data: dict, user_id: int):
                 data['stock'] = sum(int(v) for v in ts.values())
                 if not data.get('tallas_disponibles'):
                     data['tallas_disponibles'] = ", ".join(ts.keys())
+                data['tallas_stock'] = json.dumps(ts)
         except Exception:
             pass
 
@@ -72,6 +73,7 @@ def update_producto(db: Session, id_producto: int, data: dict, user_id: int):
                 data['stock'] = sum(int(v) for v in ts.values())
                 if 'tallas_disponibles' not in data or not data['tallas_disponibles']:
                     data['tallas_disponibles'] = ", ".join(ts.keys())
+                data['tallas_stock'] = json.dumps(ts)
         except Exception:
             pass
 

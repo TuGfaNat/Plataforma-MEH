@@ -297,12 +297,13 @@ const SouvenirsTab = ({
     setStockModal(prev => ({ ...prev, saving: true }));
     try {
       const payload = {
-        stock: stockModal.stock
+        stock: Number(stockModal.stock) || 0
       };
       if (stockModal.tiene_tallas) {
         payload.tiene_tallas = true;
-        payload.tallas_stock = stockModal.tallas_stock;
-        payload.tallas_disponibles = Object.keys(stockModal.tallas_stock).join(', ');
+        const stObj = stockModal.tallas_stock || {};
+        payload.tallas_stock = JSON.stringify(stObj);
+        payload.tallas_disponibles = Object.keys(stObj).join(', ');
       }
       await adminService.updateSouvenir(stockModal.producto.id_producto, payload);
       notify(
@@ -314,7 +315,8 @@ const SouvenirsTab = ({
       if (fetchData) await fetchData();
     } catch (err) {
       console.error("Error al actualizar stock:", err);
-      notify("Error", "No se pudo actualizar el inventario.", "error");
+      const detail = err.response?.data?.detail;
+      notify("Error al actualizar stock", typeof detail === 'string' ? detail : "No se pudo actualizar el inventario.", "error");
       setStockModal(prev => ({ ...prev, saving: false }));
     }
   };

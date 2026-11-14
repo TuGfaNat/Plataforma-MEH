@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 from decimal import Decimal
 
@@ -14,7 +14,7 @@ class ProductoBase(BaseModel):
     qr_url: Optional[str] = None
     tiene_tallas: Optional[bool] = False
     tallas_disponibles: Optional[str] = None
-    tallas_stock: Optional[str] = None
+    tallas_stock: Optional[Union[str, Dict[str, Any]]] = None
     categoria: str = "SOUVENIR"
     id_estado: Optional[int] = 2
     activo: Optional[bool] = True
@@ -32,7 +32,7 @@ class ProductoUpdate(BaseModel):
     qr_url: Optional[str] = None
     tiene_tallas: Optional[bool] = None
     tallas_disponibles: Optional[str] = None
-    tallas_stock: Optional[str] = None
+    tallas_stock: Optional[Union[str, Dict[str, Any]]] = None
     categoria: Optional[str] = None
     id_estado: Optional[int] = None
     activo: Optional[bool] = None
